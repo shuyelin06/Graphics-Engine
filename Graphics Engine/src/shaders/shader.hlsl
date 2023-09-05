@@ -1,3 +1,9 @@
+cbuffer VS_CONSTANT_BUFFER : register(b0)
+{
+    float3 color;
+    float padding;
+}
+
 /* Vertex Shader Input */
 struct VS_IN {
 	float3 position_local : POSITION; // POSITION Semantic
@@ -25,18 +31,20 @@ VS_OUT vs_main(VS_IN input) {
 	
 	// Set Normal
 	output.position = input.position_local;
-
+	
 	return output;
 }
 
 // Pixel Shader Entry Point
 // Takes clipping coordinates, and returns a color
-float4 ps_main(VS_OUT input) : SV_TARGET{
+float4 ps_main(VS_OUT input) : SV_TARGET {
 	// input.position = normalize(input.position);
 	float3 normal = float3(0.0, 0.0, 1.0);
 
 	float d = 1 / (1 + length(input.position) * length(input.position));
 
-	return float4(d * 1.0, d * 1.0, d * 1.0, 1.0);
+	// return float4(d * 1.0, d * 1.0, d * 1.0, 1.0);
+    return float4(color.rgb, 1.0);
+	
 	// return float4(abs(input.position_clip.x),abs(input.position_clip.y),abs(input.position_clip.z), abs(input.position_clip.a)); // must return an RGBA colour
 }

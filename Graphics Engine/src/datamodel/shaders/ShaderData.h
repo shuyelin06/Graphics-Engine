@@ -1,11 +1,12 @@
 #pragma once
 
+#include "../geometry/Vector3.h"
+
 namespace Engine
 {
-	class ShaderData
+	typedef struct
 	{
-		wchar_t* filename;
-		wchar_t* entrypoint;
-		wchar_t* compiler_target;
-	};
+		Vector3 color;
+		float PADDING;
+	} ShaderData;
 }

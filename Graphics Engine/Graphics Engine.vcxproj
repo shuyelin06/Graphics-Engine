@@ -148,6 +148,8 @@
     <ClCompile Include="src\datamodel\geometry\Vector3.cpp" />
     <ClCompile Include="src\datamodel\objects\Camera.cpp" />
     <ClCompile Include="src\Main.cpp" />
+    <ClCompile Include="src\rendering\Shaders.cpp" />
+    <ClCompile Include="src\rendering\VisualEngine.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\datamodel\geometry\Matrix3.h" />
@@ -155,6 +157,8 @@
     <ClInclude Include="src\datamodel\geometry\Extents.h" />
     <ClInclude Include="src\datamodel\geometry\Vector3.h" />
     <ClInclude Include="src\datamodel\shaders\ShaderData.h" />
+    <ClInclude Include="src\rendering\Shaders.h" />
+    <ClInclude Include="src\rendering\VisualEngine.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
