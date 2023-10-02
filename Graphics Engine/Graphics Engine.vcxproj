@@ -73,18 +73,22 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)\bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)\bin\intermediates\$(Platform)\$(Configuration)\</IntDir>
+    <IncludePath>C:\Users\shuye\Documents\GitHub\Graphics-Engine\Graphics Engine\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)\bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)\bin\intermediates\$(Platform)\$(Configuration)\</IntDir>
+    <IncludePath>C:\Users\shuye\Documents\GitHub\Graphics-Engine\Graphics Engine\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)\bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)\bin\intermediates\$(Platform)\$(Configuration)\</IntDir>
+    <IncludePath>C:\Users\shuye\Documents\GitHub\Graphics-Engine\Graphics Engine\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)\bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)\bin\intermediates\$(Platform)\$(Configuration)\</IntDir>
+    <IncludePath>C:\Users\shuye\Documents\GitHub\Graphics-Engine\Graphics Engine\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -143,20 +147,28 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\datamodel\geometry\Extents.cpp" />
-    <ClCompile Include="src\datamodel\geometry\Matrix3.cpp" />
-    <ClCompile Include="src\datamodel\geometry\Vector3.cpp" />
+    <ClCompile Include="src\datamodel\objects\Object.cpp" />
+    <ClCompile Include="src\math\Matrix3.cpp" />
+    <ClCompile Include="src\math\Vector3.cpp" />
     <ClCompile Include="src\datamodel\objects\Camera.cpp" />
     <ClCompile Include="src\Main.cpp" />
+    <ClCompile Include="src\math\Matrix4.cpp" />
+    <ClCompile Include="src\math\Vector4.cpp" />
+    <ClCompile Include="src\rendering\Buffer.cpp" />
+    <ClCompile Include="src\rendering\Direct3D11.cpp" />
     <ClCompile Include="src\rendering\Shaders.cpp" />
     <ClCompile Include="src\rendering\VisualEngine.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\datamodel\geometry\Matrix3.h" />
+    <ClInclude Include="src\datamodel\objects\Object.h" />
+    <ClInclude Include="src\math\Matrix3.h" />
     <ClInclude Include="src\datamodel\objects\Camera.h" />
-    <ClInclude Include="src\datamodel\geometry\Extents.h" />
-    <ClInclude Include="src\datamodel\geometry\Vector3.h" />
+    <ClInclude Include="src\math\Vector3.h" />
     <ClInclude Include="src\datamodel\shaders\ShaderData.h" />
+    <ClInclude Include="src\math\Matrix4.h" />
+    <ClInclude Include="src\math\Vector4.h" />
+    <ClInclude Include="src\rendering\Buffer.h" />
+    <ClInclude Include="src\rendering\Direct3D11.h" />
     <ClInclude Include="src\rendering\Shaders.h" />
     <ClInclude Include="src\rendering\VisualEngine.h" />
   </ItemGroup>

@@ -2,8 +2,8 @@
 
 #include <assert.h>
 
-#include "../datamodel/geometry/Vector3.h"
-#include "../datamodel/shaders/ShaderData.h"
+#include "math/Vector3.h"
+#include "datamodel/shaders/ShaderData.h"
 
 namespace Engine
 {
@@ -120,7 +120,7 @@ namespace Engine
 
         /* Attempt Creating Constant Buffer */
         Engine::ShaderData shaderData;
-        shaderData.color = Engine::Vector3(1.0f, 0.75f, 0.0f);
+        shaderData.color = Engine::Math::Vector3(0.75f, 0.2f, 0.2f);
 
         // Fill buffer description
         D3D11_BUFFER_DESC cDesc;

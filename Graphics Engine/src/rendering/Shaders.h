@@ -5,10 +5,6 @@
 #include <dxgi.h> // DirectX Driver Interface
 #include <d3dcompiler.h> // Shader Compiler
 
-// Indicates Visual C++ to leave a command in the object file, which can be read by
-// the linker when it processes object files.
-// Tells the linker to add the "library" library to the list of library dependencies
-#pragma comment( lib, "user32" )          // link against the win32 library
 #pragma comment( lib, "d3d11.lib" )       // direct3D library
 #pragma comment( lib, "dxgi.lib" )        // directx graphics interface
 #pragma comment( lib, "d3dcompiler.lib" ) // shader compiler

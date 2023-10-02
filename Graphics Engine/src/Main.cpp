@@ -30,21 +30,39 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 // #define TEST
 #ifdef TEST
-#include "datamodel/geometry/Matrix3.h"
+#include "math/Matrix4.h"
 #endif
 
+#include <iostream>
 #include "datamodel/shaders/ShaderData.h"
 
 // Main Function
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 { 
 #ifdef TEST
-    Engine::Matrix3 matrix = Engine::Matrix3(1,2,3,3,2,1,2,1,3);
+    Engine::Math::Matrix4 matrix = Engine::Math::Matrix4(
+        1,2,3,4,
+        5,2,3,1,
+        2,5,5,1,
+        1,2,3,6);
 
+    float det = matrix.determinant();
+    Engine::Math::Matrix4 inv = matrix.inverse();
+    
+    float m1 = matrix.minor(0, 0);
+    float m2 = matrix.minor(0, 1);
+    float m3 = matrix.minor(0, 2);
+    float m4 = matrix.minor(0, 3);
+
+    Engine::Math::Matrix4 matrix3;
+
+
+    /*
     Engine::Matrix3 inv = matrix.inverse();
     Engine::Matrix3 transpose = matrix.transpose();
 
     Engine::Matrix3 result = matrix * inv;
+    */
 
     return 0;
 #else

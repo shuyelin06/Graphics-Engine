@@ -1,16 +1,24 @@
 #pragma once
 
-#include "../geometry/Vector3.h"
+#include "datamodel/objects/Object.h"
+#include "math/Vector3.h"
+#include "math/Matrix4.h"
+
+using namespace Engine::Math;
 
 namespace Engine 
 {
-	class Camera
+namespace Datamodel
+{
+
+	class Camera: Object
 	{
-		Vector3 position; // x, y, z
-		Vector3 direction; // roll, yaw, pitch
+	public:
+		Vector3 view_direction; // roll, yaw, pitch
 
-		float field_of_view;
+		Camera();
 
-		Vector3 toCameraSpace(const Vector3&);
+		Matrix4 worldToCameraMatrix();
 	};
+}
 }
