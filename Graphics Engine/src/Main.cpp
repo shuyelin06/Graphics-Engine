@@ -6,8 +6,11 @@
 // Assertions
 #include <assert.h>
 
-// Win32 Library Include
 #include <windows.h>
+
+/*
+// Win32 Library Include
+
 // Direct 3D 11 Library Includes
 #include <d3d11.h> // Direct 3D Interface
 #include <dxgi.h> // DirectX Driver Interface
@@ -20,51 +23,112 @@
 #pragma comment( lib, "d3d11.lib" )       // direct3D library
 #pragma comment( lib, "dxgi.lib" )        // directx graphics interface
 #pragma comment( lib, "d3dcompiler.lib" ) // shader compiler
+*/
 
 #include <math.h>
 
-#include "rendering/VisualEngine.h"
 
 // Function Declaration
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-// #define TEST
-#ifdef TEST
-#include "math/Matrix4.h"
-#endif
-
 #include <iostream>
 #include "datamodel/shaders/ShaderData.h"
+
+#define TEST
+
+#include "rendering/direct3D/Direct3DRenderer.h"
+
+using namespace Engine::Graphics;
 
 // Main Function
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 { 
 #ifdef TEST
-    Engine::Math::Matrix4 matrix = Engine::Math::Matrix4(
-        1,2,3,4,
-        5,2,3,1,
-        2,5,5,1,
-        1,2,3,6);
+    // Registers information about the behavior of the application window
+    const wchar_t CLASS_NAME[] = L"Hello Triangle!";
 
-    float det = matrix.determinant();
-    Engine::Math::Matrix4 inv = matrix.inverse();
+    // We fill in a WNDCLASS structure to register a window class
+    WNDCLASS wc = { };
+
+    // Required parameters to set prior to registering
+    wc.lpfnWndProc = WindowProc; // Function pointer to WindowProc
+    wc.hInstance = hInstance; // Handle to this application instance
+    wc.lpszClassName = CLASS_NAME; // String identifying the window class
+
+    // Register a window class
+    RegisterClass(&wc);
+
+    /* Creates a new Window instance from the class
+     */
+     // Creates the window, and receive a handle uniquely identifying the window (stored in hwnd)
+    HWND hwnd = CreateWindowEx(
+        0,                              // Optional window styles.
+        CLASS_NAME,                     // Window class
+        L"Learn to Program Windows",    // Window text
+        WS_OVERLAPPEDWINDOW,            // Window style
+
+        // Size and position
+        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+
+        NULL,       // Parent window    
+        NULL,       // Menu
+        hInstance,  // Instance handle
+        NULL        // Additional application data
+    );
+
+    // Set the window to be visible
+    ShowWindow(hwnd, nCmdShow);
+
+    Renderer* renderer = new Direct3DRenderer(hwnd);
     
-    float m1 = matrix.minor(0, 0);
-    float m2 = matrix.minor(0, 1);
-    float m3 = matrix.minor(0, 2);
-    float m4 = matrix.minor(0, 3);
+    // Create shaders
+    std::vector<InputLayout> layout;
+    layout.push_back(Position3);
 
-    Engine::Math::Matrix4 matrix3;
+    VertexShader* vertex_shader = renderer->CreateVertexShader(L"src/shaders/shader.hlsl", "vs_main", layout);
+    PixelShader* pixel_shader = renderer->CreatePixelShader(L"src/shaders/shader.hlsl", "ps_main");
+    
+    /* Create vertex data */
+    float vertex_data_array[] = {
+            0.0f,  0.5f,  0.75f, // point at top
+           0.5f, -0.5f,  0.0f, // point at bottom-right
+          -0.5f, -0.5f,  0.25f, // point at bottom-left
 
+          0.0f,  0.25f,  0.25f, // point at top
+           1.0f, -0.25f, 0.25f, // point at bottom-right
+          -0.25f, -0.25f, 0.25f, // point at bottom-left
+    };
+    UINT vertex_stride = 3 * sizeof(float); // Bytes between the beginning of each vertex
+    UINT vertex_offset = 0; // Offset into the buffer to start reading
+    UINT vertex_count = 6; // Total number of vertices
 
-    /*
-    Engine::Matrix3 inv = matrix.inverse();
-    Engine::Matrix3 transpose = matrix.transpose();
+    Buffer* buffer = renderer->CreateBuffer(vertex_data_array, sizeof(vertex_data_array));
 
-    Engine::Matrix3 result = matrix * inv;
-    */
+    /* drawing */
+    MSG msg = { };
 
-    return 0;
+    bool close = false;
+    while (!close) {
+        /* Handle user input and other window events */
+        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+        if (msg.message == WM_QUIT) { break; }
+
+        /* Handle Rendering with Direct3D */
+        renderer->BindVertexBuffer(TriangleList, buffer, vertex_stride);
+        renderer->BindVertexShader(vertex_shader);
+        renderer->BindPixelShader(pixel_shader);
+
+        renderer->Render();
+    }
+
+    delete buffer;
+    delete pixel_shader;
+    delete vertex_shader;
+    delete renderer;
+
 #else
     /* Registers a Window Class with the Operating System
      * A window clas defines a set of behaviors for a window to inherit.
