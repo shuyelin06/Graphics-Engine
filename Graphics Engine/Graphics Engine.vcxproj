@@ -154,12 +154,10 @@
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\math\Matrix4.cpp" />
     <ClCompile Include="src\math\Vector4.cpp" />
-    <ClCompile Include="src\rendering\direct3D\Direct3DBuffer.cpp" />
-    <ClCompile Include="src\rendering\direct3D\Direct3DPixelShader.cpp" />
-    <ClCompile Include="src\rendering\direct3D\Direct3DRenderer.cpp" />
-    <ClCompile Include="src\rendering\direct3D\Direct3DRenderer.h" />
-    <ClCompile Include="src\rendering\direct3D\Direct3DVertexShader.cpp" />
-    <ClCompile Include="src\rendering\direct3D\Direct3DVertexShader.h" />
+    <ClCompile Include="src\rendering\Buffer.cpp" />
+    <ClCompile Include="src\rendering\Direct3D11.cpp" />
+    <ClCompile Include="src\rendering\Shaders.cpp" />
+    <ClCompile Include="src\rendering\VisualEngine.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\datamodel\objects\Object.h" />
@@ -169,14 +167,10 @@
     <ClInclude Include="src\datamodel\shaders\ShaderData.h" />
     <ClInclude Include="src\math\Matrix4.h" />
     <ClInclude Include="src\math\Vector4.h" />
-    <ClInclude Include="src\rendering\core\Buffer.h" />
-    <ClInclude Include="src\rendering\core\Renderer.h" />
-    <ClInclude Include="src\rendering\core\PixelShader.h" />
-    <ClInclude Include="src\rendering\core\Shader.h" />
-    <ClInclude Include="src\rendering\core\VertexShader.h" />
-    <ClInclude Include="src\rendering\direct3D\Direct3D11.h" />
-    <ClInclude Include="src\rendering\direct3D\Direct3DBuffer.h" />
-    <ClInclude Include="src\rendering\direct3D\Direct3DPixelShader.h" />
+    <ClInclude Include="src\rendering\Buffer.h" />
+    <ClInclude Include="src\rendering\Direct3D11.h" />
+    <ClInclude Include="src\rendering\Shaders.h" />
+    <ClInclude Include="src\rendering\VisualEngine.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

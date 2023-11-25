@@ -27,6 +27,12 @@
     <ClCompile Include="src\math\Matrix3.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\rendering\VisualEngine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rendering\Shaders.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="src\math\Matrix4.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -36,22 +42,10 @@
     <ClCompile Include="src\datamodel\objects\Object.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\direct3D\Direct3DRenderer.h">
+    <ClCompile Include="src\rendering\Buffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\direct3D\Direct3DRenderer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\rendering\direct3D\Direct3DVertexShader.h">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\rendering\direct3D\Direct3DVertexShader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\rendering\direct3D\Direct3DPixelShader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\rendering\direct3D\Direct3DBuffer.cpp">
+    <ClCompile Include="src\rendering\Direct3D11.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -68,6 +62,12 @@
     <ClInclude Include="src\math\Matrix3.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\rendering\VisualEngine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rendering\Shaders.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="src\math\Matrix4.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -77,28 +77,10 @@
     <ClInclude Include="src\datamodel\objects\Object.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\core\Renderer.h">
+    <ClInclude Include="src\rendering\Buffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\core\PixelShader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\rendering\core\VertexShader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\rendering\direct3D\Direct3D11.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\rendering\direct3D\Direct3DPixelShader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\rendering\core\Buffer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\rendering\direct3D\Direct3DBuffer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\rendering\core\Shader.h">
+    <ClInclude Include="src\rendering\Direct3D11.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -12,7 +12,7 @@ namespace Graphics
 	typedef struct
 	{
 		Matrix4 cameraToWorld;
-	} test;
+	};
 
 } // Namespace Graphics
 
