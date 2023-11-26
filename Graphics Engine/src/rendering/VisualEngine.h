@@ -2,13 +2,18 @@
 
 #include "Direct3D11.h"
 
-#include "VertexBuffer.h"
+#include "buffers/VertexBuffer.h"
 
 #include <vector>
 #include <utility>
 
 namespace Engine
 {
+
+namespace Graphics
+{
+	typedef enum { Vertex, Pixel } Shader_Type;
+
 	class VisualEngine
 	{
 	private:
@@ -36,6 +41,7 @@ namespace Engine
 		// Rendering Methods
 		void clear_screen(float color[4]); // Clear Screen
 
+		void bind_data(Shader_Type shader, int index, void* data, int byte_size);
 		void bind_vertex_shader(int index);
 		void bind_pixel_shader(int index);
 		
@@ -44,12 +50,12 @@ namespace Engine
 		void present(); // Present Drawn Content to Screen
 
 	private:
+		// Create Buffers
+		ID3D11Buffer* create_buffer(D3D11_BIND_FLAG, void *data, int byte_size);
+
 		// Compile and Create Shaders
 		void create_vertex_shader(const wchar_t* file, const char* entry, D3D11_INPUT_ELEMENT_DESC[], int desc_size);
 		void create_pixel_shader(const wchar_t* file, const char* entry);
-
-		void create_device_swapchain(HWND window);
-		void create_render_target();
-		void create_buffers();
 	};
+}
 }

@@ -68,7 +68,10 @@
     <ClInclude Include="src\rendering\Direct3D11.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\VertexBuffer.h">
+    <ClInclude Include="src\rendering\buffers\VertexBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rendering\buffers\VShaderBuffers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

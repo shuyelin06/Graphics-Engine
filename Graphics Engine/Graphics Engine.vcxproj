@@ -164,8 +164,9 @@
     <ClInclude Include="src\datamodel\shaders\ShaderData.h" />
     <ClInclude Include="src\math\Matrix4.h" />
     <ClInclude Include="src\math\Vector4.h" />
+    <ClInclude Include="src\rendering\buffers\VShaderBuffers.h" />
     <ClInclude Include="src\rendering\Direct3D11.h" />
-    <ClInclude Include="src\rendering\VertexBuffer.h" />
+    <ClInclude Include="src\rendering\buffers\VertexBuffer.h" />
     <ClInclude Include="src\rendering\VisualEngine.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

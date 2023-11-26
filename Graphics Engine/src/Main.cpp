@@ -36,6 +36,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 #include <iostream>
 #include "datamodel/shaders/ShaderData.h"
 
+int flag = 0;
+
+using namespace Engine::Graphics;
+
 // Main Function
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 { 
@@ -109,7 +113,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     }
 
     /* Initialize Direct 3D 11 */
-    Engine::VisualEngine visual_engine = Engine::VisualEngine(hwnd);
+    VisualEngine visual_engine = VisualEngine(hwnd);
     visual_engine.initialize();
 
     // Set the window to be visible
@@ -126,7 +130,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
       -0.25f, -0.25f, 0.25f, // point at bottom-left
     };
 
-    Engine::VertexBuffer buffer;
+    VertexBuffer buffer;
     buffer.vertices = vertex_data_array;
     buffer.num_vertices = 6;
     buffer.vertex_size = 3;
@@ -149,6 +153,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     }
     */
 
+
     float theta = 0.0f;
 
     bool close = false;
@@ -159,6 +164,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             DispatchMessage(&msg);
         }
         if (msg.message == WM_QUIT) { break; }
+
+        float c = 0.15f;
+        if (flag)
+        {
+            c = 0.75f;
+        }
+
+        Engine::ShaderData shaderData;
+        shaderData.color = Engine::Math::Vector3(c, 0.2f, 0.2f);
+
+        visual_engine.bind_data(Pixel, 0, &shaderData, sizeof(shaderData));
 
         // Render
         float color[4] = { 0x64 / 255.0f, 0x95 / 255.0f, 0xED / 255.0f, 1.0f };
@@ -178,36 +194,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     return 0;
 }
 
-/*
-Engine::ShaderData shaderData;
-shaderData.color = Engine::Math::Vector3(0.75f, 0.2f, 0.2f);
-
-// Fill buffer description
-D3D11_BUFFER_DESC cDesc;
-cDesc.ByteWidth = sizeof(Engine::ShaderData);
-cDesc.Usage = D3D11_USAGE_DYNAMIC;
-cDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-cDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-cDesc.MiscFlags = 0;
-cDesc.StructureByteStride = 0;
-
-ID3D11Buffer* g_pConstantBuffer11 = NULL;
-
-// Fill subresource data
-D3D11_SUBRESOURCE_DATA InitData;
-InitData.pSysMem = &shaderData;
-InitData.SysMemPitch = 0;
-InitData.SysMemSlicePitch = 0;
-
-HRESULT result = device->CreateBuffer(
-    &cDesc, &InitData, &g_pConstantBuffer11
-);
-
-assert(SUCCEEDED(result));
-
-device_context->PSSetConstantBuffers(0, 1, &g_pConstantBuffer11);
-*/
-
 // Defines the behavior of the window (appearance, user interaction, etc)
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -217,18 +203,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         PostQuitMessage(0);
         return 0;
 
-    case WM_PAINT:
-    {
-        PAINTSTRUCT ps;
-        HDC hdc = BeginPaint(hwnd, &ps);
-
-        // All painting occurs here, between BeginPaint and EndPaint.
-
-        FillRect(hdc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW + 1));
-
-        EndPaint(hwnd, &ps);
-    }
-    return 0;
+    case WM_KEYDOWN:
+        flag = 1;
+        return 0;
+    
+    case WM_KEYUP:
+        flag = 0;
+        return 0;
 
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);

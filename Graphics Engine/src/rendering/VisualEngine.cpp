@@ -7,6 +7,9 @@
 
 namespace Engine
 {
+
+namespace Graphics
+{
     /* --- Constructor --- */
     // Saves the handle to the application window
     VisualEngine::VisualEngine(HWND _window)
@@ -98,6 +101,25 @@ namespace Engine
         device_context->ClearRenderTargetView(render_target_view, color);
     }
     
+    // Uses constant buffers to bind data to a particular shader
+    void VisualEngine::bind_data(Shader_Type shader, int index, void* data, int byte_size)
+    {
+        // Create constant buffer
+        ID3D11Buffer* c_buffer = create_buffer(D3D11_BIND_CONSTANT_BUFFER, data, byte_size);
+
+        // Set buffer to the shaders
+        switch (shader)
+        {
+        case Vertex:
+            device_context->VSSetConstantBuffers(index, 1, &c_buffer);
+            break;
+
+        case Pixel:
+            device_context->PSSetConstantBuffers(index, 1, &c_buffer);
+            break;
+        }
+    }
+
     // Binds a vertex shader to be used in the rendering
     // pipeline
     void VisualEngine::bind_vertex_shader(int index)
@@ -130,28 +152,7 @@ namespace Engine
         UINT vertex_count = buffer.num_vertices; // Total number of vertices
 
         // Create Vertex Buffer
-        ID3D11Buffer* vertex_buffer_ptr;
-
-        {
-            // Descriptor for Vertex buffer
-            D3D11_BUFFER_DESC vertex_buff_descr = {};
-            vertex_buff_descr.ByteWidth = vertex_stride * vertex_count; // Size of buffer
-            vertex_buff_descr.Usage = D3D11_USAGE_DEFAULT; // Usage of buffer (helps with driver optimization)
-            vertex_buff_descr.BindFlags = D3D11_BIND_VERTEX_BUFFER; // Vertex Buffer type
-
-            // Load Data
-            D3D11_SUBRESOURCE_DATA sr_data = { 0 };
-            sr_data.pSysMem = buffer.vertices;
-
-            // Create Vertex Buffer with data loaded into it
-            HRESULT hr = device->CreateBuffer(
-                &vertex_buff_descr,
-                &sr_data,
-                &vertex_buffer_ptr);
-
-            // Handle Faillure
-            assert(SUCCEEDED(hr));
-        }
+        ID3D11Buffer* vertex_buffer_ptr = create_buffer(D3D11_BIND_VERTEX_BUFFER, buffer.vertices, vertex_stride * vertex_count);
 
         // Perform a Draw Call
         // Set the valid drawing area (our window)
@@ -188,10 +189,11 @@ namespace Engine
         device_context->VSSetShader(cur_vertex_shader.first, NULL, 0);
         device_context->PSSetShader(cur_pixel_shader, NULL, 0);
 
-        // Draw 3 vertices from our vertex buffer
-        // Draw will use all of the states we set, the vertex buffer and shaders.
-        // We specify how many vertices to draw from our vertex buffer.
+        // Draw from our vertex buffer
         device_context->Draw(vertex_count, 0);
+
+        // Free memory
+        vertex_buffer_ptr->Release();
     }
 
     // Swaps the swapchain buffers, presenting drawn content
@@ -201,12 +203,37 @@ namespace Engine
         swap_chain->Present(1, 0);
     }
 
+    /* --- Buffer Creation --- */
+    // Creates a buffer for use
+    ID3D11Buffer* VisualEngine::create_buffer(D3D11_BIND_FLAG bind_flag, void* data, int byte_size)
+    {
+        ID3D11Buffer* buffer = NULL;
+
+        // Fill buffer description
+        D3D11_BUFFER_DESC buff_desc = {};
+        buff_desc.ByteWidth = byte_size;
+        buff_desc.Usage = D3D11_USAGE_DEFAULT;
+        buff_desc.BindFlags = bind_flag;
+
+        // Fill subresource data
+        D3D11_SUBRESOURCE_DATA sr_data = { 0 };
+        sr_data.pSysMem = data;
+
+        // Create buffer
+        HRESULT result = device->CreateBuffer(
+            &buff_desc, &sr_data, &buffer
+        );
+
+        assert(SUCCEEDED(result));
+
+        return buffer;
+    }
+
     /* --- Shader Creation --- */
     // The below functions can be used to compile shaders
     // for the graphics engine.
     
     // Compiles a shader blob
-    typedef enum {Vertex, Pixel} Shader_Type;
     static ID3DBlob* compile_shader_blob(Shader_Type type, const wchar_t* file, const char* entry)
     {
         // Initialize compiler settings
@@ -318,4 +345,5 @@ namespace Engine
         pixel_shaders.push_back(pixel_shader);
     }
 
+}
 }
