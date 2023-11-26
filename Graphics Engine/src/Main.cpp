@@ -109,11 +109,27 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     }
 
     /* Initialize Direct 3D 11 */
-    Engine::VisualEngine visual_engine = Engine::VisualEngine();
-    visual_engine.initialize(hwnd);
+    Engine::VisualEngine visual_engine = Engine::VisualEngine(hwnd);
+    visual_engine.initialize();
 
     // Set the window to be visible
     ShowWindow(hwnd, nCmdShow);
+
+    // Define Vertex Buffer to Render
+    float vertex_data_array[] = {
+        0.0f,  0.5f,  0.75f, // point at top
+       0.5f, -0.5f,  0.0f, // point at bottom-right
+      -0.5f, -0.5f,  0.25f, // point at bottom-left
+
+      0.0f,  0.25f,  0.25f, // point at top
+       1.0f, -0.25f, 0.25f, // point at bottom-right
+      -0.25f, -0.25f, 0.25f, // point at bottom-left
+    };
+
+    Engine::VertexBuffer buffer;
+    buffer.vertices = vertex_data_array;
+    buffer.num_vertices = 6;
+    buffer.vertex_size = 3;
 
     /*
     * Begin a message loop until the user closes the windowand exits the application
@@ -144,14 +160,53 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         }
         if (msg.message == WM_QUIT) { break; }
 
-        /* Handle Rendering with Direct3D */
-        visual_engine.render(hwnd);
+        // Render
+        float color[4] = { 0x64 / 255.0f, 0x95 / 255.0f, 0xED / 255.0f, 1.0f };
+        visual_engine.clear_screen(color);
+
+        // Draw
+        visual_engine.bind_vertex_shader(0);
+        visual_engine.bind_pixel_shader(0);
+        
+        visual_engine.draw(buffer);
+
+        visual_engine.present();
     }
 #endif
 
     // Finish
     return 0;
 }
+
+/*
+Engine::ShaderData shaderData;
+shaderData.color = Engine::Math::Vector3(0.75f, 0.2f, 0.2f);
+
+// Fill buffer description
+D3D11_BUFFER_DESC cDesc;
+cDesc.ByteWidth = sizeof(Engine::ShaderData);
+cDesc.Usage = D3D11_USAGE_DYNAMIC;
+cDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+cDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+cDesc.MiscFlags = 0;
+cDesc.StructureByteStride = 0;
+
+ID3D11Buffer* g_pConstantBuffer11 = NULL;
+
+// Fill subresource data
+D3D11_SUBRESOURCE_DATA InitData;
+InitData.pSysMem = &shaderData;
+InitData.SysMemPitch = 0;
+InitData.SysMemSlicePitch = 0;
+
+HRESULT result = device->CreateBuffer(
+    &cDesc, &InitData, &g_pConstantBuffer11
+);
+
+assert(SUCCEEDED(result));
+
+device_context->PSSetConstantBuffers(0, 1, &g_pConstantBuffer11);
+*/
 
 // Defines the behavior of the window (appearance, user interaction, etc)
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

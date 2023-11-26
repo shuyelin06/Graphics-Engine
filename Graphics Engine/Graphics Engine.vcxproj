@@ -154,9 +154,6 @@
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\math\Matrix4.cpp" />
     <ClCompile Include="src\math\Vector4.cpp" />
-    <ClCompile Include="src\rendering\Buffer.cpp" />
-    <ClCompile Include="src\rendering\Direct3D11.cpp" />
-    <ClCompile Include="src\rendering\Shaders.cpp" />
     <ClCompile Include="src\rendering\VisualEngine.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -167,9 +164,8 @@
     <ClInclude Include="src\datamodel\shaders\ShaderData.h" />
     <ClInclude Include="src\math\Matrix4.h" />
     <ClInclude Include="src\math\Vector4.h" />
-    <ClInclude Include="src\rendering\Buffer.h" />
     <ClInclude Include="src\rendering\Direct3D11.h" />
-    <ClInclude Include="src\rendering\Shaders.h" />
+    <ClInclude Include="src\rendering\VertexBuffer.h" />
     <ClInclude Include="src\rendering\VisualEngine.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -2,32 +2,54 @@
 
 #include "Direct3D11.h"
 
-#include "Shaders.h"
+#include "VertexBuffer.h"
+
+#include <vector>
+#include <utility>
 
 namespace Engine
 {
 	class VisualEngine
 	{
 	private:
+		// Handle to Window
+		HWND window;
+
 		// Direct 3D 11 Pointers
 		ID3D11Device* device;
 		ID3D11DeviceContext* device_context;
 		IDXGISwapChain* swap_chain;
 		ID3D11RenderTargetView* render_target_view;
 
-		VertexShader vertex_shader;
-		PixelShader pixel_shader;
+		// Vectors of Available Shaders
+		std::vector<std::pair<ID3D11VertexShader*, ID3D11InputLayout*>> vertex_shaders; // Vertex Shader and Associated Input Layout
+		std::vector<ID3D11PixelShader*> pixel_shaders; // Pixel Shaders
 
-		ID3D11Buffer* vertex_buffer_ptr;
+		// Currently Selected Vertex and Pixel Shaders
+		std::pair<ID3D11VertexShader*, ID3D11InputLayout*> cur_vertex_shader;
+		ID3D11PixelShader* cur_pixel_shader;
 
 	public:
-		void initialize(HWND window); // Initialize Direct 3D
-		void render(HWND window); // Render a Frame
+		VisualEngine(HWND _window);
+		void initialize(); // Initialize Direct 3D
+		
+		// Rendering Methods
+		void clear_screen(float color[4]); // Clear Screen
+
+		void bind_vertex_shader(int index);
+		void bind_pixel_shader(int index);
+		
+		void draw(VertexBuffer buffer); // Draw a Vertex List
+
+		void present(); // Present Drawn Content to Screen
 
 	private:
+		// Compile and Create Shaders
+		void create_vertex_shader(const wchar_t* file, const char* entry, D3D11_INPUT_ELEMENT_DESC[], int desc_size);
+		void create_pixel_shader(const wchar_t* file, const char* entry);
+
 		void create_device_swapchain(HWND window);
 		void create_render_target();
-		void compile_shaders();
 		void create_buffers();
 	};
 }

@@ -7,8 +7,22 @@
 
 namespace Engine
 {
-	void VisualEngine::initialize(HWND window)
-	{
+    /* --- Constructor --- */
+    // Saves the handle to the application window
+    VisualEngine::VisualEngine(HWND _window)
+    {
+        window = _window;
+
+        device = NULL;
+        device_context = NULL;
+        swap_chain = NULL;
+        render_target_view = NULL;
+    }
+
+    /* --- Initialize --- */
+    // Initializes Direct3D11 
+    void VisualEngine::initialize()
+    {
         /* Initialize Swap Chain */
         // Populate a Swap Chain Structure, responsible for swapping between textures (for rendering)
         DXGI_SWAP_CHAIN_DESC swap_chain_descriptor = { 0 };
@@ -50,7 +64,7 @@ namespace Engine
         result = swap_chain->GetBuffer(
             0, // Get Buffer 0
             __uuidof(ID3D11Texture2D),
-            (void**) &framebuffer);
+            (void**)&framebuffer);
 
         // Check for success
         assert(SUCCEEDED(result));
@@ -64,126 +78,105 @@ namespace Engine
         framebuffer->Release();
 
 
-        /* Build our Shaders using D3DCompileFromFile() */
+        /* Build our Shaders */
         // Compile Vertex Shader
-        D3D11_INPUT_ELEMENT_DESC inputElementDesc[] = {
+        D3D11_INPUT_ELEMENT_DESC input_desc[] = {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }
         };
-        InputLayoutDescription input_desc = { inputElementDesc, ARRAYSIZE(inputElementDesc) };
+        create_vertex_shader(L"src/shaders/shader.hlsl", "vs_main", input_desc, ARRAYSIZE(input_desc));
 
-        vertex_shader = VertexShader(&input_desc);
-        vertex_shader.compileBlob(L"src/shaders/shader.hlsl", "vs_main");
-        vertex_shader.createShader(device);
+        // Create Pixel Shader
+        create_pixel_shader(L"src/shaders/shader.hlsl", "ps_main");
+    }
 
-        // Compile Pixel Shader
-        pixel_shader = PixelShader();
-        pixel_shader.compileBlob(L"src/shaders/shader.hlsl", "ps_main");
-        pixel_shader.createShader(device);
+    /* --- Rendering --- */
+    // The below functions can be called for rendering
 
-        /* Define Vertex Points to Put into our Vertex Shader */
-        // This is simply an array of floats - but given our specified input layout,
-        // this will be interpreted as an input of float3 types!
-        float vertex_data_array[] = {
-            0.0f,  0.5f,  0.75f, // point at top
-           0.5f, -0.5f,  0.0f, // point at bottom-right
-          -0.5f, -0.5f,  0.25f, // point at bottom-left
+    // Clears the screen with a color
+    void VisualEngine::clear_screen(float color[4])
+    {
+        device_context->ClearRenderTargetView(render_target_view, color);
+    }
+    
+    // Binds a vertex shader to be used in the rendering
+    // pipeline
+    void VisualEngine::bind_vertex_shader(int index)
+    {
+        if (0 <= index && index < vertex_shaders.size())
+        {
+            cur_vertex_shader = vertex_shaders[index];
+        }
+        else assert(false);
+    }
+    
+    // Binds a pixel shader to be used in the rendering
+    // pipeline
+    void VisualEngine::bind_pixel_shader(int index)
+    {
+        if (0 <= index && index < pixel_shaders.size())
+        {
+            cur_pixel_shader = pixel_shaders[index];
+        }
+        else assert(false);
+    }
 
-          0.0f,  0.25f,  0.25f, // point at top
-           1.0f, -0.25f, 0.25f, // point at bottom-right
-          -0.25f, -0.25f, 0.25f, // point at bottom-left
-        };
-        UINT vertex_stride = 3 * sizeof(float); // Bytes between the beginning of each vertex
+    // Run a draw call, passing a list of vertices through the
+    // graphics pipeline
+    void VisualEngine::draw(VertexBuffer buffer)
+    {
+        // Metadata for Vertex Buffer
+        UINT vertex_stride = buffer.vertex_size * sizeof(float); // Bytes between the beginning of each vertex
         UINT vertex_offset = 0; // Offset into the buffer to start reading
-        UINT vertex_count = 6; // Total number of vertices
+        UINT vertex_count = buffer.num_vertices; // Total number of vertices
 
-        // Load this array into the vertex buffer
-        // ID3D11Buffer* vertex_buffer_ptr = NULL; // Create a vertex buffer
+        // Create Vertex Buffer
+        ID3D11Buffer* vertex_buffer_ptr;
+
         {
             // Descriptor for Vertex buffer
             D3D11_BUFFER_DESC vertex_buff_descr = {};
-            vertex_buff_descr.ByteWidth = sizeof(vertex_data_array); // Size of buffer
+            vertex_buff_descr.ByteWidth = vertex_stride * vertex_count; // Size of buffer
             vertex_buff_descr.Usage = D3D11_USAGE_DEFAULT; // Usage of buffer (helps with driver optimization)
             vertex_buff_descr.BindFlags = D3D11_BIND_VERTEX_BUFFER; // Vertex Buffer type
 
-            // Subresource Data?
             // Load Data
             D3D11_SUBRESOURCE_DATA sr_data = { 0 };
-            sr_data.pSysMem = vertex_data_array;
+            sr_data.pSysMem = buffer.vertices;
 
             // Create Vertex Buffer with data loaded into it
             HRESULT hr = device->CreateBuffer(
                 &vertex_buff_descr,
                 &sr_data,
                 &vertex_buffer_ptr);
+
+            // Handle Faillure
             assert(SUCCEEDED(hr));
         }
 
-        /* Attempt Creating Constant Buffer */
-        Engine::ShaderData shaderData;
-        shaderData.color = Engine::Math::Vector3(0.75f, 0.2f, 0.2f);
-
-        // Fill buffer description
-        D3D11_BUFFER_DESC cDesc;
-        cDesc.ByteWidth = sizeof(Engine::ShaderData);
-        cDesc.Usage = D3D11_USAGE_DYNAMIC;
-        cDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-        cDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-        cDesc.MiscFlags = 0;
-        cDesc.StructureByteStride = 0;
-
-        ID3D11Buffer* g_pConstantBuffer11 = NULL;
-
-        // Fill subresource data
-        D3D11_SUBRESOURCE_DATA InitData;
-        InitData.pSysMem = &shaderData;
-        InitData.SysMemPitch = 0;
-        InitData.SysMemSlicePitch = 0;
-
-        result = device->CreateBuffer(
-            &cDesc, &InitData, &g_pConstantBuffer11
-        );
-
-        assert(SUCCEEDED(result));
-            
-        device_context->PSSetConstantBuffers(0, 1, &g_pConstantBuffer11);
-	}
-
-    // Render a Frame
-    void VisualEngine::render(HWND window)
-    {
-        /* Handle Rendering with Direct3D */
-        // Clear back buffer (and depth buffer if available)
-        float background_color[4] = {
-             0x64 / 255.0f, 0x95 / 255.0f, 0xED / 255.0f, 1.0f };
-        device_context->ClearRenderTargetView(
-            render_target_view, background_color);
-
+        // Perform a Draw Call
         // Set the valid drawing area (our window)
         RECT winRect;
         GetClientRect(window, &winRect); // Get the windows rectangle
 
         D3D11_VIEWPORT viewport = {
             0.0f, 0.0f,
-            (FLOAT)(winRect.right - winRect.left),
-            (FLOAT)(winRect.bottom - winRect.top),
+            (FLOAT) (winRect.right - winRect.left),
+            (FLOAT) (winRect.bottom - winRect.top),
             0.0f,
             1.0f
         };
+
         // Give rectangle to rasterizer state function
         device_context->RSSetViewports(1, &viewport);
 
         // Set output merger to use our render target
         device_context->OMSetRenderTargets(1, &render_target_view, NULL);
 
-        // Set the Input Assembler to use our vertex buffer
-        // Triangle list - every 3 vertices forms a separate triangle
-        UINT vertex_stride = 3 * sizeof(float); // Bytes between the beginning of each vertex
-        UINT vertex_offset = 0; // Offset into the buffer to start reading
-        UINT vertex_count = 6; // Total number of vertices
+        // Set input
+        device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        device_context->IASetInputLayout(cur_vertex_shader.second);
 
-        device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // Set primitive format 
-        device_context->IASetInputLayout(vertex_shader.getInputLayout()); // Set input layout
-        device_context->IASetVertexBuffers( // Use the vertex buffer we created!
+        device_context->IASetVertexBuffers(
             0,
             1,
             &vertex_buffer_ptr,
@@ -191,172 +184,138 @@ namespace Engine
             &vertex_offset
         );
 
-        // Set the Vertex Shader
-        device_context->VSSetShader(
-            static_cast<ID3D11VertexShader*>(vertex_shader.getShader()), NULL, 0);
-
-        // Set the pixel shader
-        device_context->PSSetShader(
-            static_cast<ID3D11PixelShader*>(pixel_shader.getShader()), NULL, 0);
+        // Bind shaders
+        device_context->VSSetShader(cur_vertex_shader.first, NULL, 0);
+        device_context->PSSetShader(cur_pixel_shader, NULL, 0);
 
         // Draw 3 vertices from our vertex buffer
         // Draw will use all of the states we set, the vertex buffer and shaders.
         // We specify how many vertices to draw from our vertex buffer.
         device_context->Draw(vertex_count, 0);
+    }
 
-        // Now that this has been rendered, we use the swap chain and swap the buffers, to show the screen
+    // Swaps the swapchain buffers, presenting drawn content
+    // to the screen
+    void VisualEngine::present()
+    {
         swap_chain->Present(1, 0);
     }
 
-	// Create device interface and swapchain to swap between textures
-	void VisualEngine::create_device_swapchain(HWND window)
-	{
-		// Configure swap chain descriptor
-		DXGI_SWAP_CHAIN_DESC swap_chain_descriptor = { 0 };
-		swap_chain_descriptor.BufferDesc.RefreshRate.Numerator = 0; // Synchronize Output Frame Rate
-		swap_chain_descriptor.BufferDesc.RefreshRate.Denominator = 1;
-		swap_chain_descriptor.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM; // Color Output Format
-		swap_chain_descriptor.SampleDesc.Count = 1;
-		swap_chain_descriptor.SampleDesc.Quality = 0;
-		swap_chain_descriptor.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		swap_chain_descriptor.BufferCount = 1; // Number of back buffers to add to the swap chain
-		swap_chain_descriptor.OutputWindow = window;
-		swap_chain_descriptor.Windowed = true; // Displaying to a Window
+    /* --- Shader Creation --- */
+    // The below functions can be used to compile shaders
+    // for the graphics engine.
+    
+    // Compiles a shader blob
+    typedef enum {Vertex, Pixel} Shader_Type;
+    static ID3DBlob* compile_shader_blob(Shader_Type type, const wchar_t* file, const char* entry)
+    {
+        // Initialize compiler settings
+        ID3DInclude* include_settings = D3D_COMPILE_STANDARD_FILE_INCLUDE;
+        const char* compiler_target = "";
+        const UINT flags = 0 | D3DCOMPILE_ENABLE_STRICTNESS;
 
-		// Use descriptor to create swap chain
-		// Create swap chain, and save pointer data
-		D3D_FEATURE_LEVEL feature_level;
-		UINT flags = D3D11_CREATE_DEVICE_SINGLETHREADED;
-#if defined( DEBUG ) || defined( _DEBUG )
-		flags |= D3D11_CREATE_DEVICE_DEBUG;
-#endif
-		// Create Device and Swap Chain using our created struct
-		HRESULT hr = D3D11CreateDeviceAndSwapChain(
-			NULL,
-			D3D_DRIVER_TYPE_HARDWARE,
-			NULL,
-			flags,
-			NULL,
-			0,
-			D3D11_SDK_VERSION,
-			&swap_chain_descriptor,
-			&swap_chain,
-			&device,
-			&feature_level,
-			&device_context);
-		
-		// Check for success
-		assert(S_OK == hr && swap_chain && device && device_context);
-	}
+        switch (type) {
+        case Vertex:
+            compiler_target = "vs_5_0";
+            break;
 
-	// Create the Render Targets (Output Images)
-	void VisualEngine::create_render_target()
-	{
-		// Obtain Frame Buffer
-		ID3D11Texture2D* framebuffer;
-		HRESULT hr = swap_chain->GetBuffer(
-			0,
-			__uuidof(ID3D11Texture2D),
-			(void**)&framebuffer);
-		// Check if we've successfully obtained the frame buffer 
-		assert(SUCCEEDED(hr));
-
-		// Create Render Target with Frame Buffer
-		hr = device->CreateRenderTargetView(
-			framebuffer, 0, &render_target_view);
-		// Check Success
-		assert(SUCCEEDED(hr));
-
-		framebuffer->Release();
-	}
-
-	void VisualEngine::compile_shaders()
-	{
-        // Configure shader compilation flags
-        UINT flags = D3DCOMPILE_ENABLE_STRICTNESS; // Set flags
-#if defined(DEBUG) || defined(_DEBUG)
-        flags |= D3DCOMPILE_DEBUG; // More Debug Output
-#endif
-
-        HRESULT hr; // Stores function results
-        ID3DBlob* error_blob = NULL; // Stores (potential) errors
-
-        /* Compile Vertex Shader */
-        ID3DBlob* vs_blob_ptr = NULL;
-
-        hr = D3DCompileFromFile( // Compile blob
-            L"src/shaders/shader.hlsl",
-            nullptr,
-            D3D_COMPILE_STANDARD_FILE_INCLUDE,
-            "vs_main", // Entry Point
-            "vs_5_0", // Vertex Shader Compiler Target
-            flags, // Flags
-            0,
-            &vs_blob_ptr,
-            &error_blob);
-
-        if (FAILED(hr)) { // Verify success
-            // Check Error Blob
-            if (error_blob) {
-                // Output Debug String
-                OutputDebugStringA((char*)error_blob->GetBufferPointer());
-                // Release (Free) Error Blob
-                error_blob->Release();
-            }
-            // Release the Vertex Shader Blob if Allocated
-            if (vs_blob_ptr) { vs_blob_ptr->Release(); }
-            assert(false);
+        case Pixel:
+            compiler_target = "ps_5_0";
+            break;
         }
-        
-        ID3D11VertexShader* vertex_shader_ptr = NULL;
-        hr = device->CreateVertexShader( // Create Vertex Shader
-            vs_blob_ptr->GetBufferPointer(),
-            vs_blob_ptr->GetBufferSize(),
-            NULL,
-            &vertex_shader_ptr);
-        assert(SUCCEEDED(hr));
 
-        
-        /* Compile Pixel Shader */
-        ID3DBlob* ps_blob_ptr = NULL;
+        // Compile blob
+        ID3DBlob* error_blob = NULL;
+        ID3DBlob* compiled_blob = NULL;
 
-        hr = D3DCompileFromFile( // Compile blob
-            L"src/shaders/shader.hlsl",
+        HRESULT result = D3DCompileFromFile(
+            file, 
             nullptr,
-            D3D_COMPILE_STANDARD_FILE_INCLUDE,
-            "ps_main", // Entry Point
-            "ps_5_0", // PixelShader Compiler Target
+            include_settings,
+            entry,
+            compiler_target,
             flags,
             0,
-            &ps_blob_ptr,
-            &error_blob);
-        
-        // Check for Success
-        if (FAILED(hr)) {
-            // Check Error Blob
-            if (error_blob) {
-                // Output Debug String
+            &compiled_blob,
+            &error_blob
+        );
+
+        // Error handling
+        if (FAILED(result))
+        {
+            // Print error if message exists
+            if (error_blob)
+            {
                 OutputDebugStringA((char*)error_blob->GetBufferPointer());
-                // Release Error Blob
                 error_blob->Release();
             }
-            // Release the Pixel Shader Blob if Allocated
-            if (ps_blob_ptr) { ps_blob_ptr->Release(); }
+            // Release shader blob if allocated
+            if (compiled_blob) { compiled_blob->Release(); }
             assert(false);
         }
 
-        ID3D11PixelShader* pixel_shader_ptr = NULL;
-        
-        hr = device->CreatePixelShader( // Create Pixel Shader
-            ps_blob_ptr->GetBufferPointer(),
-            ps_blob_ptr->GetBufferSize(),
-            NULL,
-            &pixel_shader_ptr);
-        assert(SUCCEEDED(hr));
-	}
-
-    void VisualEngine::create_buffers()
-    {
-
+        return compiled_blob;
     }
+
+    // Creates a vertex shader and adds it to the array of vertex shaders
+    void VisualEngine::create_vertex_shader(const wchar_t* filename, const char* entrypoint, D3D11_INPUT_ELEMENT_DESC layout_desc[], int desc_size)
+    {
+        // Obtain shader blob
+        ID3DBlob* shader_blob = compile_shader_blob(Vertex, filename, entrypoint);
+
+        // Create input layout for vertex shader
+        ID3D11InputLayout* input_layout = NULL;
+
+        device->CreateInputLayout(
+            layout_desc,
+            desc_size,
+            shader_blob->GetBufferPointer(),
+            shader_blob->GetBufferSize(),
+            &input_layout
+        );
+
+        // Check for success
+        assert(input_layout != NULL);
+
+        // Create vertex shader
+        ID3D11VertexShader* vertex_shader = NULL;
+
+        device->CreateVertexShader(
+            shader_blob->GetBufferPointer(),
+            shader_blob->GetBufferSize(),
+            NULL,
+            &vertex_shader
+        );
+
+        // Add to array of vertex shaders
+        std::pair<ID3D11VertexShader*, ID3D11InputLayout*> pair;
+        pair.first = vertex_shader;
+        pair.second = input_layout;
+
+        vertex_shaders.push_back(pair);
+    }
+
+    // Creates a pixel shader and adds it to the array of pixel shaders
+    void VisualEngine::create_pixel_shader(const wchar_t* filename, const char* entrypoint)
+    {
+        // Obtain shader blob
+        ID3DBlob* shader_blob = compile_shader_blob(Pixel, filename, entrypoint);
+
+        // Create pixel shader
+        ID3D11PixelShader* pixel_shader = NULL;
+
+        device->CreatePixelShader(
+            shader_blob->GetBufferPointer(),
+            shader_blob->GetBufferSize(),
+            NULL,
+            &pixel_shader
+        );
+
+        // Check for success
+        assert(pixel_shader != NULL);
+
+        // Add to array of pixel shaders
+        pixel_shaders.push_back(pixel_shader);
+    }
+
 }
