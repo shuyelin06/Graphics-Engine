@@ -148,6 +148,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\datamodel\objects\Object.cpp" />
+    <ClCompile Include="src\input\InputEngine.cpp" />
     <ClCompile Include="src\math\Matrix3.cpp" />
     <ClCompile Include="src\math\Vector3.cpp" />
     <ClCompile Include="src\datamodel\objects\Camera.cpp" />
@@ -158,6 +159,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\datamodel\objects\Object.h" />
+    <ClInclude Include="src\input\InputEngine.h" />
     <ClInclude Include="src\math\Matrix3.h" />
     <ClInclude Include="src\datamodel\objects\Camera.h" />
     <ClInclude Include="src\math\Vector3.h" />

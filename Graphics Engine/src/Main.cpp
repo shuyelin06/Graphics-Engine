@@ -21,55 +21,37 @@
 #pragma comment( lib, "dxgi.lib" )        // directx graphics interface
 #pragma comment( lib, "d3dcompiler.lib" ) // shader compiler
 
-#include <math.h>
-
 #include "rendering/VisualEngine.h"
+#include "input/InputEngine.h"
+
+#include "datamodel/shaders/ShaderData.h" // TEMP
 
 // Function Declaration
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-// #define TEST
-#ifdef TEST
-#include "math/Matrix4.h"
-#endif
+using namespace Engine;
 
-#include <iostream>
-#include "datamodel/shaders/ShaderData.h"
+Input::InputEngine input_engine = Input::InputEngine();
 
 int flag = 0;
 
-using namespace Engine::Graphics;
+static void setTrue(void)
+{
+    flag = 1;
+}
+
+static void setFalse(void)
+{
+    flag = 0;
+}
+
 
 // Main Function
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 { 
-#ifdef TEST
-    Engine::Math::Matrix4 matrix = Engine::Math::Matrix4(
-        1,2,3,4,
-        5,2,3,1,
-        2,5,5,1,
-        1,2,3,6);
+    input_engine.bindKeyDown(0x57, setTrue); // TEMP
+    input_engine.bindKeyUp(0x57, setFalse);
 
-    float det = matrix.determinant();
-    Engine::Math::Matrix4 inv = matrix.inverse();
-    
-    float m1 = matrix.minor(0, 0);
-    float m2 = matrix.minor(0, 1);
-    float m3 = matrix.minor(0, 2);
-    float m4 = matrix.minor(0, 3);
-
-    Engine::Math::Matrix4 matrix3;
-
-
-    /*
-    Engine::Matrix3 inv = matrix.inverse();
-    Engine::Matrix3 transpose = matrix.transpose();
-
-    Engine::Matrix3 result = matrix * inv;
-    */
-
-    return 0;
-#else
     /* Registers a Window Class with the Operating System
      * A window clas defines a set of behaviors for a window to inherit.
      * Windows inheriting the same class wil have similar behavior (though not completely
@@ -113,7 +95,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     }
 
     /* Initialize Direct 3D 11 */
-    VisualEngine visual_engine = VisualEngine(hwnd);
+    Graphics::VisualEngine visual_engine = Graphics::VisualEngine(hwnd);
     visual_engine.initialize();
 
     // Set the window to be visible
@@ -130,7 +112,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
       -0.25f, -0.25f, 0.25f, // point at bottom-left
     };
 
-    VertexBuffer buffer;
+    Graphics::VertexBuffer buffer;
     buffer.vertices = vertex_data_array;
     buffer.num_vertices = 6;
     buffer.vertex_size = 3;
@@ -165,6 +147,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         }
         if (msg.message == WM_QUIT) { break; }
 
+        // Handle user input
+        input_engine.handleInput(); 
+        
+        // Do other stuff
         float c = 0.15f;
         if (flag)
         {
@@ -174,7 +160,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         Engine::ShaderData shaderData;
         shaderData.color = Engine::Math::Vector3(c, 0.2f, 0.2f);
 
-        visual_engine.bind_data(Pixel, 0, &shaderData, sizeof(shaderData));
+        visual_engine.bind_data(Graphics::Pixel, 0, &shaderData, sizeof(shaderData));
 
         // Render
         float color[4] = { 0x64 / 255.0f, 0x95 / 255.0f, 0xED / 255.0f, 1.0f };
@@ -188,7 +174,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
         visual_engine.present();
     }
-#endif
 
     // Finish
     return 0;
@@ -201,14 +186,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
     case WM_DESTROY:
         PostQuitMessage(0);
-        return 0;
-
-    case WM_KEYDOWN:
-        flag = 1;
-        return 0;
-    
-    case WM_KEYUP:
-        flag = 0;
         return 0;
 
     }
