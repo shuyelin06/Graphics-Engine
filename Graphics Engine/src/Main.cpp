@@ -147,7 +147,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         // This matrix implementation is column major, so the rightmost matrix is the first transform.
         // However, in D3D, they're row major, so we need to multiply as v * M
         Matrix4 matrix = local_to_world * world_to_camera * camera_to_project;
-        graphics_engine.bind_data(Graphics::Vertex, 0, matrix.getRawData(), sizeof(float) * 16);
+        graphics_engine.bind_vs_data(0, matrix.getRawData(), sizeof(float) * 16);
         
         // Render
         float color[4] = { 0, 0, 0, 1.0f };

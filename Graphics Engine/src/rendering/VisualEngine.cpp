@@ -102,34 +102,6 @@ namespace Graphics
         device_context->ClearRenderTargetView(render_target_view, color);
     }
     
-    // Uses constant buffers to bind data to a particular shader
-    void VisualEngine::bind_data(Shader_Type shader, int index, void* data, int byte_size)
-    {
-        // TODO: Classify data into long-lived data & short-lived data
-        // 1. Long-Lived: Unlikely to change, set it and forget it -> Create Buffer Once, and Bind
-        // 2. Short-Lived: Data that changes often (every frame) 
-        //      -> Allocate a Big Buffer of Known Size, and write a ring buffer allocator that
-        //         will circularly add data to the end of this buffer, and then use
-        //         SetConstantBuffer
-
-        
-        // Create constant buffer
-        ID3D11Buffer* c_buffer = create_buffer(D3D11_BIND_CONSTANT_BUFFER, data, byte_size);
-
-        // Set buffer to the shaders
-        switch (shader)
-        {
-        case Vertex:
-            // TODO: VSSetConstantBuffers1 to provide offsets into the buffer
-            device_context->VSSetConstantBuffers(index, 1, &c_buffer);
-            break;
-
-        case Pixel:
-            device_context->PSSetConstantBuffers(index, 1, &c_buffer);
-            break;
-        }
-    }
-
     // Binds a vertex shader to be used in the rendering
     // pipeline
     void VisualEngine::bind_vertex_shader(int index)
@@ -257,6 +229,84 @@ namespace Graphics
         assert(SUCCEEDED(result));
 
         return buffer;
+    }
+
+    
+
+    // TODO: Classify data into long-lived data & short-lived data
+    // 1. Long-Lived: Unlikely to change, set it and forget it -> Create Buffer Once, and Bind
+    // 2. Short-Lived: Data that changes often (every frame) 
+    //      -> Allocate a Big Buffer of Known Size, and write a ring buffer allocator that
+    //         will circularly add data to the end of this buffer, and then use
+    //         SetConstantBuffer
+
+    // Bind_Data
+    // Uses dynamic resource renaming to bind data to the vertex / pixel
+    // shader constant registers, for use in the shaders
+    void VisualEngine::bind_vs_data(unsigned int index, void* data, int byte_size)
+    {
+        bind_data(Vertex, index, data, byte_size);
+    }
+
+    void VisualEngine::bind_ps_data(unsigned int index, void* data, int byte_size)
+    {
+        bind_data(Pixel, index, data, byte_size);
+    }
+
+    void VisualEngine::bind_data(Shader_Type type, unsigned int index, void* data, int byte_size)
+    {
+        std::vector<ID3D11Buffer*> buffers = (type == Vertex) ? vs_constant_buffers : ps_constant_buffers;
+
+        // Ensure index for buffer exists
+        while (index >= buffers.size())
+            buffers.push_back(NULL);
+
+        // Create buffer if it does not exist at that index
+        if (buffers[index] == NULL)
+        {
+            // Create buffer description 
+            D3D11_BUFFER_DESC buff_desc = { 0 };
+
+            buff_desc.ByteWidth = byte_size;
+            buff_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;   // Constant Buffer
+            buff_desc.Usage = D3D11_USAGE_DYNAMIC;              // Accessible by GPU Read + CPU Write
+            buff_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;  // Allow CPU Writes
+
+            // Allocate resources
+            D3D11_SUBRESOURCE_DATA sr_data;
+            sr_data.pSysMem = data;
+            sr_data.SysMemPitch = 0;
+            sr_data.SysMemSlicePitch = 0;
+
+            // Create buffer
+            device->CreateBuffer(&buff_desc, &sr_data, &buffers[index]);
+        }
+        else
+        {
+            // If buffer exists, perform resource renaming to update buffer data
+            D3D11_MAPPED_SUBRESOURCE mapped_resource = { 0 };
+
+            // Disable GPU access to data
+            device_context->Map(buffers[index], 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_resource);
+
+            // Update data
+            memcpy(mapped_resource.pData, data, byte_size);
+
+            // Reenable GPU access to data
+            device_context->Unmap(buffers[index], 0);
+        }
+
+        // Set constant buffer onto shader
+        switch (type)
+        {
+        case Vertex:
+            device_context->VSSetConstantBuffers(index, 1, &buffers[index]);
+            break;
+        case Pixel:
+            device_context->PSSetConstantBuffers(index, 1, &buffers[index]);
+            break;
+        }
+
     }
 
     /* --- Shader Creation --- */
