@@ -21,44 +21,43 @@
 #pragma comment( lib, "dxgi.lib" )        // directx graphics interface
 #pragma comment( lib, "d3dcompiler.lib" ) // shader compiler
 
-#include "rendering/VisualEngine.h"
-#include "input/InputEngine.h"
+// Main Engine Inclusions
+#include "Main.h" 
 
-#include "datamodel/shaders/ShaderData.h" // TEMP
+#include "objects/Object.h"
+#include "objects/other/Camera.h"
+#include "objects/renderable/Cube.h"
+
+#include "rendering/buffers/ShaderData.h" // TEMP
 
 // Function Declaration
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 using namespace Engine;
 
-Input::InputEngine input_engine = Input::InputEngine();
+// Major Program Variables
+Input::InputEngine input_engine = Input::InputEngine();             // Handles Input
+Graphics::VisualEngine graphics_engine = Graphics::VisualEngine();    // Handles Graphics
 
-int flag = 0;
+Datamodel::Cube cube = Datamodel::Cube(2.5f);
+Datamodel::Camera camera = Datamodel::Camera(1.56f);
 
-static void setTrue(void)
+static void rotate(void)
 {
-    flag = 1;
+    //camera.offsetRoll(0.01f);
+    // camera.offsetZ(-0.1f);
+    // cube.offsetPitch(0.01f);
 }
-
-static void setFalse(void)
-{
-    flag = 0;
-}
-
 
 // Main Function
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 { 
-    input_engine.bindKeyDown(0x57, setTrue); // TEMP
-    input_engine.bindKeyUp(0x57, setFalse);
+    // https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
+    input_engine.bindKeyDown(0x57, rotate);
 
-    /* Registers a Window Class with the Operating System
-     * A window clas defines a set of behaviors for a window to inherit.
-     * Windows inheriting the same class wil have similar behavior (though not completely
-     * identical, due to instance data).
-    */
+    /* Register a Window Class with the OS */
     // Registers information about the behavior of the application window
-    const wchar_t CLASS_NAME[] = L"Hello Triangle!";
+    const wchar_t CLASS_NAME[] = L"Application";
 
     // We fill in a WNDCLASS structure to register a window class
     WNDCLASS wc = { };
@@ -71,13 +70,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     // Register a window class
     RegisterClass(&wc);
 
-    /* Creates a new Window instance from the class
-     */
+    /* Creates a new Window Instance */
      // Creates the window, and receive a handle uniquely identifying the window (stored in hwnd)
     HWND hwnd = CreateWindowEx(
         0,                              // Optional window styles.
         CLASS_NAME,                     // Window class
-        L"Learn to Program Windows",    // Window text
+        L"Graphics Engine",    // Window text
         WS_OVERLAPPEDWINDOW,            // Window style
 
         // Size and position
@@ -89,33 +87,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         NULL        // Additional application data
     );
 
-    // Check if creation was successful
-    if (hwnd == NULL) {
-        return 0;
-    }
+    assert(hwnd != NULL); // Check Success
+
+    ShowWindow(hwnd, nCmdShow); // Set Window Visible
 
     /* Initialize Direct 3D 11 */
-    Graphics::VisualEngine visual_engine = Graphics::VisualEngine(hwnd);
-    visual_engine.initialize();
+    graphics_engine.initialize(hwnd);
 
-    // Set the window to be visible
-    ShowWindow(hwnd, nCmdShow);
+    // Create Camera
+    camera.setPosition(0, 0, -5);
 
     // Define Vertex Buffer to Render
-    float vertex_data_array[] = {
-        0.0f,  0.5f,  0.75f, // point at top
-       0.5f, -0.5f,  0.0f, // point at bottom-right
-      -0.5f, -0.5f,  0.25f, // point at bottom-left
-
-      0.0f,  0.25f,  0.25f, // point at top
-       1.0f, -0.25f, 0.25f, // point at bottom-right
-      -0.25f, -0.25f, 0.25f, // point at bottom-left
-    };
-
-    Graphics::VertexBuffer buffer;
-    buffer.vertices = vertex_data_array;
-    buffer.num_vertices = 6;
-    buffer.vertex_size = 3;
 
     /*
     * Begin a message loop until the user closes the windowand exits the application
@@ -135,12 +117,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     }
     */
 
-
-    float theta = 0.0f;
-
     bool close = false;
+    // Main loop: runs once per frame
     while (!close) {
         /* Handle user input and other window events */
+        // TODO: Drain full message loop (in while) until we are done processing all messages
+        // Generally, we handle all messages every frame
         if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
@@ -149,30 +131,35 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
         // Handle user input
         input_engine.handleInput(); 
-        
+
         // Do other stuff
-        float c = 0.15f;
-        if (flag)
-        {
-            c = 0.75f;
-        }
-
         Engine::ShaderData shaderData;
-        shaderData.color = Engine::Math::Vector3(c, 0.2f, 0.2f);
+        shaderData.color = Engine::Math::Vector3(0.6f, 0.2f, 0.2f);
 
-        visual_engine.bind_data(Graphics::Pixel, 0, &shaderData, sizeof(shaderData));
+        cube.offsetPitch(0.01f);
+        cube.offsetRoll(0.01f);
 
+        // World to projection
+        Matrix4 local_to_world = cube.localToWorldMatrix();
+        Matrix4 world_to_camera = camera.localToWorldMatrix().inverse();
+        Matrix4 camera_to_project = camera.localToProjectionMatrix();
+
+        // This matrix implementation is column major, so the rightmost matrix is the first transform.
+        // However, in D3D, they're row major, so we need to multiply as v * M
+        Matrix4 matrix = local_to_world * world_to_camera * camera_to_project;
+        graphics_engine.bind_data(Graphics::Vertex, 0, matrix.getRawData(), sizeof(float) * 16);
+        
         // Render
-        float color[4] = { 0x64 / 255.0f, 0x95 / 255.0f, 0xED / 255.0f, 1.0f };
-        visual_engine.clear_screen(color);
+        float color[4] = { 0, 0, 0, 1.0f };
+        graphics_engine.clear_screen(color);
 
         // Draw
-        visual_engine.bind_vertex_shader(0);
-        visual_engine.bind_pixel_shader(0);
+        graphics_engine.bind_vertex_shader(0);
+        graphics_engine.bind_pixel_shader(0);
         
-        visual_engine.draw(buffer);
+        graphics_engine.draw(cube.getVertexBuffer());
 
-        visual_engine.present();
+        graphics_engine.present();
     }
 
     // Finish
@@ -186,6 +173,17 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
     case WM_DESTROY:
         PostQuitMessage(0);
+        return 0;
+
+    case WM_KEYDOWN:
+        camera.setFOV(camera.getFOV() + 0.01f);
+
+        // camera.offsetZ(0.01f);
+        // Handle key down input
+        return 0;
+
+    case WM_KEYUP:
+        // Handle key up input
         return 0;
 
     }

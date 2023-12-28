@@ -12,7 +12,7 @@ namespace Math
 	// matrix.
 	class Matrix4
 	{
-	protected:
+	private:
 		float data[4][4];
 
 	public:
@@ -21,6 +21,8 @@ namespace Math
 				float, float, float, float,
 				float, float, float, float,
 				float, float, float, float);
+
+		float (*getRawData(void))[4];
 
 		Matrix4 tranpose() const;
 		Matrix4 inverse() const;

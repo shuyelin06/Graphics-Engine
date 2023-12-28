@@ -26,6 +26,11 @@ namespace Math
 				{c13, c14, c15, c16} } {}
 
 	/* --- Matrix Operations --- */
+	float (*Matrix4::getRawData(void))[4]
+	{
+		return data;
+	}
+
 	// Tranpose: 
 	// Returns the transpose of the matrix
 	Matrix4 Matrix4::tranpose() const

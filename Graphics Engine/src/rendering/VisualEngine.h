@@ -35,8 +35,8 @@ namespace Graphics
 		ID3D11PixelShader* cur_pixel_shader;
 
 	public:
-		VisualEngine(HWND _window);
-		void initialize(); // Initialize Direct 3D
+		VisualEngine();
+		void initialize(HWND _window); // Initialize Direct 3D
 		
 		// Rendering Methods
 		void clear_screen(float color[4]); // Clear Screen

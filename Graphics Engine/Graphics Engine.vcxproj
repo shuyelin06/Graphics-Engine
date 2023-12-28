@@ -147,23 +147,29 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\datamodel\objects\Object.cpp" />
+    <ClCompile Include="src\math\Utility.cpp" />
+    <ClCompile Include="src\objects\Object.cpp" />
     <ClCompile Include="src\input\InputEngine.cpp" />
     <ClCompile Include="src\math\Matrix3.cpp" />
     <ClCompile Include="src\math\Vector3.cpp" />
-    <ClCompile Include="src\datamodel\objects\Camera.cpp" />
+    <ClCompile Include="src\objects\other\Camera.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\math\Matrix4.cpp" />
     <ClCompile Include="src\math\Vector4.cpp" />
+    <ClCompile Include="src\objects\renderable\Cube.cpp" />
     <ClCompile Include="src\rendering\VisualEngine.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\datamodel\objects\Object.h" />
+    <ClInclude Include="src\math\Utility.h" />
+    <ClInclude Include="src\objects\Object.h" />
+    <ClInclude Include="src\objects\renderable\Cube.h" />
+    <ClInclude Include="src\objects\renderable\Renderable.h" />
     <ClInclude Include="src\input\InputEngine.h" />
+    <ClInclude Include="src\Main.h" />
     <ClInclude Include="src\math\Matrix3.h" />
-    <ClInclude Include="src\datamodel\objects\Camera.h" />
+    <ClInclude Include="src\objects\other\Camera.h" />
     <ClInclude Include="src\math\Vector3.h" />
-    <ClInclude Include="src\datamodel\shaders\ShaderData.h" />
+    <ClInclude Include="src\rendering\buffers\ShaderData.h" />
     <ClInclude Include="src\math\Matrix4.h" />
     <ClInclude Include="src\math\Vector4.h" />
     <ClInclude Include="src\rendering\buffers\VShaderBuffers.h" />

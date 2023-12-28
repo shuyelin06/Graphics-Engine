@@ -2,9 +2,6 @@
 
 #include <assert.h>
 
-#include "math/Vector3.h"
-#include "datamodel/shaders/ShaderData.h"
-
 namespace Engine
 {
 
@@ -12,9 +9,9 @@ namespace Graphics
 {
     /* --- Constructor --- */
     // Saves the handle to the application window
-    VisualEngine::VisualEngine(HWND _window)
+    VisualEngine::VisualEngine()
     {
-        window = _window;
+        window = nullptr;
 
         device = NULL;
         device_context = NULL;
@@ -24,8 +21,11 @@ namespace Graphics
 
     /* --- Initialize --- */
     // Initializes Direct3D11 
-    void VisualEngine::initialize()
+    void VisualEngine::initialize(HWND _window)
     {
+        // Set Window Handle
+        window = _window;
+
         /* Initialize Swap Chain */
         // Populate a Swap Chain Structure, responsible for swapping between textures (for rendering)
         DXGI_SWAP_CHAIN_DESC swap_chain_descriptor = { 0 };
@@ -71,7 +71,7 @@ namespace Graphics
 
         // Check for success
         assert(SUCCEEDED(result));
-
+        
         // Create Render Target with Frame Buffer
         result = device->CreateRenderTargetView(
             framebuffer, 0, &render_target_view);
@@ -84,7 +84,8 @@ namespace Graphics
         /* Build our Shaders */
         // Compile Vertex Shader
         D3D11_INPUT_ELEMENT_DESC input_desc[] = {
-            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 } // Option 12 appends
         };
         create_vertex_shader(L"src/shaders/shader.hlsl", "vs_main", input_desc, ARRAYSIZE(input_desc));
 
@@ -104,6 +105,14 @@ namespace Graphics
     // Uses constant buffers to bind data to a particular shader
     void VisualEngine::bind_data(Shader_Type shader, int index, void* data, int byte_size)
     {
+        // TODO: Classify data into long-lived data & short-lived data
+        // 1. Long-Lived: Unlikely to change, set it and forget it -> Create Buffer Once, and Bind
+        // 2. Short-Lived: Data that changes often (every frame) 
+        //      -> Allocate a Big Buffer of Known Size, and write a ring buffer allocator that
+        //         will circularly add data to the end of this buffer, and then use
+        //         SetConstantBuffer
+
+        
         // Create constant buffer
         ID3D11Buffer* c_buffer = create_buffer(D3D11_BIND_CONSTANT_BUFFER, data, byte_size);
 
@@ -111,6 +120,7 @@ namespace Graphics
         switch (shader)
         {
         case Vertex:
+            // TODO: VSSetConstantBuffers1 to provide offsets into the buffer
             device_context->VSSetConstantBuffers(index, 1, &c_buffer);
             break;
 
@@ -212,7 +222,27 @@ namespace Graphics
         // Fill buffer description
         D3D11_BUFFER_DESC buff_desc = {};
         buff_desc.ByteWidth = byte_size;
-        buff_desc.Usage = D3D11_USAGE_DEFAULT;
+        // TODO: Usage determines how efficient it is for CPU/GPU interactions
+        // 1. DEFAULT creates a buffer in a memory region most optimal for the GPU to read (long-lived)
+        // 2. DYNAMIC (?) gives the ability to access a pointer to the memory from the CPU-side
+        //      https://learn.microsoft.com/en-us/windows/win32/api/d3d11/nf-d3d11-id3d11devicecontext-map
+        //      Locks down a GPU's memory, and gives us a pointer that we can modify (to upload data to the GPU faster)
+        // 1 Method for Dynamic Buffers - Resource Renaming: Rewriting an existing buffer on the GPU 
+        //      > (MAP (give to CPU) -> Write to Pointer (MAP_WRITE_DISCARD) -> UNMAP (give to GPU))
+        // GPU Driver guarantees that data will be alive until the GPU is done with it - a ring buffer I implement
+        // myself will avoid issues of the Driver accidentally over or undershooting
+        //      > Set Buffer Usage to D3D11_USAGE_DYNAMIC
+        //      > When reaching the end of the buffer, you do a single map (with discard) to reallocate a new
+        //        chunk of memory (reset offset into buffer)
+        //      > Map option D3D11_MAP_WRITE_NO_OVERWRITE, we tell the GPU that we will not touch
+        //        previously written data (as doing this is undefined, the GPU needs the data to be
+        //        alive while running (and the driver will trust us to do it)
+        //        |------------| (write to end) |........-----| (after all is allocated, map new buffer)
+        //        VSSetConstantBuffers1 takes an offset into the buffer (letting us reuse the same buffer)
+        //           > (providing the same buffer ensures we use the same buffer)
+        // Rules for use can be found here: 
+        //       > https://microsoft.github.io/DirectX-Specs/d3d/archive/D3D11_3_FunctionalSpec.htm
+        buff_desc.Usage = D3D11_USAGE_DEFAULT; 
         buff_desc.BindFlags = bind_flag;
 
         // Fill subresource data

@@ -1,18 +1,18 @@
-cbuffer VS_CONSTANT_BUFFER : register(b0)
+cbuffer TRANSFORM_MATRICES : register(b0)
 {
-    float3 color;
-    float padding;
+    row_major float4x4 transform;
 }
 
 /* Vertex Shader Input */
 struct VS_IN {
 	float3 position_local : POSITION; // POSITION Semantic
+    float3 color : COLOR;
 };
 
 /* Vertex Shader Output (Pixel Shader Input) */
 struct VS_OUT {
 	float4 position_clip : SV_POSITION;
-	float3 position : POSITION;
+    float3 color : COLOR;
 };
 
 // Vertex Shader Entry Point - Takes VS_IN and outputs a VS_OUT
@@ -24,13 +24,14 @@ struct VS_OUT {
 // Homogeneous coordiantes are identified by the SV_POSITION semantic
 VS_OUT vs_main(VS_IN input) {
 	// Zero the Memory
-	VS_OUT output = (VS_OUT)0;
+	VS_OUT output = (VS_OUT) 0;
 
 	// Set Output Position in the Clipping Plane
-	output.position_clip = float4(input.position_local.x, input.position_local.y, input.position_local.z, 1);
-	
-	// Set Normal
-	output.position = input.position_local;
+    float4 pos = float4(input.position_local, 1.0f);
+    pos = mul(pos, transform);
+
+	output.position_clip = pos;
+    output.color = input.color;
 	
 	return output;
 }
@@ -38,11 +39,5 @@ VS_OUT vs_main(VS_IN input) {
 // Pixel Shader Entry Point
 // Takes clipping coordinates, and returns a color
 float4 ps_main(VS_OUT input) : SV_TARGET {
-	// input.position = normalize(input.position);
-	float3 normal = float3(0.0, 0.0, 1.0);
-
-	float d = 1 / (1 + length(input.position) * length(input.position));
-
-	// return float4(d * 1.0, d * 1.0, d * 1.0, 1.0);
-    return float4(color.rgb, 1.0);
+    return float4(input.color, 1.0);
 }
