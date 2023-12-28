@@ -1,5 +1,7 @@
 #pragma once
 
+#include "rendering/Direct3D11.h"
+
 namespace Engine
 {
 
@@ -11,7 +13,7 @@ namespace Graphics
 	class VertexBuffer
 	{
 	public:
-		float* vertices; // Array of floats
+		ID3D11Buffer* vertex_buffer;
 
 		int vertex_size; // Number of floats per vertex
 		int num_vertices; // Number of total vertices

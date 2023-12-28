@@ -25,6 +25,16 @@ namespace Math
 				{c9, c10, c11, c12}, 
 				{c13, c14, c15, c16} } {}
 
+	// Identity 
+	// Returns the 4x4 identity matrix
+	Matrix4 Matrix4::identity()
+	{
+		return Matrix4(1,0,0,0,
+						0,1,0,0,
+						0,0,1,0,
+						0,0,0,1);
+	}
+
 	/* --- Matrix Operations --- */
 	float (*Matrix4::getRawData(void))[4]
 	{

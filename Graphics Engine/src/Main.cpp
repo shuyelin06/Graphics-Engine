@@ -26,9 +26,7 @@
 
 #include "objects/Object.h"
 #include "objects/other/Camera.h"
-#include "objects/renderable/Cube.h"
-
-#include "rendering/buffers/ShaderData.h" // TEMP
+#include "objects/Renderable.h"
 
 // Function Declaration
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -36,25 +34,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 using namespace Engine;
 
 // Major Program Variables
-Input::InputEngine input_engine = Input::InputEngine();             // Handles Input
+Input::InputEngine input_engine = Input::InputEngine();               // Handles Input
 Graphics::VisualEngine graphics_engine = Graphics::VisualEngine();    // Handles Graphics
-
-Datamodel::Cube cube = Datamodel::Cube(2.5f);
-Datamodel::Camera camera = Datamodel::Camera(1.56f);
-
-static void rotate(void)
-{
-    //camera.offsetRoll(0.01f);
-    // camera.offsetZ(-0.1f);
-    // cube.offsetPitch(0.01f);
-}
 
 // Main Function
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 { 
-    // https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
-    input_engine.bindKeyDown(0x57, rotate);
-
     /* Register a Window Class with the OS */
     // Registers information about the behavior of the application window
     const wchar_t CLASS_NAME[] = L"Application";
@@ -94,7 +79,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     /* Initialize Direct 3D 11 */
     graphics_engine.initialize(hwnd);
 
+    Datamodel::Object cube = Datamodel::Object();
+    cube.setVertexBuffer(Datamodel::Renderable::getCubeMesh());
+    cube.setScale(2.5f, 2.5f, 2.5f);
+
+    Datamodel::Object cube2 = Datamodel::Object();
+    cube2.setVertexBuffer(Datamodel::Renderable::getCubeMesh());
+    cube2.setScale(2.5f, 2.5f, 2.5f);
+    cube2.offsetPosition(-1.0f, 0, 0);
+
     // Create Camera
+    Datamodel::Camera camera = Datamodel::Camera(1.56f);
     camera.setPosition(0, 0, -5);
 
     // Define Vertex Buffer to Render
@@ -108,14 +103,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     */
     MSG msg = { };
 
-    /* Normal Win32 Message Loop
-    // GetMessage() is blocking, so main will wait for any event to occur (key press, mouse click)
-    while (GetMessage(&msg, NULL, 0, 0) > 0)
-    {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-    }
-    */
 
     bool close = false;
     // Main loop: runs once per frame
@@ -132,32 +119,19 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         // Handle user input
         input_engine.handleInput(); 
 
-        // Do other stuff
-        Engine::ShaderData shaderData;
-        shaderData.color = Engine::Math::Vector3(0.6f, 0.2f, 0.2f);
+        cube.offsetRotation(0, 0.01f, -0.01f);
+        cube2.offsetRotation(0, -0.01f, 0.01f);
 
-        cube.offsetPitch(0.01f);
-        cube.offsetRoll(0.01f);
-
-        // World to projection
-        Matrix4 local_to_world = cube.localToWorldMatrix();
-        Matrix4 world_to_camera = camera.localToWorldMatrix().inverse();
-        Matrix4 camera_to_project = camera.localToProjectionMatrix();
-
-        // This matrix implementation is column major, so the rightmost matrix is the first transform.
-        // However, in D3D, they're row major, so we need to multiply as v * M
-        Matrix4 matrix = local_to_world * world_to_camera * camera_to_project;
-        graphics_engine.bind_vs_data(0, matrix.getRawData(), sizeof(float) * 16);
-        
         // Render
         float color[4] = { 0, 0, 0, 1.0f };
         graphics_engine.clear_screen(color);
 
-        // Draw
         graphics_engine.bind_vertex_shader(0);
         graphics_engine.bind_pixel_shader(0);
-        
-        graphics_engine.draw(cube.getVertexBuffer());
+
+        // Render both cubes
+        graphics_engine.drawObject(&camera, &cube);
+        graphics_engine.drawObject(&camera, &cube2);
 
         graphics_engine.present();
     }
@@ -176,10 +150,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         return 0;
 
     case WM_KEYDOWN:
-        camera.setFOV(camera.getFOV() + 0.01f);
-
-        // camera.offsetZ(0.01f);
-        // Handle key down input
         return 0;
 
     case WM_KEYUP:

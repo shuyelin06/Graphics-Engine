@@ -22,6 +22,8 @@ namespace Math
 				float, float, float, float,
 				float, float, float, float);
 
+		static Matrix4 identity();
+
 		float (*getRawData(void))[4];
 
 		Matrix4 tranpose() const;

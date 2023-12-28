@@ -124,18 +124,28 @@ namespace Graphics
         else assert(false);
     }
 
-    // Run a draw call, passing a list of vertices through the
-    // graphics pipeline
-    void VisualEngine::draw(VertexBuffer buffer)
+    // Run a draw call on an object
+    void VisualEngine::drawObject(Datamodel::Camera* camera, Datamodel::Object* object)
     {
-        // Metadata for Vertex Buffer
+        // Obtain transformation matrices
+        Matrix4 local_to_world = object->localToWorldMatrix();
+        Matrix4 world_to_camera = camera->localToWorldMatrix().inverse();
+        Matrix4 camera_to_project = camera->localToProjectionMatrix();
+
+        // Multiply to obtain transform matrix to pass to shader
+        Matrix4 transform = local_to_world * world_to_camera * camera_to_project;
+
+        // Bind transform matrix to the vertex shader
+        bind_vs_data(0, transform.getRawData(), sizeof(float) * 16);
+
+        // Obtain metadata for vertex buffer
+        VertexBuffer buffer = object->getVertexBuffer();
+
+        ID3D11Buffer* vertex_buffer_ptr = buffer.vertex_buffer;
         UINT vertex_stride = buffer.vertex_size * sizeof(float); // Bytes between the beginning of each vertex
         UINT vertex_offset = 0; // Offset into the buffer to start reading
         UINT vertex_count = buffer.num_vertices; // Total number of vertices
-
-        // Create Vertex Buffer
-        ID3D11Buffer* vertex_buffer_ptr = create_buffer(D3D11_BIND_VERTEX_BUFFER, buffer.vertices, vertex_stride * vertex_count);
-
+        
         // Perform a Draw Call
         // Set the valid drawing area (our window)
         RECT winRect;
@@ -173,9 +183,6 @@ namespace Graphics
 
         // Draw from our vertex buffer
         device_context->Draw(vertex_count, 0);
-
-        // Free memory
-        vertex_buffer_ptr->Release();
     }
 
     // Swaps the swapchain buffers, presenting drawn content
@@ -193,27 +200,8 @@ namespace Graphics
 
         // Fill buffer description
         D3D11_BUFFER_DESC buff_desc = {};
+
         buff_desc.ByteWidth = byte_size;
-        // TODO: Usage determines how efficient it is for CPU/GPU interactions
-        // 1. DEFAULT creates a buffer in a memory region most optimal for the GPU to read (long-lived)
-        // 2. DYNAMIC (?) gives the ability to access a pointer to the memory from the CPU-side
-        //      https://learn.microsoft.com/en-us/windows/win32/api/d3d11/nf-d3d11-id3d11devicecontext-map
-        //      Locks down a GPU's memory, and gives us a pointer that we can modify (to upload data to the GPU faster)
-        // 1 Method for Dynamic Buffers - Resource Renaming: Rewriting an existing buffer on the GPU 
-        //      > (MAP (give to CPU) -> Write to Pointer (MAP_WRITE_DISCARD) -> UNMAP (give to GPU))
-        // GPU Driver guarantees that data will be alive until the GPU is done with it - a ring buffer I implement
-        // myself will avoid issues of the Driver accidentally over or undershooting
-        //      > Set Buffer Usage to D3D11_USAGE_DYNAMIC
-        //      > When reaching the end of the buffer, you do a single map (with discard) to reallocate a new
-        //        chunk of memory (reset offset into buffer)
-        //      > Map option D3D11_MAP_WRITE_NO_OVERWRITE, we tell the GPU that we will not touch
-        //        previously written data (as doing this is undefined, the GPU needs the data to be
-        //        alive while running (and the driver will trust us to do it)
-        //        |------------| (write to end) |........-----| (after all is allocated, map new buffer)
-        //        VSSetConstantBuffers1 takes an offset into the buffer (letting us reuse the same buffer)
-        //           > (providing the same buffer ensures we use the same buffer)
-        // Rules for use can be found here: 
-        //       > https://microsoft.github.io/DirectX-Specs/d3d/archive/D3D11_3_FunctionalSpec.htm
         buff_desc.Usage = D3D11_USAGE_DEFAULT; 
         buff_desc.BindFlags = bind_flag;
 
@@ -231,30 +219,50 @@ namespace Graphics
         return buffer;
     }
 
+    // Generate_Vertex_Buffer
+    // Creates a vertex buffer instance that can be used for later drawing
+    VertexBuffer VisualEngine::generate_vertex_buffer(void* vertices, int floats_per_vertex, int num_vertices)
+    {
+        VertexBuffer output = { 0 };
+
+        // Fill buffer description
+        D3D11_BUFFER_DESC buff_desc = {};
+
+        buff_desc.ByteWidth = floats_per_vertex * sizeof(float) * num_vertices;
+        buff_desc.Usage = D3D11_USAGE_DEFAULT;
+        buff_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+        // Fill subresource data
+        D3D11_SUBRESOURCE_DATA sr_data = { 0 };
+        sr_data.pSysMem = vertices;
+
+        // Create buffer
+        ID3D11Buffer* buffer = NULL;
+        device->CreateBuffer(&buff_desc, &sr_data, &buffer);
+
+        // Populate and return VertexBuffer instance
+        output.vertex_buffer = buffer;
+        output.vertex_size = floats_per_vertex;
+        output.num_vertices = num_vertices;
+
+        return output;
+    }
     
-
-    // TODO: Classify data into long-lived data & short-lived data
-    // 1. Long-Lived: Unlikely to change, set it and forget it -> Create Buffer Once, and Bind
-    // 2. Short-Lived: Data that changes often (every frame) 
-    //      -> Allocate a Big Buffer of Known Size, and write a ring buffer allocator that
-    //         will circularly add data to the end of this buffer, and then use
-    //         SetConstantBuffer
-
     // Bind_Data
     // Uses dynamic resource renaming to bind data to the vertex / pixel
     // shader constant registers, for use in the shaders
     void VisualEngine::bind_vs_data(unsigned int index, void* data, int byte_size)
-    {
-        bind_data(Vertex, index, data, byte_size);
-    }
+        { bind_data(Vertex, index, data, byte_size); }
 
     void VisualEngine::bind_ps_data(unsigned int index, void* data, int byte_size)
-    {
-        bind_data(Pixel, index, data, byte_size);
-    }
+        { bind_data(Pixel, index, data, byte_size); }
 
     void VisualEngine::bind_data(Shader_Type type, unsigned int index, void* data, int byte_size)
     {
+        // TODO: https://learn.microsoft.com/en-us/windows/win32/api/d3d11/ne-d3d11-d3d11_map
+        // Could use a ring buffer with D3D11_MAP_WRITE_NO_OVERWRITE option
+        // and VSSetConstantBuffers1 method to minimize the number of memory overwrites necessary.
+        
         std::vector<ID3D11Buffer*> buffers = (type == Vertex) ? vs_constant_buffers : ps_constant_buffers;
 
         // Ensure index for buffer exists
@@ -281,9 +289,10 @@ namespace Graphics
             // Create buffer
             device->CreateBuffer(&buff_desc, &sr_data, &buffers[index]);
         }
+        // If buffer exists, perform resource renaming to update buffer data 
+        // instead of creating a new buffer
         else
         {
-            // If buffer exists, perform resource renaming to update buffer data
             D3D11_MAPPED_SUBRESOURCE mapped_resource = { 0 };
 
             // Disable GPU access to data

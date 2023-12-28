@@ -3,6 +3,8 @@
 #include "Direct3D11.h"
 
 #include "buffers/VertexBuffer.h"
+#include "objects/other/Camera.h"
+#include "objects/Object.h"
 
 #include <vector>
 #include <utility>
@@ -17,7 +19,7 @@ namespace Graphics
 	class VisualEngine
 	{
 	private:
-		// Handle to Window
+		// Window Handle
 		HWND window;
 
 		// Direct 3D 11 Pointers
@@ -26,11 +28,11 @@ namespace Graphics
 		IDXGISwapChain* swap_chain;
 		ID3D11RenderTargetView* render_target_view;
 
-		// Vectors of Constant Buffers
+		// Available Constant Buffers
 		std::vector<ID3D11Buffer*> vs_constant_buffers;
 		std::vector<ID3D11Buffer*> ps_constant_buffers;
 
-		// Vectors of Available Shaders
+		// Available Shaders
 		std::vector<std::pair<ID3D11VertexShader*, ID3D11InputLayout*>> vertex_shaders; // Vertex Shader and Associated Input Layout
 		std::vector<ID3D11PixelShader*> pixel_shaders; // Pixel Shaders
 
@@ -45,14 +47,19 @@ namespace Graphics
 		// Rendering Methods
 		void clear_screen(float color[4]); // Clear Screen
 
+		// Generate a renderable vertex buffer
+		VertexBuffer generate_vertex_buffer(void *vertices, int floats_per_vertex, int num_vertices);
+
 		// Bind data to the vertex and pixel shaders
 		void bind_vs_data(unsigned int index, void* data, int byte_size);
 		void bind_ps_data(unsigned int index, void* data, int byte_size);
 
+		// Bind shaders to the rendering pipeline
 		void bind_vertex_shader(int index);
 		void bind_pixel_shader(int index);
 		
-		void draw(VertexBuffer buffer); // Draw a Vertex List
+		// Draws an object from the camera's point of view
+		void drawObject(Datamodel::Camera* camera, Datamodel::Object* object);
 
 		void present(); // Present Drawn Content to Screen
 
