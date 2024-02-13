@@ -30,11 +30,25 @@ namespace Datamodel
 		parent = _parent;
 	}
 
+	// DistanceTo:
+	// Returns the distance to another object
+	float Object::distanceTo(Object* o)
+	{
+		return (o->getWorldPosition() - getWorldPosition()).magnitude();
+	}
+
 	// GetPosition:
 	// Gets the Object's position
 	Vector3 Object::getPosition() 
 	{
 		return position_local;
+	}
+
+	// GetWorldPosition:
+	// Returns the Object's world position
+	Vector3 Object::getWorldPosition()
+	{
+		return parent == nullptr ? position_local : position_local + parent->getWorldPosition();
 	}
 
 	// SetPosition:

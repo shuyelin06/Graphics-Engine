@@ -22,6 +22,9 @@ namespace Datamodel
 
 		// Update position with velocity
 		offsetPosition(velocity * delta_time);
+
+		// Dampen velocity
+		setVelocity(velocity * 0.85f);
 	}
 
 	// SetAcceleration:
@@ -52,6 +55,11 @@ namespace Datamodel
 		velocity.x = x;
 		velocity.y = y;
 		velocity.z = z;
+	}
+
+	void PhysicsObject::setVelocity(Vector3 velocity)
+	{
+		setVelocity(velocity.x, velocity.y, velocity.z);
 	}
 
 	// OffsetVelocity:

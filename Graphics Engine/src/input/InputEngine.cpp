@@ -63,7 +63,7 @@ namespace Input
 			Camera* camera = player->getCamera();
 			Vector3 forward_view = camera->forward();
 
-			player->offsetVelocity(forward_view);
+			player->offsetVelocity(forward_view * 10.f);
 		}	
 		break;
 
@@ -72,7 +72,7 @@ namespace Input
 			Camera* camera = player->getCamera();
 			Vector3 backward_view = -camera->forward();
 
-			player->offsetVelocity(backward_view);
+			player->offsetVelocity(backward_view * 10.f);
 		}
 		break;
 
@@ -81,7 +81,7 @@ namespace Input
 			Camera* camera = player->getCamera();
 			Vector3 left_view = -camera->right();
 
-			player->offsetVelocity(left_view);
+			player->offsetVelocity(left_view * 10.f);
 		}
 		break;
 
@@ -90,7 +90,7 @@ namespace Input
 			Camera* camera = player->getCamera();
 			Vector3 right_view = camera->right();
 
-			player->offsetVelocity(right_view);
+			player->offsetVelocity(right_view * 10.f);
 		}
 		break;
 

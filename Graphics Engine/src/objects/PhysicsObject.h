@@ -29,6 +29,7 @@ namespace Datamodel
 
 		// Set velocity 
 		void setVelocity(float x, float y, float z);
+		void setVelocity(Vector3 velocity);
 		// Offset velocity
 		void offsetVelocity(float x, float y, float z);
 		void offsetVelocity(Vector3 offset);

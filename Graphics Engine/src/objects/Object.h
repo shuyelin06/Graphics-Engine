@@ -32,8 +32,14 @@ namespace Datamodel
 		// Set Parent
 		void setParent(Object* parent);
 
-		// Get (copy of) position
-		Vector3 getPosition();
+		// Determine distance to another object
+		float distanceTo(Object* o);
+
+		// Get (copy of) local position
+		Vector3 getPosition(); 
+		
+		// Get (copy of) world position
+		Vector3 getWorldPosition();
 
 		// Transformations on the object
 		void setPosition(float x, float y, float z);

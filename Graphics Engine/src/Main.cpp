@@ -31,9 +31,13 @@
 #include "objects/Object.h"
 #include "objects/Renderable.h"
 
+// TEST
+#include "utility/Stopwatch.h"
+
 // Function Declaration
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
+using namespace std;
 using namespace Engine;
 
 // Major Program Variables
@@ -122,41 +126,91 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     MSG msg = { };
 
     bool close = false;
+
+    // Create vector of renderable objects
+    std::vector<Datamodel::Object*> objects;
+    objects.push_back(&cube);
+    objects.push_back(&cube2);
+
+    // Create timer watches
+    Utility::Stopwatch framerate_watch = Utility::Stopwatch();
+    Utility::Stopwatch physics_watch = Utility::Stopwatch();
+
     // Main loop: runs once per frame
     while (!close) {
-        /* Handle user input and other window events */
-        // TODO: Drain full message loop (in while) until we are done processing all messages
-        // Generally, we handle all messages every frame
-        // Drain entire message loop until there are no more messages
-        while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
+        // Begin counting milliseconds elapsed for framerate
+        framerate_watch.Reset();
 
-            if (msg.message == WM_QUIT) 
-                return 0;
+        // Handle Input
+        {
+            // Drain and process all queued messages
+            while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+
+                if (msg.message == WM_QUIT)
+                    return 0;
+            }
+
+            // Handle mouse x camera movement 
+            input_engine.updateCameraView(player.getCamera());
         }
         
-        input_engine.updateCameraView(player.getCamera());
+        // Handle Physics
+        {
+            // Determine time elapsed for physics updating
+            double time_elapsed = physics_watch.Duration();
 
-        // Physics Update
-        cube.offsetRotation(0, 0.01f, 0);
-        cube2.offsetRotation(0, 0.01f, 0);
+            cube.offsetRotation(0, 0.01f, 0);
+            cube2.offsetRotation(0, 0.01f, 0);
 
-        player.physicsUpdate(0.5f);
-        player.setVelocity(0, 0, 0);
+            player.physicsUpdate(time_elapsed);
 
-        // Render
-        float color[4] = { 0, 0, 0, 1.0f };
-        graphics_engine.clear_screen(color);
+            // Reset watch
+            physics_watch.Reset();
+        }
+        
+        // Handle Rendering
+        {
+            // Sort vector by object distance to player, in descending order
+            // We will render the furthest objects first.
+            for (int i = 0; i < objects.size() - 1; i++)
+            {
+                for (int j = objects.size() - 1 - i; j >= 1; j--)
+                {
+                    float distance1 = player.distanceTo(objects[j - 1]);
+                    float distance2 = player.distanceTo(objects[j]);
 
-        graphics_engine.bind_vertex_shader(0);
-        graphics_engine.bind_pixel_shader(0);
+                    // Check for swap
+                    if (distance1 < distance2) {
+                        Datamodel::Object* temp = objects[j - 1];
+                        objects[j - 1] = objects[j];
+                        objects[j] = temp;
+                    }
+                }
+            }
 
-        // Render both cubes
-        graphics_engine.drawObject(player.getCamera(), &cube);
-        graphics_engine.drawObject(player.getCamera(), &cube2);
+            // Clear screen
+            float color[4] = { 0, 0, 0, 1.0f };
+            graphics_engine.clear_screen(color);
 
-        graphics_engine.present();
+            // Bind shaders
+            graphics_engine.bind_vertex_shader(0);
+            graphics_engine.bind_pixel_shader(0);
+
+            // Render all objects
+            for (int i = 0; i < objects.size(); i++) 
+            {
+                Datamodel::Object* o = objects[i];
+                graphics_engine.drawObject(player.getCamera(), o);
+            }
+
+            // Present to screen
+            graphics_engine.present();
+        }        
+
+        // Stall until enough time has elapsed for 60 frames / second
+        while (framerate_watch.Duration() < 1 / 60.f) {}
     }
 
     // Finish
