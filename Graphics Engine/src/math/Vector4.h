@@ -1,10 +1,12 @@
 #pragma once
 
+#include "Vector3.h"
+
+
 namespace Engine
 {
 namespace Math
 {
-
 	// Vector4
 	// Contains methods and data for a 4-dimensional
 	// vector.
@@ -22,11 +24,16 @@ namespace Math
 		void normalize();
 
 		float magnitude();
+		Vector3 toVector3(); // Drops the w term
 
 		Vector4 operator+(const Vector4&) const;
 		Vector4 operator-(const Vector4&) const;
 		Vector4 operator*(const Vector4&) const;
 		Vector4 operator/(const Vector4&) const;
+		
+		static Vector4 PositiveXW();
+		static Vector4 PositiveYW();
+		static Vector4 PositiveZW();
 	};
 
 } // Namespace Math

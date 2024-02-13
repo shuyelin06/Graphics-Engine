@@ -48,6 +48,12 @@
     <ClCompile Include="src\objects\Renderable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\objects\other\Player.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\objects\PhysicsObject.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\math\Vector3.h">
@@ -86,13 +92,16 @@
     <ClInclude Include="src\input\InputEngine.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Main.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\objects\Renderable.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\math\Utility.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\objects\other\Player.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\objects\PhysicsObject.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

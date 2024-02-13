@@ -23,19 +23,44 @@ namespace Datamodel
 	}
 
 	/* --- Operations --- */
+	// SetParent:
+	// Sets the Object's parent
+	void Object::setParent(Object* _parent)
+	{
+		parent = _parent;
+	}
+
+	// GetPosition:
+	// Gets the Object's position
+	Vector3 Object::getPosition() 
+	{
+		return position_local;
+	}
+
 	// SetPosition:
 	// Sets the Object's position
 	void Object::setPosition(float x, float y, float z)
 	{
-		position_local = Vector3(x, y, z);
+		position_local.x = x;
+		position_local.y = y;
+		position_local.z = z;
+	}
+
+	void Object::setPosition(Vector3 position)
+	{
+		setPosition(position.x, position.y, position.z);
 	}
 	
+	// OffsetPosition:
 	// Offsets the local position
-	void Object::offsetPosition(float offsetX, float offsetY, float offsetZ)
+	void Object::offsetPosition(float x, float y, float z)
 	{
-		position_local.x += offsetX;
-		position_local.y += offsetY;
-		position_local.z += offsetZ;
+		setPosition(position_local.x + x, position_local.y + y, position_local.z + z);
+	}
+
+	void Object::offsetPosition(Vector3 offset)
+	{
+		offsetPosition(offset.x, offset.y, offset.z);
 	}
 
 	// SetScale
@@ -56,17 +81,17 @@ namespace Datamodel
 
 	// SetRotation:
 	// Sets the Object's rotation
-	void Object::setRotation(float roll, float yaw, float pitch)
+	void Object::setRotation(float roll, float pitch, float yaw)
 	{
-		rotation = Vector3(roll, yaw, pitch);
+		rotation.x = roll;
+		rotation.y = pitch;
+		rotation.z = yaw; 
 	}
 
 	// Offsets the rotation of the object
 	void Object::offsetRotation(float offsetX, float offsetY, float offsetZ)
 	{
-		rotation.x += offsetX;
-		rotation.y += offsetY;
-		rotation.z += offsetZ;
+		setRotation(rotation.x + offsetX, rotation.y + offsetY, rotation.z + offsetZ);
 	}
 	
 	// LocalToWorldMatrix:
@@ -100,26 +125,36 @@ namespace Datamodel
 	// Generates the object's rotation matrix
 	Matrix4 Object::rotationMatrix()
 	{
+		// Cache values to avoid recalculating sine and cosine a lot
+		float cos_cache = 0;
+		float sin_cache = 0;
+
 		// Rotation about the x-axis (roll)
+		cos_cache = cosf(rotation.x);
+		sin_cache = sin(rotation.x);
 		Matrix4 roll = Matrix4(
 			1, 0, 0, 0,
-			0, cosf(rotation.x), sinf(rotation.x), 0,
-			0, -sinf(rotation.x), cosf(rotation.x), 0,
+			0, cos_cache, sin_cache, 0,
+			0, -sin_cache, cos_cache, 0,
 			0, 0, 0, 1
 		);
 
 		// Rotation about the y-axis (pitch)
+		cos_cache = cosf(rotation.y);
+		sin_cache = sin(rotation.y);
 		Matrix4 pitch = Matrix4(
-			cosf(rotation.y), 0, -sinf(rotation.y), 0,
+			cos_cache, 0, -sin_cache, 0,
 			0, 1, 0, 0,
-			sinf(rotation.y), 0, cosf(rotation.y), 0,
+			sin_cache, 0, cos_cache, 0,
 			0, 0, 0, 1
 		);
 
 		// Rotation about the z-axis (yaw)
+		cos_cache = cosf(rotation.z);
+		sin_cache = sin(rotation.z);
 		Matrix4 yaw = Matrix4(
-			cosf(rotation.z), sinf(rotation.z), 0, 0,
-			-sinf(rotation.z), cosf(rotation.z), 0, 0,
+			cos_cache, sin_cache, 0, 0,
+			-sin_cache, cos_cache, 0, 0,
 			0, 0, 1, 0,
 			0, 0, 0, 1
 		);

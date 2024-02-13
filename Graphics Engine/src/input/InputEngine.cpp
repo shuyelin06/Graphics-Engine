@@ -4,67 +4,120 @@
 
 namespace Engine
 {
+using namespace Datamodel;
+
 namespace Input
 {
 	// Constructor
-	InputEngine::InputEngine() {
-		for (int i = 0; i < 0xFF; i++)
+	InputEngine::InputEngine() 
+	{
+		// Set screen center at 0
+		center_x = center_y = 0;
+	}
+
+	// Set screen center
+	void InputEngine::setScreenCenter(int _center_x, int _center_y) 
+	{
+		center_x = _center_x;
+		center_y = _center_y;
+	}
+
+	// Handle camera movement with the mouse
+	void InputEngine::updateCameraView(Camera* camera)
+	{
+		// Get new mouse position
+		POINT new_pos;
+		GetCursorPos(&new_pos);
+		
+		// Determine mouse displacement
+		int x_delta = new_pos.x - center_x;
+		int y_delta = new_pos.y - center_y;
+
+		// Convert to Angular Displacement
+		// Roll = Rotation Around X (Up/Down)
+		// Pitch = Rotation Around Y (Left/Right
+		float roll_delta = y_delta / 100.f;
+		float pitch_delta = x_delta / 100.f;
+
+		camera->offsetRotation(roll_delta, pitch_delta, 0);
+		
+		// Reset mouse to center of application
+		SetCursorPos(center_x, center_y);
+	}
+
+	// Handle Key Down Events
+	void InputEngine::handleKeyDown(Player* player, int key)
+	{
+		switch (key)
 		{
-			down_handles[i] = nullptr;
-			up_handles[i] = nullptr;
+		// ESCAPE: Exit the application
+		case VK_ESCAPE: // ESCAPE
+		{
+			ClipCursor(NULL);
+			PostQuitMessage(0);
+		}
+		break;
+
+		case 0x57: // W
+		{
+			Camera* camera = player->getCamera();
+			Vector3 forward_view = camera->forward();
+
+			player->offsetVelocity(forward_view);
+		}	
+		break;
+
+		case 0x53: // S
+		{
+			Camera* camera = player->getCamera();
+			Vector3 backward_view = -camera->forward();
+
+			player->offsetVelocity(backward_view);
+		}
+		break;
+
+		case 0x41: // A
+		{
+			Camera* camera = player->getCamera();
+			Vector3 left_view = -camera->right();
+
+			player->offsetVelocity(left_view);
+		}
+		break;
+
+		case 0x44: // D
+		{
+			Camera* camera = player->getCamera();
+			Vector3 right_view = camera->right();
+
+			player->offsetVelocity(right_view);
+		}
+		break;
+
 		}
 	}
 
-	// Call some function by input
-	void InputEngine::handleInput()
+	// handle Key Up Events
+	void InputEngine::handleKeyUp(int key)
 	{
-		for (int key = 1; key < 0XFF; key++)
+		switch (key)
 		{
-			// Checks the highest bit for a key down, and if
-			// it is set, then the key is pressed
-			int keydown = (1 << 15) & GetAsyncKeyState(key);
+		case 0x57: // W
+			
+			break;
 
-			// If key is pressed, run down handle (if it exists)
-			if (keydown)
-			{
-				if (down_handles[key] != nullptr)
-					down_handles[key]();
-			}
-			// Otherwise, run up handle (if it exists)
-			else
-			{
-				if (up_handles[key] != nullptr)
-					up_handles[key]();
-			}
+		case 0x53: // S
+			
+			break;
+
+		case 0x41: // A
+			
+			break;
+
+		case 0x44: // D
+			
+			break;
 		}
-	}
-
-	// Bind some function to a key down press
-	void InputEngine::bindKeyDown(int keyval, void (*func)(void))
-	{
-		// Assign function to associated key
-		down_handles[keyval] = func;
-	}
-
-	// Bind some function to a key up press
-	void InputEngine::bindKeyUp(int keyval, void (*func)(void))
-	{
-		// Assign function to associated key
-		up_handles[keyval] = func;
-	}
-
-	// Remove down function-key binding
-	void InputEngine::removeKeyDown(int keyval)
-	{
-		// Remove function associated with that key
-		down_handles[keyval] = nullptr;
-	}
-
-	// Remove up function-key binding
-	void InputEngine::removeKeyUp(int keyval)
-	{
-		// Remove function associated with that key
-		up_handles[keyval] = nullptr;
 	}
 }
 }

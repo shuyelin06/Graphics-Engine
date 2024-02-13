@@ -61,6 +61,13 @@ namespace Math
 		return sqrtf(x * x + y * y + z * z + w * w);
 	}
 
+	// ToVector3:
+	// Drops the w component of the vector
+	Vector3 Vector4::toVector3()
+	{
+		return Vector3(x, y, z);
+	}
+
 	/* --- Operands --- */
 	// Add:
 	// Adds two Vector4's together
@@ -104,6 +111,30 @@ namespace Math
 			y / vec.y,
 			z / vec.z,
 			w / vec.w);
+	}
+
+	// PositiveXW:
+	// Returns the vector in the positive x
+	// and w direction
+	Vector4 Vector4::PositiveXW() 
+	{
+		return Vector4(1, 0, 0, 1);
+	}
+
+	// PositiveYW:
+	// Returns the vector in the positive x
+	// and w direction (w = 1)
+	Vector4 Vector4::PositiveYW()
+	{
+		return Vector4(0, 1, 0, 1);
+	}
+
+	// PositiveZ:
+	// Returns the vector in the positive x
+	// and w direction (w = 1)
+	Vector4 Vector4::PositiveZW()
+	{
+		return Vector4(0, 0, 1, 1);
 	}
 
 } // Namespace Math

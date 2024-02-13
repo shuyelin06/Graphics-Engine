@@ -9,7 +9,7 @@ namespace Datamodel
 	// Generates a Cube Mesh
 	VertexBuffer Renderable::cube_buffer = { 0 };
 	
-	VertexBuffer Renderable::getCubeMesh()
+	VertexBuffer Renderable::getCubeMesh(VisualEngine* graphics_engine)
 	{
 		#define CUBE_VERTEX_SIZE 6
 		#define CUBE_NUM_VERTICES 36
@@ -55,7 +55,7 @@ namespace Datamodel
 			for (int j = 0; j < CUBE_VERTEX_SIZE; j++)
 				index_mesh[i * CUBE_VERTEX_SIZE + j] = vertices[indices[i] * CUBE_VERTEX_SIZE + j];
 
-		cube_buffer = graphics_engine.generate_vertex_buffer(index_mesh, CUBE_VERTEX_SIZE, CUBE_NUM_VERTICES);
+		cube_buffer = graphics_engine->generate_vertex_buffer(index_mesh, CUBE_VERTEX_SIZE, CUBE_NUM_VERTICES);
 		
 		return cube_buffer;
 	}

@@ -1,5 +1,8 @@
 #pragma once
 
+#include "objects/other/Camera.h"
+#include "objects/other/Player.h"
+
 namespace Engine
 {
 namespace Input
@@ -11,22 +14,24 @@ namespace Input
 	class InputEngine 
 	{
 	private:
-		// Arrays of void function pointers
-		void (*down_handles[0xFF])(void); // Runs when key is pressed down 
-		void (*up_handles[0xFF])(void); // Runs when key is not pressed down
-	
+		// Screen center x and y
+		int center_x;
+		int center_y;
+
 	public:
 		InputEngine();
+		
+		// Set screen center, to lock the mouse
+		void setScreenCenter(int center_x, int center_y);
 
-		// Handle input for all keys at once. Call in the main engine loop
-		void handleInput(void);
+		// Update camera
+		void updateCameraView(Datamodel::Camera*);
 
-		// Handle key bindings
-		void bindKeyDown(int keyval, void (*func)(void)); // Add some function as input
-		void bindKeyUp(int keyval, void (*func)(void));
+		// Handle Key Down Input
+		void handleKeyDown(Datamodel::Player*, int key);
 
-		void removeKeyDown(int keyval); // Remove key down binding
-		void removeKeyUp(int keyval);
+		// Handle Key Up Input
+		void handleKeyUp(int key);
 	};
 }
 }

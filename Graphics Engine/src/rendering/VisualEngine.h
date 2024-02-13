@@ -1,10 +1,8 @@
 #pragma once
 
 #include "Direct3D11.h"
-
-#include "buffers/VertexBuffer.h"
-#include "objects/other/Camera.h"
 #include "objects/Object.h"
+#include "objects/other/Camera.h"
 
 #include <vector>
 #include <utility>
@@ -58,7 +56,7 @@ namespace Graphics
 		void bind_vertex_shader(int index);
 		void bind_pixel_shader(int index);
 		
-		// Draws an object from the camera's point of view
+		// Draws an object from the current player's point of view
 		void drawObject(Datamodel::Camera* camera, Datamodel::Object* object);
 
 		void present(); // Present Drawn Content to Screen

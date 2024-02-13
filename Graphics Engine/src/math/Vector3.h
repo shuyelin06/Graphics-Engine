@@ -19,14 +19,19 @@ namespace Math
 
 		~Vector3() {};
 
-		void normalize();
+		void normalize(); // In-place normalize
 
 		float magnitude() const;
 
 		Vector3 operator+(const Vector3&) const;
 		Vector3 operator-(const Vector3&) const;
+		Vector3 operator-() const;
 		Vector3 operator*(const float) const;
 		Vector3 operator/(const float) const;
+
+		static Vector3 PositiveX();
+		static Vector3 PositiveY();
+		static Vector3 PositiveZ();
 	};
 
 

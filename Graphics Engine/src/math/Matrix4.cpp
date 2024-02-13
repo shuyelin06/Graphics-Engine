@@ -51,7 +51,7 @@ namespace Math
 		{
 			for (int col = 0; col < 4; col++)
 			{
-				matrix_transpose[col][row] = data[col][row];
+				matrix_transpose[row][col] = data[col][row];
 			}
 		}
 
@@ -194,10 +194,10 @@ namespace Math
 	// and returns the result
 	Vector4 Matrix4::operator*(const Vector4& vec) const
 	{
-		float x = vec.x * (data[0][0] + data[1][0] + data[2][0] + data[3][0]);
-		float y = vec.y * (data[0][1] + data[1][1] + data[2][1] + data[3][1]);
-		float z = vec.z * (data[0][2] + data[1][2] + data[2][2] + data[3][2]);
-		float w = vec.w * (data[0][3] + data[1][3] + data[2][3] + data[3][3]);
+		float x = data[0][0] * vec.x + data[0][1] * vec.y + data[0][2] * vec.z + data[0][3] * vec.w;
+		float y = data[1][0] * vec.x + data[1][1] * vec.y + data[1][2] * vec.z + data[1][3] * vec.w;
+		float z = data[2][0] * vec.x + data[2][1] * vec.y + data[2][2] * vec.z + data[2][3] * vec.w;
+		float w = data[3][0] * vec.x + data[3][1] * vec.y + data[3][2] * vec.z + data[3][3] * vec.w;
 
 		return Vector4(x, y, z, w);
 	}

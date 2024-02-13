@@ -6,7 +6,6 @@
 
 #define ASPECT_RATIO (1920.f / 1080.f)
 
-
 namespace Engine
 {
 using namespace Math;
@@ -14,7 +13,7 @@ using namespace Math;
 namespace Datamodel
 {
 	/* --- Constructors --- */
-	Camera::Camera(float fov) {
+	Camera::Camera(float fov) : Object() {
 		setFOV(fov);
 
 		z_near = 1.f;
@@ -29,6 +28,35 @@ namespace Datamodel
 	void Camera::setFOV(float new_fov)
 	{
 		fov = Utility::clamp(new_fov, 0.5f, PI - 0.5f);
+	}
+
+	void Camera::offsetRotation(float x, float y, float z)
+	{
+		rotation.x = Utility::clamp(rotation.x + x, -PI / 2, PI / 2);
+		rotation.y += y;
+		rotation.z = 0; // Does nothing
+	}
+
+	// Calculate camera's forward viewing vector
+	Vector3 Camera::forward()
+	{
+		// Get rotation matrix
+		Matrix4 rotation_matrix = rotationMatrix().tranpose();
+
+		// Camera is by default looking in the +Z axis
+		Vector4 view = rotation_matrix * Vector4::PositiveZW();
+		return view.toVector3();
+	}
+
+	// Calculate camera's right viewing vector
+	Vector3 Camera::right()
+	{
+		// Get rotation matrix
+		Matrix4 rotation_matrix = rotationMatrix().tranpose();
+
+		// Camera's left is by default looking in the +X axis
+		Vector4 view = rotation_matrix * Vector4::PositiveXW();
+		return view.toVector3();
 	}
 
 	// Returns the matrix converting local coordinates (in camera space)

@@ -156,15 +156,18 @@
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\math\Matrix4.cpp" />
     <ClCompile Include="src\math\Vector4.cpp" />
+    <ClCompile Include="src\objects\other\Player.cpp" />
+    <ClCompile Include="src\objects\PhysicsObject.cpp" />
     <ClCompile Include="src\objects\Renderable.cpp" />
     <ClCompile Include="src\rendering\VisualEngine.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\math\Utility.h" />
     <ClInclude Include="src\objects\Object.h" />
+    <ClInclude Include="src\objects\other\Player.h" />
+    <ClInclude Include="src\objects\PhysicsObject.h" />
     <ClInclude Include="src\objects\Renderable.h" />
     <ClInclude Include="src\input\InputEngine.h" />
-    <ClInclude Include="src\Main.h" />
     <ClInclude Include="src\math\Matrix3.h" />
     <ClInclude Include="src\objects\other\Camera.h" />
     <ClInclude Include="src\math\Vector3.h" />

@@ -8,6 +8,8 @@
 
 // Win32 Library Include
 #include <windows.h>
+#include <WindowsX.h> // Input Macros
+
 // Direct 3D 11 Library Includes
 #include <d3d11.h> // Direct 3D Interface
 #include <dxgi.h> // DirectX Driver Interface
@@ -22,10 +24,11 @@
 #pragma comment( lib, "d3dcompiler.lib" ) // shader compiler
 
 // Main Engine Inclusions
-#include "Main.h" 
+#include "objects/other/Player.h"	// Main Player
+#include "rendering/VisualEngine.h" // Graphics Engine
+#include "input/InputEngine.h"		// Input Engine
 
 #include "objects/Object.h"
-#include "objects/other/Camera.h"
 #include "objects/Renderable.h"
 
 // Function Declaration
@@ -34,8 +37,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 using namespace Engine;
 
 // Major Program Variables
-Input::InputEngine input_engine = Input::InputEngine();               // Handles Input
-Graphics::VisualEngine graphics_engine = Graphics::VisualEngine();    // Handles Graphics
+static Datamodel::Player player = Datamodel::Player();                       // Player
+static Input::InputEngine input_engine = Input::InputEngine();               // Handles Input
+static Graphics::VisualEngine graphics_engine = Graphics::VisualEngine();    // Handles Graphics
 
 // Main Function
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
@@ -74,23 +78,37 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
     assert(hwnd != NULL); // Check Success
 
+    
+
     ShowWindow(hwnd, nCmdShow); // Set Window Visible
+
+    // Set screen center
+    {
+        RECT window_rect;
+        GetWindowRect(hwnd, &window_rect);
+
+        int center_x = (window_rect.right - window_rect.left) / 2;
+        int center_y = (window_rect.bottom - window_rect.top) / 2;
+        input_engine.setScreenCenter(center_x, center_y);
+    }
+
 
     /* Initialize Direct 3D 11 */
     graphics_engine.initialize(hwnd);
 
     Datamodel::Object cube = Datamodel::Object();
-    cube.setVertexBuffer(Datamodel::Renderable::getCubeMesh());
+    cube.setVertexBuffer(Datamodel::Renderable::getCubeMesh(&graphics_engine));
     cube.setScale(2.5f, 2.5f, 2.5f);
 
     Datamodel::Object cube2 = Datamodel::Object();
-    cube2.setVertexBuffer(Datamodel::Renderable::getCubeMesh());
+    cube2.setVertexBuffer(Datamodel::Renderable::getCubeMesh(&graphics_engine));
     cube2.setScale(2.5f, 2.5f, 2.5f);
-    cube2.offsetPosition(-1.0f, 0, 0);
+    cube2.offsetPosition(0, 0, -10);
 
-    // Create Camera
-    Datamodel::Camera camera = Datamodel::Camera(1.56f);
-    camera.setPosition(0, 0, -5);
+    // Adjust
+    player.setPosition(0, 0, -5);
+
+   
 
     // Define Vertex Buffer to Render
 
@@ -103,24 +121,29 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     */
     MSG msg = { };
 
-
     bool close = false;
     // Main loop: runs once per frame
     while (!close) {
         /* Handle user input and other window events */
         // TODO: Drain full message loop (in while) until we are done processing all messages
         // Generally, we handle all messages every frame
-        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+        // Drain entire message loop until there are no more messages
+        while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
+
+            if (msg.message == WM_QUIT) 
+                return 0;
         }
-        if (msg.message == WM_QUIT) { break; }
+        
+        input_engine.updateCameraView(player.getCamera());
 
-        // Handle user input
-        input_engine.handleInput(); 
+        // Physics Update
+        cube.offsetRotation(0, 0.01f, 0);
+        cube2.offsetRotation(0, 0.01f, 0);
 
-        cube.offsetRotation(0, 0.01f, -0.01f);
-        cube2.offsetRotation(0, -0.01f, 0.01f);
+        player.physicsUpdate(0.5f);
+        player.setVelocity(0, 0, 0);
 
         // Render
         float color[4] = { 0, 0, 0, 1.0f };
@@ -130,8 +153,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         graphics_engine.bind_pixel_shader(0);
 
         // Render both cubes
-        graphics_engine.drawObject(&camera, &cube);
-        graphics_engine.drawObject(&camera, &cube2);
+        graphics_engine.drawObject(player.getCamera(), &cube);
+        graphics_engine.drawObject(player.getCamera(), &cube2);
 
         graphics_engine.present();
     }
@@ -146,16 +169,31 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     switch (uMsg)
     {
     case WM_DESTROY:
+    {
+        ClipCursor(NULL);
         PostQuitMessage(0);
-        return 0;
-
+    }
+    return 0;
+    
+    // Key Down
     case WM_KEYDOWN:
-        return 0;
+    {
+        int keycode = wParam;
+        input_engine.handleKeyDown(&player, keycode);
+    }
+    break;
 
+    // Key Up
     case WM_KEYUP:
-        // Handle key up input
-        return 0;
+    {
+        int keycode = wParam;
+
+        input_engine.handleKeyUp(keycode);
+    }
+    break;
+
 
     }
+
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }

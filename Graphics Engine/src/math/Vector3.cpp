@@ -50,11 +50,16 @@ namespace Math
 
 	Vector3 Vector3::operator-(const Vector3& vec) const
 	{
-		Vector3 vector;
-		vector.x = x - vec.x;
-		vector.y = y - vec.y;
-		vector.z = z - vec.z;
-		return vector;
+		return Vector3(
+			x - vec.x,
+			y - vec.y,
+			z - vec.z
+		);
+	}
+
+	Vector3 Vector3::operator-() const
+	{
+		return Vector3(-x, -y, -z);
 	}
 
 	Vector3 Vector3::operator*(const float f) const
@@ -73,6 +78,21 @@ namespace Math
 		vector.y = y / f;
 		vector.z = z / f;
 		return vector;
+	}
+
+	Vector3 Vector3::PositiveX()
+	{
+		return Vector3(1, 0, 0);
+	}
+
+	Vector3 Vector3::PositiveY()
+	{
+		return Vector3(0, 1, 0);
+	}
+
+	Vector3 Vector3::PositiveZ()
+	{
+		return Vector3(0, 0, 1);
 	}
 
 } // Namespace Math

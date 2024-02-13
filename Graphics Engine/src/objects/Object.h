@@ -18,7 +18,7 @@ namespace Datamodel
 	// object in our engine. 
 	class Object
 	{
-	private:
+	protected:
 		VertexBuffer vertex_buffer; // vertex buffer (for rendering)
 
 		Object* parent;			// pointer to object's parent
@@ -29,15 +29,23 @@ namespace Datamodel
 	public:
 		Object();
 
+		// Set Parent
+		void setParent(Object* parent);
+
+		// Get (copy of) position
+		Vector3 getPosition();
+
 		// Transformations on the object
 		void setPosition(float x, float y, float z);
+		void setPosition(Vector3 position);
 		void offsetPosition(float offsetX, float offsetY, float offsetZ);
+		void offsetPosition(Vector3 offset);
 
 		void setScale(float scaleX, float scaleY, float scaleZ);
 		void offsetScale(float offsetX, float offsetY, float offsetZ);
 
-		void setRotation(float roll, float yaw, float pitch);
-		void offsetRotation(float offsetX, float offsetY, float offsetZ);
+		void setRotation(float roll, float pitch, float yaw);
+		void offsetRotation(float rollDelta, float pitchDelta, float yawDelta);
 
 		Matrix4 localToWorldMatrix(void);
 
@@ -45,7 +53,7 @@ namespace Datamodel
 		void setVertexBuffer(VertexBuffer buffer);
 		VertexBuffer getVertexBuffer(void);
 
-	private:
+	protected:
 		// Helper methods to produce transformation matrices
 		Matrix4 scaleMatrix();
 		Matrix4 rotationMatrix();
