@@ -19,7 +19,7 @@ namespace Utility
 	public:
 		Stopwatch();
 
-		void Reset();         // Begin / ResetStopwatch
+		void Reset();         // Begin / Reset Stopwatch
 		double Duration();	  // Time Elapsed Since Start
 	};
 }

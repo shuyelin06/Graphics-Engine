@@ -151,7 +151,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\math\Utility.cpp" />
+    <ClCompile Include="src\math\Compute.cpp" />
     <ClCompile Include="src\objects\Object.cpp" />
     <ClCompile Include="src\input\InputEngine.cpp" />
     <ClCompile Include="src\math\Matrix3.cpp" />
@@ -167,7 +167,7 @@
     <ClCompile Include="src\utility\Stopwatch.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\math\Utility.h" />
+    <ClInclude Include="src\math\Compute.h" />
     <ClInclude Include="src\objects\Object.h" />
     <ClInclude Include="src\objects\other\Player.h" />
     <ClInclude Include="src\objects\PhysicsObject.h" />

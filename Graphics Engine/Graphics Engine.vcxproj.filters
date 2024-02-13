@@ -42,7 +42,7 @@
     <ClCompile Include="src\input\InputEngine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\math\Utility.cpp">
+    <ClCompile Include="src\math\Compute.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\objects\Renderable.cpp">
@@ -98,7 +98,7 @@
     <ClInclude Include="src\objects\Renderable.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\math\Utility.h">
+    <ClInclude Include="src\math\Compute.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\objects\other\Player.h">

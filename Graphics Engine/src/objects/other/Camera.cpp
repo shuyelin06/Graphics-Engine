@@ -1,6 +1,6 @@
 #include "Camera.h"
 
-#include "math/Utility.h"
+#include "math/Compute.h"
 
 #include <math.h>
 
@@ -27,12 +27,12 @@ namespace Datamodel
 
 	void Camera::setFOV(float new_fov)
 	{
-		fov = Utility::clamp(new_fov, 0.5f, PI - 0.5f);
+		fov = Compute::clamp(new_fov, 0.5f, PI - 0.5f);
 	}
 
 	void Camera::offsetRotation(float x, float y, float z)
 	{
-		rotation.x = Utility::clamp(rotation.x + x, -PI / 2, PI / 2);
+		rotation.x = Compute::clamp(rotation.x + x, -PI / 2, PI / 2);
 		rotation.y += y;
 		rotation.z = 0; // Does nothing
 	}
