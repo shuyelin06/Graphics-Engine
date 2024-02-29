@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "rendering/VisualEngine.h"
 #include "rendering/buffers/Vertexbuffer.h"
 
@@ -20,5 +22,6 @@ namespace Datamodel
 	public:
 		static VertexBuffer getCubeMesh(VisualEngine* graphics_engine);
 	};
+
 }
 }

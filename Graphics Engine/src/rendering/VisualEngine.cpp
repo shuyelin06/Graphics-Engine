@@ -124,7 +124,70 @@ namespace Graphics
         else assert(false);
     }
 
-    // Run a draw call on an object
+    // Renders the mesh of an object from the point of view of some camera
+    void VisualEngine::drawObject(Camera* camera, RenderableObject* object)
+    {
+        // Create the transformation matriix
+        Matrix4 local_to_world = object->localToWorldMatrix();
+        Matrix4 world_to_camera = camera->localToWorldMatrix().inverse();
+        Matrix4 camera_to_project = camera->localToProjectionMatrix();
+
+        Matrix4 transform = local_to_world * world_to_camera * camera_to_project;
+
+        // Bind transform matrix to the vertex shader
+        bind_vs_data(0, transform.getRawData(), sizeof(float) * 16);
+
+        // Iterate through and draw vertex buffers
+        const Mesh buffers = *(object->getMesh());
+        
+        for (VertexBuffer buffer : buffers)
+        {
+            // Set D3D11 buffer configurations
+            ID3D11Buffer* vertex_buffer_ptr = buffer.vertex_buffer;
+            UINT vertex_stride = buffer.vertex_size * sizeof(float); // Bytes between the beginning of each vertex
+            UINT vertex_offset = 0; // Offset into the buffer to start reading
+            UINT vertex_count = buffer.num_vertices; // Total number of vertices
+
+            // Set the valid drawing area (our window)
+            RECT winRect;
+            GetClientRect(window, &winRect); // Get the windows rectangle
+
+            D3D11_VIEWPORT viewport = {
+                0.0f, 0.0f,
+                (FLOAT) (winRect.right - winRect.left),
+                (FLOAT) (winRect.bottom - winRect.top),
+                0.0f,
+                1.0f
+            };
+
+            // Give rectangle to rasterizer state function
+            device_context->RSSetViewports(1, &viewport);
+
+            // Set output merger to use our render target
+            device_context->OMSetRenderTargets(1, &render_target_view, NULL);
+
+            // Set input (TODO: TriangleList may not be the correct one)
+            device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            device_context->IASetInputLayout(cur_vertex_shader.second);
+
+            device_context->IASetVertexBuffers(
+                0,
+                1,
+                &vertex_buffer_ptr,
+                &vertex_stride,
+                &vertex_offset
+            );
+
+            // Bind shaders
+            device_context->VSSetShader(cur_vertex_shader.first, NULL, 0);
+            device_context->PSSetShader(cur_pixel_shader, NULL, 0);
+
+            // Perform a draw call
+            device_context->Draw(vertex_count, 0);
+        }        
+    }
+
+    // Runs a draw call on an object
     void VisualEngine::drawObject(Datamodel::Camera* camera, Datamodel::Object* object)
     {
         // Obtain transformation matrices

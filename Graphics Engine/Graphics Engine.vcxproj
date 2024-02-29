@@ -163,7 +163,11 @@
     <ClCompile Include="src\objects\other\Player.cpp" />
     <ClCompile Include="src\objects\PhysicsObject.cpp" />
     <ClCompile Include="src\objects\Renderable.cpp" />
+    <ClCompile Include="src\objects\RenderableObject.cpp" />
+    <ClCompile Include="src\rendering\Mesh.cpp" />
     <ClCompile Include="src\rendering\VisualEngine.cpp" />
+    <ClCompile Include="src\utility\Parser.cpp" />
+    <ClCompile Include="src\utility\parser\OBJParser.cpp" />
     <ClCompile Include="src\utility\Stopwatch.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -176,13 +180,17 @@
     <ClInclude Include="src\math\Matrix3.h" />
     <ClInclude Include="src\objects\other\Camera.h" />
     <ClInclude Include="src\math\Vector3.h" />
+    <ClInclude Include="src\objects\RenderableObject.h" />
     <ClInclude Include="src\rendering\buffers\ShaderData.h" />
     <ClInclude Include="src\math\Matrix4.h" />
     <ClInclude Include="src\math\Vector4.h" />
     <ClInclude Include="src\rendering\buffers\VShaderBuffers.h" />
     <ClInclude Include="src\rendering\Direct3D11.h" />
     <ClInclude Include="src\rendering\buffers\VertexBuffer.h" />
+    <ClInclude Include="src\rendering\Mesh.h" />
     <ClInclude Include="src\rendering\VisualEngine.h" />
+    <ClInclude Include="src\utility\parser\OBJParser.h" />
+    <ClInclude Include="src\utility\Parser.h" />
     <ClInclude Include="src\utility\Stopwatch.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

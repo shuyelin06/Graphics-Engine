@@ -2,6 +2,7 @@
 
 #include "Direct3D11.h"
 #include "objects/Object.h"
+#include "objects/RenderableObject.h"
 #include "objects/other/Camera.h"
 
 #include <vector>
@@ -9,6 +10,7 @@
 
 namespace Engine
 {
+using namespace Datamodel;
 
 namespace Graphics
 {
@@ -57,7 +59,8 @@ namespace Graphics
 		void bind_pixel_shader(int index);
 		
 		// Draws an object from the current player's point of view
-		void drawObject(Datamodel::Camera* camera, Datamodel::Object* object);
+		void drawObject(Camera* camera, RenderableObject* object);
+		void drawObject(Camera* camera, Object* object);
 
 		void present(); // Present Drawn Content to Screen
 

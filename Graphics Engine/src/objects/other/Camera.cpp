@@ -17,7 +17,7 @@ namespace Datamodel
 		setFOV(fov);
 
 		z_near = 1.f;
-		z_far = 50.f;
+		z_far = 200.f;
 	}
 
 	float Camera::getFOV()

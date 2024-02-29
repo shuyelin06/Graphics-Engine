@@ -31,6 +31,7 @@
 #include "objects/Object.h"
 #include "objects/Renderable.h"
 
+#include "rendering/Mesh.h"
 // TEST
 #include "utility/Stopwatch.h"
 
@@ -45,9 +46,17 @@ static Datamodel::Player player = Datamodel::Player();                       // 
 static Input::InputEngine input_engine = Input::InputEngine();               // Handles Input
 static Graphics::VisualEngine graphics_engine = Graphics::VisualEngine();    // Handles Graphics
 
+// --- TEST ---
+
+#include "utility/parser/OBJParser.h"
+
 // Main Function
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 { 
+    // Utility::OBJParser::parseFile("data/cube.obj");
+
+    // return 0;
+
     /* Register a Window Class with the OS */
     // Registers information about the behavior of the application window
     const wchar_t CLASS_NAME[] = L"Application";
@@ -82,8 +91,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
     assert(hwnd != NULL); // Check Success
 
-    
-
     ShowWindow(hwnd, nCmdShow); // Set Window Visible
 
     // Set screen center
@@ -100,13 +107,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     /* Initialize Direct 3D 11 */
     graphics_engine.initialize(hwnd);
 
+    // TESTING
+    VertexBuffer buffer = Graphics::Mesh::parsePLYFile(&graphics_engine, "data/Beethoven.ply");
+
     Datamodel::Object cube = Datamodel::Object();
-    cube.setVertexBuffer(Datamodel::Renderable::getCubeMesh(&graphics_engine));
-    cube.setScale(2.5f, 2.5f, 2.5f);
+    // cube.setVertexBuffer(Datamodel::Renderable::getCubeMesh(&graphics_engine));
+    // cube.setScale(2.5f, 2.5f, 2.5f);
+    cube.setVertexBuffer(buffer);
 
     Datamodel::Object cube2 = Datamodel::Object();
-    cube2.setVertexBuffer(Datamodel::Renderable::getCubeMesh(&graphics_engine));
-    cube2.setScale(2.5f, 2.5f, 2.5f);
+    cube2.setVertexBuffer(buffer);
+    // cube2.setScale(2.5f, 2.5f, 2.5f);
     cube2.offsetPosition(0, 0, -10);
 
     // Adjust
