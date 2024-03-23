@@ -1,18 +1,13 @@
 #include "Mesh.h"
 
-// Includes for Debug
 #include <assert.h>
-#include <windows.h>
 
-// Includes for file parsing
-#include <iostream>
-#include <fstream>
-
-#include <regex>
-#include <vector>
+#include "math/Vector3.h"
 
 namespace Engine
 {
+using namespace Math;
+
 namespace Graphics
 {
 	// VertexLayoutSize
@@ -20,9 +15,9 @@ namespace Graphics
 	// vertex layout has
 	int Mesh::VertexLayoutSize(char layout)
 	{
-		int size = ((1 & layout) * 3)	// 1st Bit: XYZ Position
-			+ ((1 & (layout >> 1)) * 3)	// 2nd Bit: RGB Color
-			+ ((1 & (layout >> 2)) * 3); // 3rd Bit: XYZ Normal
+		int size = ((layout & XYZ) * 3)	// 1st Bit: XYZ Position
+			+ (((layout & RGB) >> 1) * 3)	// 2nd Bit: RGB Color
+			+ (((layout & NORMAL) >> 2) * 3); // 3rd Bit: XYZ Normal
 		return size;
 	}
 
@@ -31,9 +26,9 @@ namespace Graphics
 	// the input format 
 	char Mesh::GenerateVertexLayout(bool pos, bool rgb, bool norm)
 	{
-		char layout = (pos & 1)		// 1st Bit: XYZ Position
-					| ((rgb & 1) << 1) // 2nd Bit: RGB Color
-					| ((norm & 1) << 2); // 3rd Bit: XYZ Normal
+		char layout = (pos & 1)				// 1st Bit: XYZ Position
+					| ((rgb & 1) << 1)		// 2nd Bit: RGB Color
+					| ((norm & 1) << 2);	// 3rd Bit: XYZ Normal
 		return layout;
 	}
 
@@ -53,6 +48,99 @@ namespace Graphics
 		// Reserve space for 3 vertices
 		vertices.reserve(VertexLayoutSize(layout) * 3);
 		indices.reserve(3);
+	}
+
+	// CalculateNormals:
+	// Given the XYZ positions and indices, calculates the
+	// normal vectors for each vertex
+	void Mesh::calculateNormals() 
+	{
+		// Check that layout has XYZ position, and does NOT have
+		// normals
+		if ((vertex_layout & XYZ) != XYZ || (vertex_layout & NORMAL) == NORMAL)
+			assert(false);
+
+		// Create vector of vertex normals, where each 3 floats
+		// correspond to the vertex at the same index
+		int vertex_size = VertexLayoutSize(vertex_layout);
+		int num_vertices = vertices.size() / vertex_size;
+		
+		vector<Vector3> vertex_normals;
+		vertex_normals.resize(num_vertices); // Resize so that all floats are initially 0
+
+		// Iterate through all faces and calculate the vertex normal
+		for (int i = 0; i < indices.size(); i += 3)
+		{
+			// Calculate vertex normal
+			int index_1 = indices[i];
+			int index_2 = indices[i + 1];
+			int index_3 = indices[i + 2];
+
+			Vector3 v1 = Vector3(vertices[index_1 * vertex_size], vertices[index_1 * vertex_size + 1], vertices[index_1 * vertex_size + 2]);
+			Vector3 v2 = Vector3(vertices[index_2 * vertex_size], vertices[index_2 * vertex_size + 1], vertices[index_2 * vertex_size + 2]);
+			Vector3 v3 = Vector3(vertices[index_3 * vertex_size], vertices[index_3 * vertex_size + 1], vertices[index_3 * vertex_size + 2]);
+
+			Vector3 normal = Vector3::CrossProduct(v2 - v1, v3 - v1);
+
+			// Add this normal to all vertices involved
+			vertex_normals[index_1] += normal;
+			vertex_normals[index_2] += normal;
+			vertex_normals[index_3] += normal;
+		}
+
+		// Normalize all normal vectors
+		for (int i = 0; i < vertex_normals.size(); i++)
+		{
+			vertex_normals[i].inplaceNormalize();
+		}
+		
+		// Recreate vertices vector
+		vertex_layout |= NORMAL;
+		int newSize = vertex_size + 3;
+		
+		vector<float> newVertices;
+		newVertices.reserve(newSize * num_vertices);
+
+		for (int i = 0; i < num_vertices; i++)
+		{
+			int offset = 0;
+
+			// Add normals to each vertex, while accounting for order
+			for (char layout_pin = 1; layout_pin != 0; layout_pin <<= 1)
+			{
+				// If layout contains the given pin, add to new vertices array
+				if (layout_pin == NORMAL)
+				{
+					newVertices.push_back(vertex_normals[i].x);
+					newVertices.push_back(vertex_normals[i].y);
+					newVertices.push_back(vertex_normals[i].z);
+				}
+				// Otherwise, add the rest of the data
+				else if ((vertex_layout & layout_pin) == layout_pin)
+				{
+					int num_floats = VertexLayoutSize(layout_pin);
+
+					for (int j = 0; j < num_floats; j++)
+					{
+						newVertices.push_back(vertices[i * vertex_size + offset]);
+						offset++;
+					}
+				}
+			}
+
+		}
+
+		vertices = newVertices;
+	}
+	
+
+	// SetShaders:
+	// Sets the shaders to be used to render this mesh,
+	// by their index in the VisualEngine
+	void Mesh::setShaders(char vertex, char pixel)
+	{
+		vertex_shader = vertex;
+		pixel_shader = pixel;
 	}
 
 	// AddVertex:
@@ -75,146 +163,6 @@ namespace Graphics
 	{
 		indices.push_back(index);
 	}
-	
-	char Mesh::getLayout()
-	{
-		return vertex_layout;
-	}
 
-	const vector<float> Mesh::getVertexBuffer()
-	{
-		return vertices;
-	}
-	
-	const vector<int> Mesh::getIndexBuffer()
-	{
-		return indices;
-	}
-
-	// ParsePLYFile
-	// A simple PLY file parser. Assumes ASCII format.
-	Mesh Mesh::parsePLYFile(string ply_file, char layout)
-	{
-		// Mesh object
-		Mesh mesh = Mesh(layout);
-
-		// Create input stream from PLY file
-		std::ifstream infile(ply_file);
-
-		// If successful, read file line by line
-		if (infile.is_open())
-		{
-			// Will store the input line
-			std::string line;
-			std::smatch match;
-
-			int num_vertices = 0;
-			int num_faces = 0;
-
-			// Read header information
-			{
-				// Parse the initial "ply"
-				if (getline(infile, line), line != "ply")
-					assert(false);
-				else
-				{
-					// Parse the format of the PLY file; only supports ASCII 1.0
-					if (getline(infile, line), line != "format ascii 1.0")
-						assert(false);
-
-					// Define regex to parse portions of the header
-					regex re_vertex_element("element vertex (\\d+)");
-					regex re_face_element("element face (\\d+)");
-
-					// Get the next line
-					getline(infile, line);
-
-					// Parse intermediate lines 
-					while (!regex_search(line, match, re_vertex_element))
-						getline(infile, line);
-
-					// Parse the vertex element
-					if (regex_search(line, match, re_vertex_element))
-						num_vertices = stoi(match.str(1));
-					else
-						assert(false);
-
-					// Parse intermediate lines
-					while (!regex_search(line, match, re_face_element))
-						getline(infile, line);
-
-					// Parse the face element
-					if (regex_search(line, match, re_face_element))
-						num_faces = stoi(match.str(1));
-					else
-						assert(false);
-
-					// Skip to end of header
-					while (line != "end_header")
-						getline(infile, line);
-				}
-			}
-
-			// Read vertices
-			{
-				int size = VertexLayoutSize(layout);
-				float* vertex = new float[size];
-				regex re_float("-?\\d+(\\.?\\d+)?");
-
-				for (int i = 0; i < num_vertices; i++)
-				{
-					// Read vertex line
-					getline(infile, line);
-
-					// Match vertex format and populate vertices_list
-					int vertex_i = 0;
-
-					// Move through all float matches
-					sregex_iterator iter = std::sregex_iterator(line.begin(), line.end(), re_float);
-
-					while (iter != std::sregex_iterator())
-					{
-						std::smatch match = *iter;
-						// Add float to corresponding vertex property position
-						vertex[vertex_i++] = stof(match.str(0));
-
-						++iter;
-					}
-
-					// HACK - Populate the remaining fields that don't exist
-					while (vertex_i < size)
-					{
-						vertex[vertex_i++] = (((float) rand() / (RAND_MAX)));
-					}
-
-					mesh.addVertex(vertex);
-				}
-
-				delete[] vertex;
-			}
-
-			// Read faces
-			{
-				regex face_format("3 (\\d+) (\\d+) (\\d+)");
-
-				for (int i = 0; i < num_faces; i++)
-				{
-					getline(infile, line);
-
-					if (regex_search(line, match, face_format))
-					{
-						// Add indices to index list
-						mesh.addIndex(stoi(match.str(1)));
-						mesh.addIndex(stoi(match.str(2)));
-						mesh.addIndex(stoi(match.str(3)));
-					}
-				}
-			}
-
-			
-		}
-
-		return mesh;
-	}
 }
 }

@@ -103,7 +103,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     graphics_engine.initialize(hwnd);
 
     // TESTING
-    Graphics::Mesh mesh = Graphics::Mesh::parsePLYFile("data/Beethoven.ply", Graphics::Mesh::GenerateVertexLayout(true, true, false));
+    Graphics::Mesh mesh = Graphics::Mesh::parsePLYFile("data/Beethoven.ply");
+    mesh.setShaders(0, 0);
+    mesh.calculateNormals();
 
     Datamodel::Object cube = Datamodel::Object();
     cube.setMesh(mesh);
@@ -176,10 +178,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         {
             // Prepare for drawing
             graphics_engine.prepare();
-            
-            // Bind shaders
-            graphics_engine.bind_vertex_shader(0);
-            graphics_engine.bind_pixel_shader(0);
 
             // Render all objects
             for (int i = 0; i < objects.size(); i++) 

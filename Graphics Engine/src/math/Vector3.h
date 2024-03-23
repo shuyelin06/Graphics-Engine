@@ -19,15 +19,26 @@ namespace Math
 
 		~Vector3() {};
 
-		void normalize(); // In-place normalize
+		// In-place normalize
+		void inplaceNormalize(); 
 
+		// Returns the vector's magnitude
 		float magnitude() const;
 
-		Vector3 operator+(const Vector3&) const;
-		Vector3 operator-(const Vector3&) const;
-		Vector3 operator-() const;
-		Vector3 operator*(const float) const;
-		Vector3 operator/(const float) const;
+		// Vector Operations
+		Vector3 operator+(const Vector3&) const; // Addition
+		Vector3& operator+=(const Vector3&);	 // Compound (In-Place) Addition
+		Vector3 operator-(const Vector3&) const; // Subtraction
+		Vector3& operator-=(const Vector3&);	 // Compound (In-Place) Subtraction 
+		Vector3 operator-() const;				 // Negation
+		
+		Vector3 operator*(const float) const;    // Scalar Multiplication
+		Vector3& operator*=(const float);		 // Compound (In-Place) Scalar Multiplication	
+		Vector3 operator/(const float) const;	 // Scalar Division
+		Vector3& operator/=(const float);		 // Compound (In-Place) Scalar Division
+
+		// Static Vector Operations
+		static Vector3 CrossProduct(Vector3 v1, Vector3 v2);
 
 		static Vector3 PositiveX();
 		static Vector3 PositiveY();

@@ -164,9 +164,11 @@ namespace Graphics
 
         // Multiply to obtain transform matrix to pass to shader
         Matrix4 transform = local_to_world * world_to_camera * camera_to_project;
+        Matrix4 rotate = object->rotationMatrix();
 
         // Bind transform matrix to the vertex shader
         bind_vs_data(0, transform.getRawData(), sizeof(float) * 16);
+        bind_vs_data(1, rotate.getRawData(), sizeof(float) * 16);
 
         // Obtain metadata for vertex buffer
         Mesh mesh = object->getMesh();
@@ -174,12 +176,16 @@ namespace Graphics
         ID3D11Buffer* vertex_buffer = create_vertex_buffer(mesh);
         ID3D11Buffer* index_buffer = create_index_buffer(mesh);
 
-        UINT vertex_stride = Mesh::VertexLayoutSize(mesh.getLayout()) * sizeof(float); // Bytes between the beginning of each vertex
+        UINT vertex_stride = Mesh::VertexLayoutSize(mesh.vertex_layout) * sizeof(float); // Bytes between the beginning of each vertex
         UINT vertex_offset = 0; // Offset into the buffer to start reading
-        UINT vertex_count = mesh.getVertexBuffer().size(); // Total number of vertices
+        UINT vertex_count = mesh.vertices.size(); // Total number of vertices
+
+        UINT num_indices = mesh.indices.size();
         
-        UINT num_indices = mesh.getIndexBuffer().size();
-        
+        // Get shaders to render mesh with
+        std::pair<ID3D11VertexShader*, ID3D11InputLayout*> vertex_shader = vertex_shaders[mesh.vertex_shader];
+        ID3D11PixelShader* pixel_shader = pixel_shaders[mesh.pixel_shader];
+
         // Perform a Draw Call
         // Set the valid drawing area (our window)
         RECT winRect;
@@ -205,7 +211,7 @@ namespace Graphics
 
         // Set input
         device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        device_context->IASetInputLayout(cur_vertex_shader.second);
+        device_context->IASetInputLayout(vertex_shader.second);
 
         device_context->IASetVertexBuffers(
             0,
@@ -220,35 +226,11 @@ namespace Graphics
         );
 
         // Bind shaders
-        device_context->VSSetShader(cur_vertex_shader.first, NULL, 0);
-        device_context->PSSetShader(cur_pixel_shader, NULL, 0);
-        
-        
+        device_context->VSSetShader(vertex_shader.first, NULL, 0);
+        device_context->PSSetShader(pixel_shader, NULL, 0);
 
         // Draw from our vertex buffer
         device_context->DrawIndexed(num_indices, 0, 0);
-    }
-
-    // Binds a vertex shader to be used in the rendering
-    // pipeline
-    void VisualEngine::bind_vertex_shader(int index)
-    {
-        if (0 <= index && index < vertex_shaders.size())
-        {
-            cur_vertex_shader = vertex_shaders[index];
-        }
-        else assert(false);
-    }
-
-    // Binds a pixel shader to be used in the rendering
-    // pipeline
-    void VisualEngine::bind_pixel_shader(int index)
-    {
-        if (0 <= index && index < pixel_shaders.size())
-        {
-            cur_pixel_shader = pixel_shaders[index];
-        }
-        else assert(false);
     }
 
     // Swaps the swapchain buffers, presenting drawn content
@@ -284,42 +266,13 @@ namespace Graphics
 
         return buffer;
     }
-
-    // Generate_Vertex_Buffer
-    // Creates a vertex buffer instance that can be used for later drawing
-    VertexBuffer VisualEngine::generate_vertex_buffer(void* vertices, int floats_per_vertex, int num_vertices)
-    {
-        VertexBuffer output = { 0 };
-
-        // Fill buffer description
-        D3D11_BUFFER_DESC buff_desc = {};
-
-        buff_desc.ByteWidth = floats_per_vertex * sizeof(float) * num_vertices;
-        buff_desc.Usage = D3D11_USAGE_DEFAULT;
-        buff_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
-        // Fill subresource data
-        D3D11_SUBRESOURCE_DATA sr_data = { 0 };
-        sr_data.pSysMem = vertices;
-
-        // Create buffer
-        ID3D11Buffer* buffer = NULL;
-        device->CreateBuffer(&buff_desc, &sr_data, &buffer);
-
-        // Populate and return VertexBuffer instance
-        output.vertex_buffer = buffer;
-        output.vertex_size = floats_per_vertex;
-        output.num_vertices = num_vertices;
-
-        return output;
-    }
     
     // CreateVertexBuffer:
     // Create Vertex Buffer from Mesh
     ID3D11Buffer* VisualEngine::create_vertex_buffer(Mesh mesh)
     {
-        vector<float> vertices = mesh.getVertexBuffer();
-        int vertex_size = Mesh::VertexLayoutSize(mesh.getLayout());
+        vector<float> vertices = mesh.vertices;
+        int vertex_size = Mesh::VertexLayoutSize(mesh.vertex_layout);
 
         // Fill buffer description
         D3D11_BUFFER_DESC buff_desc = {};
@@ -343,7 +296,7 @@ namespace Graphics
     // Create Index Buffer from Mesh
     ID3D11Buffer* VisualEngine::create_index_buffer(Mesh mesh)
     {
-        vector<int> indices = mesh.getIndexBuffer();
+        vector<int> indices = mesh.indices;
        
         // Fill buffer description
         D3D11_BUFFER_DESC buff_desc = {};
@@ -364,7 +317,7 @@ namespace Graphics
     }
 
     // Bind_Data
-    // Uses dynamic resource renaming to bind data to the vertex / pixel
+    // Uses dynamic resource renaming to fairly efficiently bind data to the vertex / pixel
     // shader constant registers, for use in the shaders
     void VisualEngine::bind_vs_data(unsigned int index, void* data, int byte_size)
         { bind_data(Vertex, index, data, byte_size); }
@@ -374,29 +327,28 @@ namespace Graphics
 
     void VisualEngine::bind_data(Shader_Type type, unsigned int index, void* data, int byte_size)
     {
-        // TODO: https://learn.microsoft.com/en-us/windows/win32/api/d3d11/ne-d3d11-d3d11_map
-        // Could use a ring buffer with D3D11_MAP_WRITE_NO_OVERWRITE option
-        // and VSSetConstantBuffers1 method to minimize the number of memory overwrites necessary.
-        
+        // Get vertex or pixel buffers depending on what's requested
         std::vector<ID3D11Buffer*> buffers = (type == Vertex) ? vs_constant_buffers : ps_constant_buffers;
 
-        // Ensure index for buffer exists
-        while (index >= buffers.size())
-            buffers.push_back(NULL);
+        // Check if our buffer index exists, and if it doesn't,
+        // resize our vector so that it's included
+        if (index >= buffers.size())
+            buffers.resize(index + 1);
 
         // Create buffer if it does not exist at that index
         if (buffers[index] == NULL)
         {
             // Create buffer description 
-            D3D11_BUFFER_DESC buff_desc = { 0 };
+            D3D11_BUFFER_DESC buff_desc = {};
 
-            buff_desc.ByteWidth = byte_size;
+            buff_desc.ByteWidth = byte_size;                    // # Bytes Input Data Takes
             buff_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;   // Constant Buffer
             buff_desc.Usage = D3D11_USAGE_DYNAMIC;              // Accessible by GPU Read + CPU Write
             buff_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;  // Allow CPU Writes
 
             // Allocate resources
             D3D11_SUBRESOURCE_DATA sr_data;
+
             sr_data.pSysMem = data;
             sr_data.SysMemPitch = 0;
             sr_data.SysMemSlicePitch = 0;
@@ -408,9 +360,10 @@ namespace Graphics
         // instead of creating a new buffer
         else
         {
+            // Will store data for the already existing shader buffer 
             D3D11_MAPPED_SUBRESOURCE mapped_resource = { 0 };
 
-            // Disable GPU access to data
+            // Disable GPU access to data and obtain the resource
             device_context->Map(buffers[index], 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_resource);
 
             // Update data
@@ -420,7 +373,7 @@ namespace Graphics
             device_context->Unmap(buffers[index], 0);
         }
 
-        // Set constant buffer onto shader
+        // Set constant buffer into shader
         switch (type)
         {
         case Vertex:
@@ -430,7 +383,6 @@ namespace Graphics
             device_context->PSSetConstantBuffers(index, 1, &buffers[index]);
             break;
         }
-
     }
 
     /* --- Shader Creation --- */

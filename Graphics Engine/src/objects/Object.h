@@ -17,7 +17,7 @@ namespace Datamodel
 	class Object
 	{
 	protected:
-		Mesh mesh;	// mesh (for rendering)
+		Mesh mesh;				// Object mesh for rendering purposes
 
 		Object* parent;			// pointer to object's parent
 		Vector3 rotation;		// roll, yaw, pitch
@@ -57,10 +57,12 @@ namespace Datamodel
 		void setMesh(Mesh mesh);
 		Mesh getMesh();
 
+		Matrix4 rotationMatrix();
+
 	protected:
 		// Helper methods to produce transformation matrices
 		Matrix4 scaleMatrix();
-		Matrix4 rotationMatrix();
+		
 		Matrix4 translationMatrix();
 	};
 }

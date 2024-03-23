@@ -2,6 +2,10 @@ cbuffer TRANSFORM_MATRICES : register(b0)
 {
     row_major float4x4 transform;
 }
+cbuffer ROTATE_MATRICES : register(b1)
+{
+    row_major float4x4 rotate;
+}
 
 /* Vertex Shader Input */
 struct VS_IN {
@@ -29,9 +33,12 @@ VS_OUT vs_main(VS_IN input) {
 	// Set Output Position in the Clipping Plane
     float4 pos = float4(input.position_local, 1.0f);
     pos = mul(pos, transform);
+    
+    float4 norm = float4(input.color, 1);
+    norm = mul(norm, rotate);
 
 	output.position_clip = pos;
-    output.color = input.color;
+    output.color = norm;
 	
 	return output;
 }

@@ -4,9 +4,6 @@ element vertex 2521
 property float32 x
 property float32 y
 property float32 z
-property float32 r
-property float32 g
-property float32 b
 element face 5030
 property list uint8 int32 vertex_indices
 end_header
