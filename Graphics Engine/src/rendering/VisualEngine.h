@@ -2,8 +2,9 @@
 
 #include "Direct3D11.h"
 #include "objects/Object.h"
-#include "objects/RenderableObject.h"
 #include "objects/other/Camera.h"
+
+#include "rendering/buffers/VertexBuffer.h"
 
 #include <vector>
 #include <utility>
@@ -26,7 +27,10 @@ namespace Graphics
 		ID3D11Device* device;
 		ID3D11DeviceContext* device_context;
 		IDXGISwapChain* swap_chain;
+		
+		// Rendering
 		ID3D11RenderTargetView* render_target_view;
+		ID3D11DepthStencilView* depth_stencil;
 
 		// Available Constant Buffers
 		std::vector<ID3D11Buffer*> vs_constant_buffers;
@@ -45,8 +49,8 @@ namespace Graphics
 		void initialize(HWND _window); // Initialize Direct 3D
 		
 		// Rendering Methods
-		void clear_screen(float color[4]); // Clear Screen
-
+		void prepare(); // Prepares for a draw call
+		
 		// Generate a renderable vertex buffer
 		VertexBuffer generate_vertex_buffer(void *vertices, int floats_per_vertex, int num_vertices);
 
@@ -59,12 +63,15 @@ namespace Graphics
 		void bind_pixel_shader(int index);
 		
 		// Draws an object from the current player's point of view
-		void drawObject(Camera* camera, RenderableObject* object);
 		void drawObject(Camera* camera, Object* object);
 
 		void present(); // Present Drawn Content to Screen
 
 	private:
+		// Create Vertex and Index Buffers from Mesh
+		ID3D11Buffer* create_vertex_buffer(Mesh mesh);
+		ID3D11Buffer* create_index_buffer(Mesh mesh);
+		
 		// Create Buffers
 		ID3D11Buffer* create_buffer(D3D11_BIND_FLAG, void *data, int byte_size);
 

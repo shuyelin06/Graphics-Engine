@@ -1,6 +1,7 @@
 #include "VisualEngine.h"
 
 #include <assert.h>
+#include <d3d11_1.h>
 
 namespace Engine
 {
@@ -26,11 +27,20 @@ namespace Graphics
         // Set Window Handle
         window = _window;
 
+        // Get window width and height
+        RECT rect;
+        GetWindowRect(window, &rect);
+
+        int width = rect.right - rect.left;
+        int height = rect.bottom - rect.top;
+
         /* Initialize Swap Chain */
         // Populate a Swap Chain Structure, responsible for swapping between textures (for rendering)
         DXGI_SWAP_CHAIN_DESC swap_chain_descriptor = { 0 };
         swap_chain_descriptor.BufferDesc.RefreshRate.Numerator = 0; // Synchronize Output Frame Rate
         swap_chain_descriptor.BufferDesc.RefreshRate.Denominator = 1;
+        swap_chain_descriptor.BufferDesc.Width = width;
+        swap_chain_descriptor.BufferDesc.Height = height;
         swap_chain_descriptor.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM; // Color Output Format
         swap_chain_descriptor.SampleDesc.Count = 1;
         swap_chain_descriptor.SampleDesc.Quality = 0;
@@ -64,22 +74,59 @@ namespace Graphics
         // Obtain Frame Buffer
         ID3D11Texture2D* framebuffer;
 
-        result = swap_chain->GetBuffer(
-            0, // Get Buffer 0
-            __uuidof(ID3D11Texture2D),
-            (void**)&framebuffer);
-
-        // Check for success
-        assert(SUCCEEDED(result));
-        
         // Create Render Target with Frame Buffer
-        result = device->CreateRenderTargetView(
-            framebuffer, 0, &render_target_view);
-        // Check Success
-        assert(SUCCEEDED(result));
+        {
+            result = swap_chain->GetBuffer(
+                0, // Get Buffer 0
+                __uuidof(ID3D11Texture2D),
+                (void**)&framebuffer);
 
+            // Check for success
+            assert(SUCCEEDED(result));
+
+            // Create Render Target with Frame Buffer
+            result = device->CreateRenderTargetView(
+                framebuffer, 0, &render_target_view);
+            // Check Success
+            assert(SUCCEEDED(result));
+        }
+
+        // Release frame buffer (no longer needed)
         framebuffer->Release();
 
+        // Create 2D texture to be used as a depth stencil
+        ID3D11Texture2D* depth_texture = NULL;
+        {
+            // Create description for the texture
+            D3D11_TEXTURE2D_DESC desc_texture= {};
+            desc_texture.Width = width;
+            desc_texture.Height = height;
+            desc_texture.MipLevels = 1;
+            desc_texture.ArraySize = 1;
+            desc_texture.MipLevels = 1;
+            desc_texture.ArraySize = 1;
+            desc_texture.SampleDesc.Count = 1;
+            desc_texture.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+            desc_texture.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+            
+            // Create 2D texture for depth stencil
+            result = device->CreateTexture2D(&desc_texture, NULL, &depth_texture);
+
+            // Check for failure
+            if (result != S_OK)
+                assert(false);
+        }
+
+        // Create a depth stencil from the 2D texture
+        {
+            // Create description for the depth stencil
+            D3D11_DEPTH_STENCIL_VIEW_DESC desc_stencil = {};
+            desc_stencil.Format = DXGI_FORMAT_D24_UNORM_S8_UINT; // Same format as texture
+            desc_stencil.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
+
+            // Create depth stencil
+            device->CreateDepthStencilView(depth_texture, &desc_stencil, &depth_stencil);
+        }
 
         /* Build our Shaders */
         // Compile Vertex Shader
@@ -94,97 +141,17 @@ namespace Graphics
     }
 
     /* --- Rendering --- */
-    // The below functions can be called for rendering
-
-    // Clears the screen with a color
-    void VisualEngine::clear_screen(float color[4])
+    // Prepare:
+    // Prepares the graphics engine for a draw call, by clearing the
+    // screen and depth buffer (for depth testing)
+    void VisualEngine::prepare()
     {
+        // Clear screen to be blac
+        float color[4] = { 0, 0, 0, 1.0f };
         device_context->ClearRenderTargetView(render_target_view, color);
-    }
-    
-    // Binds a vertex shader to be used in the rendering
-    // pipeline
-    void VisualEngine::bind_vertex_shader(int index)
-    {
-        if (0 <= index && index < vertex_shaders.size())
-        {
-            cur_vertex_shader = vertex_shaders[index];
-        }
-        else assert(false);
-    }
-    
-    // Binds a pixel shader to be used in the rendering
-    // pipeline
-    void VisualEngine::bind_pixel_shader(int index)
-    {
-        if (0 <= index && index < pixel_shaders.size())
-        {
-            cur_pixel_shader = pixel_shaders[index];
-        }
-        else assert(false);
-    }
 
-    // Renders the mesh of an object from the point of view of some camera
-    void VisualEngine::drawObject(Camera* camera, RenderableObject* object)
-    {
-        // Create the transformation matriix
-        Matrix4 local_to_world = object->localToWorldMatrix();
-        Matrix4 world_to_camera = camera->localToWorldMatrix().inverse();
-        Matrix4 camera_to_project = camera->localToProjectionMatrix();
-
-        Matrix4 transform = local_to_world * world_to_camera * camera_to_project;
-
-        // Bind transform matrix to the vertex shader
-        bind_vs_data(0, transform.getRawData(), sizeof(float) * 16);
-
-        // Iterate through and draw vertex buffers
-        const Mesh buffers = *(object->getMesh());
-        
-        for (VertexBuffer buffer : buffers)
-        {
-            // Set D3D11 buffer configurations
-            ID3D11Buffer* vertex_buffer_ptr = buffer.vertex_buffer;
-            UINT vertex_stride = buffer.vertex_size * sizeof(float); // Bytes between the beginning of each vertex
-            UINT vertex_offset = 0; // Offset into the buffer to start reading
-            UINT vertex_count = buffer.num_vertices; // Total number of vertices
-
-            // Set the valid drawing area (our window)
-            RECT winRect;
-            GetClientRect(window, &winRect); // Get the windows rectangle
-
-            D3D11_VIEWPORT viewport = {
-                0.0f, 0.0f,
-                (FLOAT) (winRect.right - winRect.left),
-                (FLOAT) (winRect.bottom - winRect.top),
-                0.0f,
-                1.0f
-            };
-
-            // Give rectangle to rasterizer state function
-            device_context->RSSetViewports(1, &viewport);
-
-            // Set output merger to use our render target
-            device_context->OMSetRenderTargets(1, &render_target_view, NULL);
-
-            // Set input (TODO: TriangleList may not be the correct one)
-            device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-            device_context->IASetInputLayout(cur_vertex_shader.second);
-
-            device_context->IASetVertexBuffers(
-                0,
-                1,
-                &vertex_buffer_ptr,
-                &vertex_stride,
-                &vertex_offset
-            );
-
-            // Bind shaders
-            device_context->VSSetShader(cur_vertex_shader.first, NULL, 0);
-            device_context->PSSetShader(cur_pixel_shader, NULL, 0);
-
-            // Perform a draw call
-            device_context->Draw(vertex_count, 0);
-        }        
+        // Clear depth stencil
+        device_context->ClearDepthStencilView(depth_stencil, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
     }
 
     // Runs a draw call on an object
@@ -202,12 +169,16 @@ namespace Graphics
         bind_vs_data(0, transform.getRawData(), sizeof(float) * 16);
 
         // Obtain metadata for vertex buffer
-        VertexBuffer buffer = object->getVertexBuffer();
+        Mesh mesh = object->getMesh();
 
-        ID3D11Buffer* vertex_buffer_ptr = buffer.vertex_buffer;
-        UINT vertex_stride = buffer.vertex_size * sizeof(float); // Bytes between the beginning of each vertex
+        ID3D11Buffer* vertex_buffer = create_vertex_buffer(mesh);
+        ID3D11Buffer* index_buffer = create_index_buffer(mesh);
+
+        UINT vertex_stride = Mesh::VertexLayoutSize(mesh.getLayout()) * sizeof(float); // Bytes between the beginning of each vertex
         UINT vertex_offset = 0; // Offset into the buffer to start reading
-        UINT vertex_count = buffer.num_vertices; // Total number of vertices
+        UINT vertex_count = mesh.getVertexBuffer().size(); // Total number of vertices
+        
+        UINT num_indices = mesh.getIndexBuffer().size();
         
         // Perform a Draw Call
         // Set the valid drawing area (our window)
@@ -222,11 +193,15 @@ namespace Graphics
             1.0f
         };
 
+        // Set min and max depth for viewpoint (for depth testing)
+        viewport.MinDepth = 0;
+        viewport.MaxDepth = 1;
+
         // Give rectangle to rasterizer state function
         device_context->RSSetViewports(1, &viewport);
 
-        // Set output merger to use our render target
-        device_context->OMSetRenderTargets(1, &render_target_view, NULL);
+        // Set output merger to use our render target and depth test
+        device_context->OMSetRenderTargets(1, &render_target_view, depth_stencil);
 
         // Set input
         device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -235,17 +210,45 @@ namespace Graphics
         device_context->IASetVertexBuffers(
             0,
             1,
-            &vertex_buffer_ptr,
+            &vertex_buffer,
             &vertex_stride,
             &vertex_offset
+        );
+
+        device_context->IASetIndexBuffer(
+            index_buffer, DXGI_FORMAT_R32_UINT, 0
         );
 
         // Bind shaders
         device_context->VSSetShader(cur_vertex_shader.first, NULL, 0);
         device_context->PSSetShader(cur_pixel_shader, NULL, 0);
+        
+        
 
         // Draw from our vertex buffer
-        device_context->Draw(vertex_count, 0);
+        device_context->DrawIndexed(num_indices, 0, 0);
+    }
+
+    // Binds a vertex shader to be used in the rendering
+    // pipeline
+    void VisualEngine::bind_vertex_shader(int index)
+    {
+        if (0 <= index && index < vertex_shaders.size())
+        {
+            cur_vertex_shader = vertex_shaders[index];
+        }
+        else assert(false);
+    }
+
+    // Binds a pixel shader to be used in the rendering
+    // pipeline
+    void VisualEngine::bind_pixel_shader(int index)
+    {
+        if (0 <= index && index < pixel_shaders.size())
+        {
+            cur_pixel_shader = pixel_shaders[index];
+        }
+        else assert(false);
     }
 
     // Swaps the swapchain buffers, presenting drawn content
@@ -311,6 +314,55 @@ namespace Graphics
         return output;
     }
     
+    // CreateVertexBuffer:
+    // Create Vertex Buffer from Mesh
+    ID3D11Buffer* VisualEngine::create_vertex_buffer(Mesh mesh)
+    {
+        vector<float> vertices = mesh.getVertexBuffer();
+        int vertex_size = Mesh::VertexLayoutSize(mesh.getLayout());
+
+        // Fill buffer description
+        D3D11_BUFFER_DESC buff_desc = {};
+
+        buff_desc.ByteWidth = sizeof(float) * vertices.size();
+        buff_desc.Usage = D3D11_USAGE_DEFAULT;
+        buff_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+        // Fill subresource data
+        D3D11_SUBRESOURCE_DATA sr_data = { 0 };
+        sr_data.pSysMem = vertices.data();
+
+        // Create buffer
+        ID3D11Buffer* buffer = NULL;
+        device->CreateBuffer(&buff_desc, &sr_data, &buffer);
+
+        return buffer;
+    }
+
+    // CreateIndexBuffer:
+    // Create Index Buffer from Mesh
+    ID3D11Buffer* VisualEngine::create_index_buffer(Mesh mesh)
+    {
+        vector<int> indices = mesh.getIndexBuffer();
+       
+        // Fill buffer description
+        D3D11_BUFFER_DESC buff_desc = {};
+
+        buff_desc.ByteWidth = sizeof(int) * indices.size();
+        buff_desc.Usage = D3D11_USAGE_DEFAULT;
+        buff_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+
+        // Fill subresource data
+        D3D11_SUBRESOURCE_DATA sr_data = { 0 };
+        sr_data.pSysMem = indices.data();
+
+        // Create buffer
+        ID3D11Buffer* buffer = NULL;
+        device->CreateBuffer(&buff_desc, &sr_data, &buffer);
+
+        return buffer;
+    }
+
     // Bind_Data
     // Uses dynamic resource renaming to bind data to the vertex / pixel
     // shader constant registers, for use in the shaders

@@ -15,7 +15,6 @@ namespace Datamodel
 	Object::Object()
 	{
 		parent = nullptr;
-		vertex_buffer = { 0 };
 		
 		scale = Vector3(1, 1, 1);
 		rotation = Vector3(0, 0, 0);
@@ -186,19 +185,18 @@ namespace Datamodel
 			position_local.x, position_local.y, position_local.z, 1);
 	}
 
-	// SetVertexBuffer
-	// Sets the vertex buffer
-	void Object::setVertexBuffer(VertexBuffer _vertex_buffer)
+	// SetMesh
+	// Sets the object's mesh
+	void Object::setMesh(Mesh _mesh)
 	{
-		vertex_buffer = _vertex_buffer;
+		mesh = _mesh;
 	}
 
-	// GetVertexBuffer
-	// Returns the vertex buffer. Delegates the responsibility of instantiating 
-	// this buffer to inheriting objects.
-	VertexBuffer Object::getVertexBuffer(void)
+	// GetMesh
+	// Returns the mesh
+	Mesh Object::getMesh(void)
 	{
-		return vertex_buffer;
+		return mesh;
 	}
 }
 }

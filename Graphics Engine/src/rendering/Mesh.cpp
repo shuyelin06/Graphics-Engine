@@ -9,54 +9,104 @@
 #include <fstream>
 
 #include <regex>
-#include <vector>   
-
-#include "objects/Renderable.h"
+#include <vector>
 
 namespace Engine
 {
 namespace Graphics
 {
-	// Input_Data_Size
-	// Returns the size (number of floats) for a 
-	// given data type
-	int Mesh::InputDataSize(InputData datatype) {
-		int size = 0;
-
-		switch (datatype) 
-		{
-		case XYZ_Position:
-			size = 3;
-			break;
-
-		case RGB_Color:
-			size = 3;
-			break;
-		}
-
+	// VertexLayoutSize
+	// Static method returning the number of floats a given 
+	// vertex layout has
+	int Mesh::VertexLayoutSize(char layout)
+	{
+		int size = ((1 & layout) * 3)	// 1st Bit: XYZ Position
+			+ ((1 & (layout >> 1)) * 3)	// 2nd Bit: RGB Color
+			+ ((1 & (layout >> 2)) * 3); // 3rd Bit: XYZ Normal
 		return size;
+	}
+
+	// GenerateVertexLayout
+	// Static method that lets us create a vertex layout, given
+	// the input format 
+	char Mesh::GenerateVertexLayout(bool pos, bool rgb, bool norm)
+	{
+		char layout = (pos & 1)		// 1st Bit: XYZ Position
+					| ((rgb & 1) << 1) // 2nd Bit: RGB Color
+					| ((norm & 1) << 2); // 3rd Bit: XYZ Normal
+		return layout;
+	}
+
+	// Mesh Constructors
+	// Default Constructor
+	Mesh::Mesh()
+	{
+		vertex_layout = 0;
+	}
+
+	// Creates an empty mesh with a specified data layout
+	Mesh::Mesh(char layout) 
+	{
+		// Save vertex layout
+		vertex_layout = layout;
+
+		// Reserve space for 3 vertices
+		vertices.reserve(VertexLayoutSize(layout) * 3);
+		indices.reserve(3);
+	}
+
+	// AddVertex:
+	// Adds a vertex to the Mesh's list of vertices.
+	// Assumes the array of floats is the same size as the
+	// vertex_layout provided
+	void Mesh::addVertex(float vertex[]) 
+	{
+		int size = VertexLayoutSize(vertex_layout);
+
+		for (int i = 0; i < size; i++) {
+			vertices.push_back(vertex[i]);
+		}
+	}
+
+	// AddIndex:
+	// Adds an index to the Mesh's list of indices
+	// (specifying vertex groups to be rendered).
+	void Mesh::addIndex(int index)
+	{
+		indices.push_back(index);
+	}
+	
+	char Mesh::getLayout()
+	{
+		return vertex_layout;
+	}
+
+	const vector<float> Mesh::getVertexBuffer()
+	{
+		return vertices;
+	}
+	
+	const vector<int> Mesh::getIndexBuffer()
+	{
+		return indices;
 	}
 
 	// ParsePLYFile
 	// A simple PLY file parser. Assumes ASCII format.
-	enum PLY_Vertex_Property { X, Y, Z, R, G, B };
-	VertexBuffer Mesh::parsePLYFile(VisualEngine* graphics_engine, string ply_file)
+	Mesh Mesh::parsePLYFile(string ply_file, char layout)
 	{
+		// Mesh object
+		Mesh mesh = Mesh(layout);
+
 		// Create input stream from PLY file
 		std::ifstream infile(ply_file);
 
 		// If successful, read file line by line
 		if (infile.is_open())
 		{
-			// Mesh object
-			Mesh mesh;
-
 			// Will store the input line
 			std::string line;
 			std::smatch match;
-
-			// Format of vertices in the PLY file
-			vector<PLY_Vertex_Property> vertex_format;
 
 			int num_vertices = 0;
 			int num_faces = 0;
@@ -73,55 +123,24 @@ namespace Graphics
 						assert(false);
 
 					// Define regex to parse portions of the header
-					regex re_comment("comment .*");
-
 					regex re_vertex_element("element vertex (\\d+)");
-					regex re_vertex_property("property ([a-z0-9]+) ([a-z]+)");
 					regex re_face_element("element face (\\d+)");
 
 					// Get the next line
 					getline(infile, line);
 
-					// Parse intermediate comments
-					while (regex_search(line, match, re_comment))
+					// Parse intermediate lines 
+					while (!regex_search(line, match, re_vertex_element))
 						getline(infile, line);
 
 					// Parse the vertex element
 					if (regex_search(line, match, re_vertex_element))
-					{
-						// Save number of vertices
 						num_vertices = stoi(match.str(1));
-
-						// Parse properties of the vertices
-						getline(infile, line);
-
-						while (regex_search(line, match, re_vertex_property))
-						{
-							string prop = match.str(2);
-
-							if (prop == "x")
-								vertex_format.push_back(X);
-							else if (prop == "y")
-								vertex_format.push_back(Y);
-							else if (prop == "z")
-								vertex_format.push_back(Z);
-							else if (prop == "r")
-								vertex_format.push_back(R);
-							else if (prop == "g")
-								vertex_format.push_back(G);
-							else if (prop == "b")
-								vertex_format.push_back(B);
-							else
-								assert(false);
-
-							getline(infile, line);
-						}
-					}
 					else
 						assert(false);
 
-					// Parse intermediate comments
-					while (regex_search(line, match, re_comment))
+					// Parse intermediate lines
+					while (!regex_search(line, match, re_face_element))
 						getline(infile, line);
 
 					// Parse the face element
@@ -138,6 +157,8 @@ namespace Graphics
 
 			// Read vertices
 			{
+				int size = VertexLayoutSize(layout);
+				float* vertex = new float[size];
 				regex re_float("-?\\d+(\\.?\\d+)?");
 
 				for (int i = 0; i < num_vertices; i++)
@@ -146,30 +167,30 @@ namespace Graphics
 					getline(infile, line);
 
 					// Match vertex format and populate vertices_list
-					vector<float> vertex;
-					vertex.resize(vertex_format.size());
+					int vertex_i = 0;
 
 					// Move through all float matches
-					int j = 0;
+					sregex_iterator iter = std::sregex_iterator(line.begin(), line.end(), re_float);
 
-					for (sregex_iterator iter = std::sregex_iterator(line.begin(), line.end(), re_float);
-						iter != std::sregex_iterator();
-						++iter, j++)
+					while (iter != std::sregex_iterator())
 					{
-						// Add float to corresponding vertex property position
 						std::smatch match = *iter;
-						vertex[vertex_format[j]] = stof(match.str(0));
+						// Add float to corresponding vertex property position
+						vertex[vertex_i++] = stof(match.str(0));
+
+						++iter;
 					}
 
-					// Populate the remaining fields that don't exist
-					while (j < vertex_format.size())
+					// HACK - Populate the remaining fields that don't exist
+					while (vertex_i < size)
 					{
-						vertex[j] = (((float)rand() / (RAND_MAX)));
-						j++;
+						vertex[vertex_i++] = (((float) rand() / (RAND_MAX)));
 					}
 
-					mesh.vertex_list.push_back(vertex);
+					mesh.addVertex(vertex);
 				}
+
+				delete[] vertex;
 			}
 
 			// Read faces
@@ -183,31 +204,17 @@ namespace Graphics
 					if (regex_search(line, match, face_format))
 					{
 						// Add indices to index list
-						mesh.index_list.push_back(stoi(match.str(1)));
-						mesh.index_list.push_back(stoi(match.str(2)));
-						mesh.index_list.push_back(stoi(match.str(3)));
+						mesh.addIndex(stoi(match.str(1)));
+						mesh.addIndex(stoi(match.str(2)));
+						mesh.addIndex(stoi(match.str(3)));
 					}
 				}
 			}
 
-			// Create renderable vertex buffer
-			float* vertices = new float[mesh.index_list.size() * vertex_format.size()];
-
-			for (int i = 0; i < mesh.index_list.size(); i++)
-			{
-				vector vertex = mesh.vertex_list[mesh.index_list[i]];
-
-				for (int j = 0; j < vertex_format.size(); j++)
-				{
-					vertices[i * vertex_format.size() + j] = vertex[j];
-				}
-			}
-
-			// Create vertex buffer
-			return graphics_engine->generate_vertex_buffer(vertices, vertex_format.size(), mesh.index_list.size());
+			
 		}
 
-		return Renderable::getCubeMesh(graphics_engine);
+		return mesh;
 	}
 }
 }

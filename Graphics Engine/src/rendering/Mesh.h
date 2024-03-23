@@ -1,7 +1,5 @@
 #pragma once
 
-#include "VisualEngine.h"
-
 #include <vector>
 #include <string>
 
@@ -11,28 +9,42 @@ namespace Graphics
 {
 	using namespace std;
 
-	// Supported input data types
-	enum InputData { XYZ_Position, RGB_Color };
-	
 	// Mesh Class
 	// Stores information regarding vertices
 	// and their index groupings to form a mesh.
 	class Mesh
 	{
 	private:
-		// Vertices and their data format
-		vector<InputData> input_format;
-		vector<vector<float>> vertex_list;
-
-		// Index groupings
-		vector<int> index_list;
+		// Stores Input DataTypes in Bits. From Right -> Left:
+		// 1st Bit) Position (X,Y,Z)
+		// 2nd Bit) Color (R,G,B)
+		// 3rd Bit) Normal (X,Y,Z)
+		char vertex_layout;
+		
+		// Vertex buffer and index buffer
+		vector<float> vertices;
+		vector<int> indices;
 	
-	private:
-		static int InputDataSize(InputData datatype);
-
 	public:
-		// Creates a mesh from a PLY file
-		static VertexBuffer parsePLYFile(VisualEngine* graphics_engine, string ply_file);
+		// Number of floats a vertex_layout has
+		static int VertexLayoutSize(char layout);
+		static char GenerateVertexLayout(bool pos, bool rgb, bool norm);
+
+		// Constructor
+		Mesh();
+		Mesh(char layout);
+
+		// Add vertices or indices to the mesh
+		void addVertex(float vertex[]);
+		void addIndex(int index);
+
+		// Getters for index and vertex buffers
+		char getLayout();
+		const vector<float> getVertexBuffer();
+		const vector<int> getIndexBuffer();
+
+		// File parsers that can generate meshes
+		static Mesh parsePLYFile(string ply_file, char layout);
 
 	};
 

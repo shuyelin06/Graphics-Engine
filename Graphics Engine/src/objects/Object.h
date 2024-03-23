@@ -3,23 +3,21 @@
 #include "math/Vector3.h"
 #include "math/Matrix4.h"
 
-#include "rendering/buffers/Vertexbuffer.h"
+#include "rendering/Mesh.h"
 
 namespace Engine
 {
 using namespace Math;
 using namespace Graphics;
-
 namespace Datamodel
 {
 
 	// Object
-	// Stores data regarding a generic
-	// object in our engine. 
+	// Stores data regarding a generic object in our engine. 
 	class Object
 	{
 	protected:
-		VertexBuffer vertex_buffer; // vertex buffer (for rendering)
+		Mesh mesh;	// mesh (for rendering)
 
 		Object* parent;			// pointer to object's parent
 		Vector3 rotation;		// roll, yaw, pitch
@@ -55,9 +53,9 @@ namespace Datamodel
 
 		Matrix4 localToWorldMatrix(void);
 
-		// Rendering for the object
-		void setVertexBuffer(VertexBuffer buffer);
-		VertexBuffer getVertexBuffer(void);
+		// Get and set object's renderable mesh
+		void setMesh(Mesh mesh);
+		Mesh getMesh();
 
 	protected:
 		// Helper methods to produce transformation matrices

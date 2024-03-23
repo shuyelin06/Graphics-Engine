@@ -29,9 +29,8 @@
 #include "input/InputEngine.h"		// Input Engine
 
 #include "objects/Object.h"
-#include "objects/Renderable.h"
-
 #include "rendering/Mesh.h"
+
 // TEST
 #include "utility/Stopwatch.h"
 
@@ -45,10 +44,6 @@ using namespace Engine;
 static Datamodel::Player player = Datamodel::Player();                       // Player
 static Input::InputEngine input_engine = Input::InputEngine();               // Handles Input
 static Graphics::VisualEngine graphics_engine = Graphics::VisualEngine();    // Handles Graphics
-
-// --- TEST ---
-
-#include "utility/parser/OBJParser.h"
 
 // Main Function
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
@@ -108,16 +103,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     graphics_engine.initialize(hwnd);
 
     // TESTING
-    VertexBuffer buffer = Graphics::Mesh::parsePLYFile(&graphics_engine, "data/Beethoven.ply");
+    Graphics::Mesh mesh = Graphics::Mesh::parsePLYFile("data/Beethoven.ply", Graphics::Mesh::GenerateVertexLayout(true, true, false));
 
     Datamodel::Object cube = Datamodel::Object();
-    // cube.setVertexBuffer(Datamodel::Renderable::getCubeMesh(&graphics_engine));
-    // cube.setScale(2.5f, 2.5f, 2.5f);
-    cube.setVertexBuffer(buffer);
-
+    cube.setMesh(mesh);
     Datamodel::Object cube2 = Datamodel::Object();
-    cube2.setVertexBuffer(buffer);
-    // cube2.setScale(2.5f, 2.5f, 2.5f);
+    cube2.setMesh(mesh);
     cube2.offsetPosition(0, 0, -10);
 
     // Adjust
@@ -183,28 +174,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         
         // Handle Rendering
         {
-            // Sort vector by object distance to player, in descending order
-            // We will render the furthest objects first.
-            for (int i = 0; i < objects.size() - 1; i++)
-            {
-                for (int j = objects.size() - 1 - i; j >= 1; j--)
-                {
-                    float distance1 = player.distanceTo(objects[j - 1]);
-                    float distance2 = player.distanceTo(objects[j]);
-
-                    // Check for swap
-                    if (distance1 < distance2) {
-                        Datamodel::Object* temp = objects[j - 1];
-                        objects[j - 1] = objects[j];
-                        objects[j] = temp;
-                    }
-                }
-            }
-
-            // Clear screen
-            float color[4] = { 0, 0, 0, 1.0f };
-            graphics_engine.clear_screen(color);
-
+            // Prepare for drawing
+            graphics_engine.prepare();
+            
             // Bind shaders
             graphics_engine.bind_vertex_shader(0);
             graphics_engine.bind_pixel_shader(0);
