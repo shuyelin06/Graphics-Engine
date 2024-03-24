@@ -1,14 +1,16 @@
 #pragma once
 
 #include "Direct3D11.h"
-#include "objects/Object.h"
-#include "objects/other/Camera.h"
+
+#include "datamodel/Scene.h"
+#include "datamodel/Object.h"
+#include "datamodel/Camera.h"
 
 #include <map>
 #include <vector>
 #include <utility>
 
-using namespace std;
+namespace Engine::Datamodel { class Scene; class Object; class Camera; }
 
 namespace Engine
 {
@@ -56,8 +58,11 @@ namespace Graphics
 		vector<pair<ID3D11VertexShader*, ID3D11InputLayout*>> vertex_shaders; // Vertex Shader and Associated Input Layout
 		vector<ID3D11PixelShader*> pixel_shaders; // Pixel Shaders
 	
+		// Mesh Cache
+		std::map<std::string, Mesh> meshes;
+
 		// Mesh Index/Vertex Buffer Cache
-		map<Mesh*, MeshBuffers> mesh_cache;
+		std::map<Mesh*, MeshBuffers> mesh_cache;
 
 	public:
 		VisualEngine();
@@ -66,6 +71,8 @@ namespace Graphics
 		// Rendering Methods
 		void prepare(); // Prepares for a draw call
 		
+		void render(Scene* scene); // Render a Scene
+
 		// Bind data to the vertex and pixel shaders
 		void bind_vs_data(unsigned int index, void* data, int byte_size);
 		void bind_ps_data(unsigned int index, void* data, int byte_size);
@@ -76,10 +83,6 @@ namespace Graphics
 		void present(); // Present Drawn Content to Screen
 
 	private:
-		// Create Vertex and Index Buffers from Mesh
-		ID3D11Buffer* create_vertex_buffer(Mesh* mesh);
-		ID3D11Buffer* create_index_buffer(Mesh* mesh);
-		
 		// Create Buffers
 		ID3D11Buffer* create_buffer(D3D11_BIND_FLAG, void *data, int byte_size);
 
@@ -89,6 +92,14 @@ namespace Graphics
 		// Compile and Create Shaders
 		void create_vertex_shader(const wchar_t* file, const char* entry, D3D11_INPUT_ELEMENT_DESC[], int desc_size);
 		void create_pixel_shader(const wchar_t* file, const char* entry);
+		
+		// Transformation Matrices - Defined in Transform.cpp
+		static Matrix4 localToWorldMatrix(const Object* object);
+		static Matrix4 projectionMatrix(const Camera* camera);
+
+		static Matrix4 scaleMatrix(const Vector3 scale);
+		static Matrix4 rotationMatrix(const Vector3 rotation);
+		static Matrix4 translationMatrix(const Vector3 translation);
 	};
 }
 }

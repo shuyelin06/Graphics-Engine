@@ -3,6 +3,10 @@
 #include <assert.h>
 #include <d3d11_1.h>
 
+#include "datamodel/Scene.h"
+#include "datamodel/Object.h"
+#include "datamodel/Camera.h"
+
 namespace Engine
 {
 
@@ -17,7 +21,9 @@ namespace Graphics
         device = NULL;
         device_context = NULL;
         swap_chain = NULL;
+
         render_target_view = NULL;
+        depth_stencil = NULL;
     }
 
     /* --- Initialize --- */
@@ -154,6 +160,11 @@ namespace Graphics
         device_context->ClearDepthStencilView(depth_stencil, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
     }
 
+    void VisualEngine::render(Scene* scene)
+    {
+        scene->cameras;
+    }
+
     // Runs a draw call on an object
     void VisualEngine::drawObject(Datamodel::Camera* camera, Datamodel::Object* object)
     {
@@ -161,9 +172,9 @@ namespace Graphics
         Mesh* mesh = object->mesh;
 
         // Obtain transformation matrices
-        Matrix4 local_to_world = object->localToWorldMatrix();
-        Matrix4 world_to_camera = camera->localToWorldMatrix().inverse();
-        Matrix4 camera_to_project = camera->localToProjectionMatrix();
+        Matrix4 local_to_world = localToWorldMatrix(object);
+        Matrix4 world_to_camera = localToWorldMatrix(camera).inverse();
+        Matrix4 camera_to_project = projectionMatrix(camera);
 
         // Multiply to obtain transform matrix to pass to shader
         Matrix4 transform = local_to_world * world_to_camera * camera_to_project;
@@ -490,6 +501,123 @@ namespace Graphics
         // Add to array of pixel shaders
         pixel_shaders.push_back(pixel_shader);
     }
+
+    /* Transformation Matrices */
+    // The below methods are helper methods that generate
+    // Matrix4 transformations for a given object
+
+    // LocalToWorldMatrix:
+    // Given an object, returns the transformation matrix that will
+    // translate points in its local space to the world space
+    Matrix4 VisualEngine::localToWorldMatrix(const Object* object)
+    {
+        // return object->localToWorldMatrix();
+        // Generate the local transformation matrices
+        Matrix4 m_scale = scaleMatrix(object->scale);
+        Matrix4 m_rotation = rotationMatrix(object->rotation);
+        Matrix4 m_translation = translationMatrix(object->position_local);
+
+        // Obtain object's parent transformation matrix
+        const Object* parent = object->parent;
+        Matrix4 m_parent = parent == nullptr ? Matrix4::identity() : localToWorldMatrix(parent);
+
+        // Build final matrix
+        // Left matrix gets precedence, as we are performing row-major multiplication
+        return m_scale * m_rotation * m_translation * m_parent;
+    }
+
+    // ProjectionMatrix: 
+    // Given a camera wtih FOV, Z_Near, and Z_Far, generates its
+    // projection matrix
+    #define ASPECT_RATIO (1920.f / 1080.f)
+    Matrix4 VisualEngine::projectionMatrix(const Camera* camera)
+    {
+        // Get camera's local variables
+        float fov = camera->fov;
+        float z_near = camera->z_near;
+        float z_far = camera->z_far;
+
+        // Generate matrix
+        Matrix4 local_to_project = Matrix4();
+
+        float fov_factor = cosf(fov / 2.f) / sinf(fov / 2.f);
+
+        local_to_project[0][0] = fov_factor / ASPECT_RATIO;
+        local_to_project[1][1] = fov_factor;
+        local_to_project[2][2] = z_far / (z_far - z_near);
+        local_to_project[2][3] = 1;
+        local_to_project[3][2] = (z_near * z_far) / (z_near - z_far);
+
+        return local_to_project;
+
+
+    }
+
+    // ScaleMatrix:
+    // Given an x,y,z scale, returns the corresponding scale 
+    // transformation matrix
+    Matrix4 VisualEngine::scaleMatrix(const Vector3 scale)
+    {
+        return Matrix4(scale.x, 0, 0, 0,
+            0, scale.y, 0, 0,
+            0, 0, scale.z, 0,
+            0, 0, 0, 1);
+    }
+
+    // RotationMatrix:
+    // Given a roll, pitch, yaw, returns the corresponding rotation
+    // transformation matrix
+    Matrix4 VisualEngine::rotationMatrix(const Vector3 rotation)
+    {
+        // Cache values to avoid recalculating sine and cosine a lot
+        float cos_cache = 0;
+        float sin_cache = 0;
+
+        // Rotation about the x-axis (roll)
+        cos_cache = cosf(rotation.x);
+        sin_cache = sin(rotation.x);
+        Matrix4 roll = Matrix4(
+            1, 0, 0, 0,
+            0, cos_cache, sin_cache, 0,
+            0, -sin_cache, cos_cache, 0,
+            0, 0, 0, 1
+        );
+
+        // Rotation about the y-axis (pitch)
+        cos_cache = cosf(rotation.y);
+        sin_cache = sin(rotation.y);
+        Matrix4 pitch = Matrix4(
+            cos_cache, 0, -sin_cache, 0,
+            0, 1, 0, 0,
+            sin_cache, 0, cos_cache, 0,
+            0, 0, 0, 1
+        );
+
+        // Rotation about the z-axis (yaw)
+        cos_cache = cosf(rotation.z);
+        sin_cache = sin(rotation.z);
+        Matrix4 yaw = Matrix4(
+            cos_cache, sin_cache, 0, 0,
+            -sin_cache, cos_cache, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1
+        );
+
+        return roll * pitch * yaw;
+    }
+
+    // TranslationMatrix:
+    // Given a x,y,z position locally, returns the corresponding
+    // translation matrix
+    Matrix4 VisualEngine::translationMatrix(const Vector3 translation)
+    {
+        return Matrix4(
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            translation.x, translation.y, translation.z, 1);
+    }
+
 
 }
 }

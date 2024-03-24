@@ -16,6 +16,8 @@ namespace Math
 	public:
 		// Forces value to be within the range [low, high]
 		static float clamp(float value, float low, float high);
+
+		// Generates transformation matrices 
 	};
 }
 }

@@ -21,7 +21,7 @@
     <ClCompile Include="src\math\Vector3.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\objects\other\Camera.cpp">
+    <ClCompile Include="src\datamodel\Camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\math\Matrix3.cpp">
@@ -36,7 +36,7 @@
     <ClCompile Include="src\math\Vector4.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\objects\Object.cpp">
+    <ClCompile Include="src\datamodel\Object.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\input\InputEngine.cpp">
@@ -45,7 +45,7 @@
     <ClCompile Include="src\math\Compute.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\objects\other\Player.cpp">
+    <ClCompile Include="src\datamodel\other\Player.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\utility\Stopwatch.cpp">
@@ -54,10 +54,16 @@
     <ClCompile Include="src\rendering\Mesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\objects\PhysicsObject.cpp">
+    <ClCompile Include="src\datamodel\PhysicsObject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\parsers\PLYParser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\datamodel\Light.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\datamodel\Scene.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -65,7 +71,7 @@
     <ClInclude Include="src\math\Vector3.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\objects\other\Camera.h">
+    <ClInclude Include="src\datamodel\Camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\math\Matrix3.h">
@@ -80,7 +86,7 @@
     <ClInclude Include="src\math\Vector4.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\objects\Object.h">
+    <ClInclude Include="src\datamodel\Object.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\Direct3D11.h">
@@ -92,7 +98,7 @@
     <ClInclude Include="src\math\Compute.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\objects\other\Player.h">
+    <ClInclude Include="src\datamodel\other\Player.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\utility\Stopwatch.h">
@@ -101,7 +107,16 @@
     <ClInclude Include="src\rendering\Mesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\objects\PhysicsObject.h">
+    <ClInclude Include="src\datamodel\PhysicsObject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\physics\PhysicsEngine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\datamodel\Light.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\datamodel\Scene.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

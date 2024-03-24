@@ -24,11 +24,13 @@
 #pragma comment( lib, "d3dcompiler.lib" ) // shader compiler
 
 // Main Engine Inclusions
-#include "objects/other/Player.h"	// Main Player
+#include "datamodel/other/Player.h"	// Main Player
 #include "rendering/VisualEngine.h" // Graphics Engine
 #include "input/InputEngine.h"		// Input Engine
 
-#include "objects/Object.h"
+#include "datamodel/Scene.h"
+
+#include "datamodel/Object.h"
 #include "rendering/Mesh.h"
 
 // TEST
@@ -38,12 +40,14 @@
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 using namespace std;
-using namespace Engine;
 
-// Major Program Variables
-static Datamodel::Player player = Datamodel::Player();                       // Player
-static Input::InputEngine input_engine = Input::InputEngine();               // Handles Input
-static Graphics::VisualEngine graphics_engine = Graphics::VisualEngine();    // Handles Graphics
+using namespace Engine;
+using namespace Engine::Datamodel;
+using namespace Engine::Input;
+using namespace Engine::Graphics;
+
+static InputEngine input_engine = InputEngine();
+static Player player = Player();
 
 // Main Function
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
@@ -84,6 +88,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
     ShowWindow(hwnd, nCmdShow); // Set Window Visible
 
+    /* Create and Initialize Engines */
+    
+
+    VisualEngine graphics_engine = VisualEngine();
+    graphics_engine.initialize(hwnd);
+
     // Set screen center
     {
         RECT window_rect;
@@ -94,18 +104,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         input_engine.setScreenCenter(center_x, center_y);
     }
 
-
-    /* Initialize Direct 3D 11 */
-    graphics_engine.initialize(hwnd);
+    /* Initialize Scene */
+    Scene scene = Scene();
 
     // TESTING
-    Graphics::Mesh mesh = Graphics::Mesh::parsePLYFile("data/Beethoven.ply");
+    Mesh mesh = Mesh::parsePLYFile("data/Beethoven.ply");
     mesh.setShaders(0, 0);
     mesh.calculateNormals();
 
-    Datamodel::Object cube = Datamodel::Object();
+    Object cube = Object();
     cube.setMesh(&mesh);
-    Datamodel::Object cube2 = Datamodel::Object();
+    Object cube2 = Object();
     cube2.setMesh(&mesh);
     cube2.offsetPosition(0, 0, -10);
 
@@ -128,7 +137,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     bool close = false;
 
     // Create vector of renderable objects
-    std::vector<Datamodel::Object*> objects;
+    std::vector<Object*> objects;
     objects.push_back(&cube);
     objects.push_back(&cube2);
 
@@ -178,7 +187,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             // Render all objects
             for (int i = 0; i < objects.size(); i++) 
             {
-                Datamodel::Object* o = objects[i];
+                Object* o = objects[i];
                 graphics_engine.drawObject(player.getCamera(), o);
             }
 

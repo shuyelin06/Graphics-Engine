@@ -20,7 +20,7 @@ namespace Math
 	Vector3::Vector3(const Vector3& copy)
 	{
 		x = copy.x;
-		y = copy.x;
+		y = copy.y;
 		z = copy.z;
 	}
 

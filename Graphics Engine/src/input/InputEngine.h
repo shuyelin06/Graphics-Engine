@@ -1,7 +1,7 @@
 #pragma once
 
-#include "objects/other/Camera.h"
-#include "objects/other/Player.h"
+#include "datamodel/Camera.h"
+#include "datamodel/other/Player.h"
 
 namespace Engine
 {

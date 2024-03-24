@@ -56,7 +56,7 @@ float4 ps_main(VS_OUT input) : SV_TARGET {
     float angle = dot(light_direction, input.normal);
     
     // float4 color = float4(input.normal, 1.0) * angle * 0.5f;
-    float4 color = float4(0.5, 0.5, 0, 1.0) * angle * 0.5f;
+    float4 color = float4(0, 0, 1.0, 1.0) * angle;
     
     return color;
 }
