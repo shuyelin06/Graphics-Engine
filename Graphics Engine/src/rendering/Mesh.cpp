@@ -32,13 +32,7 @@ namespace Graphics
 		return layout;
 	}
 
-	// Mesh Constructors
-	// Default Constructor
-	Mesh::Mesh()
-	{
-		vertex_layout = 0;
-	}
-
+	// Mesh Constructor:
 	// Creates an empty mesh with a specified data layout
 	Mesh::Mesh(char layout) 
 	{

@@ -158,7 +158,7 @@ namespace Graphics
     void VisualEngine::drawObject(Datamodel::Camera* camera, Datamodel::Object* object)
     {
         // Obtain reference to object's mesh
-        Mesh* mesh = object->getMesh();
+        Mesh* mesh = object->mesh;
 
         // Obtain transformation matrices
         Matrix4 local_to_world = object->localToWorldMatrix();

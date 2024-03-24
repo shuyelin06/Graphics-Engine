@@ -51,7 +51,6 @@ namespace Graphics
 		static Mesh parsePLYFile(string ply_file);
 
 		// Mesh Constructor
-		Mesh();
 		Mesh(char layout);
 
 		// Adds vertex normals to the mesh based on position,

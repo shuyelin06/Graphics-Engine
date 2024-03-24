@@ -46,5 +46,17 @@ VS_OUT vs_main(VS_IN input) {
 // Pixel Shader Entry Point
 // Takes clipping coordinates, and returns a color
 float4 ps_main(VS_OUT input) : SV_TARGET {
-    return float4(input.normal, 1.0);
+    // TEMP - Point light source
+    float3 light_pos = float3(-25, 25, 0);
+    float3 pos = input.position_clip.xyz;
+    
+    // Direction from light to position
+    float3 light_direction = normalize(pos - light_pos);
+    
+    float angle = dot(light_direction, input.normal);
+    
+    // float4 color = float4(input.normal, 1.0) * angle * 0.5f;
+    float4 color = float4(0.5, 0.5, 0, 1.0) * angle * 0.5f;
+    
+    return color;
 }

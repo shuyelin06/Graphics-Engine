@@ -15,7 +15,8 @@ namespace Datamodel
 	Object::Object()
 	{
 		parent = nullptr;
-		
+		mesh = nullptr;
+
 		scale = Vector3(1, 1, 1);
 		rotation = Vector3(0, 0, 0);
 		position_local = Vector3(0, 0, 0);
@@ -111,7 +112,7 @@ namespace Datamodel
 	// Returns the 4x4 matrix that, given a local point (like in a mesh), will
 	// rotate and translate it to the world space as defined by 
 	// the object's position and rotation.
-	Matrix4 Object::localToWorldMatrix(void)
+	Matrix4 Object::localToWorldMatrix(void) const
 	{
 		// Generate the transformation matrices
 		Matrix4 m_scale = scaleMatrix();					// Scale
@@ -127,7 +128,7 @@ namespace Datamodel
 	}
 	
 	// Generates the object's scale matrix
-	Matrix4 Object::scaleMatrix()
+	Matrix4 Object::scaleMatrix() const
 	{
 		return Matrix4(scale.x, 0, 0, 0,
 						0, scale.y, 0, 0,
@@ -136,7 +137,7 @@ namespace Datamodel
 	}
 
 	// Generates the object's rotation matrix
-	Matrix4 Object::rotationMatrix()
+	Matrix4 Object::rotationMatrix() const
 	{
 		// Cache values to avoid recalculating sine and cosine a lot
 		float cos_cache = 0;
@@ -176,7 +177,7 @@ namespace Datamodel
 	}
 
 	// Generates the object's translation matrix
-	Matrix4 Object::translationMatrix()
+	Matrix4 Object::translationMatrix() const
 	{
 		return Matrix4(
 			1, 0, 0, 0,
@@ -192,11 +193,5 @@ namespace Datamodel
 		mesh = _mesh;
 	}
 
-	// GetMesh
-	// Returns the mesh
-	Mesh* Object::getMesh(void)
-	{
-		return mesh;
-	}
 }
 }
