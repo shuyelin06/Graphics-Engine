@@ -47,11 +47,7 @@ static Graphics::VisualEngine graphics_engine = Graphics::VisualEngine();    // 
 
 // Main Function
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
-{ 
-    // Utility::OBJParser::parseFile("data/cube.obj");
-
-    // return 0;
-
+{
     /* Register a Window Class with the OS */
     // Registers information about the behavior of the application window
     const wchar_t CLASS_NAME[] = L"Application";
@@ -108,9 +104,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     mesh.calculateNormals();
 
     Datamodel::Object cube = Datamodel::Object();
-    cube.setMesh(mesh);
+    cube.setMesh(&mesh);
     Datamodel::Object cube2 = Datamodel::Object();
-    cube2.setMesh(mesh);
+    cube2.setMesh(&mesh);
     cube2.offsetPosition(0, 0, -10);
 
     // Adjust

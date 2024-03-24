@@ -10,13 +10,13 @@ cbuffer ROTATE_MATRICES : register(b1)
 /* Vertex Shader Input */
 struct VS_IN {
 	float3 position_local : POSITION; // POSITION Semantic
-    float3 color : COLOR;
+    float3 normal : NORMAL;
 };
 
 /* Vertex Shader Output (Pixel Shader Input) */
 struct VS_OUT {
 	float4 position_clip : SV_POSITION;
-    float3 color : COLOR;
+    float3 normal : NORMAL;
 };
 
 // Vertex Shader Entry Point - Takes VS_IN and outputs a VS_OUT
@@ -34,11 +34,11 @@ VS_OUT vs_main(VS_IN input) {
     float4 pos = float4(input.position_local, 1.0f);
     pos = mul(pos, transform);
     
-    float4 norm = float4(input.color, 1);
+    float4 norm = float4(input.normal, 1);
     norm = mul(norm, rotate);
 
 	output.position_clip = pos;
-    output.color = norm;
+    output.normal = norm.xyz;
 	
 	return output;
 }
@@ -46,5 +46,5 @@ VS_OUT vs_main(VS_IN input) {
 // Pixel Shader Entry Point
 // Takes clipping coordinates, and returns a color
 float4 ps_main(VS_OUT input) : SV_TARGET {
-    return float4(input.color, 1.0);
+    return float4(input.normal, 1.0);
 }

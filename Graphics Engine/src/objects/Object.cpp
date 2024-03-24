@@ -187,14 +187,14 @@ namespace Datamodel
 
 	// SetMesh
 	// Sets the object's mesh
-	void Object::setMesh(Mesh _mesh)
+	void Object::setMesh(Mesh* _mesh)
 	{
 		mesh = _mesh;
 	}
 
 	// GetMesh
 	// Returns the mesh
-	Mesh Object::getMesh(void)
+	Mesh* Object::getMesh(void)
 	{
 		return mesh;
 	}

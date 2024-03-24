@@ -17,7 +17,7 @@ namespace Datamodel
 	class Object
 	{
 	protected:
-		Mesh mesh;				// Object mesh for rendering purposes
+		Mesh* mesh;				// Reference to a mesh for rendering
 
 		Object* parent;			// pointer to object's parent
 		Vector3 rotation;		// roll, yaw, pitch
@@ -54,8 +54,8 @@ namespace Datamodel
 		Matrix4 localToWorldMatrix(void);
 
 		// Get and set object's renderable mesh
-		void setMesh(Mesh mesh);
-		Mesh getMesh();
+		void setMesh(Mesh* mesh);
+		Mesh* getMesh();
 
 		Matrix4 rotationMatrix();
 

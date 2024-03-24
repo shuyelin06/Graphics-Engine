@@ -132,7 +132,7 @@ namespace Graphics
         // Compile Vertex Shader
         D3D11_INPUT_ELEMENT_DESC input_desc[] = {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 } // Option 12 appends
+            { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, sizeof(float) * 3, D3D11_INPUT_PER_VERTEX_DATA, 0} // Option 12 appends
         };
         create_vertex_shader(L"src/shaders/shader.hlsl", "vs_main", input_desc, ARRAYSIZE(input_desc));
 
@@ -157,6 +157,9 @@ namespace Graphics
     // Runs a draw call on an object
     void VisualEngine::drawObject(Datamodel::Camera* camera, Datamodel::Object* object)
     {
+        // Obtain reference to object's mesh
+        Mesh* mesh = object->getMesh();
+
         // Obtain transformation matrices
         Matrix4 local_to_world = object->localToWorldMatrix();
         Matrix4 world_to_camera = camera->localToWorldMatrix().inverse();
@@ -170,21 +173,57 @@ namespace Graphics
         bind_vs_data(0, transform.getRawData(), sizeof(float) * 16);
         bind_vs_data(1, rotate.getRawData(), sizeof(float) * 16);
 
-        // Obtain metadata for vertex buffer
-        Mesh mesh = object->getMesh();
+        // Prepare mesh's vertex and index buffers for rendering
+        ID3D11Buffer* vertex_buffer; // Vertex Buffer
+        ID3D11Buffer* index_buffer;  // Index Buffer 
 
-        ID3D11Buffer* vertex_buffer = create_vertex_buffer(mesh);
-        ID3D11Buffer* index_buffer = create_index_buffer(mesh);
+        // Bytes between each vertex 
+        UINT vertex_stride = Mesh::VertexLayoutSize(mesh->vertex_layout) * sizeof(float);
+        // Offset into the vertex buffer to start reading from 
+        UINT vertex_offset = 0;
+        // Number of vertices
+        UINT vertex_count = mesh->vertices.size();
+        // Number of indices
+        UINT num_indices = mesh->indices.size();
 
-        UINT vertex_stride = Mesh::VertexLayoutSize(mesh.vertex_layout) * sizeof(float); // Bytes between the beginning of each vertex
-        UINT vertex_offset = 0; // Offset into the buffer to start reading
-        UINT vertex_count = mesh.vertices.size(); // Total number of vertices
+        {
+            // Get the mesh's vertex and index vectors
+            const vector<float> vertices = mesh->vertices;
+            const vector<int> indices = mesh->indices;
 
-        UINT num_indices = mesh.indices.size();
-        
+            // Check if the vertex / index buffers have already been created
+            // before. If they have, just use the already created resources
+            if (mesh_cache.contains(mesh))
+            {
+                // Obtain buffers from cache
+                MeshBuffers buffers = mesh_cache[mesh];
+
+                // Use these buffers
+                vertex_buffer = buffers.vertex_buffer;
+                index_buffer = buffers.index_buffer;
+            }
+            // If they haven't, create these resources and add them to the cache
+            // so we don't need to recreate them
+            else
+            {
+                // Create new buffer resources
+                vertex_buffer = create_buffer(
+                                    D3D11_BIND_VERTEX_BUFFER, 
+                                    (void *) vertices.data(), 
+                                    sizeof(float) * vertices.size());
+                index_buffer = create_buffer(
+                                    D3D11_BIND_INDEX_BUFFER, 
+                                    (void *) indices.data(), 
+                                    sizeof(int) * mesh->indices.size());
+
+                // Add buffer resources to cache
+                mesh_cache[mesh] = { vertex_buffer, index_buffer };
+            }
+        }
+
         // Get shaders to render mesh with
-        std::pair<ID3D11VertexShader*, ID3D11InputLayout*> vertex_shader = vertex_shaders[mesh.vertex_shader];
-        ID3D11PixelShader* pixel_shader = pixel_shaders[mesh.pixel_shader];
+        std::pair<ID3D11VertexShader*, ID3D11InputLayout*> vertex_shader = vertex_shaders[mesh->vertex_shader];
+        ID3D11PixelShader* pixel_shader = pixel_shaders[mesh->pixel_shader];
 
         // Perform a Draw Call
         // Set the valid drawing area (our window)
@@ -209,24 +248,20 @@ namespace Graphics
         // Set output merger to use our render target and depth test
         device_context->OMSetRenderTargets(1, &render_target_view, depth_stencil);
 
-        // Set input
+        /* Configure Input Assembler */
+        // Define input layout
         device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         device_context->IASetInputLayout(vertex_shader.second);
 
-        device_context->IASetVertexBuffers(
-            0,
-            1,
-            &vertex_buffer,
-            &vertex_stride,
-            &vertex_offset
-        );
+        // Bind vertex and index buffers
+        device_context->IASetVertexBuffers(0, 1, &vertex_buffer, &vertex_stride, &vertex_offset);
+        device_context->IASetIndexBuffer(index_buffer, DXGI_FORMAT_R32_UINT, 0);
 
-        device_context->IASetIndexBuffer(
-            index_buffer, DXGI_FORMAT_R32_UINT, 0
-        );
-
-        // Bind shaders
+        /* Configure Shaders*/
+        // Bind vertex shader
         device_context->VSSetShader(vertex_shader.first, NULL, 0);
+        
+        // Bind pixel shader
         device_context->PSSetShader(pixel_shader, NULL, 0);
 
         // Draw from our vertex buffer
@@ -241,7 +276,11 @@ namespace Graphics
     }
 
     /* --- Buffer Creation --- */
-    // Creates a buffer for use
+    // Creates a generic buffer that can be used throughout our graphics pipeline. 
+    // Uses include but are not limited to:
+    // 1) Constant Buffers (without resource renaming)
+    // 2) Vertex Buffers
+    // 3) Index Buffers 
     ID3D11Buffer* VisualEngine::create_buffer(D3D11_BIND_FLAG bind_flag, void* data, int byte_size)
     {
         ID3D11Buffer* buffer = NULL;
@@ -267,55 +306,6 @@ namespace Graphics
         return buffer;
     }
     
-    // CreateVertexBuffer:
-    // Create Vertex Buffer from Mesh
-    ID3D11Buffer* VisualEngine::create_vertex_buffer(Mesh mesh)
-    {
-        vector<float> vertices = mesh.vertices;
-        int vertex_size = Mesh::VertexLayoutSize(mesh.vertex_layout);
-
-        // Fill buffer description
-        D3D11_BUFFER_DESC buff_desc = {};
-
-        buff_desc.ByteWidth = sizeof(float) * vertices.size();
-        buff_desc.Usage = D3D11_USAGE_DEFAULT;
-        buff_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
-        // Fill subresource data
-        D3D11_SUBRESOURCE_DATA sr_data = { 0 };
-        sr_data.pSysMem = vertices.data();
-
-        // Create buffer
-        ID3D11Buffer* buffer = NULL;
-        device->CreateBuffer(&buff_desc, &sr_data, &buffer);
-
-        return buffer;
-    }
-
-    // CreateIndexBuffer:
-    // Create Index Buffer from Mesh
-    ID3D11Buffer* VisualEngine::create_index_buffer(Mesh mesh)
-    {
-        vector<int> indices = mesh.indices;
-       
-        // Fill buffer description
-        D3D11_BUFFER_DESC buff_desc = {};
-
-        buff_desc.ByteWidth = sizeof(int) * indices.size();
-        buff_desc.Usage = D3D11_USAGE_DEFAULT;
-        buff_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-
-        // Fill subresource data
-        D3D11_SUBRESOURCE_DATA sr_data = { 0 };
-        sr_data.pSysMem = indices.data();
-
-        // Create buffer
-        ID3D11Buffer* buffer = NULL;
-        device->CreateBuffer(&buff_desc, &sr_data, &buffer);
-
-        return buffer;
-    }
-
     // Bind_Data
     // Uses dynamic resource renaming to fairly efficiently bind data to the vertex / pixel
     // shader constant registers, for use in the shaders

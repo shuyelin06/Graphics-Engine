@@ -4,6 +4,7 @@
 #include "objects/Object.h"
 #include "objects/other/Camera.h"
 
+#include <map>
 #include <vector>
 #include <utility>
 
@@ -15,8 +16,23 @@ using namespace Datamodel;
 
 namespace Graphics
 {
+	// Shader_Type Enum:
+	// Represents shader types in a more readable
+	// format, for internal use
 	typedef enum { Vertex, Pixel } Shader_Type;
 
+	// MeshBuffers Struct:
+	// Stores pointers to D3D11 Index/Vertex Buffers, which are mapped to 
+	// Mesh pointers. Used to cache Index/Vertex Buffers, to avoid
+	// redundantly recreating resources
+	struct MeshBuffers
+	{
+		ID3D11Buffer* vertex_buffer;
+		ID3D11Buffer* index_buffer;
+	};
+
+	// VisualEngine Class:
+	// Provides an interface for the application's graphics
 	class VisualEngine
 	{
 	private:
@@ -40,6 +56,9 @@ namespace Graphics
 		vector<pair<ID3D11VertexShader*, ID3D11InputLayout*>> vertex_shaders; // Vertex Shader and Associated Input Layout
 		vector<ID3D11PixelShader*> pixel_shaders; // Pixel Shaders
 	
+		// Mesh Index/Vertex Buffer Cache
+		map<Mesh*, MeshBuffers> mesh_cache;
+
 	public:
 		VisualEngine();
 		void initialize(HWND _window); // Initialize Direct 3D
@@ -58,8 +77,8 @@ namespace Graphics
 
 	private:
 		// Create Vertex and Index Buffers from Mesh
-		ID3D11Buffer* create_vertex_buffer(Mesh mesh);
-		ID3D11Buffer* create_index_buffer(Mesh mesh);
+		ID3D11Buffer* create_vertex_buffer(Mesh* mesh);
+		ID3D11Buffer* create_index_buffer(Mesh* mesh);
 		
 		// Create Buffers
 		ID3D11Buffer* create_buffer(D3D11_BIND_FLAG, void *data, int byte_size);
