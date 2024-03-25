@@ -185,7 +185,7 @@ namespace Graphics
 
         // Multiply to obtain transform matrix to pass to shader
         Matrix4 transform = local_to_world * world_to_camera * camera_to_project;
-        Matrix4 rotate = object->rotationMatrix();
+        Matrix4 rotate = object->transform.rotationMatrix();
 
         // Bind transform matrix to the vertex shader
         bind_vs_data(0, transform.getRawData(), sizeof(float) * 16);
@@ -518,11 +518,8 @@ namespace Graphics
     // translate points in its local space to the world space
     Matrix4 VisualEngine::localToWorldMatrix(const Object* object)
     {
-        // return object->localToWorldMatrix();
-        // Generate the local transformation matrices
-        Matrix4 m_scale = scaleMatrix(object->scale);
-        Matrix4 m_rotation = rotationMatrix(object->rotation);
-        Matrix4 m_translation = translationMatrix(object->position_local);
+        // Generate the local matrix
+        Matrix4 m_local = object->transform.transformMatrix();
 
         // Obtain object's parent transformation matrix
         const Object* parent = object->parent;
@@ -530,7 +527,7 @@ namespace Graphics
 
         // Build final matrix
         // Left matrix gets precedence, as we are performing row-major multiplication
-        return m_scale * m_rotation * m_translation * m_parent;
+        return m_local * m_parent;
     }
 
     // ProjectionMatrix: 

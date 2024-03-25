@@ -40,16 +40,17 @@ namespace Datamodel
 
 	void Camera::offsetRotation(float x, float y, float z)
 	{
-		rotation.x = Compute::clamp(rotation.x + x, -PI / 2, PI / 2);
-		rotation.y += y;
-		rotation.z = 0; // Does nothing
+		const Vector3 rotation = transform.getRotation();
+		transform.setRotation(Compute::clamp(rotation.x + x, -PI / 2, PI / 2),
+							  rotation.y + y,
+							  0);
 	}
 
 	// Calculate camera's forward viewing vector
 	Vector3 Camera::forward()
 	{
 		// Get rotation matrix
-		Matrix4 rotation_matrix = rotationMatrix().tranpose();
+		Matrix4 rotation_matrix = transform.rotationMatrix().tranpose();
 
 		// Camera is by default looking in the +Z axis
 		Vector4 view = rotation_matrix * Vector4::PositiveZW();
@@ -60,7 +61,7 @@ namespace Datamodel
 	Vector3 Camera::right()
 	{
 		// Get rotation matrix
-		Matrix4 rotation_matrix = rotationMatrix().tranpose();
+		Matrix4 rotation_matrix = transform.rotationMatrix().tranpose();
 
 		// Camera's left is by default looking in the +X axis
 		Vector4 view = rotation_matrix * Vector4::PositiveXW();

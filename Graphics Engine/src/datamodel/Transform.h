@@ -22,13 +22,16 @@ namespace Datamodel
 		// Constructor
 		Transform();
 
-		// Set the transform properties
+		// Get and set the transform properties
+		const Vector3 getPosition() const;
 		void setPosition(float x, float y, float z);
 		void offsetPosition(float x, float y, float z);
 
+		const Vector3 getRotation() const;
 		void setRotation(float roll, float yaw, float pitch);
 		void offsetRotation(float roll, float yaw, float pitch);
 
+		const Vector3 getScale() const;
 		void setScale(float x, float y, float z);
 		void offsetScale(float x, float y, float z);
 
@@ -38,10 +41,6 @@ namespace Datamodel
 		Matrix4 scaleMatrix(void) const;
 		Matrix4 rotationMatrix(void) const;
 		Matrix4 translationMatrix(void) const;
-
-		
-		// Returns copies of the transform parameters
-
 	};
 }
 }

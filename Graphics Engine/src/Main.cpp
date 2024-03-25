@@ -116,10 +116,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     cube.setMesh(&mesh);
     Object cube2 = Object();
     cube2.setMesh(&mesh);
-    cube2.offsetPosition(0, 0, -10);
+    cube2.getTransform()->offsetPosition(0, 0, -10);
 
     // Adjust
-    player.setPosition(0, 0, -5);
+    player.getTransform()->setPosition(0, 0, -5);
 
    
 
@@ -170,8 +170,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             // Determine time elapsed for physics updating
             double time_elapsed = physics_watch.Duration();
 
-            cube.offsetRotation(0, 0.01f, 0);
-            cube2.offsetRotation(0, 0.01f, 0);
+            cube.getTransform()->offsetRotation(0, 0.01f, 0);
+            cube2.getTransform()->offsetRotation(0, 0.01f, 0);
 
             player.physicsUpdate(time_elapsed);
 

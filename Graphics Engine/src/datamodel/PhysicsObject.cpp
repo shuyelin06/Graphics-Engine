@@ -21,7 +21,7 @@ namespace Datamodel
 		offsetVelocity(acceleration * delta_time);
 
 		// Update position with velocity
-		offsetPosition(velocity * delta_time);
+		transform.offsetPosition(velocity.x * delta_time, velocity.y * delta_time, velocity.z * delta_time);
 
 		// Dampen velocity
 		setVelocity(velocity * 0.85f);

@@ -14,7 +14,14 @@ namespace Datamodel
 	{
 		position_local = Vector3(0, 0, 0);
 		rotation = Vector3(0, 0, 0);
-		scale = Vector3(0, 0, 0);
+		scale = Vector3(1, 1, 1);
+	}
+
+	// GetPosition:
+	// Gets an object's position
+	const Vector3 Transform::getPosition() const
+	{
+		return position_local;
 	}
 
 	// SetPosition:
@@ -33,6 +40,13 @@ namespace Datamodel
 		setPosition(position_local.x + x, position_local.y + y, position_local.z + z);
 	}
 
+	// GetRotation:
+	// Returns an object's rotation
+	const Vector3 Transform::getRotation() const
+	{
+		return rotation;
+	}
+
 	// SetRotation:
 	// Changes the transform's rotation by setting it to given values
 	void Transform::setRotation(float roll, float yaw, float pitch)
@@ -47,6 +61,13 @@ namespace Datamodel
 	void Transform::offsetRotation(float roll, float yaw, float pitch)
 	{
 		setRotation(rotation.x + roll, rotation.y + yaw, rotation.z + pitch);
+	}
+
+	// GetScale:
+	// Get an object's scale
+	const Vector3 Transform::getScale() const
+	{
+		return scale;
 	}
 
 	// SetScale:
