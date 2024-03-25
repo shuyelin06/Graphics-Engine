@@ -1,8 +1,11 @@
 #pragma once
 
+#include "Transform.h"
+
 #include "math/Vector3.h"
 #include "math/Matrix4.h"
 
+#include "rendering/VisualAttribute.h"
 #include "rendering/Mesh.h"
 
 namespace Engine
@@ -20,12 +23,17 @@ namespace Datamodel
 		// Object Transformation Fields
 		Object* parent;			// Reference to parent
 
+		// Transform of the object
+		Transform transform;
 		Vector3 position_local; // x, y, z
 		Vector3 rotation;		// roll, yaw, pitch
 		Vector3 scale;			// scaleX, scaleY, scaleZ
 		
 		// Object Renderable Fields
 		Mesh* mesh;				// Reference to renderable mesh
+
+		// (TBD) - Renderable Attribute
+		VisualAttribute* visual_attr;
 
 		// Object Physics Fields
 		Vector3 velocity;
@@ -74,6 +82,7 @@ namespace Datamodel
 		Matrix4 translationMatrix() const;
 
 	// Accessible by the VisualEngine Class for Rendering
+	friend void Engine::Graphics::VisualAttribute::prepare();
 	friend class Engine::Graphics::VisualEngine;
 	};
 }

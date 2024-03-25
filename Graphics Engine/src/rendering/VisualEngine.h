@@ -37,6 +37,8 @@ namespace Graphics
 	// Provides an interface for the application's graphics
 	class VisualEngine
 	{
+	friend class VisualAttribute;
+
 	private:
 		// Window Handle
 		HWND window;
@@ -68,10 +70,11 @@ namespace Graphics
 		VisualEngine();
 		void initialize(HWND _window); // Initialize Direct 3D
 		
+		// Render an entire scene (call once per frame)
+		void render(Scene* scene);
+
 		// Rendering Methods
 		void prepare(); // Prepares for a draw call
-		
-		void render(Scene* scene); // Render a Scene
 
 		// Bind data to the vertex and pixel shaders
 		void bind_vs_data(unsigned int index, void* data, int byte_size);
