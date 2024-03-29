@@ -28,7 +28,8 @@ namespace Graphics
 	class Mesh
 	{
 		// Accessible by the VisualEngine class for rendering
-		friend class VisualEngine;
+		friend class VisualAttribute;
+		// friend class MeshAttribute;
 
 	private:
 		// Vertex Data Layout 
@@ -52,6 +53,14 @@ namespace Graphics
 
 		// Mesh Constructor
 		Mesh(char layout);
+
+		// Get (Unmodifiable) Information
+		int getVertexShader();
+		int getPixelShader();
+
+		char getLayout();
+		const vector<float>* getVertices();
+		const vector<int>* getIndices();
 
 		// Adds vertex normals to the mesh based on position,
 		// if they don't already exist

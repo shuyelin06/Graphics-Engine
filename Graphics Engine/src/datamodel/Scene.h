@@ -19,7 +19,7 @@ namespace Datamodel
 	class Scene
 	{
 	// Accessible by the Visual Engine for Rendering
-	friend class Engine::Graphics::VisualEngine;
+	friend class Engine::Graphics::VisualAttribute;
 
 	private:
 		vector<Camera> cameras;

@@ -44,6 +44,41 @@ namespace Graphics
 		indices.reserve(3);
 	}
 
+	// GetVertexShader:
+	// Return vertex shader chosen
+	int Mesh::getVertexShader()
+	{
+		return vertex_shader;
+	}
+
+	// GetPixelShader:
+	// Return pixel shader chosen
+	int Mesh::getPixelShader()
+	{
+		return pixel_shader;
+	}
+
+	// GetLayout:
+	// Return layout
+	char Mesh::getLayout()
+	{
+		return vertex_layout;
+	}
+
+	// GetVertices:
+	// Return vertices array
+	const vector<float>* Mesh::getVertices()
+	{
+		return &vertices;
+	}
+
+	// GetIndices:
+	// Return indices array
+	const vector<int>* Mesh::getIndices()
+	{
+		return &indices;
+	}
+
 	// CalculateNormals:
 	// Given the XYZ positions and indices, calculates the
 	// normal vectors for each vertex

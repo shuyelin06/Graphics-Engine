@@ -2,12 +2,13 @@
 
 #include "math/Matrix4.h"
 
-#include "rendering/VisualAttribute.h";
+#include "rendering/VisualAttribute.h"
 #include "rendering/Mesh.h"
 
 namespace Engine
 {
 using namespace Math;
+using namespace Datamodel;
 namespace Graphics
 {
 	// Class MeshAttribute:
@@ -16,20 +17,35 @@ namespace Graphics
 	class MeshAttribute : public VisualAttribute
 	{
 	protected:
+		// Mesh Cache
+		static std::map<std::string, Mesh> meshes;
+
+		// Mesh Index/Vertex Buffer Cache
+		static std::map<Mesh*, MeshBuffers> mesh_cache;
+
+	private:
+		static Matrix4 GetTransformMatrix(Object* object);
+
+	protected:
+		Matrix4 transform_matrix;
+		Matrix4 rotate_matrix;
 		Mesh* mesh;
+
+		ID3D11Buffer* vertex_buffer;
+		ID3D11Buffer* index_buffer;
 
 	public:
 		MeshAttribute(Object* object, Mesh* mesh);
 		~MeshAttribute();
 
 		// Prepares an object for rendering
-		virtual void prepare() = 0;
+		void prepare(void) override;
 
 		// Renders an object 
-		virtual void render() = 0;
+		void render(void) override;
 
 		// Finish the rendering for an object
-		virtual void finish() = 0;
+		void finish(void) override;
 	};
 }
 }

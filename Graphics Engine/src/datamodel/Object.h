@@ -5,8 +5,9 @@
 #include "math/Vector3.h"
 #include "math/Matrix4.h"
 
-#include "rendering/VisualAttribute.h"
 #include "rendering/Mesh.h"
+
+namespace Engine::Graphics { class VisualAttribute; }
 
 namespace Engine
 {
@@ -15,7 +16,17 @@ using namespace Graphics;
 namespace Datamodel
 {
 
-	// Object
+	// ObjectAccessor Class:
+	// Allows access to an object's properties
+	class ObjectAccessor
+	{
+		friend class Engine::Graphics::VisualAttribute;
+	
+	private:
+		ObjectAccessor();
+	};
+
+	// Object Class:
 	// Stores data regarding a generic object in our engine. 
 	class Object
 	{
@@ -26,31 +37,24 @@ namespace Datamodel
 		// Transform of the object
 		Transform transform;
 		
-		// Object Renderable Fields
-		Mesh* mesh;				// Reference to renderable mesh
-
 		// (TBD) - Renderable Attribute
 		VisualAttribute* visual_attr;
 
-		// Object Physics Fields
-		Vector3 velocity;
-		Vector3 acceleration;
-
 	public:
 		Object();
+
+		// Get object transform. Only possible with a transform accessor.
+		Transform* getTransform(ObjectAccessor);
+		Object* getParent(ObjectAccessor);
 
 		// Get Transform
 		Transform* getTransform();
 
 		// Set Parent
+		void setVisualAttribute(VisualAttribute* attribute);
 		void setParent(Object* parent); 
-
-		// Set Renderable Mesh
-		void setMesh(Mesh* mesh);
-
-	// Accessible by the VisualEngine Class for Rendering
-	friend void Engine::Graphics::VisualAttribute::prepare();
-	friend class Engine::Graphics::VisualEngine;
 	};
+
+
 }
 }

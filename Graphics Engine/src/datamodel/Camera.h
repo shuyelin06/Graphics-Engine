@@ -15,8 +15,6 @@ namespace Datamodel
 
 	class Camera: public Object
 	{
-	friend class Engine::Graphics::VisualEngine;
-
 	private:
 		Object* parent;
 

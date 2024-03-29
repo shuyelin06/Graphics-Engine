@@ -169,7 +169,6 @@
     <ClCompile Include="src\rendering\Mesh.cpp" />
     <ClCompile Include="src\rendering\parsers\PLYParser.cpp" />
     <ClCompile Include="src\rendering\VisualAttribute.cpp" />
-    <ClCompile Include="src\rendering\VisualEngine.cpp" />
     <ClCompile Include="src\utility\Stopwatch.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -186,13 +185,11 @@
     <ClInclude Include="src\datamodel\PhysicsObject.h" />
     <ClInclude Include="src\math\Matrix4.h" />
     <ClInclude Include="src\math\Vector4.h" />
-    <ClInclude Include="src\physics\PhysicsBehavior.h" />
-    <ClInclude Include="src\physics\PhysicsEngine.h" />
+    <ClInclude Include="src\physics\PhysicsAttribute.h" />
     <ClInclude Include="src\rendering\attributes\MeshAttribute.h" />
     <ClInclude Include="src\rendering\Direct3D11.h" />
     <ClInclude Include="src\rendering\Mesh.h" />
     <ClInclude Include="src\rendering\VisualAttribute.h" />
-    <ClInclude Include="src\rendering\VisualEngine.h" />
     <ClInclude Include="src\utility\Stopwatch.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
