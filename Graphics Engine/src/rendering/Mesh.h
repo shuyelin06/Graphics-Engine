@@ -1,5 +1,7 @@
 #pragma once
 
+#include "rendering/VisualAttribute.h"
+
 #include <vector>
 #include <string>
 
@@ -9,19 +11,6 @@ namespace Graphics
 {
 	using namespace std;
 	
-	// Uses bitwise pins to represent the data layout
-	// of each vertex. Assumes data is given from least
-	// to most significant bit (Right -> Left)
-	// >>> 1st Bit) Position (X,Y,Z)
-	// >>> 2nd Bit) Color (R,G,B)
-	// >>> 3rd Bit) Normal (X,Y,Z)
-	// Input data MUST be in this order.
-	enum VertexLayout { 
-		XYZ = 1, 
-		RGB = (1 << 1), 
-		NORMAL = (1 << 2) 
-	};
-	
 	// Mesh Class
 	// Stores information regarding vertices
 	// and their index groupings to form a mesh.
@@ -29,7 +18,6 @@ namespace Graphics
 	{
 		// Accessible by the VisualEngine class for rendering
 		friend class VisualAttribute;
-		// friend class MeshAttribute;
 
 	private:
 		// Vertex Data Layout 
@@ -44,10 +32,6 @@ namespace Graphics
 		char pixel_shader;
 	
 	public:
-		// Number of floats a vertex_layout has
-		static int VertexLayoutSize(char layout);
-		static char GenerateVertexLayout(bool pos, bool rgb, bool norm);
-
 		// File parsers that can generate meshes
 		static Mesh parsePLYFile(string ply_file);
 

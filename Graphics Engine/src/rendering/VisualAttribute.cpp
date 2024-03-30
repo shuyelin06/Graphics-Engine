@@ -12,6 +12,24 @@ namespace Engine
 
 namespace Graphics
 {
+    // VertexLayoutSize:
+    // Static method returning the number of floats a given 
+    // vertex layout has
+    int VertexLayoutSize(char layout)
+    {
+        int size = ((layout & XYZ) * 3)	// 1st Bit: XYZ Position
+            + (((layout & RGB) >> 1) * 3)	// 2nd Bit: RGB Color
+            + (((layout & NORMAL) >> 2) * 3); // 3rd Bit: XYZ Normal
+        return size;
+    }
+
+    // LayoutHasPin:
+    // Checks if a layout has a given pin or not
+    bool LayoutHasPin(char layout, VertexLayoutPin pin)
+    {
+        return (layout & pin) == pin;
+    }
+
     /* Static Class Definitions and Declarations */
     // Win32 Window Handle
     HWND VisualAttribute::window = nullptr;
@@ -28,8 +46,9 @@ namespace Graphics
     vector<ID3D11Buffer*> VisualAttribute::vs_buffers = vector<ID3D11Buffer*>();
     vector<ID3D11Buffer*> VisualAttribute::ps_buffers = vector<ID3D11Buffer*>();
 
-    // Available Shaders
-    vector<pair<ID3D11VertexShader*, ID3D11InputLayout*>> VisualAttribute::vertex_shaders = vector<pair<ID3D11VertexShader*, ID3D11InputLayout*>>();
+    // Pipeline Assignable Elements
+    map<char, ID3D11InputLayout*> VisualAttribute::input_layouts = map<char, ID3D11InputLayout*>();
+    vector<ID3D11VertexShader*> VisualAttribute::vertex_shaders = vector<ID3D11VertexShader*>();
     vector<ID3D11PixelShader*> VisualAttribute::pixel_shaders = vector<ID3D11PixelShader*>();
 
     // Visual Attributes to Render
@@ -147,15 +166,10 @@ namespace Graphics
 
         /* Build our Shaders */
         // Compile Vertex Shader
-        D3D11_INPUT_ELEMENT_DESC input_desc[] = {
-            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, sizeof(float) * 3, D3D11_INPUT_PER_VERTEX_DATA, 0} // Option 12 appends
-        };
-        
-        create_vertex_shader(L"src/shaders/shader.hlsl", "vs_main", input_desc, ARRAYSIZE(input_desc));
+        CreateVertexShader(L"src/shaders/shader.hlsl", "vs_main", XYZ | NORMAL);
 
         // Create Pixel Shader
-        create_pixel_shader(L"src/shaders/shader.hlsl", "ps_main");
+        CreatePixelShader(L"src/shaders/shader.hlsl", "ps_main");
     }
 
     // RenderAll:
@@ -190,6 +204,13 @@ namespace Graphics
     void VisualAttribute::SetCamera(Camera* _camera)
     {
         camera = _camera;
+    }
+
+    // ObjectAccessor:
+    // Get an object accessor
+    ObjectAccessor VisualAttribute::GetObjectAccessor(void)
+    {
+        return ObjectAccessor();
     }
 
     // CompileShaderBlob:
@@ -245,27 +266,12 @@ namespace Graphics
     }
 
     // CreateVertexShader:
-    // Creates a vertex shader and adds it to the array of vertex shaders
-    // to be used
-    void VisualAttribute::create_vertex_shader(const wchar_t* filename, const char* entrypoint, D3D11_INPUT_ELEMENT_DESC layout_desc[], int desc_size)
+    // Creates a vertex shader and adds it to the array of vertex shaders to be used
+    void VisualAttribute::CreateVertexShader(const wchar_t* file, const char* entry, char layout)
     {
         // Obtain shader blob
-        ID3DBlob* shader_blob = compile_shader_blob(Vertex, filename, entrypoint);
-
-        // Create input layout for vertex shader
-        ID3D11InputLayout* input_layout = NULL;
-
-        device->CreateInputLayout(
-            layout_desc,
-            desc_size,
-            shader_blob->GetBufferPointer(),
-            shader_blob->GetBufferSize(),
-            &input_layout
-        );
-
-        // Check for success
-        assert(input_layout != NULL);
-
+        ID3DBlob* shader_blob = compile_shader_blob(Vertex, file, entry);
+        
         // Create vertex shader
         ID3D11VertexShader* vertex_shader = NULL;
 
@@ -277,17 +283,43 @@ namespace Graphics
         );
 
         // Add to array of vertex shaders
-        std::pair<ID3D11VertexShader*, ID3D11InputLayout*> pair;
-        pair.first = vertex_shader;
-        pair.second = input_layout;
+        vertex_shaders.push_back(vertex_shader);
 
-        vertex_shaders.push_back(pair);
+        // Generate input layout if it does not already exist
+        if (!input_layouts.contains(layout))
+        {
+            vector<D3D11_INPUT_ELEMENT_DESC> input_desc = vector<D3D11_INPUT_ELEMENT_DESC>();
+
+            // XYZ Layout Pin
+            if (LayoutHasPin(layout, XYZ))
+                input_desc.push_back({ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 });
+            // Color Layout Pin
+            if (LayoutHasPin(layout, RGB))
+                input_desc.push_back({ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
+            // Normal Layout Pin
+            if (LayoutHasPin(layout, NORMAL))
+                input_desc.push_back({ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
+
+            // Generate input layout
+            ID3D11InputLayout* input_layout = NULL;
+
+            device->CreateInputLayout(
+                input_desc.data(),
+                input_desc.size(),
+                shader_blob->GetBufferPointer(),
+                shader_blob->GetBufferSize(),
+                &input_layout
+            );
+
+            // Add to input layouts
+            input_layouts[layout] = input_layout;
+        }
     }
 
     // CreatePixelShader:
     // Creates a pixel shader and adds it to the array of pixel shaders
     // for use
-    void VisualAttribute::create_pixel_shader(const wchar_t* filename, const char* entrypoint)
+    void VisualAttribute::CreatePixelShader(const wchar_t* filename, const char* entrypoint)
     {
         // Obtain shader blob
         ID3DBlob* shader_blob = compile_shader_blob(Pixel, filename, entrypoint);
@@ -315,7 +347,7 @@ namespace Graphics
     // 1) Constant Buffers (without resource renaming)
     // 2) Vertex Buffers
     // 3) Index Buffers 
-    ID3D11Buffer* VisualAttribute::create_buffer(D3D11_BIND_FLAG bind_flag, void* data, int byte_size)
+    ID3D11Buffer* VisualAttribute::CreateBuffer(D3D11_BIND_FLAG bind_flag, void* data, int byte_size)
     {
         ID3D11Buffer* buffer = NULL;
 
@@ -343,10 +375,10 @@ namespace Graphics
     // BindData:
     // Uses dynamic resource renaming to fairly efficiently bind data to the vertex / pixel
     // shader constant registers, for use in the shaders
-    void VisualAttribute::bind_vs_data(unsigned int index, void* data, int byte_size)
+    void VisualAttribute::BindVSData(unsigned int index, void* data, int byte_size)
         { bind_data(Vertex, index, data, byte_size); }
 
-    void VisualAttribute::bind_ps_data(unsigned int index, void* data, int byte_size)
+    void VisualAttribute::BindPSData(unsigned int index, void* data, int byte_size)
         { bind_data(Pixel, index, data, byte_size); }
 
     void VisualAttribute::bind_data(Shader_Type type, unsigned int index, void* data, int byte_size)

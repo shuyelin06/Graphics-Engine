@@ -5,14 +5,11 @@
 #include "math/Vector3.h"
 #include "math/Matrix4.h"
 
-#include "rendering/Mesh.h"
-
 namespace Engine::Graphics { class VisualAttribute; }
 
 namespace Engine
 {
 using namespace Math;
-using namespace Graphics;
 namespace Datamodel
 {
 
@@ -31,14 +28,14 @@ namespace Datamodel
 	class Object
 	{
 	protected:
-		// Object Transformation Fields
-		Object* parent;			// Reference to parent
-
 		// Transform of the object
 		Transform transform;
 		
-		// (TBD) - Renderable Attribute
-		VisualAttribute* visual_attr;
+		// Parent Attribute
+		Object* parent;
+
+		// Renderable Attribute
+		Graphics::VisualAttribute* visual_attr;
 
 	public:
 		Object();
@@ -50,11 +47,10 @@ namespace Datamodel
 		// Get Transform
 		Transform* getTransform();
 
-		// Set Parent
-		void setVisualAttribute(VisualAttribute* attribute);
+		// Set Attributes
+		void setVisualAttribute(Graphics::VisualAttribute* attribute);
 		void setParent(Object* parent); 
 	};
-
 
 }
 }

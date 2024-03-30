@@ -2,8 +2,8 @@
 
 #include "Direct3D11.h"
 
-#include "datamodel/Scene.h"
 #include "datamodel/Object.h"
+#include "datamodel/Scene.h"
 #include "datamodel/Camera.h"
 
 #include <map>
@@ -12,26 +12,31 @@
 
 namespace Engine::Datamodel { class Scene; class Object; class Camera; }
 
+using namespace std;
+
 namespace Engine
 {
 using namespace Datamodel;
-
 namespace Graphics
 {
-	// Shader_Type Enum:
-	// Represents shader types in a more readable
-	// format, for internal use
+	// Represents shader types in a more readable format (internal use)
 	typedef enum { Vertex, Pixel } Shader_Type;
 
-	// MeshBuffers Struct:
-	// Stores pointers to D3D11 Index/Vertex Buffers, which are mapped to 
-	// Mesh pointers. Used to cache Index/Vertex Buffers, to avoid
-	// redundantly recreating resources
-	struct MeshBuffers
-	{
-		ID3D11Buffer* vertex_buffer;
-		ID3D11Buffer* index_buffer;
+	// Uses bitwise pins to represent the data layout for vertex shaders. 
+	// Assumes data is given from least to most significant bit (Right -> Left)
+	//     1st Bit) Position (X,Y,Z)
+	//     2nd Bit) Color (R,G,B)
+	//     3rd Bit) Normal (X,Y,Z)
+	// Input data MUST be in this order.
+	enum VertexLayoutPin {
+		XYZ = 1,
+		RGB = (1 << 1),
+		NORMAL = (1 << 2)
 	};
+
+	// Create and Interpret Vertex Layouts
+	int VertexLayoutSize(char layout);
+	bool LayoutHasPin(char layout, VertexLayoutPin pin);
 
 	// VisualEngine Class:
 	// Provides an interface for the application's graphics
@@ -58,12 +63,13 @@ namespace Graphics
 		static vector<ID3D11Buffer*> vs_buffers;
 		static vector<ID3D11Buffer*> ps_buffers;
 
-		// Available Shaders
-		static vector<pair<ID3D11VertexShader*, ID3D11InputLayout*>> vertex_shaders; // Vertex Shader and Associated Input Layout
-		static vector<ID3D11PixelShader*> pixel_shaders; // Pixel Shaders
+		// Pipeline Assignable Elements
+		static map<char, ID3D11InputLayout*> input_layouts; // Input Layouts
+		static vector<ID3D11VertexShader*> vertex_shaders;	// Vertex Shaders
+		static vector<ID3D11PixelShader*> pixel_shaders;	// Pixel Shaders
 	
 		// Visual Attributes
-		static std::vector<VisualAttribute*> attributes;		
+		static vector<VisualAttribute*> attributes;		
 
 		// Camera to render from
 		static Camera* camera;
@@ -84,16 +90,16 @@ namespace Graphics
 	// Callable by the VisualAttributes
 	protected:
 		// Get an accessor to access object fields
-		static ObjectAccessor GetObjectAccessor(void) { return ObjectAccessor(); };
+		static ObjectAccessor GetObjectAccessor(void);
 
 		// Create Resources
-		static void create_vertex_shader(const wchar_t* file, const char* entry, D3D11_INPUT_ELEMENT_DESC[], int desc_size);
-		static void create_pixel_shader(const wchar_t* file, const char* entry);
-		static ID3D11Buffer* create_buffer(D3D11_BIND_FLAG, void* data, int byte_size);
+		static void CreateVertexShader(const wchar_t* file, const char* entry, char layout);
+		static void CreatePixelShader(const wchar_t* file, const char* entry);
+		static ID3D11Buffer* CreateBuffer(D3D11_BIND_FLAG, void* data, int byte_size);
 
 		// Bind data to the vertex and pixel shaders
-		static void bind_vs_data(unsigned int index, void* data, int byte_size);
-		static void bind_ps_data(unsigned int index, void* data, int byte_size);
+		static void BindVSData(unsigned int index, void* data, int byte_size);
+		static void BindPSData(unsigned int index, void* data, int byte_size);
 
 	// Private Static Class Methods
 	// Helper methods to accomplish the above tasks

@@ -1,11 +1,13 @@
 #include "MeshAttribute.h"
 
+using namespace std;
+
 namespace Engine
 {
 namespace Graphics
 {
-    std::map<std::string, Mesh> MeshAttribute::meshes = std::map<std::string, Mesh>();
-    std::map<Mesh*, MeshBuffers> MeshAttribute::mesh_cache = std::map<Mesh*, MeshBuffers>();
+    map<string, Mesh> MeshAttribute::meshes = map<string, Mesh>();
+    map<Mesh*, MeshBuffers> MeshAttribute::mesh_cache = map<Mesh*, MeshBuffers>();
 
 	// Constructor:
 	// Initializes a mesh attribute with
@@ -22,10 +24,7 @@ namespace Graphics
 	
 	// Destructor:
 	// Destroys a mesh attribute
-	MeshAttribute::~MeshAttribute()
-	{
-
-	}
+	MeshAttribute::~MeshAttribute() {}
 	
     // GetTransformMatrix:
     // Helper method that finds an object's local_to_world transform
@@ -64,7 +63,7 @@ namespace Graphics
 
         // Prepare vertex and index buffers for rendering
         // Bytes between each vertex 
-        UINT vertex_stride = Mesh::VertexLayoutSize(mesh->getLayout()) * sizeof(float);
+        UINT vertex_stride = VertexLayoutSize(mesh->getLayout()) * sizeof(float);
         // Offset into the vertex buffer to start reading from 
         UINT vertex_offset = 0;
         // Number of vertices
@@ -93,11 +92,11 @@ namespace Graphics
             else
             {
                 // Create new buffer resources
-                vertex_buffer = create_buffer(
+                vertex_buffer = CreateBuffer(
                     D3D11_BIND_VERTEX_BUFFER,
                     (void*)vertices->data(),
                     sizeof(float) * vertices->size());
-                index_buffer = create_buffer(
+                index_buffer = CreateBuffer(
                     D3D11_BIND_INDEX_BUFFER,
                     (void*)indices->data(),
                     sizeof(int) * indices->size());
@@ -113,7 +112,7 @@ namespace Graphics
 	void MeshAttribute::render()
 	{
         // Bytes between each vertex 
-        UINT vertex_stride = Mesh::VertexLayoutSize(mesh->getLayout()) * sizeof(float);
+        UINT vertex_stride = VertexLayoutSize(mesh->getLayout()) * sizeof(float);
         // Offset into the vertex buffer to start reading from 
         UINT vertex_offset = 0;
         // Number of vertices
@@ -122,11 +121,12 @@ namespace Graphics
         UINT num_indices = mesh->getIndices()->size();
 
         // Bind transform matrix to the vertex shader
-        bind_vs_data(0, transform_matrix.getRawData(), sizeof(float) * 16);
-        bind_vs_data(1, rotate_matrix.getRawData(), sizeof(float) * 16);
+        BindVSData(0, transform_matrix.getRawData(), sizeof(float) * 16);
+        BindVSData(1, rotate_matrix.getRawData(), sizeof(float) * 16);
 
         // Get shaders to render mesh with
-        std::pair<ID3D11VertexShader*, ID3D11InputLayout*> vertex_shader = vertex_shaders[mesh->getVertexShader()];
+        ID3D11InputLayout* input_layout = input_layouts[mesh->getLayout()];
+        ID3D11VertexShader* vertex_shader = vertex_shaders[mesh->getVertexShader()];
         ID3D11PixelShader* pixel_shader = pixel_shaders[mesh->getPixelShader()];
 
         // Perform a Draw Call
@@ -155,7 +155,7 @@ namespace Graphics
         /* Configure Input Assembler */
         // Define input layout
         device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        device_context->IASetInputLayout(vertex_shader.second);
+        device_context->IASetInputLayout(input_layout);
 
         // Bind vertex and index buffers
         device_context->IASetVertexBuffers(0, 1, &vertex_buffer, &vertex_stride, &vertex_offset);
@@ -163,7 +163,7 @@ namespace Graphics
 
         /* Configure Shaders*/
         // Bind vertex shader
-        device_context->VSSetShader(vertex_shader.first, NULL, 0);
+        device_context->VSSetShader(vertex_shader, NULL, 0);
 
         // Bind pixel shader
         device_context->PSSetShader(pixel_shader, NULL, 0);

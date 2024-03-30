@@ -58,6 +58,22 @@ namespace Input
 		}
 		break;
 
+		case 0x51: // Q
+		{
+			Camera* camera = player->getCamera();
+
+			camera->setFOV(camera->getFOV() - 0.01f);
+		}
+		break;
+
+		case 0x45: // E
+		{
+			Camera* camera = player->getCamera();
+
+			camera->setFOV(camera->getFOV() + 0.01f);
+		}
+		break;
+
 		case 0x57: // W
 		{
 			Camera* camera = player->getCamera();

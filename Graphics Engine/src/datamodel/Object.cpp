@@ -17,7 +17,7 @@ namespace Datamodel
 	Object::Object()
 	{
 		parent = nullptr;
-
+		transform = Transform();
 		visual_attr = nullptr;
 	}
 
@@ -49,7 +49,7 @@ namespace Datamodel
 
 	// SetVisualAttribute
 	// Sets the object's visual attribute
-	void Object::setVisualAttribute(VisualAttribute* _attr)
+	void Object::setVisualAttribute(Graphics::VisualAttribute* _attr)
 	{
 		visual_attr = _attr;
 	}

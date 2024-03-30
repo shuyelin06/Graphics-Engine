@@ -114,7 +114,7 @@ namespace Graphics
 
 		// Read vertices
 		{
-			int size = Mesh::VertexLayoutSize(layout);
+			int size = VertexLayoutSize(layout);
 			float* vertex = new float[size];
 			regex re_float("-?\\d+(\\.?\\d+)?");
 

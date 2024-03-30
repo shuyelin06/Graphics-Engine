@@ -11,6 +11,16 @@ using namespace Math;
 using namespace Datamodel;
 namespace Graphics
 {
+	// MeshBuffers Struct:
+	// Stores pointers to D3D11 Index/Vertex Buffers, which are mapped to 
+	// Mesh pointers. Used to cache Index/Vertex Buffers, to avoid
+	// redundantly recreating resources
+	struct MeshBuffers
+	{
+		ID3D11Buffer* vertex_buffer;
+		ID3D11Buffer* index_buffer;
+	};
+
 	// Class MeshAttribute:
 	// Implements the VisualAttribute class for
 	// rendering meshes
