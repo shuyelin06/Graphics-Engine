@@ -20,6 +20,7 @@ namespace Math
 
 	public:
 		Quaternion();
+		Quaternion(float roll, float pitch, float yaw);
 		Quaternion(const Vector3&, float theta);
 
 		float norm() const;

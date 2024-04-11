@@ -48,9 +48,19 @@ namespace Datamodel
 	}
 
 	// SetRotation:
+	// Changes the transform's rotation given euler angles
+	void Transform::setRotation(float roll, float pitch, float yaw)
+	{
+		rotation = Quaternion(roll, pitch, yaw);
+	}
+
+	// SetRotation:
 	// Changes the transform's rotation by setting it to given values
 	void Transform::setRotation(const Vector3& axis, float theta)
 	{
+		// Rotations with quaternions have an angle of 2 * theta,
+		// so we divide by 2
+		theta /= 2; 
 		rotation = Quaternion(axis * sinf(theta), cosf(theta));
 	}
 
@@ -58,6 +68,9 @@ namespace Datamodel
 	// Changes the transform's rotation by adding given values to it
 	void Transform::offsetRotation(const Vector3& axis, float theta)
 	{
+		// Rotations with quaternions have an angle of 2 * theta,
+		// so we divide by 2
+		theta /= 2;
 		Quaternion new_rotation = Quaternion(axis * sinf(theta), cosf(theta));
 		Quaternion final_rotate = new_rotation * rotation * new_rotation;
 		rotation = final_rotate;

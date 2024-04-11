@@ -30,6 +30,7 @@ namespace Datamodel
 		void offsetPosition(float x, float y, float z);
 
 		const Quaternion getRotation() const;
+		void setRotation(float roll, float pitch, float yaw);
 		void setRotation(const Vector3& axis, float theta);
 		void offsetRotation(const Vector3& axis, float theta);
 		

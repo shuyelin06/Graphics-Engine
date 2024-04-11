@@ -30,18 +30,13 @@ namespace Input
 		GetCursorPos(&new_pos);
 		
 		// Determine mouse displacement
-		int x_delta = new_pos.x - center_x;
-		int y_delta = new_pos.y - center_y;
+		int x_delta = (new_pos.x - center_x) ;
+		int y_delta = (new_pos.y - center_y);
 
 		// Convert to Angular Displacement
 		// Roll = Rotation Around X (Up/Down)
 		// Pitch = Rotation Around Y (Left/Right
-		float roll_delta = y_delta / 500.f;
-		float pitch_delta = x_delta / 500.f;
-
-		camera->getTransform()->offsetRotation(Vector3::PositiveX(), roll_delta);
-		camera->getTransform()->offsetRotation(Vector3::PositiveY(), pitch_delta);
-		// camera->offsetRotation(roll_delta, pitch_delta, 0);
+		camera->offsetViewingAngle(-x_delta / 500.f, -y_delta / 500.f);
 		
 		// Reset mouse to center of application
 		SetCursorPos(center_x, center_y);

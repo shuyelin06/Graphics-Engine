@@ -122,7 +122,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     Object cube2 = Object();
     MeshAttribute attr2 = MeshAttribute(&cube2, &mesh);
     cube2.setVisualAttribute(&attr1);
-    cube2.getTransform()->offsetPosition(0, -25, 0);
+    cube2.getTransform()->offsetPosition(0, 0, 25);
 
 
     // Adjust

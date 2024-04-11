@@ -15,6 +15,25 @@ namespace Math
 		qw = 0.f;
 	}
 
+	// Euler Angle Constructor:
+	// Creates a quaternion given euler angles
+	Quaternion::Quaternion(float roll, float pitch, float yaw)
+	{
+		float roll_cos = cosf(roll / 2);
+		float roll_sin = sinf(roll / 2);
+
+		float pitch_cos = cosf(pitch / 2);
+		float pitch_sin = sinf(pitch / 2);
+
+		float yaw_cos = cosf(yaw / 2);
+		float yaw_sin = sinf(yaw / 2);
+
+		qw = roll_cos * pitch_cos * yaw_cos - roll_sin * pitch_sin * yaw_sin;
+		qv.x = roll_sin * pitch_cos * yaw_cos - roll_cos * pitch_sin * yaw_sin;
+		qv.y = roll_cos * pitch_sin * yaw_cos + roll_sin * pitch_cos * yaw_sin;
+		qv.z = roll_cos * pitch_cos * yaw_sin - roll_sin * pitch_sin * yaw_cos;
+	}
+	
 	// Vector Constructor:
 	// Creates a quaternion with given imaginary vector
 	// and real value component
