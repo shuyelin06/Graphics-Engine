@@ -91,7 +91,7 @@ namespace Math
 	// and real component equal to 1
 	Quaternion Quaternion::Identity()
 	{
-		return Quaternion(Vector3(0,0,0), 1);
+		return Quaternion(Vector3(0, 0, 0), 1);
 	}
 
 }

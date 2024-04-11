@@ -36,10 +36,12 @@ namespace Input
 		// Convert to Angular Displacement
 		// Roll = Rotation Around X (Up/Down)
 		// Pitch = Rotation Around Y (Left/Right
-		float roll_delta = y_delta / 100.f;
-		float pitch_delta = x_delta / 100.f;
+		float roll_delta = y_delta / 500.f;
+		float pitch_delta = x_delta / 500.f;
 
-		camera->offsetRotation(roll_delta, pitch_delta, 0);
+		camera->getTransform()->offsetRotation(Vector3::PositiveX(), roll_delta);
+		camera->getTransform()->offsetRotation(Vector3::PositiveY(), pitch_delta);
+		// camera->offsetRotation(roll_delta, pitch_delta, 0);
 		
 		// Reset mouse to center of application
 		SetCursorPos(center_x, center_y);

@@ -175,8 +175,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             // Determine time elapsed for physics updating
             double time_elapsed = physics_watch.Duration();
 
-            cube.getTransform()->offsetRotation(0, 0.01f, 0);
-            cube2.getTransform()->offsetRotation(0, 0.01f, 0);
+            cube.getTransform()->offsetRotation(Vector3::PositiveY(), 0.01f);
+            cube2.getTransform()->offsetRotation(Vector3::PositiveY(), 0.01f);
 
             player.physicsUpdate(time_elapsed);
 

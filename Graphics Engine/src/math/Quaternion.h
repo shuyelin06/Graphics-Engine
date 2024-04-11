@@ -29,7 +29,7 @@ namespace Math
 		Quaternion operator+(const Quaternion&) const; // Addition
 		Quaternion& operator+=(const Quaternion&);	   // Compound (In-Place) Addition
 		Quaternion operator*(const Quaternion&) const; // Product
-		Quaternion& operator*=(const Quaternion&);      // Compound (In-Place) Product
+		Quaternion& operator*=(const Quaternion&);     // Compound (In-Place) Product
 
 		// Identity Quaternion
 		static Quaternion Identity();

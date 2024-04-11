@@ -13,7 +13,7 @@ namespace Datamodel
 	Transform::Transform()
 	{
 		position_local = Vector3(0, 0, 0);
-		rotation = Vector3(0, 0, 0);
+		rotation = Quaternion::Identity();
 		scale = Vector3(1, 1, 1);
 	}
 
@@ -42,25 +42,25 @@ namespace Datamodel
 
 	// GetRotation:
 	// Returns an object's rotation
-	const Vector3 Transform::getRotation() const
+	const Quaternion Transform::getRotation() const
 	{
 		return rotation;
 	}
 
 	// SetRotation:
 	// Changes the transform's rotation by setting it to given values
-	void Transform::setRotation(float roll, float yaw, float pitch)
+	void Transform::setRotation(const Vector3& axis, float theta)
 	{
-		rotation.x = roll;
-		rotation.y = yaw;
-		rotation.z = pitch;
+		rotation = Quaternion(axis * sinf(theta), cosf(theta));
 	}
 
 	// OffsetRotation
 	// Changes the transform's rotation by adding given values to it
-	void Transform::offsetRotation(float roll, float yaw, float pitch)
+	void Transform::offsetRotation(const Vector3& axis, float theta)
 	{
-		setRotation(rotation.x + roll, rotation.y + yaw, rotation.z + pitch);
+		Quaternion new_rotation = Quaternion(axis * sinf(theta), cosf(theta));
+		Quaternion final_rotate = new_rotation * rotation * new_rotation;
+		rotation = final_rotate;
 	}
 
 	// GetScale:
@@ -115,41 +115,33 @@ namespace Datamodel
 	// Returns the rotation matrix for the transform
 	Matrix4 Transform::rotationMatrix(void) const
 	{
-		// Cache values to avoid recalculating sine and cosine a lot
-		float cos_cache = 0;
-		float sin_cache = 0;
+		Vector3 qv = rotation.qv;
+		float qw = rotation.qw;
 
-		// Rotation about the x-axis (roll)
-		cos_cache = cosf(rotation.x);
-		sin_cache = sinf(rotation.x);
-		Matrix4 roll = Matrix4(
-			1, 0, 0, 0,
-			0, cos_cache, sin_cache, 0,
-			0, -sin_cache, cos_cache, 0,
-			0, 0, 0, 1
-		);
+		// Create quaternion matrix 
+		Matrix4 rotation_matrix;
 
-		// Rotation about the y-axis (pitch)
-		cos_cache = cosf(rotation.y);
-		sin_cache = sinf(rotation.y);
-		Matrix4 pitch = Matrix4(
-			cos_cache, 0, -sin_cache, 0,
-			0, 1, 0, 0,
-			sin_cache, 0, cos_cache, 0,
-			0, 0, 0, 1
-		);
+		rotation_matrix[0][0] = 1 - 2 * (qv.y * qv.y + qv.z * qv.z);
+		rotation_matrix[0][1] = 2 * (qv.x * qv.y - qw * qv.z);
+		rotation_matrix[0][2] = 2 * (qv.x * qv.z + qw * qv.y);
+		rotation_matrix[0][3] = 0.f;
 
-		// Rotation about the z-axis (yaw)
-		cos_cache = cosf(rotation.z);
-		sin_cache = sinf(rotation.z);
-		Matrix4 yaw = Matrix4(
-			cos_cache, sin_cache, 0, 0,
-			-sin_cache, cos_cache, 0, 0,
-			0, 0, 1, 0,
-			0, 0, 0, 1
-		);
+		rotation_matrix[1][0] = 2 * (qv.x * qv.y + qw * qv.z);
+		rotation_matrix[1][1] = 1 - 2 * (qv.x * qv.x + qv.z * qv.z);
+		rotation_matrix[1][2] = 2 * (qv.y * qv.z - qw * qv.x);
+		rotation_matrix[1][3] = 0.f;
 
-		return roll * pitch * yaw;
+		rotation_matrix[2][0] = 2 * (qv.x * qv.z - qw * qv.y);
+		rotation_matrix[2][1] = 2 * (qv.y * qv.z + qw * qv.x);
+		rotation_matrix[2][2] = 1 - 2 * (qv.x * qv.x + qv.y * qv.y);
+		rotation_matrix[2][3] = 0.f;
+
+		rotation_matrix[3][0] = 0.f;
+		rotation_matrix[3][1] = 0.f;
+		rotation_matrix[3][2] = 0.f;
+		rotation_matrix[3][3] = 1.f;
+
+		return rotation_matrix;
 	}
 	
 	// TranslationMatrix:

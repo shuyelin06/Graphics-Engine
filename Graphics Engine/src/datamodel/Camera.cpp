@@ -38,13 +38,14 @@ namespace Datamodel
 		fov = Compute::clamp(new_fov, 0.5f, PI - 0.5f);
 	}
 
+	/*
 	void Camera::offsetRotation(float x, float y, float z)
 	{
 		const Vector3 rotation = transform.getRotation();
 		transform.setRotation(Compute::clamp(rotation.x + x, -PI / 2, PI / 2),
 							  rotation.y + y,
 							  0);
-	}
+	}*/
 
 	// Calculate camera's forward viewing vector
 	Vector3 Camera::forward()
