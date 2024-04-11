@@ -9,6 +9,8 @@ namespace Graphics
     map<string, Mesh> MeshAttribute::meshes = map<string, Mesh>();
     map<Mesh*, MeshBuffers> MeshAttribute::mesh_cache = map<Mesh*, MeshBuffers>();
 
+    
+
 	// Constructor:
 	// Initializes a mesh attribute with
 	// a given mesh

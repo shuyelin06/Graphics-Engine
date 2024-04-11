@@ -67,7 +67,7 @@ namespace Graphics
 		static map<char, ID3D11InputLayout*> input_layouts; // Input Layouts
 		static vector<ID3D11VertexShader*> vertex_shaders;	// Vertex Shaders
 		static vector<ID3D11PixelShader*> pixel_shaders;	// Pixel Shaders
-	
+
 		// Visual Attributes
 		static vector<VisualAttribute*> attributes;		
 
@@ -92,9 +92,12 @@ namespace Graphics
 		// Get an accessor to access object fields
 		static ObjectAccessor GetObjectAccessor(void);
 
+		// Renders a line next draw call
+		static void DrawLine(Vector3 p1, Vector3 p2, Vector3 rgb);
+
 		// Create Resources
-		static void CreateVertexShader(const wchar_t* file, const char* entry, char layout);
-		static void CreatePixelShader(const wchar_t* file, const char* entry);
+		static int CreateVertexShader(const wchar_t* file, const char* entry, char layout);
+		static int CreatePixelShader(const wchar_t* file, const char* entry);
 		static ID3D11Buffer* CreateBuffer(D3D11_BIND_FLAG, void* data, int byte_size);
 
 		// Bind data to the vertex and pixel shaders
@@ -104,6 +107,11 @@ namespace Graphics
 	// Private Static Class Methods
 	// Helper methods to accomplish the above tasks
 	private:
+		// Prepare and renders lines
+		static void InitializeLineHandler();
+		static void PrepareLines();
+		static void RenderLines();
+
 		// Binds Data to a Shader
 		static void bind_data(Shader_Type type, unsigned int index, void* data, int byte_size);
 

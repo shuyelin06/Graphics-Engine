@@ -52,9 +52,14 @@ namespace Graphics
 
 		// Read header information for layout vertex / face count
 		{
+			getline(file_stream, line);
+
+			// Remove comments
+			while (regex_search(line, match, regex("comment [A-Za-z]*")))
+				getline(file_stream, line);
+			
 			// Expect and parse the vertex description first
-			if (getline(file_stream, line),
-				regex_search(line, match, regex("element vertex (\\d+)")))
+			if (regex_search(line, match, regex("element vertex (\\d+)")))
 			{
 				// Update number of vertices
 				num_vertices = stoi(match.str(1));
@@ -127,11 +132,11 @@ namespace Graphics
 				int vertex_i = 0;
 
 				// Move through all float matches
-				sregex_iterator iter = std::sregex_iterator(line.begin(), line.end(), re_float);
+				sregex_iterator iter = sregex_iterator(line.begin(), line.end(), re_float);
 
-				while (iter != std::sregex_iterator())
+				while (iter != sregex_iterator())
 				{
-					std::smatch match = *iter;
+					smatch match = *iter;
 					// Add float to corresponding vertex property position
 					vertex[vertex_i++] = stof(match.str(0));
 
@@ -150,19 +155,58 @@ namespace Graphics
 
 		// Read faces
 		{
-			regex face_format("3 (\\d+) (\\d+) (\\d+)");
+			regex re_int("(\\d+)");
 
 			for (int i = 0; i < num_faces; i++)
 			{
 				getline(file_stream, line);
 
-				if (regex_search(line, match, face_format))
+				// Move through all int matches
+				sregex_iterator iter = sregex_iterator(line.begin(), line.end(), re_int);
+
+				// Read first integer (number of indices to read)
+				if (iter == sregex_iterator())
+					assert(false);
+
+				smatch match = *iter;
+				int num_indices = stoi(match.str(0));
+				++iter;
+
+				// Read indices
+				vector<int> indices = vector<int>();
+				indices.reserve(num_indices);
+
+				while (iter != sregex_iterator())
 				{
-					// Add indices to index list
-					mesh.addIndex(stoi(match.str(1)));
-					mesh.addIndex(stoi(match.str(2)));
-					mesh.addIndex(stoi(match.str(3)));
+					smatch match = *iter;
+					indices.push_back(stoi(match.str(0)));
+					++iter;
 				}
+
+				// Fail if too many or too little indices
+				if (indices.size() != num_indices)
+					assert(false);
+
+				// Interpret triangle
+				if (num_indices == 3)
+				{
+					mesh.addIndex(indices[0]);
+					mesh.addIndex(indices[1]);
+					mesh.addIndex(indices[2]);
+				}
+				// Interpret quadrilateral
+				else if (num_indices == 4)
+				{
+					// TEMP: flipped for some reason
+					mesh.addIndex(indices[2]);
+					mesh.addIndex(indices[1]);
+					mesh.addIndex(indices[0]);
+
+					mesh.addIndex(indices[3]);
+					mesh.addIndex(indices[2]);
+					mesh.addIndex(indices[0]);
+				}
+
 			}
 		}
 

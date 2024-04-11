@@ -110,14 +110,20 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     mesh.setShaders(0, 0);
     mesh.calculateNormals();
     
+    Mesh mesh2 = Mesh::parsePLYFile("data/cube.ply");
+    mesh2.setShaders(0, 0);
+    mesh2.calculateNormals();
+
     Object cube = Object();
     MeshAttribute attr1 = MeshAttribute(&cube, &mesh);
     cube.setVisualAttribute(&attr1);
+    cube.getTransform()->offsetPosition(25, 0, 0);
 
     Object cube2 = Object();
     MeshAttribute attr2 = MeshAttribute(&cube2, &mesh);
     cube2.setVisualAttribute(&attr1);
-    cube2.getTransform()->offsetPosition(0, 0, -10);
+    cube2.getTransform()->offsetPosition(0, -25, 0);
+
 
     // Adjust
     player.getTransform()->setPosition(0, 0, -5);

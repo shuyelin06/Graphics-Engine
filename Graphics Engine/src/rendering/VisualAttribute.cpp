@@ -170,18 +170,28 @@ namespace Graphics
 
         // Create Pixel Shader
         CreatePixelShader(L"src/shaders/shader.hlsl", "ps_main");
+
+        InitializeLineHandler();
     }
 
     // RenderAll:
     // Renders all VisualAttributes subscribed for rendering
     void VisualAttribute::RenderAll()
     {
+        // Query lines to draw
+        DrawLine({ -10,0,0 }, {10,0,0}, {1,0,0});
+        DrawLine({ 0,-10,0 }, { 0,10,0 }, {0,1,0});
+        DrawLine({ 0,0,-10 }, { 0,0,10 }, {0,0,1});
+
         // Clear screen
         float color[4] = { 0, 0, 0, 1.0f };
         device_context->ClearRenderTargetView(render_target_view, color);
         
         // Clear depth stencil
         device_context->ClearDepthStencilView(depth_stencil, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
+
+        // Prepare line buffer
+        PrepareLines();
 
         // Prepare all visual attributes
         for (VisualAttribute* attr : attributes)
@@ -190,6 +200,9 @@ namespace Graphics
         // Render all visual attributes
         for (VisualAttribute* attr : attributes)
             attr->render();
+
+        // Draw line buffer
+        RenderLines(); 
 
         // Finish all visual attributes
         for (VisualAttribute* attr : attributes)
@@ -267,7 +280,7 @@ namespace Graphics
 
     // CreateVertexShader:
     // Creates a vertex shader and adds it to the array of vertex shaders to be used
-    void VisualAttribute::CreateVertexShader(const wchar_t* file, const char* entry, char layout)
+    int VisualAttribute::CreateVertexShader(const wchar_t* file, const char* entry, char layout)
     {
         // Obtain shader blob
         ID3DBlob* shader_blob = compile_shader_blob(Vertex, file, entry);
@@ -283,6 +296,7 @@ namespace Graphics
         );
 
         // Add to array of vertex shaders
+        int index = vertex_shaders.size();
         vertex_shaders.push_back(vertex_shader);
 
         // Generate input layout if it does not already exist
@@ -295,7 +309,7 @@ namespace Graphics
                 input_desc.push_back({ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 });
             // Color Layout Pin
             if (LayoutHasPin(layout, RGB))
-                input_desc.push_back({ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
+                input_desc.push_back({ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
             // Normal Layout Pin
             if (LayoutHasPin(layout, NORMAL))
                 input_desc.push_back({ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
@@ -314,12 +328,14 @@ namespace Graphics
             // Add to input layouts
             input_layouts[layout] = input_layout;
         }
+
+        return index;
     }
 
     // CreatePixelShader:
     // Creates a pixel shader and adds it to the array of pixel shaders
     // for use
-    void VisualAttribute::CreatePixelShader(const wchar_t* filename, const char* entrypoint)
+    int VisualAttribute::CreatePixelShader(const wchar_t* filename, const char* entrypoint)
     {
         // Obtain shader blob
         ID3DBlob* shader_blob = compile_shader_blob(Pixel, filename, entrypoint);
@@ -338,7 +354,10 @@ namespace Graphics
         assert(pixel_shader != NULL);
 
         // Add to array of pixel shaders
+        int size = pixel_shaders.size();
         pixel_shaders.push_back(pixel_shader);
+
+        return size;
     }
 
     // CreateBuffer:

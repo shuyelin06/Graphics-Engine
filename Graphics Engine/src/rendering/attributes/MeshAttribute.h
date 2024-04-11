@@ -5,6 +5,8 @@
 #include "rendering/VisualAttribute.h"
 #include "rendering/Mesh.h"
 
+using namespace std;
+
 namespace Engine
 {
 using namespace Math;
@@ -28,10 +30,10 @@ namespace Graphics
 	{
 	protected:
 		// Mesh Cache
-		static std::map<std::string, Mesh> meshes;
+		static map<std::string, Mesh> meshes;
 
 		// Mesh Index/Vertex Buffer Cache
-		static std::map<Mesh*, MeshBuffers> mesh_cache;
+		static map<Mesh*, MeshBuffers> mesh_cache;
 
 	private:
 		static Matrix4 GetTransformMatrix(Object* object);

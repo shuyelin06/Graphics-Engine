@@ -39,6 +39,7 @@ namespace Math
 
 		// Static Vector Operations
 		static Vector3 CrossProduct(Vector3 v1, Vector3 v2);
+		static float DotProduct(Vector3 v1, Vector3 v2);
 
 		static Vector3 PositiveX();
 		static Vector3 PositiveY();
