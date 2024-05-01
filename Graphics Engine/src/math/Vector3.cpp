@@ -150,8 +150,7 @@ namespace Math
 		return *this;
 	}
 
-	// CrossProduct:
-	// Computes the cross product of two vectors
+	//
 	Vector3 Vector3::CrossProduct(Vector3 v1, Vector3 v2)
 	{
 		Vector3 vector;
@@ -159,15 +158,6 @@ namespace Math
 		vector.y = v1.z * v2.x - v1.x * v2.z;
 		vector.z = v1.x * v2.y - v1.y * v2.x;
 		return vector;
-	}
-	
-	// DotProduct:
-	// Computes the dot product of two vectors
-	float Vector3::DotProduct(Vector3 v1, Vector3 v2)
-	{
-		float dot_product = 0;
-		dot_product = v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
-		return dot_product;
 	}
 
 	Vector3 Vector3::PositiveX()

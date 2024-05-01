@@ -16,9 +16,6 @@ namespace Datamodel
 	Camera::Camera() : Object()
 	{
 		setFOV(1.2f);
-
-		x_theta = y_theta = 0.f;
-
 		z_near = 1.f;
 		z_far = 200.f;
 	}
@@ -41,30 +38,19 @@ namespace Datamodel
 		fov = Compute::clamp(new_fov, 0.5f, PI - 0.5f);
 	}
 
-	// OffsetView:
-	// Offsets the camera's viewing angle by theta radians x, 
-	// theta radians y (from the camera's perspective)
-	void Camera::offsetViewingAngle(float _x_delta, float _y_delta)
+	void Camera::offsetRotation(float x, float y, float z)
 	{
-		// Update x theta
-		parent->getTransform()->offsetRotation(Vector3::PositiveY(), _x_delta);
-		x_theta = x_theta + _x_delta;
-
-		// Update y theta
-		float new_y_theta = Compute::clamp(y_theta + _y_delta, -PI / 4, PI / 4);
-		_y_delta = new_y_theta - y_theta;
-		y_theta = new_y_theta;
-		transform.offsetRotation(Vector3::PositiveX(), _y_delta);
+		const Vector3 rotation = transform.getRotation();
+		transform.setRotation(Compute::clamp(rotation.x + x, -PI / 2, PI / 2),
+							  rotation.y + y,
+							  0);
 	}
 
 	// Calculate camera's forward viewing vector
 	Vector3 Camera::forward()
 	{
-		// TODO: Movement is off
 		// Get rotation matrix
-		Matrix4 m1 = transform.rotationMatrix();
-		Matrix4 m2 = parent->getTransform()->rotationMatrix();
-		Matrix4 rotation_matrix = m2 * m1;
+		Matrix4 rotation_matrix = transform.rotationMatrix().tranpose();
 
 		// Camera is by default looking in the +Z axis
 		Vector4 view = rotation_matrix * Vector4::PositiveZW();
@@ -75,9 +61,7 @@ namespace Datamodel
 	Vector3 Camera::right()
 	{
 		// Get rotation matrix
-		Matrix4 m1 = transform.rotationMatrix();
-		Matrix4 m2 = parent->getTransform()->rotationMatrix();
-		Matrix4 rotation_matrix = m2 * m1;
+		Matrix4 rotation_matrix = transform.rotationMatrix().tranpose();
 
 		// Camera's left is by default looking in the +X axis
 		Vector4 view = rotation_matrix * Vector4::PositiveXW();

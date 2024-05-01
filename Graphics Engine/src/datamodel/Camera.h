@@ -15,10 +15,10 @@ namespace Datamodel
 
 	class Camera: public Object
 	{
+	friend class Engine::Graphics::VisualEngine;
+
 	private:
-		// Camera viewing direction in radians, relative
-		// to how the camera sees the scene
-		float x_theta, y_theta;
+		Object* parent;
 
 		float fov;
 
@@ -32,12 +32,8 @@ namespace Datamodel
 		float getFOV();
 		void setFOV(float new_fov);
 
-		// Change viewing angle
-		void offsetViewingAngle(float x_delta, float y_delta);
-
 		// Overridden rotation method that will clamp the angle
-		void offsetXRotate(float theta);
-		void offsetYRotate(float theta);
+		void offsetRotation(float x, float y, float z);
 
 		// Directional viewing vectors
 		Vector3 forward();	// Camera forward vector

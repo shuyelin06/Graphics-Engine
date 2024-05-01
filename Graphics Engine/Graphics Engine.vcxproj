@@ -158,7 +158,6 @@
     <ClCompile Include="src\datamodel\Object.cpp" />
     <ClCompile Include="src\input\InputEngine.cpp" />
     <ClCompile Include="src\math\Matrix3.cpp" />
-    <ClCompile Include="src\math\Quaternion.cpp" />
     <ClCompile Include="src\math\Vector3.cpp" />
     <ClCompile Include="src\datamodel\Camera.cpp" />
     <ClCompile Include="src\Main.cpp" />
@@ -167,10 +166,10 @@
     <ClCompile Include="src\datamodel\other\Player.cpp" />
     <ClCompile Include="src\datamodel\PhysicsObject.cpp" />
     <ClCompile Include="src\rendering\attributes\MeshAttribute.cpp" />
-    <ClCompile Include="src\rendering\LineHandler.cpp" />
     <ClCompile Include="src\rendering\Mesh.cpp" />
     <ClCompile Include="src\rendering\parsers\PLYParser.cpp" />
     <ClCompile Include="src\rendering\VisualAttribute.cpp" />
+    <ClCompile Include="src\rendering\VisualEngine.cpp" />
     <ClCompile Include="src\utility\Stopwatch.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -183,16 +182,17 @@
     <ClInclude Include="src\input\InputEngine.h" />
     <ClInclude Include="src\math\Matrix3.h" />
     <ClInclude Include="src\datamodel\Camera.h" />
-    <ClInclude Include="src\math\Quaternion.h" />
     <ClInclude Include="src\math\Vector3.h" />
     <ClInclude Include="src\datamodel\PhysicsObject.h" />
     <ClInclude Include="src\math\Matrix4.h" />
     <ClInclude Include="src\math\Vector4.h" />
-    <ClInclude Include="src\physics\PhysicsAttribute.h" />
+    <ClInclude Include="src\physics\PhysicsBehavior.h" />
+    <ClInclude Include="src\physics\PhysicsEngine.h" />
     <ClInclude Include="src\rendering\attributes\MeshAttribute.h" />
     <ClInclude Include="src\rendering\Direct3D11.h" />
     <ClInclude Include="src\rendering\Mesh.h" />
     <ClInclude Include="src\rendering\VisualAttribute.h" />
+    <ClInclude Include="src\rendering\VisualEngine.h" />
     <ClInclude Include="src\utility\Stopwatch.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

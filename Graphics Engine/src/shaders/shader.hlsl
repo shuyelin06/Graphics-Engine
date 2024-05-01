@@ -47,7 +47,7 @@ VS_OUT vs_main(VS_IN input) {
 // Takes clipping coordinates, and returns a color
 float4 ps_main(VS_OUT input) : SV_TARGET {
     // TEMP - Point light source
-    float3 light_pos = float3(0, 0, 10);
+    float3 light_pos = float3(-25, 25, 0);
     float3 pos = input.position_clip.xyz;
     
     // Direction from light to position
@@ -56,7 +56,7 @@ float4 ps_main(VS_OUT input) : SV_TARGET {
     float angle = dot(light_direction, input.normal);
     
     // float4 color = float4(input.normal, 1.0) * angle * 0.5f;
-    float4 color = float4(0, 1.0, 1.0, 1.0) * angle;
+    float4 color = float4(0, 0, 1.0, 1.0) * angle;
     
     return color;
 }

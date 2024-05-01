@@ -25,14 +25,13 @@
 
 // Main Engine Inclusions
 #include "datamodel/other/Player.h"	// Main Player
-#include "rendering/VisualAttribute.h" // Graphics Engine
+#include "rendering/VisualEngine.h" // Graphics Engine
 #include "input/InputEngine.h"		// Input Engine
 
 #include "datamodel/Scene.h"
 
 #include "datamodel/Object.h"
 #include "rendering/Mesh.h"
-#include "rendering/attributes/MeshAttribute.h"
 
 // TEST
 #include "utility/Stopwatch.h"
@@ -90,7 +89,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     ShowWindow(hwnd, nCmdShow); // Set Window Visible
 
     /* Create and Initialize Engines */
-    VisualAttribute::Initialize(hwnd);
+    
+
+    VisualEngine graphics_engine = VisualEngine();
+    graphics_engine.initialize(hwnd);
 
     // Set screen center
     {
@@ -109,24 +111,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     Mesh mesh = Mesh::parsePLYFile("data/Beethoven.ply");
     mesh.setShaders(0, 0);
     mesh.calculateNormals();
-    
-    Mesh mesh2 = Mesh::parsePLYFile("data/cube.ply");
-    mesh2.setShaders(0, 0);
-    mesh2.calculateNormals();
 
     Object cube = Object();
-    MeshAttribute attr1 = MeshAttribute(&cube, &mesh);
-    cube.setVisualAttribute(&attr1);
-    cube.getTransform()->offsetPosition(25, 0, 0);
-
+    cube.setMesh(&mesh);
     Object cube2 = Object();
-    MeshAttribute attr2 = MeshAttribute(&cube2, &mesh);
-    cube2.setVisualAttribute(&attr1);
-    cube2.getTransform()->offsetPosition(0, 0, 25);
-
+    cube2.setMesh(&mesh);
+    cube2.getTransform()->offsetPosition(0, 0, -10);
 
     // Adjust
     player.getTransform()->setPosition(0, 0, -5);
+
+   
 
     // Define Vertex Buffer to Render
 
@@ -175,8 +170,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             // Determine time elapsed for physics updating
             double time_elapsed = physics_watch.Duration();
 
-            cube.getTransform()->offsetRotation(Vector3::PositiveY(), 0.01f);
-            cube2.getTransform()->offsetRotation(Vector3::PositiveY(), 0.01f);
+            cube.getTransform()->offsetRotation(0, 0.01f, 0);
+            cube2.getTransform()->offsetRotation(0, 0.01f, 0);
 
             player.physicsUpdate(time_elapsed);
 
@@ -185,8 +180,20 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         }
         
         // Handle Rendering
-        VisualAttribute::SetCamera(player.getCamera());
-        VisualAttribute::RenderAll();
+        {
+            // Prepare for drawing
+            graphics_engine.prepare();
+
+            // Render all objects
+            for (int i = 0; i < objects.size(); i++) 
+            {
+                Object* o = objects[i];
+                graphics_engine.drawObject(player.getCamera(), o);
+            }
+
+            // Present to screen
+            graphics_engine.present();
+        }        
 
         // Stall until enough time has elapsed for 60 frames / second
         while (framerate_watch.Duration() < 1 / 60.f) {}

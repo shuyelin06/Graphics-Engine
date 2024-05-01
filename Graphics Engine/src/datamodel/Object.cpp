@@ -8,8 +8,6 @@ using namespace Math;
 
 namespace Datamodel
 {
-	ObjectAccessor::ObjectAccessor() {}
-
 	/* --- Constructors --- */
 	// Constructor:
 	// Creates an object with no parent and a
@@ -17,27 +15,15 @@ namespace Datamodel
 	Object::Object()
 	{
 		parent = nullptr;
-		transform = Transform();
-		visual_attr = nullptr;
+		mesh = nullptr;
 	}
 
 	/* --- Operations --- */
 	// GetTransform:
 	// Returns the object's transform property
-	Transform* Object::getTransform(ObjectAccessor)
-	{
-		return &transform;
-	}
-
 	Transform* Object::getTransform()
 	{
 		return &transform;
-	}
-
-	// GetParent:
-	Object* Object::getParent(ObjectAccessor)
-	{
-		return parent;
 	}
 
 	// SetParent:
@@ -47,11 +33,11 @@ namespace Datamodel
 		parent = _parent;
 	}
 
-	// SetVisualAttribute
-	// Sets the object's visual attribute
-	void Object::setVisualAttribute(Graphics::VisualAttribute* _attr)
+	// SetMesh
+	// Sets the object's mesh
+	void Object::setMesh(Mesh* _mesh)
 	{
-		visual_attr = _attr;
+		mesh = _mesh;
 	}
 
 }

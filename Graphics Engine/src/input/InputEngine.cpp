@@ -30,13 +30,16 @@ namespace Input
 		GetCursorPos(&new_pos);
 		
 		// Determine mouse displacement
-		int x_delta = (new_pos.x - center_x) ;
-		int y_delta = (new_pos.y - center_y);
+		int x_delta = new_pos.x - center_x;
+		int y_delta = new_pos.y - center_y;
 
 		// Convert to Angular Displacement
 		// Roll = Rotation Around X (Up/Down)
 		// Pitch = Rotation Around Y (Left/Right
-		camera->offsetViewingAngle(-x_delta / 500.f, -y_delta / 500.f);
+		float roll_delta = y_delta / 100.f;
+		float pitch_delta = x_delta / 100.f;
+
+		camera->offsetRotation(roll_delta, pitch_delta, 0);
 		
 		// Reset mouse to center of application
 		SetCursorPos(center_x, center_y);
@@ -52,22 +55,6 @@ namespace Input
 		{
 			ClipCursor(NULL);
 			PostQuitMessage(0);
-		}
-		break;
-
-		case 0x51: // Q
-		{
-			Camera* camera = player->getCamera();
-
-			camera->setFOV(camera->getFOV() - 0.01f);
-		}
-		break;
-
-		case 0x45: // E
-		{
-			Camera* camera = player->getCamera();
-
-			camera->setFOV(camera->getFOV() + 0.01f);
 		}
 		break;
 

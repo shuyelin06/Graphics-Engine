@@ -10,6 +10,28 @@ using namespace Math;
 
 namespace Graphics
 {
+	// VertexLayoutSize
+	// Static method returning the number of floats a given 
+	// vertex layout has
+	int Mesh::VertexLayoutSize(char layout)
+	{
+		int size = ((layout & XYZ) * 3)	// 1st Bit: XYZ Position
+			+ (((layout & RGB) >> 1) * 3)	// 2nd Bit: RGB Color
+			+ (((layout & NORMAL) >> 2) * 3); // 3rd Bit: XYZ Normal
+		return size;
+	}
+
+	// GenerateVertexLayout
+	// Static method that lets us create a vertex layout, given
+	// the input format 
+	char Mesh::GenerateVertexLayout(bool pos, bool rgb, bool norm)
+	{
+		char layout = (pos & 1)				// 1st Bit: XYZ Position
+					| ((rgb & 1) << 1)		// 2nd Bit: RGB Color
+					| ((norm & 1) << 2);	// 3rd Bit: XYZ Normal
+		return layout;
+	}
+
 	// Mesh Constructor:
 	// Creates an empty mesh with a specified data layout
 	Mesh::Mesh(char layout) 
@@ -20,41 +42,6 @@ namespace Graphics
 		// Reserve space for 3 vertices
 		vertices.reserve(VertexLayoutSize(layout) * 3);
 		indices.reserve(3);
-	}
-
-	// GetVertexShader:
-	// Return vertex shader chosen
-	int Mesh::getVertexShader()
-	{
-		return vertex_shader;
-	}
-
-	// GetPixelShader:
-	// Return pixel shader chosen
-	int Mesh::getPixelShader()
-	{
-		return pixel_shader;
-	}
-
-	// GetLayout:
-	// Return layout
-	char Mesh::getLayout()
-	{
-		return vertex_layout;
-	}
-
-	// GetVertices:
-	// Return vertices array
-	const vector<float>* Mesh::getVertices()
-	{
-		return &vertices;
-	}
-
-	// GetIndices:
-	// Return indices array
-	const vector<int>* Mesh::getIndices()
-	{
-		return &indices;
 	}
 
 	// CalculateNormals:
