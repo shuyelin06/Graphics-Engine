@@ -1,7 +1,8 @@
 #pragma once
 
-#include "datamodel/Camera.h"
-#include "datamodel/other/Player.h"
+#include <Windows.h>
+
+#include "datamodel/Scene.h"
 
 namespace Engine
 {
@@ -14,6 +15,9 @@ namespace Input
 	class InputEngine 
 	{
 	private:
+		// Scene
+		Datamodel::Scene* scene;
+
 		// Screen center x and y
 		int center_x;
 		int center_y;
@@ -21,14 +25,17 @@ namespace Input
 	public:
 		InputEngine();
 		
+		// Set Scene
+		void setScene(Datamodel::Scene* scene);
+
 		// Set screen center, to lock the mouse
 		void setScreenCenter(int center_x, int center_y);
 
 		// Update camera
-		void updateCameraView(Datamodel::Camera*);
+		void updateCameraView();
 
 		// Handle Key Down Input
-		void handleKeyDown(Datamodel::Player*, int key);
+		void handleKeyDown(int key);
 
 		// Handle Key Up Input
 		void handleKeyUp(int key);

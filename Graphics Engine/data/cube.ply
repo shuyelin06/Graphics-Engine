@@ -1,6 +1,5 @@
 ply
 format ascii 1.0
-comment created by platoply
 element vertex 8
 property float32 x
 property float32 y

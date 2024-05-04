@@ -28,9 +28,19 @@ namespace Datamodel
 		z_far = 200.f;
 	}
 
-	float Camera::getFOV()
+	float Camera::getFOV() const
 	{
 		return fov;
+	}
+	
+	float Camera::getZNear() const
+	{
+		return z_near;
+	}
+
+	float Camera::getZFar() const
+	{
+		return z_far;
 	}
 
 	void Camera::setFOV(float new_fov)
@@ -70,7 +80,7 @@ namespace Datamodel
 
 	// Returns the matrix converting local coordinates (in camera space)
 	// to the projection space, so they can be rendered.
-	Matrix4 Camera::localToProjectionMatrix(void)
+	Matrix4 Camera::cameraMatrix(void) const
 	{
 		Matrix4 local_to_project = Matrix4();
 		

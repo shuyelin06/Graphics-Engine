@@ -1,5 +1,10 @@
 #include "Compute.h"
 
+#include <math.h>
+
+#include <stdlib.h>
+#include <time.h>
+
 namespace Engine
 {
 
@@ -12,6 +17,16 @@ namespace Math
 	{
 		const float temp = val < low ? low : val;
 		return temp > high ? high : temp;
+	}
+	
+	
+	// Random:
+	// Generates a random value within the range [low, high]
+	float Compute::random(float low, float high) 
+	{
+		// Generate random float
+		float rand_num = (float) (rand()) / RAND_MAX;
+		return rand_num * (high - low) + low;
 	}
 
 

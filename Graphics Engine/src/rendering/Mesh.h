@@ -1,6 +1,8 @@
 #pragma once
 
 #include <vector>
+#include <map>
+
 #include <string>
 
 namespace Engine
@@ -27,8 +29,9 @@ namespace Graphics
 	// and their index groupings to form a mesh.
 	class Mesh
 	{
-		// Accessible by the VisualEngine class for rendering
-		friend class VisualEngine;
+	private:
+		// Renderable Mesh Cache
+		static map<string, Mesh> meshes;
 
 	private:
 		// Vertex Data Layout 
@@ -43,6 +46,12 @@ namespace Graphics
 		char pixel_shader;
 	
 	public:
+		// Load All Meshes
+		static void LoadMeshes();
+
+		// Get Meshes
+		static Mesh* GetMesh(const string name);
+
 		// Number of floats a vertex_layout has
 		static int VertexLayoutSize(char layout);
 		static char GenerateVertexLayout(bool pos, bool rgb, bool norm);
@@ -51,7 +60,16 @@ namespace Graphics
 		static Mesh parsePLYFile(string ply_file);
 
 		// Mesh Constructor
+		Mesh();
 		Mesh(char layout);
+
+		// Mesh Accessors
+		const vector<float>& getVertexBuffer() const;
+		const vector<int>& getIndexBuffer() const;
+
+		char getVertexLayout() const;
+		char getVertexShader() const;
+		char getPixelShader() const;
 
 		// Adds vertex normals to the mesh based on position,
 		// if they don't already exist

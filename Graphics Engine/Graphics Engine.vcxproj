@@ -163,12 +163,9 @@
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\math\Matrix4.cpp" />
     <ClCompile Include="src\math\Vector4.cpp" />
-    <ClCompile Include="src\datamodel\other\Player.cpp" />
-    <ClCompile Include="src\datamodel\PhysicsObject.cpp" />
-    <ClCompile Include="src\rendering\attributes\MeshAttribute.cpp" />
     <ClCompile Include="src\rendering\Mesh.cpp" />
+    <ClCompile Include="src\rendering\parsers\CubeParser.cpp" />
     <ClCompile Include="src\rendering\parsers\PLYParser.cpp" />
-    <ClCompile Include="src\rendering\VisualAttribute.cpp" />
     <ClCompile Include="src\rendering\VisualEngine.cpp" />
     <ClCompile Include="src\utility\Stopwatch.cpp" />
   </ItemGroup>
@@ -178,20 +175,17 @@
     <ClInclude Include="src\datamodel\Transform.h" />
     <ClInclude Include="src\math\Compute.h" />
     <ClInclude Include="src\datamodel\Object.h" />
-    <ClInclude Include="src\datamodel\other\Player.h" />
     <ClInclude Include="src\input\InputEngine.h" />
     <ClInclude Include="src\math\Matrix3.h" />
     <ClInclude Include="src\datamodel\Camera.h" />
     <ClInclude Include="src\math\Vector3.h" />
-    <ClInclude Include="src\datamodel\PhysicsObject.h" />
     <ClInclude Include="src\math\Matrix4.h" />
     <ClInclude Include="src\math\Vector4.h" />
     <ClInclude Include="src\physics\PhysicsBehavior.h" />
     <ClInclude Include="src\physics\PhysicsEngine.h" />
-    <ClInclude Include="src\rendering\attributes\MeshAttribute.h" />
     <ClInclude Include="src\rendering\Direct3D11.h" />
+    <ClInclude Include="src\rendering\Material.h" />
     <ClInclude Include="src\rendering\Mesh.h" />
-    <ClInclude Include="src\rendering\VisualAttribute.h" />
     <ClInclude Include="src\rendering\VisualEngine.h" />
     <ClInclude Include="src\utility\Stopwatch.h" />
   </ItemGroup>

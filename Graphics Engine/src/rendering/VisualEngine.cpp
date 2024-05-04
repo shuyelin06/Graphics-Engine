@@ -147,149 +147,152 @@ namespace Graphics
     }
 
     /* --- Rendering --- */
-    // Prepare:
-    // Prepares the graphics engine for a draw call, by clearing the
-    // screen and depth buffer (for depth testing)
-    void VisualEngine::prepare()
+    // Render:
+    // Renders an entire scene, from its camera
+    void VisualEngine::render(Scene& scene)
     {
-        // Clear screen to be blac
+        /* Rendering Preparation */
+        // Clear screen to be black
         float color[4] = { 0, 0, 0, 1.0f };
         device_context->ClearRenderTargetView(render_target_view, color);
 
-        // Clear depth stencil
+        // Clear Depth Buffer and Depth Stencil
         device_context->ClearDepthStencilView(depth_stencil, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
-    }
 
-    // Render:
-    // Renders an entire scene. Should be called once per frame.
-    void VisualEngine::render(Scene* scene)
-    {
-        // Prepare the engine for rendering 
-        prepare();
+        /* Rendering */
+        // Get main scene camera
+        Camera& camera = scene.getCamera();
 
-        // Draw all objects
+        // Get lights and objects
+        vector<Light>& lights = scene.getLights();
+        vector<Object>& objects = scene.getObjects();
 
-        scene->cameras;
-    }
-
-    // Runs a draw call on an object
-    void VisualEngine::drawObject(Datamodel::Camera* camera, Datamodel::Object* object)
-    {
-        // Obtain reference to object's mesh
-        Mesh* mesh = object->mesh;
-
-        // Obtain transformation matrices
-        Matrix4 local_to_world = localToWorldMatrix(object);
-        Matrix4 world_to_camera = localToWorldMatrix(camera).inverse();
-        Matrix4 camera_to_project = projectionMatrix(camera);
-
-        // Multiply to obtain transform matrix to pass to shader
-        Matrix4 transform = local_to_world * world_to_camera * camera_to_project;
-        Matrix4 rotate = object->transform.rotationMatrix();
-
-        // Bind transform matrix to the vertex shader
-        bind_vs_data(0, transform.getRawData(), sizeof(float) * 16);
-        bind_vs_data(1, rotate.getRawData(), sizeof(float) * 16);
-
-        // Prepare mesh's vertex and index buffers for rendering
-        ID3D11Buffer* vertex_buffer; // Vertex Buffer
-        ID3D11Buffer* index_buffer;  // Index Buffer 
-
-        // Bytes between each vertex 
-        UINT vertex_stride = Mesh::VertexLayoutSize(mesh->vertex_layout) * sizeof(float);
-        // Offset into the vertex buffer to start reading from 
-        UINT vertex_offset = 0;
-        // Number of vertices
-        UINT vertex_count = mesh->vertices.size();
-        // Number of indices
-        UINT num_indices = mesh->indices.size();
-
+        // Pre-compute world -> camera matrix
+        Matrix4 m_worldToCamera;
+        
         {
+            Matrix4 m_world = localToWorldMatrix(camera).inverse();
+            Matrix4 m_camera = camera.cameraMatrix();
+            m_worldToCamera = m_world * m_camera;
+        } 
+
+        // For every object, draw it from the POV of the camera
+        for (Object& object : objects) 
+        {
+            // Obtain object renderable mesh
+            Mesh* mesh = object.getMesh();
+
+            // Pass if mesh does not exist
+            if (mesh == nullptr)
+                continue;
+
+            // Obtain object mesh and transform
+            Transform& transform = object.getTransform();
+
+            // Multiply to obtain transform matrix to pass to shader
+            Matrix4 transform_matrix = localToWorldMatrix(object) * m_worldToCamera;
+            Matrix4 rotate_matrix = transform.rotationMatrix();
+
+            // Bind transform matrix to the vertex shader
+            bind_vs_data(0, transform_matrix.getRawData(), sizeof(float) * 16);
+            bind_vs_data(1, rotate_matrix.getRawData(), sizeof(float) * 16);
+
+            // Prepare mesh's vertex and index buffers for rendering
+            ID3D11Buffer* vertex_buffer; // Vertex Buffer
+            ID3D11Buffer* index_buffer;  // Index Buffer 
+
             // Get the mesh's vertex and index vectors
-            const vector<float> vertices = mesh->vertices;
-            const vector<int> indices = mesh->indices;
+            const vector<float>& vertices = mesh->getVertexBuffer();
+            const vector<int>& indices = mesh->getIndexBuffer();
 
-            // Check if the vertex / index buffers have already been created
-            // before. If they have, just use the already created resources
-            if (mesh_cache.contains(mesh))
+            // Bytes between each vertex 
+            UINT vertex_stride = Mesh::VertexLayoutSize(mesh->getVertexLayout()) * sizeof(float);
+            // Offset into the vertex buffer to start reading from 
+            UINT vertex_offset = 0;
+            // Number of vertices
+            UINT vertex_count = vertices.size();
+            // Number of indices
+            UINT num_indices = indices.size();
+
             {
-                // Obtain buffers from cache
-                MeshBuffers buffers = mesh_cache[mesh];
+                // Check if the vertex / index buffers have already been created
+                // before. If they have, just use the already created resources
+                if (mesh_cache.contains(mesh))
+                {
+                    // Obtain buffers from cache
+                    MeshBuffers buffers = mesh_cache[mesh];
 
-                // Use these buffers
-                vertex_buffer = buffers.vertex_buffer;
-                index_buffer = buffers.index_buffer;
-            }
-            // If they haven't, create these resources and add them to the cache
-            // so we don't need to recreate them
-            else
-            {
-                // Create new buffer resources
-                vertex_buffer = create_buffer(
-                                    D3D11_BIND_VERTEX_BUFFER, 
-                                    (void *) vertices.data(), 
-                                    sizeof(float) * vertices.size());
-                index_buffer = create_buffer(
-                                    D3D11_BIND_INDEX_BUFFER, 
-                                    (void *) indices.data(), 
-                                    sizeof(int) * mesh->indices.size());
+                    // Use these buffers
+                    vertex_buffer = buffers.vertex_buffer;
+                    index_buffer = buffers.index_buffer;
+                }
+                // If they haven't, create these resources and add them to the cache
+                // so we don't need to recreate them
+                else
+                {
+                    // Create new buffer resources
+                    vertex_buffer = create_buffer(
+                        D3D11_BIND_VERTEX_BUFFER,
+                        (void*)vertices.data(),
+                        sizeof(float) * vertices.size());
+                    index_buffer = create_buffer(
+                        D3D11_BIND_INDEX_BUFFER,
+                        (void*)indices.data(),
+                        sizeof(int) * indices.size());
 
-                // Add buffer resources to cache
-                mesh_cache[mesh] = { vertex_buffer, index_buffer };
+                    // Add buffer resources to cache
+                    mesh_cache[mesh] = { vertex_buffer, index_buffer };
+                }
             }
+
+            // Get shaders to render mesh with
+            std::pair<ID3D11VertexShader*, ID3D11InputLayout*> vertex_shader = vertex_shaders[mesh->getVertexShader()];
+            ID3D11PixelShader* pixel_shader = pixel_shaders[mesh->getPixelShader()];
+
+            // Perform a Draw Call
+            // Set the valid drawing area (our window)
+            RECT winRect;
+            GetClientRect(window, &winRect); // Get the windows rectangle
+
+            D3D11_VIEWPORT viewport = {
+                0.0f, 0.0f,
+                (FLOAT)(winRect.right - winRect.left),
+                (FLOAT)(winRect.bottom - winRect.top),
+                0.0f,
+                1.0f
+            };
+
+            // Set min and max depth for viewpoint (for depth testing)
+            viewport.MinDepth = 0;
+            viewport.MaxDepth = 1;
+
+            // Give rectangle to rasterizer state function
+            device_context->RSSetViewports(1, &viewport);
+
+            // Set output merger to use our render target and depth test
+            device_context->OMSetRenderTargets(1, &render_target_view, depth_stencil);
+
+            /* Configure Input Assembler */
+            // Define input layout
+            device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            device_context->IASetInputLayout(vertex_shader.second);
+
+            // Bind vertex and index buffers
+            device_context->IASetVertexBuffers(0, 1, &vertex_buffer, &vertex_stride, &vertex_offset);
+            device_context->IASetIndexBuffer(index_buffer, DXGI_FORMAT_R32_UINT, 0);
+
+            /* Configure Shaders*/
+            // Bind vertex shader
+            device_context->VSSetShader(vertex_shader.first, NULL, 0);
+
+            // Bind pixel shader
+            device_context->PSSetShader(pixel_shader, NULL, 0);
+
+            // Draw from our vertex buffer
+            device_context->DrawIndexed(num_indices, 0, 0);
         }
 
-        // Get shaders to render mesh with
-        std::pair<ID3D11VertexShader*, ID3D11InputLayout*> vertex_shader = vertex_shaders[mesh->vertex_shader];
-        ID3D11PixelShader* pixel_shader = pixel_shaders[mesh->pixel_shader];
-
-        // Perform a Draw Call
-        // Set the valid drawing area (our window)
-        RECT winRect;
-        GetClientRect(window, &winRect); // Get the windows rectangle
-
-        D3D11_VIEWPORT viewport = {
-            0.0f, 0.0f,
-            (FLOAT) (winRect.right - winRect.left),
-            (FLOAT) (winRect.bottom - winRect.top),
-            0.0f,
-            1.0f
-        };
-
-        // Set min and max depth for viewpoint (for depth testing)
-        viewport.MinDepth = 0;
-        viewport.MaxDepth = 1;
-
-        // Give rectangle to rasterizer state function
-        device_context->RSSetViewports(1, &viewport);
-
-        // Set output merger to use our render target and depth test
-        device_context->OMSetRenderTargets(1, &render_target_view, depth_stencil);
-
-        /* Configure Input Assembler */
-        // Define input layout
-        device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        device_context->IASetInputLayout(vertex_shader.second);
-
-        // Bind vertex and index buffers
-        device_context->IASetVertexBuffers(0, 1, &vertex_buffer, &vertex_stride, &vertex_offset);
-        device_context->IASetIndexBuffer(index_buffer, DXGI_FORMAT_R32_UINT, 0);
-
-        /* Configure Shaders*/
-        // Bind vertex shader
-        device_context->VSSetShader(vertex_shader.first, NULL, 0);
-        
-        // Bind pixel shader
-        device_context->PSSetShader(pixel_shader, NULL, 0);
-
-        // Draw from our vertex buffer
-        device_context->DrawIndexed(num_indices, 0, 0);
-    }
-
-    // Swaps the swapchain buffers, presenting drawn content
-    // to the screen
-    void VisualEngine::present()
-    {
+        /* Presenting */
         swap_chain->Present(1, 0);
     }
 
@@ -516,112 +519,19 @@ namespace Graphics
     // LocalToWorldMatrix:
     // Given an object, returns the transformation matrix that will
     // translate points in its local space to the world space
-    Matrix4 VisualEngine::localToWorldMatrix(const Object* object)
+    Matrix4 VisualEngine::localToWorldMatrix(Object& object)
     {
         // Generate the local matrix
-        Matrix4 m_local = object->transform.transformMatrix();
+        Matrix4 m_local = object.getTransform().transformMatrix();
 
         // Obtain object's parent transformation matrix
-        const Object* parent = object->parent;
-        Matrix4 m_parent = parent == nullptr ? Matrix4::identity() : localToWorldMatrix(parent);
+        Object* parent = object.getParent();
+        Matrix4 m_parent = parent == nullptr ? Matrix4::identity() : localToWorldMatrix(*parent);
 
         // Build final matrix
         // Left matrix gets precedence, as we are performing row-major multiplication
         return m_local * m_parent;
     }
-
-    // ProjectionMatrix: 
-    // Given a camera wtih FOV, Z_Near, and Z_Far, generates its
-    // projection matrix
-    #define ASPECT_RATIO (1920.f / 1080.f)
-    Matrix4 VisualEngine::projectionMatrix(const Camera* camera)
-    {
-        // Get camera's local variables
-        float fov = camera->fov;
-        float z_near = camera->z_near;
-        float z_far = camera->z_far;
-
-        // Generate matrix
-        Matrix4 local_to_project = Matrix4();
-
-        float fov_factor = cosf(fov / 2.f) / sinf(fov / 2.f);
-
-        local_to_project[0][0] = fov_factor / ASPECT_RATIO;
-        local_to_project[1][1] = fov_factor;
-        local_to_project[2][2] = z_far / (z_far - z_near);
-        local_to_project[2][3] = 1;
-        local_to_project[3][2] = (z_near * z_far) / (z_near - z_far);
-
-        return local_to_project;
-
-
-    }
-
-    // ScaleMatrix:
-    // Given an x,y,z scale, returns the corresponding scale 
-    // transformation matrix
-    Matrix4 VisualEngine::scaleMatrix(const Vector3 scale)
-    {
-        return Matrix4(scale.x, 0, 0, 0,
-            0, scale.y, 0, 0,
-            0, 0, scale.z, 0,
-            0, 0, 0, 1);
-    }
-
-    // RotationMatrix:
-    // Given a roll, pitch, yaw, returns the corresponding rotation
-    // transformation matrix
-    Matrix4 VisualEngine::rotationMatrix(const Vector3 rotation)
-    {
-        // Cache values to avoid recalculating sine and cosine a lot
-        float cos_cache = 0;
-        float sin_cache = 0;
-
-        // Rotation about the x-axis (roll)
-        cos_cache = cosf(rotation.x);
-        sin_cache = sin(rotation.x);
-        Matrix4 roll = Matrix4(
-            1, 0, 0, 0,
-            0, cos_cache, sin_cache, 0,
-            0, -sin_cache, cos_cache, 0,
-            0, 0, 0, 1
-        );
-
-        // Rotation about the y-axis (pitch)
-        cos_cache = cosf(rotation.y);
-        sin_cache = sin(rotation.y);
-        Matrix4 pitch = Matrix4(
-            cos_cache, 0, -sin_cache, 0,
-            0, 1, 0, 0,
-            sin_cache, 0, cos_cache, 0,
-            0, 0, 0, 1
-        );
-
-        // Rotation about the z-axis (yaw)
-        cos_cache = cosf(rotation.z);
-        sin_cache = sin(rotation.z);
-        Matrix4 yaw = Matrix4(
-            cos_cache, sin_cache, 0, 0,
-            -sin_cache, cos_cache, 0, 0,
-            0, 0, 1, 0,
-            0, 0, 0, 1
-        );
-
-        return roll * pitch * yaw;
-    }
-
-    // TranslationMatrix:
-    // Given a x,y,z position locally, returns the corresponding
-    // translation matrix
-    Matrix4 VisualEngine::translationMatrix(const Vector3 translation)
-    {
-        return Matrix4(
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
-            translation.x, translation.y, translation.z, 1);
-    }
-
 
 }
 }

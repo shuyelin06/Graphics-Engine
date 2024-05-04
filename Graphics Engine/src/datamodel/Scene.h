@@ -18,11 +18,8 @@ namespace Datamodel
 	// Various engines can interact with this scene.
 	class Scene
 	{
-	// Accessible by the Visual Engine for Rendering
-	friend class Engine::Graphics::VisualEngine;
-
 	private:
-		vector<Camera> cameras;
+		Camera camera;
 		vector<Light> lights;
 		vector<Object> objects;
 
@@ -30,12 +27,14 @@ namespace Datamodel
 		// Constructors
 		Scene();
 
-		// Scene Creation
-		Camera* createCamera();	
-		Object* createObject(); 
-		Light* createLight();
+		// Accessors
+		Camera& getCamera();
+		vector<Object>& getObjects();
+		vector<Light>& getLights();
 
-		
+		// Create Objects in the Scene
+		Object& createObject(); 
+		Light& createLight();
 	};
 } 
 }

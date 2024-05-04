@@ -23,15 +23,16 @@
 #pragma comment( lib, "dxgi.lib" )        // directx graphics interface
 #pragma comment( lib, "d3dcompiler.lib" ) // shader compiler
 
+#include <stdlib.h>
+#include <time.h>
+
 // Main Engine Inclusions
-#include "datamodel/other/Player.h"	// Main Player
 #include "rendering/VisualEngine.h" // Graphics Engine
 #include "input/InputEngine.h"		// Input Engine
 
 #include "datamodel/Scene.h"
 
-#include "datamodel/Object.h"
-#include "rendering/Mesh.h"
+#include "math/Compute.h"
 
 // TEST
 #include "utility/Stopwatch.h"
@@ -47,7 +48,6 @@ using namespace Engine::Input;
 using namespace Engine::Graphics;
 
 static InputEngine input_engine = InputEngine();
-static Player player = Player();
 
 // Main Function
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
@@ -89,8 +89,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     ShowWindow(hwnd, nCmdShow); // Set Window Visible
 
     /* Create and Initialize Engines */
-    
-
     VisualEngine graphics_engine = VisualEngine();
     graphics_engine.initialize(hwnd);
 
@@ -104,44 +102,44 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         input_engine.setScreenCenter(center_x, center_y);
     }
 
+    /* Seed Random Number Generator */
+    srand(time(NULL));
+
+    /* Load All Meshes */
+    Mesh::LoadMeshes();
+
     /* Initialize Scene */
     Scene scene = Scene();
+    input_engine.setScene(&scene);
 
-    // TESTING
-    Mesh mesh = Mesh::parsePLYFile("data/Beethoven.ply");
-    mesh.setShaders(0, 0);
-    mesh.calculateNormals();
+    // Create Objects
+    const int NUM_OBJECTS = 3;
 
-    Object cube = Object();
-    cube.setMesh(&mesh);
-    Object cube2 = Object();
-    cube2.setMesh(&mesh);
-    cube2.getTransform()->offsetPosition(0, 0, -10);
+    for (int i = 0; i < NUM_OBJECTS; i++)
+    {
+        Object& object = scene.createObject();
+        Transform& transform = object.getTransform();
 
-    // Adjust
-    player.getTransform()->setPosition(0, 0, -5);
+        object.setMesh(Mesh::GetMesh("Beethoven"));
+        transform.setPosition(Compute::random(-20, 20), Compute::random(-20, 20), Compute::random(-20, 20));
+    }
 
-   
+    // Create Lights
+    const int NUM_LIGHTS = 5;
+    
+    for (int i = 0; i < NUM_LIGHTS; i++)
+    {
+        Light& light = scene.createLight();
+        Transform& transform = light.getTransform();
 
-    // Define Vertex Buffer to Render
+        light.setMesh(Mesh::GetMesh("Cube"));
+        transform.setPosition(Compute::random(-20, 20), Compute::random(-20, 20), Compute::random(-20, 20));
+    }
 
-    /*
-    * Begin a message loop until the user closes the windowand exits the application
-    *
-    * Windows communicates with the program by passing it a series of messages (seen in this
-    * loop). Every time the DispatchMessage() function is called, the WindowProc function for the window is
-    * indirectly invoked as well!
-    */
+    // Begin window messaging loop
     MSG msg = { };
-
     bool close = false;
 
-    // Create vector of renderable objects
-    std::vector<Object*> objects;
-    objects.push_back(&cube);
-    objects.push_back(&cube2);
-
-    // Create timer watches
     Utility::Stopwatch framerate_watch = Utility::Stopwatch();
     Utility::Stopwatch physics_watch = Utility::Stopwatch();
 
@@ -162,7 +160,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             }
 
             // Handle mouse x camera movement 
-            input_engine.updateCameraView(player.getCamera());
+            input_engine.updateCameraView();
         }
         
         // Handle Physics
@@ -170,30 +168,52 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             // Determine time elapsed for physics updating
             double time_elapsed = physics_watch.Duration();
 
-            cube.getTransform()->offsetRotation(0, 0.01f, 0);
-            cube2.getTransform()->offsetRotation(0, 0.01f, 0);
+            vector<Object>& objects = scene.getObjects();
 
-            player.physicsUpdate(time_elapsed);
+            for (int i = 0; i < objects.size(); i++)
+            {
+                Object* o = &objects[i];
+
+                Transform& transform = o->getTransform();
+                Vector3& velocity = o->getVelocity();
+                Vector3& acceleration = o->getAcceleration();
+
+                transform.offsetRotation(0, 0.01f, 0);
+
+                // Update Velocity
+                velocity += acceleration * time_elapsed;
+                
+                // Update Position
+                transform.offsetPosition(velocity.x * time_elapsed, velocity.y * time_elapsed, velocity.z * time_elapsed);
+
+                // Dampen Velocity
+                Vector3 newVelocity = velocity * 0.85f;
+                velocity.x = newVelocity.x;
+                velocity.y = newVelocity.y;
+                velocity.z = newVelocity.z;
+            }
+
+            Vector3& velocity = scene.getCamera().getVelocity();
+            Vector3& acceleration = scene.getCamera().getAcceleration();
+
+            // Update Velocity
+            velocity += acceleration * time_elapsed;
+
+            // Update Position
+            scene.getCamera().getTransform().offsetPosition(velocity.x * time_elapsed, velocity.y * time_elapsed, velocity.z * time_elapsed);
+
+            // Dampen Velocity
+            Vector3 newVelocity = velocity * 0.85f;
+            velocity.x = newVelocity.x;
+            velocity.y = newVelocity.y;
+            velocity.z = newVelocity.z;
 
             // Reset watch
             physics_watch.Reset();
         }
         
         // Handle Rendering
-        {
-            // Prepare for drawing
-            graphics_engine.prepare();
-
-            // Render all objects
-            for (int i = 0; i < objects.size(); i++) 
-            {
-                Object* o = objects[i];
-                graphics_engine.drawObject(player.getCamera(), o);
-            }
-
-            // Present to screen
-            graphics_engine.present();
-        }        
+        graphics_engine.render(scene);    
 
         // Stall until enough time has elapsed for 60 frames / second
         while (framerate_watch.Duration() < 1 / 60.f) {}
@@ -219,7 +239,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_KEYDOWN:
     {
         int keycode = wParam;
-        input_engine.handleKeyDown(&player, keycode);
+        input_engine.handleKeyDown(keycode);
     }
     break;
 

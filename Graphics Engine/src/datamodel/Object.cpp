@@ -18,12 +18,40 @@ namespace Datamodel
 		mesh = nullptr;
 	}
 
-	/* --- Operations --- */
+	/* --- Accessors --- */
+	// GetParent:
+	// Returns the object's parent
+	Object* Object::getParent() const
+	{
+		return parent;
+	}
+
 	// GetTransform:
 	// Returns the object's transform property
-	Transform* Object::getTransform()
+	Transform& Object::getTransform()
 	{
-		return &transform;
+		return transform;
+	}
+	
+	// GetVelocity:
+	// Returns the object's velocity
+	Vector3& Object::getVelocity()
+	{
+		return velocity;
+	}
+
+	// GetAcceleration:
+	// Returns the object's acceleration
+	Vector3& Object::getAcceleration()
+	{
+		return acceleration;
+	}
+
+	// GetMesh:
+	// Returns the object's renderable mesh
+	Mesh* Object::getMesh() const
+	{
+		return mesh;
 	}
 
 	// SetParent:

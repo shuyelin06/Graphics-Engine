@@ -15,11 +15,7 @@ namespace Datamodel
 
 	class Camera: public Object
 	{
-	friend class Engine::Graphics::VisualEngine;
-
 	private:
-		Object* parent;
-
 		float fov;
 
 		float z_near;
@@ -29,7 +25,10 @@ namespace Datamodel
 		Camera();
 		Camera(float fov);
 
-		float getFOV();
+		float getFOV() const;
+		float getZNear() const;
+		float getZFar() const;
+
 		void setFOV(float new_fov);
 
 		// Overridden rotation method that will clamp the angle
@@ -39,7 +38,8 @@ namespace Datamodel
 		Vector3 forward();	// Camera forward vector
 		Vector3 right();	// Camera right vector
 
-		Matrix4 localToProjectionMatrix(void);
+		// Local -> Camera Matrix
+		Matrix4 cameraMatrix(void) const;
 	};
 }
 }

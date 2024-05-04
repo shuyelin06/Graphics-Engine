@@ -10,6 +10,38 @@ using namespace Math;
 
 namespace Graphics
 {
+	// Define Mesh Cache
+	map<string, Mesh> Mesh::meshes = map<string, Mesh>();
+
+	// LoadMeshes:
+	// Load all meshes into the mesh cache
+	void Mesh::LoadMeshes()
+	{
+		Mesh* mesh;
+
+		meshes["Cube"] = parsePLYFile("data/cube.ply");
+		mesh = GetMesh("Cube");
+		mesh->setShaders(0, 0);
+		mesh->calculateNormals();
+
+		meshes["Beethoven"] = parsePLYFile("data/Beethoven.ply");
+		mesh = GetMesh("Beethoven");
+		mesh->setShaders(0, 0);
+		mesh->calculateNormals();
+	}
+
+	// GetMesh:
+	// Returns a mesh from the mesh cache
+	Mesh* Mesh::GetMesh(const string name)
+	{
+		// Assert that mesh exists
+		if (!meshes.contains(name))
+			assert(false);
+		// If it does, return the mesh
+		else
+			return &(meshes.at(name));
+	}
+
 	// VertexLayoutSize
 	// Static method returning the number of floats a given 
 	// vertex layout has
@@ -42,6 +74,41 @@ namespace Graphics
 		// Reserve space for 3 vertices
 		vertices.reserve(VertexLayoutSize(layout) * 3);
 		indices.reserve(3);
+	}
+
+	// Mesh Constructor:
+	// Creates an empty mesh
+	Mesh::Mesh()
+	{
+
+	}
+
+	// Mesh Accessors:
+	// Access the fields of the Mesh class, but does not allow
+	// for modification of the mesh
+	const vector<float>& Mesh::getVertexBuffer() const
+	{
+		return vertices;
+	}
+
+	const vector<int>& Mesh::getIndexBuffer() const
+	{
+		return indices;
+	}
+
+	char Mesh::getVertexLayout() const
+	{
+		return vertex_layout;
+	}
+
+	char Mesh::getVertexShader() const
+	{
+		return vertex_shader;
+	}
+
+	char Mesh::getPixelShader() const
+	{
+		return pixel_shader;
 	}
 
 	// CalculateNormals:

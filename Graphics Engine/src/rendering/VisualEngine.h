@@ -70,22 +70,17 @@ namespace Graphics
 		VisualEngine();
 		void initialize(HWND _window); // Initialize Direct 3D
 		
-		// Render an entire scene (call once per frame)
-		void render(Scene* scene);
-
-		// Rendering Methods
-		void prepare(); // Prepares for a draw call
+		// Renders an entire scene
+		void render(Scene& scene);
 
 		// Bind data to the vertex and pixel shaders
 		void bind_vs_data(unsigned int index, void* data, int byte_size);
 		void bind_ps_data(unsigned int index, void* data, int byte_size);
 
-		// Draws an object from the current player's point of view
-		void drawObject(Camera* camera, Object* object);
-
-		void present(); // Present Drawn Content to Screen
-
 	private:
+		// Draws an object from the current player's point of view
+		void drawObject(Object& object, Scene& scene);
+
 		// Create Buffers
 		ID3D11Buffer* create_buffer(D3D11_BIND_FLAG, void *data, int byte_size);
 
@@ -97,12 +92,7 @@ namespace Graphics
 		void create_pixel_shader(const wchar_t* file, const char* entry);
 		
 		// Transformation Matrices - Defined in Transform.cpp
-		static Matrix4 localToWorldMatrix(const Object* object);
-		static Matrix4 projectionMatrix(const Camera* camera);
-
-		static Matrix4 scaleMatrix(const Vector3 scale);
-		static Matrix4 rotationMatrix(const Vector3 rotation);
-		static Matrix4 translationMatrix(const Vector3 translation);
+		static Matrix4 localToWorldMatrix(Object& object);
 	};
 }
 }

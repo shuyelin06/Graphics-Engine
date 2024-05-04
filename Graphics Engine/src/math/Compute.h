@@ -17,7 +17,8 @@ namespace Math
 		// Forces value to be within the range [low, high]
 		static float clamp(float value, float low, float high);
 
-		// Generates transformation matrices 
+		// Generates a random value within a range [low, high]
+		static float random(float low, float high);
 	};
 }
 }

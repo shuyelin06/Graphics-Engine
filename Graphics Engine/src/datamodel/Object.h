@@ -5,7 +5,6 @@
 #include "math/Vector3.h"
 #include "math/Matrix4.h"
 
-#include "rendering/VisualAttribute.h"
 #include "rendering/Mesh.h"
 
 namespace Engine
@@ -20,37 +19,34 @@ namespace Datamodel
 	class Object
 	{
 	protected:
-		// Object Transformation Fields
-		Object* parent;			// Reference to parent
-
 		// Transform of the object
 		Transform transform;
 		
-		// Object Renderable Fields
-		Mesh* mesh;				// Reference to renderable mesh
-
-		// (TBD) - Renderable Attribute
-		VisualAttribute* visual_attr;
-
-		// Object Physics Fields
+		// Physics Attributes
 		Vector3 velocity;
 		Vector3 acceleration;
 
+		// Parent
+		Object* parent;
+
+		// Renderable Mesh
+		Mesh* mesh;
+
 	public:
+		// Constructor
 		Object();
 
-		// Get Transform
-		Transform* getTransform();
+		// Accessors
+		Object* getParent() const;
+		Mesh* getMesh() const;
 
-		// Set Parent
-		void setParent(Object* parent); 
+		Transform& getTransform();
+		Vector3& getVelocity();
+		Vector3& getAcceleration();
 
-		// Set Renderable Mesh
+		// Setters
+		void setParent(Object* parent);
 		void setMesh(Mesh* mesh);
-
-	// Accessible by the VisualEngine Class for Rendering
-	friend void Engine::Graphics::VisualAttribute::prepare();
-	friend class Engine::Graphics::VisualEngine;
 	};
 }
 }

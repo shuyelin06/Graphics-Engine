@@ -1,18 +1,22 @@
 #include "InputEngine.h"
 
-#include <Windows.h>
-
 namespace Engine
 {
-using namespace Datamodel;
-
 namespace Input
 {
 	// Constructor
 	InputEngine::InputEngine() 
 	{
+		scene = nullptr;
+
 		// Set screen center at 0
 		center_x = center_y = 0;
+	}
+
+	// Set Scene
+	void InputEngine::setScene(Datamodel::Scene* _scene) 
+	{
+		scene = _scene;
 	}
 
 	// Set screen center
@@ -23,8 +27,11 @@ namespace Input
 	}
 
 	// Handle camera movement with the mouse
-	void InputEngine::updateCameraView(Camera* camera)
+	void InputEngine::updateCameraView()
 	{
+		if (scene == nullptr)
+			return;
+
 		// Get new mouse position
 		POINT new_pos;
 		GetCursorPos(&new_pos);
@@ -39,14 +46,15 @@ namespace Input
 		float roll_delta = y_delta / 100.f;
 		float pitch_delta = x_delta / 100.f;
 
-		camera->offsetRotation(roll_delta, pitch_delta, 0);
+		Datamodel::Camera& camera = scene->getCamera();
+		camera.getTransform().offsetRotation(roll_delta, pitch_delta, 0);
 		
 		// Reset mouse to center of application
 		SetCursorPos(center_x, center_y);
 	}
 
 	// Handle Key Down Events
-	void InputEngine::handleKeyDown(Player* player, int key)
+	void InputEngine::handleKeyDown(int key)
 	{
 		switch (key)
 		{
@@ -60,37 +68,49 @@ namespace Input
 
 		case 0x57: // W
 		{
-			Camera* camera = player->getCamera();
-			Vector3 forward_view = camera->forward();
+			if (scene == nullptr)
+				return;
 
-			player->offsetVelocity(forward_view * 10.f);
+			Datamodel::Camera& camera = scene->getCamera();
+			
+			Vector3& velocity = camera.getVelocity();
+			velocity += camera.forward() * 10.f;
 		}	
 		break;
 
 		case 0x53: // S
 		{
-			Camera* camera = player->getCamera();
-			Vector3 backward_view = -camera->forward();
+			if (scene == nullptr)
+				return;
 
-			player->offsetVelocity(backward_view * 10.f);
+			Datamodel::Camera& camera = scene->getCamera();
+
+			Vector3& velocity = camera.getVelocity();
+			velocity += -camera.forward() * 10.f;
 		}
 		break;
 
 		case 0x41: // A
 		{
-			Camera* camera = player->getCamera();
-			Vector3 left_view = -camera->right();
+			if (scene == nullptr)
+				return;
 
-			player->offsetVelocity(left_view * 10.f);
+			Datamodel::Camera& camera = scene->getCamera();
+
+			Vector3& velocity = camera.getVelocity();
+			velocity += -camera.right() * 10.f;
 		}
 		break;
 
 		case 0x44: // D
 		{
-			Camera* camera = player->getCamera();
-			Vector3 right_view = camera->right();
+			if (scene == nullptr)
+				return;
 
-			player->offsetVelocity(right_view * 10.f);
+			Datamodel::Camera& camera = scene->getCamera();
+
+			Vector3& velocity = camera.getVelocity();
+			velocity += camera.right() * 10.f;
 		}
 		break;
 

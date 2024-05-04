@@ -1,23 +1,19 @@
 #pragma once
 
-#include "math/Vector3.h"
+#include "Object.h"
 
 namespace Engine
 {
-using namespace Math;
 namespace Datamodel
 {
 	// Light Class:
 	// Contains data and methods regarding a light in the scene,
 	// which can illuminate the scene
-	class Light
+	// All lights are objects, but with additional properties
+	class Light : public Object
 	{
-	private:
-		Vector3 position;
-
 	public:
 		Light();
-		Light(float x, float y, float z);
 	};
 }
 }
