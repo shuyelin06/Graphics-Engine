@@ -10,12 +10,31 @@ namespace Datamodel
 {
 	/* --- Constructors --- */
 	// Constructor:
-	// Creates an object with no parent and a
+	// Creates an object with no parent and a 
 	// local position of (0,0,0)
 	Object::Object()
 	{
+		// Objects start with no parent and no children
 		parent = nullptr;
+		children = vector<Object*>(0);
+		
+		// Default transform
+		transform = Transform();
+
+		// Objects are by default not renderable
 		mesh = nullptr;
+
+		// No velocity or acceleration
+		velocity = Vector3();
+		acceleration = Vector3();
+	}
+
+	// Destructor:
+	// Frees all children of the object
+	Object::~Object()
+	{
+		for (Object* child : children)
+			delete child;
 	}
 
 	/* --- Accessors --- */
@@ -24,6 +43,13 @@ namespace Datamodel
 	Object* Object::getParent() const
 	{
 		return parent;
+	}
+
+	// GetChildren:
+	// Returns the object's children
+	vector<Object*>& Object::getChildren()
+	{
+		return children;
 	}
 
 	// GetTransform:

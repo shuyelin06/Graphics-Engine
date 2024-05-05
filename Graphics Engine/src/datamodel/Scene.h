@@ -20,17 +20,24 @@ namespace Datamodel
 	{
 	private:
 		Camera camera;
-		vector<Light> lights;
-		vector<Object> objects;
+
+		vector<Light*> lights;
+
+		// SceneGraph of objects
+		vector<Object*> objects;
 
 	public:
 		// Constructors
 		Scene();
 
+		// Destructor
+		~Scene();
+
 		// Accessors
 		Camera& getCamera();
-		vector<Object>& getObjects();
-		vector<Light>& getLights();
+		
+		vector<Object*>& getObjects();
+		vector<Light*>& getLights();
 
 		// Create Objects in the Scene
 		Object& createObject(); 

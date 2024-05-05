@@ -172,11 +172,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             // Determine time elapsed for physics updating
             double time_elapsed = physics_watch.Duration();
 
-            vector<Object>& objects = scene.getObjects();
+            vector<Object*>& objects = scene.getObjects();
 
             for (int i = 0; i < objects.size(); i++)
             {
-                Object* o = &objects[i];
+                Object* o = objects[i];
 
                 Transform& transform = o->getTransform();
                 Vector3& velocity = o->getVelocity();

@@ -9,8 +9,20 @@ namespace Datamodel
 	Scene::Scene()
 	{
 		camera = Camera();
+
 		objects.clear();
 		lights.clear();
+	}
+
+	// Destructor:
+	// Frees all memory allocated within the scene
+	Scene::~Scene()
+	{
+		for (Object* object : objects)
+			delete object;
+
+		for (Light* light : lights)
+			delete light;
 	}
 
 	// GetCamera:
@@ -22,14 +34,14 @@ namespace Datamodel
 
 	// GetObjects:
 	// Returns the scene's vector of objects
-	vector<Object>& Scene::getObjects()
+	vector<Object*>& Scene::getObjects()
 	{
 		return objects;
 	}
 
 	// GetLights:
 	// Returns the scene's vector of lights
-	vector<Light>& Scene::getLights()
+	vector<Light*>& Scene::getLights()
 	{
 		return lights;
 	}
@@ -40,8 +52,8 @@ namespace Datamodel
 	Object& Scene::createObject()
 	{
 		int index = objects.size();
-		objects.push_back(Object());
-		return objects[index];
+		objects.push_back(new Object());
+		return *(objects[index]);
 	}
 
 	// CreateLight:
@@ -49,9 +61,12 @@ namespace Datamodel
 	// and returns a pointer to it
 	Light& Scene::createLight()
 	{
-		int index = lights.size();
-		lights.push_back(Light());
-		return lights[index];
+		Light* new_light = new Light();
+
+		objects.push_back(new_light);
+		lights.push_back(new_light);
+
+		return *new_light;
 	}
 }
 }

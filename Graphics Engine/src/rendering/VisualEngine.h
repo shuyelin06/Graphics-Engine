@@ -78,8 +78,11 @@ namespace Graphics
 		void bind_ps_data(unsigned int index, void* data, int byte_size);
 
 	private:
-		// Draws an object from the current player's point of view
-		void drawObject(Object& object, Scene& scene);
+		// Traverse a SceneGraph for rendering
+		void traverseSceneGraph(Scene& scene, Object* object, Matrix4& m_parent);
+
+		// Renders a mesh in a scene, give a Local -> World transformation
+		void renderMesh(Mesh& mesh, Matrix4& m_transform, Scene& scene);
 
 		// Create Buffers
 		ID3D11Buffer* create_buffer(D3D11_BIND_FLAG, void *data, int byte_size);
