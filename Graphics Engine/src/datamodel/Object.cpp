@@ -94,6 +94,15 @@ namespace Datamodel
 		mesh = _mesh;
 	}
 
+	// CreateChild:
+	// Creates a child of the object
+	Object& Object::createChild()
+	{
+		Object* child = new Object();
+		children.push_back(child);
+		return *child;
+	}
+
 	// LocalToWorldMatrix:
 	// Returns an object's LocalToWorld transformation matrix
 	Matrix4 Object::localToWorldMatrix() const

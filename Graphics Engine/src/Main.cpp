@@ -122,11 +122,15 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
         object.setMesh(Mesh::GetMesh("Beethoven"));
         transform.setPosition(Compute::random(-20, 20), Compute::random(-20, 20), Compute::random(-20, 20));
+
+        Object& child = object.createChild();
+        child.setMesh(Mesh::GetMesh("Ketchup"));
+        child.getTransform().setPosition(Compute::random(-5, 5), Compute::random(-5, 5), Compute::random(-5, 5));
     }
 
-    Object& object = scene.createObject();
-    object.setMesh(Mesh::GetMesh("Cube"));
-    object.getTransform().setScale(30, 2, 30);
+    Object& parent = scene.createObject();
+    parent.setMesh(Mesh::GetMesh("Cube"));
+    parent.getTransform().setScale(30, 2, 30);
 
     // Create Lights
     const int NUM_LIGHTS = 5;

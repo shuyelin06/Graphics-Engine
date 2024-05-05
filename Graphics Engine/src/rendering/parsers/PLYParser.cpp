@@ -25,7 +25,7 @@ namespace Graphics
 	// ParsePLYFile
 	// A simple PLY file parser. Only allows the ASCII 1.0 
 	// file format.
-	Mesh Mesh::parsePLYFile(string ply_file)
+	void Mesh::parsePLYFile(string ply_file, string mesh_name)
 	{
 		// Create input stream from PLY file
 		ifstream file_stream(ply_file);
@@ -70,7 +70,7 @@ namespace Graphics
 					// Add to properties string
 					properties.append(match.str(1));
 				}
-				
+
 				// Parse the properties string to see the intended layout. Expected order:
 				// Position, RGB Color, Normals
 				if (properties.substr(0, 3) == "xyz")
@@ -110,13 +110,15 @@ namespace Graphics
 		}
 
 		// Mesh object
-		Mesh mesh = Mesh(layout);
+		meshes[mesh_name] = Mesh(layout);
+		Mesh& mesh = meshes[mesh_name];
 
 		// Read vertices
+		int size = Mesh::VertexLayoutSize(layout);
+		float* vertex = new float[size];
+
 		{
-			int size = Mesh::VertexLayoutSize(layout);
-			float* vertex = new float[size];
-			regex re_float("-?\\d+(\\.?\\d+)?");
+			regex re_float("-?\\d+(\\.?\\d+)?(e-?\\d+)?");
 
 			for (int i = 0; i < num_vertices; i++)
 			{
@@ -129,11 +131,12 @@ namespace Graphics
 				// Move through all float matches
 				sregex_iterator iter = std::sregex_iterator(line.begin(), line.end(), re_float);
 
-				while (iter != std::sregex_iterator())
+				while (iter != std::sregex_iterator() && vertex_i < size)
 				{
 					std::smatch match = *iter;
 					// Add float to corresponding vertex property position
-					vertex[vertex_i++] = stof(match.str(0));
+					vertex[vertex_i] = stof(match.str(0));
+					vertex_i++;
 
 					++iter;
 				}
@@ -144,29 +147,62 @@ namespace Graphics
 
 				mesh.addVertex(vertex);
 			}
-
-			delete[] vertex;
 		}
+
+		delete[] vertex;
 
 		// Read faces
 		{
 			regex face_format("3 (\\d+) (\\d+) (\\d+)");
+			regex re_index("\\d+");
 
 			for (int i = 0; i < num_faces; i++)
 			{
 				getline(file_stream, line);
 
-				if (regex_search(line, match, face_format))
+				// Match vertex format and populate vertices_list
+				int index_i = 0;
+
+				int* indices = nullptr;
+				int size = -1;
+
+				// Move through all float matches
+				sregex_iterator iter = std::sregex_iterator(line.begin(), line.end(), re_index);
+
+				while (iter != std::sregex_iterator())
 				{
-					// Add indices to index list
-					mesh.addIndex(stoi(match.str(1)));
-					mesh.addIndex(stoi(match.str(2)));
-					mesh.addIndex(stoi(match.str(3)));
+					std::smatch match = *iter;
+
+					if (index_i == 0)
+					{
+						size = stoi(match.str(0));
+
+						assert(size >= 3);
+						indices = new int[size];
+					}
+					else 
+					{
+						indices[index_i - 1] = stoi(match.str(0));
+					}
+
+					index_i++;
+					++iter;
+				}
+
+				assert(size != -1);
+
+				// Form triangles with these indices
+				// If we have indices 0, 1, 2, 3,
+				// then we form triangles 0, 1, 2 & 0, 2, 3
+				for (int i = 2; i < size; i++)
+				{
+					mesh.addIndex(indices[0]);
+					mesh.addIndex(indices[i - 1]);
+					mesh.addIndex(indices[i]);
 				}
 			}
 		}
 
-		return mesh;
 	}
 
 }

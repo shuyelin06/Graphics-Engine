@@ -21,8 +21,18 @@ namespace Graphics
 
 		Mesh* mesh;
 
-		meshes["Beethoven"] = parsePLYFile("data/Beethoven.ply");
+		parsePLYFile("data/Beethoven.ply", "Beethoven");
 		mesh = GetMesh("Beethoven");
+		mesh->setShaders(0, 0);
+		mesh->calculateNormals();
+
+		parsePLYFile("data/ketchup.ply", "Ketchup");
+		mesh = GetMesh("Ketchup");
+		mesh->setShaders(0, 0);
+		mesh->calculateNormals();
+
+		parsePLYFile("data/cube.ply", "Cube2");
+		mesh = GetMesh("Cube2");
 		mesh->setShaders(0, 0);
 		mesh->calculateNormals();
 	}

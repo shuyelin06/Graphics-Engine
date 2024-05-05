@@ -58,9 +58,8 @@ namespace Graphics
 
 		// Mesh generation
 		static void LoadCubeMesh();
-		static Mesh parsePLYFile(string ply_file);
+		static void parsePLYFile(string ply_file, string mesh_name);
 		
-
 		// Mesh Constructor
 		Mesh();
 		Mesh(char layout);
