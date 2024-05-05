@@ -3,6 +3,8 @@
 #include <assert.h>
 #include <d3d11_1.h>
 
+#include "ShaderData.h"
+
 #include "datamodel/Scene.h"
 #include "datamodel/Object.h"
 #include "datamodel/Camera.h"
@@ -140,10 +142,10 @@ namespace Graphics
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
             { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, sizeof(float) * 3, D3D11_INPUT_PER_VERTEX_DATA, 0} // Option 12 appends
         };
-        create_vertex_shader(L"src/shaders/shader.hlsl", "vs_main", input_desc, ARRAYSIZE(input_desc));
+        create_vertex_shader(L"src/rendering/shaders/shader.hlsl", "vs_main", input_desc, ARRAYSIZE(input_desc));
 
         // Create Pixel Shader
-        create_pixel_shader(L"src/shaders/shader.hlsl", "ps_main");
+        create_pixel_shader(L"src/rendering/shaders/shader.hlsl", "ps_main");
     }
 
     /* --- Rendering --- */
@@ -153,7 +155,7 @@ namespace Graphics
     {
         /* Rendering Preparation */
         // Clear screen to be black
-        float color[4] = { 0, 0, 0, 1.0f };
+        float color[4] = { 0.2f, 0, 0, 1.0f };
         device_context->ClearRenderTargetView(render_target_view, color);
 
         // Clear Depth Buffer and Depth Stencil
@@ -171,13 +173,43 @@ namespace Graphics
         Matrix4 m_worldToCamera;
         
         {
-            Matrix4 m_world = localToWorldMatrix(camera).inverse();
+            Matrix4 m_world = camera.localToWorldMatrix().inverse();
             Matrix4 m_camera = camera.cameraMatrix();
             m_worldToCamera = m_world * m_camera;
         } 
 
+        /* Bind Lights */
+        {
+            #define NUM_LIGHTS 10
+
+            vector<LightData> light_data;
+            light_data.resize(NUM_LIGHTS);
+
+            for (int i = 0; i < lights.size(); i++)
+            {
+                Light& light = lights[i];
+
+                Transform& transform = light.getTransform();
+
+                Matrix4 m_transform = light.localToWorldMatrix();
+                Vector3 world_position = (Vector4(0, 0, 0, 1) * m_transform).toVector3();
+
+                light_data[i].position = world_position;
+
+                bind_ps_data(1, light_data.data(), light_data.size() * sizeof(LightData));
+            }
+
+        }
+
         // For every object, draw it from the POV of the camera
-        for (Object& object : objects) 
+        vector<Object> copy(objects); // TEMP
+
+        for (const auto& element : lights)
+        {
+            copy.push_back(element);
+        }
+
+        for (Object& object : copy) 
         {
             // Obtain object renderable mesh
             Mesh* mesh = object.getMesh();
@@ -189,32 +221,45 @@ namespace Graphics
             // Obtain object mesh and transform
             Transform& transform = object.getTransform();
 
-            // Multiply to obtain transform matrix to pass to shader
-            Matrix4 transform_matrix = localToWorldMatrix(object) * m_worldToCamera;
-            Matrix4 rotate_matrix = transform.rotationMatrix();
+            /* Bind Transformation Matrices to Vertex Shader */
+            {
+                Matrix4 m_localToWorld = object.localToWorldMatrix();
 
-            // Bind transform matrix to the vertex shader
-            bind_vs_data(0, transform_matrix.getRawData(), sizeof(float) * 16);
-            bind_vs_data(1, rotate_matrix.getRawData(), sizeof(float) * 16);
+                // Transformation matrix for points (model -> camera space)
+                Matrix4 m_vertexTransform = m_localToWorld * m_worldToCamera;
+                // Transformation matrix for normals (model -> world space)
+                Matrix4 m_normalTransform = m_localToWorld.inverse().tranpose();
 
-            // Prepare mesh's vertex and index buffers for rendering
-            ID3D11Buffer* vertex_buffer; // Vertex Buffer
-            ID3D11Buffer* index_buffer;  // Index Buffer 
+                // Create & populate struct with data
+                TransformData transform_data;
 
+                transform_data.m_modelToWorld = m_localToWorld;
+                transform_data.m_worldToCamera = m_worldToCamera;
+                transform_data.m_normalTransform = m_normalTransform;
+
+                // Bind to vertex shader, into constant buffer @index 0
+                bind_vs_data(0, &transform_data, sizeof(TransformData));
+            }
+            
+            /* Bind Mesh Vertex & Index Buffers */
             // Get the mesh's vertex and index vectors
             const vector<float>& vertices = mesh->getVertexBuffer();
             const vector<int>& indices = mesh->getIndexBuffer();
 
-            // Bytes between each vertex 
-            UINT vertex_stride = Mesh::VertexLayoutSize(mesh->getVertexLayout()) * sizeof(float);
-            // Offset into the vertex buffer to start reading from 
-            UINT vertex_offset = 0;
-            // Number of vertices
-            UINT vertex_count = vertices.size();
             // Number of indices
             UINT num_indices = indices.size();
 
             {
+                // Bytes between each vertex 
+                UINT vertex_stride = Mesh::VertexLayoutSize(mesh->getVertexLayout()) * sizeof(float);
+                // Offset into the vertex buffer to start reading from 
+                UINT vertex_offset = 0;
+
+                // Generate vertex and index buffers. If they have already been
+                // generated before, just get them.
+                ID3D11Buffer* vertex_buffer = NULL;
+                ID3D11Buffer* index_buffer = NULL;
+
                 // Check if the vertex / index buffers have already been created
                 // before. If they have, just use the already created resources
                 if (mesh_cache.contains(mesh))
@@ -233,16 +278,20 @@ namespace Graphics
                     // Create new buffer resources
                     vertex_buffer = create_buffer(
                         D3D11_BIND_VERTEX_BUFFER,
-                        (void*)vertices.data(),
+                        (void*) vertices.data(),
                         sizeof(float) * vertices.size());
                     index_buffer = create_buffer(
                         D3D11_BIND_INDEX_BUFFER,
-                        (void*)indices.data(),
+                        (void*) indices.data(),
                         sizeof(int) * indices.size());
 
                     // Add buffer resources to cache
                     mesh_cache[mesh] = { vertex_buffer, index_buffer };
                 }
+
+                // Bind vertex and index buffers
+                device_context->IASetVertexBuffers(0, 1, &vertex_buffer, &vertex_stride, &vertex_offset);
+                device_context->IASetIndexBuffer(index_buffer, DXGI_FORMAT_R32_UINT, 0);
             }
 
             // Get shaders to render mesh with
@@ -276,10 +325,6 @@ namespace Graphics
             // Define input layout
             device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
             device_context->IASetInputLayout(vertex_shader.second);
-
-            // Bind vertex and index buffers
-            device_context->IASetVertexBuffers(0, 1, &vertex_buffer, &vertex_stride, &vertex_offset);
-            device_context->IASetIndexBuffer(index_buffer, DXGI_FORMAT_R32_UINT, 0);
 
             /* Configure Shaders*/
             // Bind vertex shader
@@ -510,27 +555,6 @@ namespace Graphics
 
         // Add to array of pixel shaders
         pixel_shaders.push_back(pixel_shader);
-    }
-
-    /* Transformation Matrices */
-    // The below methods are helper methods that generate
-    // Matrix4 transformations for a given object
-
-    // LocalToWorldMatrix:
-    // Given an object, returns the transformation matrix that will
-    // translate points in its local space to the world space
-    Matrix4 VisualEngine::localToWorldMatrix(Object& object)
-    {
-        // Generate the local matrix
-        Matrix4 m_local = object.getTransform().transformMatrix();
-
-        // Obtain object's parent transformation matrix
-        Object* parent = object.getParent();
-        Matrix4 m_parent = parent == nullptr ? Matrix4::identity() : localToWorldMatrix(*parent);
-
-        // Build final matrix
-        // Left matrix gets precedence, as we are performing row-major multiplication
-        return m_local * m_parent;
     }
 
 }

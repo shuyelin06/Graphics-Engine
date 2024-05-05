@@ -68,5 +68,19 @@ namespace Datamodel
 		mesh = _mesh;
 	}
 
+	// LocalToWorldMatrix:
+	// Returns an object's LocalToWorld transformation matrix
+	Matrix4 Object::localToWorldMatrix() const
+	{
+		// Get local transformation matrix 
+        Matrix4 m_local = transform.transformMatrix();
+
+        // If parent exists, get parent transformation matrix;
+        Matrix4 m_parent = (parent == nullptr) ? Matrix4::identity() : parent->localToWorldMatrix();
+
+		// Build final matrix - multiplication is in order of left first to right
+        // (row-major multiplication)
+        return m_local * m_parent;
+	}
 }
 }

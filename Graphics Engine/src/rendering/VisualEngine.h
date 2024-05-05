@@ -90,9 +90,6 @@ namespace Graphics
 		// Compile and Create Shaders
 		void create_vertex_shader(const wchar_t* file, const char* entry, D3D11_INPUT_ELEMENT_DESC[], int desc_size);
 		void create_pixel_shader(const wchar_t* file, const char* entry);
-		
-		// Transformation Matrices - Defined in Transform.cpp
-		static Matrix4 localToWorldMatrix(Object& object);
 	};
 }
 }

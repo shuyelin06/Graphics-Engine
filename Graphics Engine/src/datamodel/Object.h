@@ -47,6 +47,9 @@ namespace Datamodel
 		// Setters
 		void setParent(Object* parent);
 		void setMesh(Mesh* mesh);
+
+		// Local -> World Transform Matrix
+		Matrix4 localToWorldMatrix() const;
 	};
 }
 }

@@ -2,6 +2,8 @@
 
 #include <math.h>
 
+#include "Matrix4.h"
+
 namespace Engine
 {
 namespace Math
@@ -69,6 +71,21 @@ namespace Math
 	}
 
 	/* --- Operands --- */
+	// Multiply: 
+	// Row-Major multiplication with a 4x4 matrix
+	Vector4 Vector4::operator*(Matrix4& m) const
+	{
+		Vector4 output;
+
+		output.x = x * m[0][0] + y * m[1][0] + z * m[2][0] + w * m[3][0];
+		output.y = x * m[0][1] + y * m[1][1] + z * m[2][1] + w * m[3][1];
+		output.z = x * m[0][2] + y * m[1][2] + z * m[2][2] + w * m[3][2];
+		output.w = x * m[0][3] + y * m[1][3] + z * m[2][3] + w * m[3][3];
+
+		return output;
+
+	}
+
 	// Add:
 	// Adds two Vector4's together
 	Vector4 Vector4::operator+(const Vector4& vec) const

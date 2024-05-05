@@ -2,11 +2,12 @@
 
 #include "Vector3.h"
 
-
 namespace Engine
 {
 namespace Math
 {
+	class Matrix4;
+
 	// Vector4
 	// Contains methods and data for a 4-dimensional
 	// vector.
@@ -26,6 +27,7 @@ namespace Math
 		float magnitude();
 		Vector3 toVector3(); // Drops the w term
 
+		Vector4 operator*(Matrix4&) const; // Row-Major Multiplication
 		Vector4 operator+(const Vector4&) const;
 		Vector4 operator-(const Vector4&) const;
 		Vector4 operator*(const Vector4&) const;

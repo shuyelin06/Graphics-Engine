@@ -124,6 +124,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         transform.setPosition(Compute::random(-20, 20), Compute::random(-20, 20), Compute::random(-20, 20));
     }
 
+    Object& object = scene.createObject();
+    object.setMesh(Mesh::GetMesh("Cube"));
+    object.getTransform().setScale(30, 2, 30);
+
     // Create Lights
     const int NUM_LIGHTS = 5;
     

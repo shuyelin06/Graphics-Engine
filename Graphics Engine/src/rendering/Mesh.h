@@ -56,8 +56,10 @@ namespace Graphics
 		static int VertexLayoutSize(char layout);
 		static char GenerateVertexLayout(bool pos, bool rgb, bool norm);
 
-		// File parsers that can generate meshes
+		// Mesh generation
+		static void LoadCubeMesh();
 		static Mesh parsePLYFile(string ply_file);
+		
 
 		// Mesh Constructor
 		Mesh();

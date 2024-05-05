@@ -164,7 +164,7 @@
     <ClCompile Include="src\math\Matrix4.cpp" />
     <ClCompile Include="src\math\Vector4.cpp" />
     <ClCompile Include="src\rendering\Mesh.cpp" />
-    <ClCompile Include="src\rendering\parsers\CubeParser.cpp" />
+    <ClCompile Include="src\rendering\parsers\CubeGenerator.cpp" />
     <ClCompile Include="src\rendering\parsers\PLYParser.cpp" />
     <ClCompile Include="src\rendering\VisualEngine.cpp" />
     <ClCompile Include="src\utility\Stopwatch.cpp" />
@@ -186,6 +186,7 @@
     <ClInclude Include="src\rendering\Direct3D11.h" />
     <ClInclude Include="src\rendering\Material.h" />
     <ClInclude Include="src\rendering\Mesh.h" />
+    <ClInclude Include="src\rendering\ShaderData.h" />
     <ClInclude Include="src\rendering\VisualEngine.h" />
     <ClInclude Include="src\utility\Stopwatch.h" />
   </ItemGroup>

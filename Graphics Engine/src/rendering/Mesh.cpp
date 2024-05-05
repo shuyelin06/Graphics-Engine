@@ -17,12 +17,9 @@ namespace Graphics
 	// Load all meshes into the mesh cache
 	void Mesh::LoadMeshes()
 	{
-		Mesh* mesh;
+		LoadCubeMesh();
 
-		meshes["Cube"] = parsePLYFile("data/cube.ply");
-		mesh = GetMesh("Cube");
-		mesh->setShaders(0, 0);
-		mesh->calculateNormals();
+		Mesh* mesh;
 
 		meshes["Beethoven"] = parsePLYFile("data/Beethoven.ply");
 		mesh = GetMesh("Beethoven");

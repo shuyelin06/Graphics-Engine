@@ -63,7 +63,7 @@
     <ClCompile Include="src\datamodel\Transform.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\parsers\CubeParser.cpp">
+    <ClCompile Include="src\rendering\parsers\CubeGenerator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -120,6 +120,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\Material.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rendering\ShaderData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

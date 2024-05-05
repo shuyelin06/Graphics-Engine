@@ -9,8 +9,7 @@ namespace Datamodel
 	// (0,0,0)
 	Light::Light() : Object()
 	{
-		
-	}
 
+	}
 }
 }
