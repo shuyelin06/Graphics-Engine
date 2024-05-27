@@ -15,8 +15,6 @@
 // into a mesh. Separated from the rest of the Mesh.cpp
 // implementation due to its inherent complexity
 
-using namespace std;
-
 namespace Engine
 {
 namespace Graphics
@@ -25,18 +23,18 @@ namespace Graphics
 	// ParsePLYFile
 	// A simple PLY file parser. Only allows the ASCII 1.0 
 	// file format.
-	void Mesh::parsePLYFile(string ply_file, string mesh_name)
+	void Mesh::parsePLYFile(std::string ply_file, std::string mesh_name)
 	{
 		// Create input stream from PLY file
-		ifstream file_stream(ply_file);
+		std::ifstream file_stream(ply_file);
 
 		// Check for success
 		if (!file_stream.is_open())
 			assert(false);
 
 		// Variables for file reading and parsing 
-		string line;
-		smatch match;
+		std::string line;
+		std::smatch match;
 
 		// Number of vertices and faces to expect while file parsing
 		int num_faces = 0, num_vertices = 0;
@@ -54,14 +52,14 @@ namespace Graphics
 		{
 			// Expect and parse the vertex description first
 			if (getline(file_stream, line),
-				regex_search(line, match, regex("element vertex (\\d+)")))
+				regex_search(line, match, std::regex("element vertex (\\d+)")))
 			{
 				// Update number of vertices
 				num_vertices = stoi(match.str(1));
 
 				// Parse all vertex properties
-				string properties("");
-				regex re_property = regex("property float32 ([a-z]+)");
+				std::string properties("");
+				std::regex re_property = std::regex("property float32 ([a-z]+)");
 
 				// Read all properties
 				while (getline(file_stream, line),
@@ -78,26 +76,26 @@ namespace Graphics
 					// Update layout
 					layout |= XYZ;
 					// Strip xyz from string
-					properties = properties.substr(3, string::npos);
+					properties = properties.substr(3, std::string::npos);
 				}
 
 				if (properties.substr(0, 3) == "rgb")
 				{
 					layout |= RGB;
-					properties = properties.substr(3, string::npos);
+					properties = properties.substr(3, std::string::npos);
 				}
 
 				if (properties.substr(0, 6) == "xnynzn")
 				{
 					layout |= NORMAL;
-					properties = properties.substr(6, string::npos);
+					properties = properties.substr(6, std::string::npos);
 				}
 			}
 			else
 				assert(false);
 
 			// Expect and parse the face description next
-			if (regex_search(line, match, regex("element face (\\d+)")))
+			if (regex_search(line, match, std::regex("element face (\\d+)")))
 			{
 				num_faces = stoi(match.str(1));
 			}
@@ -118,7 +116,7 @@ namespace Graphics
 		float* vertex = new float[size];
 
 		{
-			regex re_float("-?\\d+(\\.?\\d+)?(e-?\\d+)?");
+			std::regex re_float("-?\\d+(\\.?\\d+)?(e-?\\d+)?");
 
 			for (int i = 0; i < num_vertices; i++)
 			{
@@ -129,7 +127,7 @@ namespace Graphics
 				int vertex_i = 0;
 
 				// Move through all float matches
-				sregex_iterator iter = std::sregex_iterator(line.begin(), line.end(), re_float);
+				std::sregex_iterator iter = std::sregex_iterator(line.begin(), line.end(), re_float);
 
 				while (iter != std::sregex_iterator() && vertex_i < size)
 				{
@@ -153,8 +151,8 @@ namespace Graphics
 
 		// Read faces
 		{
-			regex face_format("3 (\\d+) (\\d+) (\\d+)");
-			regex re_index("\\d+");
+			std::regex face_format("3 (\\d+) (\\d+) (\\d+)");
+			std::regex re_index("\\d+");
 
 			for (int i = 0; i < num_faces; i++)
 			{
@@ -167,7 +165,7 @@ namespace Graphics
 				int size = -1;
 
 				// Move through all float matches
-				sregex_iterator iter = std::sregex_iterator(line.begin(), line.end(), re_index);
+				std::sregex_iterator iter = std::sregex_iterator(line.begin(), line.end(), re_index);
 
 				while (iter != std::sregex_iterator())
 				{

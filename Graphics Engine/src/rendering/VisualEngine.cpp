@@ -9,6 +9,8 @@
 #include "datamodel/Object.h"
 #include "datamodel/Camera.h"
 
+#define RGB(rgb) ((rgb) / 255.f)
+
 namespace Engine
 {
 
@@ -23,6 +25,12 @@ namespace Graphics
         device = NULL;
         device_context = NULL;
         swap_chain = NULL;
+
+        // Create resources
+        input_layouts = map<char, ID3D11InputLayout*>();
+
+        vertex_shaders = map<string, ID3D11VertexShader*>();
+        pixel_shaders = map<string, ID3D11PixelShader*>();
 
         render_target_view = NULL;
         depth_stencil = NULL;
@@ -103,27 +111,7 @@ namespace Graphics
         framebuffer->Release();
 
         // Create 2D texture to be used as a depth stencil
-        ID3D11Texture2D* depth_texture = NULL;
-        {
-            // Create description for the texture
-            D3D11_TEXTURE2D_DESC desc_texture= {};
-            desc_texture.Width = width;
-            desc_texture.Height = height;
-            desc_texture.MipLevels = 1;
-            desc_texture.ArraySize = 1;
-            desc_texture.MipLevels = 1;
-            desc_texture.ArraySize = 1;
-            desc_texture.SampleDesc.Count = 1;
-            desc_texture.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-            desc_texture.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-            
-            // Create 2D texture for depth stencil
-            result = device->CreateTexture2D(&desc_texture, NULL, &depth_texture);
-
-            // Check for failure
-            if (result != S_OK)
-                assert(false);
-        }
+        ID3D11Texture2D* depth_texture = CreateTexture2D(D3D11_BIND_DEPTH_STENCIL, width, height);
 
         // Create a depth stencil from the 2D texture
         {
@@ -138,20 +126,15 @@ namespace Graphics
 
         /* Build our Shaders */
         // Compile Vertex Shader
-        D3D11_INPUT_ELEMENT_DESC input_desc[] = {
-            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, sizeof(float) * 3, D3D11_INPUT_PER_VERTEX_DATA, 0} // Option 12 appends
-        };
-        create_vertex_shader(L"src/rendering/shaders/shader.hlsl", "vs_main", input_desc, ARRAYSIZE(input_desc));
+        vertex_shaders["Default"] = CreateVertexShader(L"src/rendering/shaders/VertexShader.hlsl", "vs_main", XYZ | NORMAL);
 
         // Create Pixel Shader
-        create_pixel_shader(L"src/rendering/shaders/shader.hlsl", "ps_main");
+        pixel_shaders["Default"] = CreatePixelShader(L"src/rendering/shaders/PixelShader.hlsl", "ps_main");
     }
 
     /* --- Rendering --- */
     // Render:
     // Renders an entire scene, from its camera
-    #define RGB(rgb) ((rgb) / 255.f)
     void VisualEngine::render(Scene& scene)
     {
         /* Rendering Preparation */
@@ -188,7 +171,7 @@ namespace Graphics
 
                 light_data[i].position = world_position;
 
-                bind_ps_data(1, light_data.data(), light_data.size() * sizeof(LightData));
+                BindPSData(0, light_data.data(), light_data.size() * sizeof(LightData));
             }
 
         }
@@ -198,6 +181,10 @@ namespace Graphics
 
         for (Object* object : objects) 
             traverseSceneGraph(scene, object, m_transform);
+        
+        // Render the Terrain
+        Matrix4 id = Matrix4::identity();
+        renderMesh(scene.getTerrain().getMesh(), id, scene, false);
 
         /* Presenting */
         swap_chain->Present(1, 0);
@@ -213,7 +200,7 @@ namespace Graphics
 
         // If mesh exists, render the object with this transform 
         if (object->getMesh() != nullptr)
-            renderMesh(*(object->getMesh()), m_local, scene);
+            renderMesh(*(object->getMesh()), m_local, scene, true);
         
         // Recursively traverse the SceneGraph for the object's children
         for (Object* child : object->getChildren())
@@ -222,8 +209,12 @@ namespace Graphics
 
     // DrawObject:
     // Given a renderable mesh, renders it within the scene
-    void VisualEngine::renderMesh(Mesh& mesh, Matrix4& m_modelToWorld, Scene& scene)
+    void VisualEngine::renderMesh(Mesh& mesh, Matrix4& m_modelToWorld, Scene& scene, bool cache)
     {
+        // If mesh has nothing, do nothing
+        if (mesh.getIndexBuffer().size() == 0 || mesh.getVertexBuffer().size() == 0)
+            return;
+
         // Get scene camera
         Camera& camera = scene.getCamera();
 
@@ -243,7 +234,7 @@ namespace Graphics
             transform_data.m_normalTransform = m_modelToWorld.inverse().tranpose();
 
             // Bind to vertex shader, into constant buffer @index 0
-            bind_vs_data(0, &transform_data, sizeof(TransformData));
+            BindVSData(0, &transform_data, sizeof(TransformData));
         }
 
         // Bind Mesh Vertex & Index Buffers
@@ -254,6 +245,10 @@ namespace Graphics
         // Number of indices
         UINT num_indices = indices.size();
 
+        // Generate vertex and index buffers. If they have already been
+        // generated before, just get them.
+        ID3D11Buffer* vertex_buffer = NULL;
+        ID3D11Buffer* index_buffer = NULL;
         {
             // Memory address of mesh
             Mesh* mem_addr = &mesh;
@@ -263,14 +258,9 @@ namespace Graphics
             // Offset into the vertex buffer to start reading from 
             UINT vertex_offset = 0;
 
-            // Generate vertex and index buffers. If they have already been
-            // generated before, just get them.
-            ID3D11Buffer* vertex_buffer = NULL;
-            ID3D11Buffer* index_buffer = NULL;
-
             // Check if the vertex / index buffers have already been created
             // before. If they have, just use the already created resources
-            if (mesh_cache.contains(mem_addr))
+            if (cache && mesh_cache.contains(mem_addr))
             {
                 // Obtain buffers from cache
                 MeshBuffers buffers = mesh_cache[mem_addr];
@@ -286,25 +276,22 @@ namespace Graphics
                 // Create new buffer resources
                 vertex_buffer = create_buffer(
                     D3D11_BIND_VERTEX_BUFFER,
-                    (void*)vertices.data(),
+                    (void*) vertices.data(),
                     sizeof(float) * vertices.size());
                 index_buffer = create_buffer(
                     D3D11_BIND_INDEX_BUFFER,
-                    (void*)indices.data(),
+                    (void*) indices.data(),
                     sizeof(int) * indices.size());
 
                 // Add buffer resources to cache
-                mesh_cache[mem_addr] = { vertex_buffer, index_buffer };
+                if (cache)
+                    mesh_cache[mem_addr] = { vertex_buffer, index_buffer };
             }
 
             // Bind vertex and index buffers
             device_context->IASetVertexBuffers(0, 1, &vertex_buffer, &vertex_stride, &vertex_offset);
             device_context->IASetIndexBuffer(index_buffer, DXGI_FORMAT_R32_UINT, 0);
         }
-
-        // Get shaders to render mesh with
-        std::pair<ID3D11VertexShader*, ID3D11InputLayout*> vertex_shader = vertex_shaders[mesh.getVertexShader()];
-        ID3D11PixelShader* pixel_shader = pixel_shaders[mesh.getPixelShader()];
 
         // Perform a Draw Call
         // Set the valid drawing area (our window)
@@ -332,17 +319,24 @@ namespace Graphics
         /* Configure Input Assembler */
         // Define input layout
         device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        device_context->IASetInputLayout(vertex_shader.second);
+        device_context->IASetInputLayout(input_layouts[mesh.getVertexLayout()]);
 
         /* Configure Shaders*/
         // Bind vertex shader
-        device_context->VSSetShader(vertex_shader.first, NULL, 0);
+        device_context->VSSetShader(vertex_shaders[mesh.getVertexShader()], NULL, 0);
 
         // Bind pixel shader
-        device_context->PSSetShader(pixel_shader, NULL, 0);
+        device_context->PSSetShader(pixel_shaders[mesh.getPixelShader()], NULL, 0);
 
         // Draw from our vertex buffer
         device_context->DrawIndexed(num_indices, 0, 0);
+
+        // Free resources if no cache
+        if (!cache)
+        {
+            vertex_buffer->Release();
+            index_buffer->Release();
+        }
     }
 
     
@@ -379,16 +373,44 @@ namespace Graphics
         return buffer;
     }
     
+    // CreateTexture2D:
+    // Creates a 2D texture for use in the rendering pipeline.
+    ID3D11Texture2D* VisualEngine::CreateTexture2D(D3D11_BIND_FLAG bind_flag, int width, int height)
+    {
+        ID3D11Texture2D* texture = NULL;
+
+        // Create texture description
+        D3D11_TEXTURE2D_DESC desc_texture = {};
+        desc_texture.Width = width;
+        desc_texture.Height = height;
+        desc_texture.MipLevels = 1;
+        desc_texture.ArraySize = 1;
+        desc_texture.MipLevels = 1;
+        desc_texture.ArraySize = 1;
+        desc_texture.SampleDesc.Count = 1;
+        desc_texture.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+        desc_texture.BindFlags = bind_flag;
+
+        // Create 2D texture 
+        HRESULT result = device->CreateTexture2D(&desc_texture, NULL, &texture);
+
+        // Check for failure
+        if (result != S_OK)
+            assert(false);
+
+        return texture;
+    }
+
     // Bind_Data
     // Uses dynamic resource renaming to fairly efficiently bind data to the vertex / pixel
     // shader constant registers, for use in the shaders
-    void VisualEngine::bind_vs_data(unsigned int index, void* data, int byte_size)
-        { bind_data(Vertex, index, data, byte_size); }
+    void VisualEngine::BindVSData(unsigned int index, void* data, int byte_size)
+        { BindData(Vertex, index, data, byte_size); }
 
-    void VisualEngine::bind_ps_data(unsigned int index, void* data, int byte_size)
-        { bind_data(Pixel, index, data, byte_size); }
+    void VisualEngine::BindPSData(unsigned int index, void* data, int byte_size)
+        { BindData(Pixel, index, data, byte_size); }
 
-    void VisualEngine::bind_data(Shader_Type type, unsigned int index, void* data, int byte_size)
+    void VisualEngine::BindData(Shader_Type type, unsigned int index, void* data, int byte_size)
     {
         // Get vertex or pixel buffers depending on what's requested
         std::vector<ID3D11Buffer*> buffers = (type == Vertex) ? vs_constant_buffers : ps_constant_buffers;
@@ -453,7 +475,7 @@ namespace Graphics
     // for the graphics engine.
     
     // Compiles a shader blob
-    static ID3DBlob* compile_shader_blob(Shader_Type type, const wchar_t* file, const char* entry)
+    static ID3DBlob* CompileShaderBlob(Shader_Type type, const wchar_t* file, const char* entry)
     {
         // Initialize compiler settings
         ID3DInclude* include_settings = D3D_COMPILE_STANDARD_FILE_INCLUDE;
@@ -504,24 +526,45 @@ namespace Graphics
     }
 
     // Creates a vertex shader and adds it to the array of vertex shaders
-    void VisualEngine::create_vertex_shader(const wchar_t* filename, const char* entrypoint, D3D11_INPUT_ELEMENT_DESC layout_desc[], int desc_size)
+    ID3D11VertexShader* VisualEngine::CreateVertexShader(const wchar_t* filename, const char* entrypoint, char layout)
     {
         // Obtain shader blob
-        ID3DBlob* shader_blob = compile_shader_blob(Vertex, filename, entrypoint);
+        ID3DBlob* shader_blob = CompileShaderBlob(Vertex, filename, entrypoint);
 
-        // Create input layout for vertex shader
+        // Create input layout for vertex shader, or use it if it already exists
         ID3D11InputLayout* input_layout = NULL;
 
-        device->CreateInputLayout(
-            layout_desc,
-            desc_size,
-            shader_blob->GetBufferPointer(),
-            shader_blob->GetBufferSize(),
-            &input_layout
-        );
+        if (input_layouts.contains(layout))
+        {
+            input_layout = input_layouts.at(layout);
+        }
+        else {
+            D3D11_INPUT_ELEMENT_DESC input_desc[10];
+            int input_desc_size = 0;
 
-        // Check for success
-        assert(input_layout != NULL);
+            // Input configurations
+            if (layout == (XYZ | NORMAL))
+            {
+                // POSITION: float3, NORMAL: float3
+                input_desc[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 };
+                input_desc[1] = { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, sizeof(float) * 3, D3D11_INPUT_PER_VERTEX_DATA, 0 };
+                input_desc_size = 2;
+            }
+
+            // Create input layout resource
+            device->CreateInputLayout(
+                input_desc,
+                input_desc_size,
+                shader_blob->GetBufferPointer(),
+                shader_blob->GetBufferSize(),
+                &input_layout
+            );
+
+            input_layouts[layout] = input_layout;
+
+            // Check for success
+            assert(input_layout != NULL);
+        }
 
         // Create vertex shader
         ID3D11VertexShader* vertex_shader = NULL;
@@ -533,19 +576,14 @@ namespace Graphics
             &vertex_shader
         );
 
-        // Add to array of vertex shaders
-        std::pair<ID3D11VertexShader*, ID3D11InputLayout*> pair;
-        pair.first = vertex_shader;
-        pair.second = input_layout;
-
-        vertex_shaders.push_back(pair);
+        return vertex_shader;
     }
 
     // Creates a pixel shader and adds it to the array of pixel shaders
-    void VisualEngine::create_pixel_shader(const wchar_t* filename, const char* entrypoint)
+    ID3D11PixelShader* VisualEngine::CreatePixelShader(const wchar_t* filename, const char* entrypoint)
     {
         // Obtain shader blob
-        ID3DBlob* shader_blob = compile_shader_blob(Pixel, filename, entrypoint);
+        ID3DBlob* shader_blob = CompileShaderBlob(Pixel, filename, entrypoint);
 
         // Create pixel shader
         ID3D11PixelShader* pixel_shader = NULL;
@@ -561,7 +599,7 @@ namespace Graphics
         assert(pixel_shader != NULL);
 
         // Add to array of pixel shaders
-        pixel_shaders.push_back(pixel_shader);
+        return pixel_shader;
     }
 
 }

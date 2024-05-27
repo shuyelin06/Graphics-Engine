@@ -22,7 +22,7 @@ namespace Datamodel
 	protected:
 		// Parent & Children
 		Object* parent;
-		vector<Object*> children;
+		std::vector<Object*> children;
 
 		// Transform of the object
 		Transform transform;
@@ -44,7 +44,7 @@ namespace Datamodel
 
 		// Accessors
 		Object* getParent() const;
-		vector<Object*>& getChildren();
+		std::vector<Object*>& getChildren();
 		Mesh* getMesh() const;
 
 		Transform& getTransform();

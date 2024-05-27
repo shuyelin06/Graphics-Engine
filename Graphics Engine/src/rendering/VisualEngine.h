@@ -8,9 +8,14 @@
 
 #include <map>
 #include <vector>
+
+#include <string>
+
 #include <utility>
 
 namespace Engine::Datamodel { class Scene; class Object; class Camera; }
+
+using namespace std;
 
 namespace Engine
 {
@@ -56,10 +61,12 @@ namespace Graphics
 		vector<ID3D11Buffer*> vs_constant_buffers;
 		vector<ID3D11Buffer*> ps_constant_buffers;
 
-		// Available Shaders
-		vector<pair<ID3D11VertexShader*, ID3D11InputLayout*>> vertex_shaders; // Vertex Shader and Associated Input Layout
-		vector<ID3D11PixelShader*> pixel_shaders; // Pixel Shaders
-	
+		// Available Resources
+		map<char, ID3D11InputLayout*> input_layouts;
+
+		map<string, ID3D11VertexShader*> vertex_shaders;
+		map<string, ID3D11PixelShader*> pixel_shaders;
+		
 		// Mesh Cache
 		std::map<std::string, Mesh> meshes;
 
@@ -68,31 +75,38 @@ namespace Graphics
 
 	public:
 		VisualEngine();
-		void initialize(HWND _window); // Initialize Direct 3D
+		
+		// Initialize Visual Engine
+		void initialize(HWND _window);
 		
 		// Renders an entire scene
 		void render(Scene& scene);
 
-		// Bind data to the vertex and pixel shaders
-		void bind_vs_data(unsigned int index, void* data, int byte_size);
-		void bind_ps_data(unsigned int index, void* data, int byte_size);
+		// Debug Rendering Methods:
+		// Render a dot in 3D space
+		void debugPoint(Vector3& position, Vector3 color);
 
 	private:
 		// Traverse a SceneGraph for rendering
 		void traverseSceneGraph(Scene& scene, Object* object, Matrix4& m_parent);
 
 		// Renders a mesh in a scene, give a Local -> World transformation
-		void renderMesh(Mesh& mesh, Matrix4& m_transform, Scene& scene);
+		void renderMesh(Mesh& mesh, Matrix4& m_transform, Scene& scene, bool cache);
 
 		// Create Buffers
 		ID3D11Buffer* create_buffer(D3D11_BIND_FLAG, void *data, int byte_size);
 
-		// Helper Bind Data Method
-		void bind_data(Shader_Type type, unsigned int index, void* data, int byte_size);
+		// Create Texture
+		ID3D11Texture2D* CreateTexture2D(D3D11_BIND_FLAG bind_flag, int width, int height);
+
+		// Bind Data to Constant Buffers
+		void BindVSData(unsigned int index, void* data, int byte_size);
+		void BindPSData(unsigned int index, void* data, int byte_size);
+		void BindData(Shader_Type type, unsigned int index, void* data, int byte_size);
 
 		// Compile and Create Shaders
-		void create_vertex_shader(const wchar_t* file, const char* entry, D3D11_INPUT_ELEMENT_DESC[], int desc_size);
-		void create_pixel_shader(const wchar_t* file, const char* entry);
+		ID3D11VertexShader* CreateVertexShader(const wchar_t* file, const char* entry, char layout);
+		ID3D11PixelShader* CreatePixelShader(const wchar_t* file, const char* entry);
 	};
 }
 }

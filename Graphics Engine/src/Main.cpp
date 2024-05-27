@@ -49,6 +49,10 @@ using namespace Engine::Graphics;
 
 static InputEngine input_engine = InputEngine();
 
+static Scene* _scene;
+static Terrain* terrain;
+static int config;
+
 // Main Function
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
@@ -103,7 +107,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     }
 
     /* Seed Random Number Generator */
-    srand(time(NULL));
+    srand(0);
+    // time(NULL)
 
     /* Load All Meshes */
     Mesh::LoadMeshes();
@@ -111,26 +116,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     /* Initialize Scene */
     Scene scene = Scene();
     input_engine.setScene(&scene);
+    terrain = &(scene.getTerrain());
+    _scene = &scene;
 
     // Create Objects
-    const int NUM_OBJECTS = 3;
 
-    for (int i = 0; i < NUM_OBJECTS; i++)
-    {
-        Object& object = scene.createObject();
-        Transform& transform = object.getTransform();
 
-        object.setMesh(Mesh::GetMesh("Beethoven"));
-        transform.setPosition(Compute::random(-20, 20), Compute::random(-20, 20), Compute::random(-20, 20));
-
-        Object& child = object.createChild();
-        child.setMesh(Mesh::GetMesh("Ketchup"));
-        child.getTransform().setPosition(Compute::random(-5, 5), Compute::random(-5, 5), Compute::random(-5, 5));
-    }
-
+    /*
     Object& parent = scene.createObject();
     parent.setMesh(Mesh::GetMesh("Cube"));
     parent.getTransform().setScale(30, 2, 30);
+    */
 
     // Create Lights
     const int NUM_LIGHTS = 5;
@@ -247,6 +243,42 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_KEYDOWN:
     {
         int keycode = wParam;
+
+        if (keycode == 0x53 && terrain != NULL)
+        {
+            terrain->checkConfiguration(config++);
+
+            _scene->clearObjects();
+
+            const int NUM_OBJECTS = 15;
+
+            for (int i = 0; i < NUM_OBJECTS; i++)
+            {
+                for (int j = 0; j < NUM_OBJECTS; j++)
+                {
+                    for (int k = 0; k < NUM_OBJECTS; k++)
+                    {
+                        Object& object = _scene->createObject();
+                        Transform& transform = object.getTransform();
+
+                        object.setMesh(Mesh::GetMesh("Cube"));
+                        if (_scene->getTerrain().samplePoint(i, j, k) >= 6.5f)
+                        {
+                            float scale = _scene->getTerrain().samplePoint(i, j, k);
+                            transform.setScale(2.5f, 2.5f, 2.5f);
+                        }
+                        else {
+                            transform.setScale(0.35f, 0.35f, 0.35f);
+                        }
+
+                        transform.setPosition(i * 7.5f, j * 7.5f, k * 7.5f);
+                    }
+                }
+
+            }
+
+        }
+
         input_engine.handleKeyDown(keycode);
     }
     break;

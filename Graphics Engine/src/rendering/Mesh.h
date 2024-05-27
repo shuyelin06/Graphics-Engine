@@ -9,8 +9,6 @@ namespace Engine
 {
 namespace Graphics
 {
-	using namespace std;
-	
 	// Uses bitwise pins to represent the data layout
 	// of each vertex. Assumes data is given from least
 	// to most significant bit (Right -> Left)
@@ -31,26 +29,26 @@ namespace Graphics
 	{
 	private:
 		// Renderable Mesh Cache
-		static map<string, Mesh> meshes;
+		static std::map<std::string, Mesh> meshes;
 
 	private:
 		// Vertex Data Layout 
 		char vertex_layout;
 		
 		// Vertex buffer and index buffer
-		vector<float> vertices;
-		vector<int> indices;
+		std::vector<float> vertices;
+		std::vector<int> indices;
 
 		// Shader to render this mesh with
-		char vertex_shader;
-		char pixel_shader;
+		std::string vertex_shader;
+		std::string pixel_shader;
 	
 	public:
 		// Load All Meshes
 		static void LoadMeshes();
 
 		// Get Meshes
-		static Mesh* GetMesh(const string name);
+		static Mesh* GetMesh(const std::string name);
 
 		// Number of floats a vertex_layout has
 		static int VertexLayoutSize(char layout);
@@ -58,31 +56,34 @@ namespace Graphics
 
 		// Mesh generation
 		static void LoadCubeMesh();
-		static void parsePLYFile(string ply_file, string mesh_name);
-		
+		static void parsePLYFile(std::string ply_file, std::string mesh_name);
+		static void ParseOBJFile(std::string obj_file);
+
 		// Mesh Constructor
 		Mesh();
 		Mesh(char layout);
 
 		// Mesh Accessors
-		const vector<float>& getVertexBuffer() const;
-		const vector<int>& getIndexBuffer() const;
+		const std::vector<float>& getVertexBuffer() const;
+		const std::vector<int>& getIndexBuffer() const;
 
 		char getVertexLayout() const;
-		char getVertexShader() const;
-		char getPixelShader() const;
+		std::string getVertexShader() const;
+		std::string getPixelShader() const;
 
 		// Adds vertex normals to the mesh based on position,
 		// if they don't already exist
 		void calculateNormals();
 
 		// Set shaders (by index) to render this mesh with
-		void setShaders(char vertex, char pixel);
+		void setShaders(std::string vertex, std::string pixel);
 
-	private:
 		// Add vertices or indices to the mesh
 		void addVertex(float vertex[]);
 		void addIndex(int index);
+
+	private:
+		
 	};
 
 }

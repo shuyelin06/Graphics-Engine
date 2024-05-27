@@ -11,7 +11,7 @@ using namespace Math;
 namespace Graphics
 {
 	// Define Mesh Cache
-	map<string, Mesh> Mesh::meshes = map<string, Mesh>();
+	std::map<std::string, Mesh> Mesh::meshes = std::map<std::string, Mesh>();
 
 	// LoadMeshes:
 	// Load all meshes into the mesh cache
@@ -20,26 +20,28 @@ namespace Graphics
 		LoadCubeMesh();
 
 		Mesh* mesh;
+		
+		// ParseOBJFile("data/Panda/Mesh_Panda.obj");
 
 		parsePLYFile("data/Beethoven.ply", "Beethoven");
 		mesh = GetMesh("Beethoven");
-		mesh->setShaders(0, 0);
+		mesh->setShaders("Default", "Default");
 		mesh->calculateNormals();
 
 		parsePLYFile("data/ketchup.ply", "Ketchup");
 		mesh = GetMesh("Ketchup");
-		mesh->setShaders(0, 0);
+		mesh->setShaders("Default", "Default");
 		mesh->calculateNormals();
 
 		parsePLYFile("data/cube.ply", "Cube2");
 		mesh = GetMesh("Cube2");
-		mesh->setShaders(0, 0);
+		mesh->setShaders("Default", "Default");
 		mesh->calculateNormals();
 	}
 
 	// GetMesh:
 	// Returns a mesh from the mesh cache
-	Mesh* Mesh::GetMesh(const string name)
+	Mesh* Mesh::GetMesh(const std::string name)
 	{
 		// Assert that mesh exists
 		if (!meshes.contains(name))
@@ -78,6 +80,9 @@ namespace Graphics
 		// Save vertex layout
 		vertex_layout = layout;
 
+		vertex_shader = "Default";
+		pixel_shader = "Default";
+
 		// Reserve space for 3 vertices
 		vertices.reserve(VertexLayoutSize(layout) * 3);
 		indices.reserve(3);
@@ -93,12 +98,12 @@ namespace Graphics
 	// Mesh Accessors:
 	// Access the fields of the Mesh class, but does not allow
 	// for modification of the mesh
-	const vector<float>& Mesh::getVertexBuffer() const
+	const std::vector<float>& Mesh::getVertexBuffer() const
 	{
 		return vertices;
 	}
 
-	const vector<int>& Mesh::getIndexBuffer() const
+	const std::vector<int>& Mesh::getIndexBuffer() const
 	{
 		return indices;
 	}
@@ -108,12 +113,12 @@ namespace Graphics
 		return vertex_layout;
 	}
 
-	char Mesh::getVertexShader() const
+	std::string Mesh::getVertexShader() const
 	{
 		return vertex_shader;
 	}
 
-	char Mesh::getPixelShader() const
+	std::string Mesh::getPixelShader() const
 	{
 		return pixel_shader;
 	}
@@ -133,7 +138,7 @@ namespace Graphics
 		int vertex_size = VertexLayoutSize(vertex_layout);
 		int num_vertices = vertices.size() / vertex_size;
 		
-		vector<Vector3> vertex_normals;
+		std::vector<Vector3> vertex_normals;
 		vertex_normals.resize(num_vertices); // Resize so that all floats are initially 0
 
 		// Iterate through all faces and calculate the vertex normal
@@ -166,7 +171,7 @@ namespace Graphics
 		vertex_layout |= NORMAL;
 		int newSize = vertex_size + 3;
 		
-		vector<float> newVertices;
+		std::vector<float> newVertices;
 		newVertices.reserve(newSize * num_vertices);
 
 		for (int i = 0; i < num_vertices; i++)
@@ -205,7 +210,7 @@ namespace Graphics
 	// SetShaders:
 	// Sets the shaders to be used to render this mesh,
 	// by their index in the VisualEngine
-	void Mesh::setShaders(char vertex, char pixel)
+	void Mesh::setShaders(std::string vertex, std::string pixel)
 	{
 		vertex_shader = vertex;
 		pixel_shader = pixel;

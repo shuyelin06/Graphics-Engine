@@ -16,7 +16,7 @@ namespace Datamodel
 	{
 		// Objects start with no parent and no children
 		parent = nullptr;
-		children = vector<Object*>(0);
+		children = std::vector<Object*>(0);
 		
 		// Default transform
 		transform = Transform();
@@ -47,7 +47,7 @@ namespace Datamodel
 
 	// GetChildren:
 	// Returns the object's children
-	vector<Object*>& Object::getChildren()
+	std::vector<Object*>& Object::getChildren()
 	{
 		return children;
 	}

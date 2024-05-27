@@ -1,12 +1,14 @@
 #include "Scene.h"
 
+#include "math/Compute.h"
+
 namespace Engine
 {
 namespace Datamodel
 {
 	// Default Constructor:
 	// Creates an empty scene
-	Scene::Scene()
+	Scene::Scene() : terrain(15, 15, 15, 7.5f)
 	{
 		camera = Camera();
 
@@ -30,6 +32,13 @@ namespace Datamodel
 	Camera& Scene::getCamera()
 	{
 		return camera;
+	}
+
+	// GetTerrain:
+	// Returns the scene's terrain
+	Terrain& Scene::getTerrain()
+	{
+		return terrain;
 	}
 
 	// GetObjects:
@@ -67,6 +76,13 @@ namespace Datamodel
 		lights.push_back(new_light);
 
 		return *new_light;
+	}
+
+	// ClearObjects:
+	// Clears all objects in the scene
+	void Scene::clearObjects()
+	{
+		objects.clear();
 	}
 }
 }

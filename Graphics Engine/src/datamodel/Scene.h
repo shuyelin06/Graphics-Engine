@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "Terrain.h"
 #include "Camera.h"
 #include "Object.h"
 #include "Light.h"
@@ -26,6 +27,10 @@ namespace Datamodel
 		// SceneGraph of objects
 		vector<Object*> objects;
 
+		// Terrain
+		Terrain terrain;
+		
+
 	public:
 		// Constructors
 		Scene();
@@ -35,13 +40,17 @@ namespace Datamodel
 
 		// Accessors
 		Camera& getCamera();
-		
+		Terrain& getTerrain();
+
 		vector<Object*>& getObjects();
 		vector<Light*>& getLights();
 
 		// Create Objects in the Scene
 		Object& createObject(); 
 		Light& createLight();
+
+		// Clear Objects
+		void clearObjects();
 	};
 } 
 }

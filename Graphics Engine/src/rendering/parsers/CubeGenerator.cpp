@@ -9,7 +9,7 @@ namespace Graphics
 		Mesh mesh = Mesh(XYZ);
 
 		// Generate vertices
-		vector<float> vertices =
+		std::vector<float> vertices =
 		{
 			-0.5, -0.5, -0.5,  // Vertex 0
 			0.5, -0.5, -0.5,   // Vertex 1
@@ -24,7 +24,7 @@ namespace Graphics
 		mesh.vertices = vertices;
 
 		// Generate indices
-		vector<int> indices =
+		std::vector<int> indices =
 		{
 			0, 3, 2,    2, 1, 0,    // Front face
 			1, 2, 6,    6, 5, 1,    // Right face
@@ -36,8 +36,8 @@ namespace Graphics
 
 		mesh.indices = indices;
 
-		mesh.vertex_shader = 0;
-		mesh.pixel_shader = 0;
+		mesh.vertex_shader = "Default";
+		mesh.pixel_shader = "Default";
 
 		mesh.calculateNormals();
 
