@@ -8,7 +8,7 @@ namespace Datamodel
 {
 	// Default Constructor:
 	// Creates an empty scene
-	Scene::Scene() : terrain(15, 15, 15, 7.5f)
+	Scene::Scene() : terrain(16, 16, 16, 7.5f)
 	{
 		camera = Camera();
 

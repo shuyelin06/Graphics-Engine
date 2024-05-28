@@ -6,6 +6,8 @@
 #include "datamodel/Object.h"
 #include "datamodel/Camera.h"
 
+#include "ShaderData.h"
+
 #include <map>
 #include <vector>
 
@@ -73,6 +75,9 @@ namespace Graphics
 		// Mesh Index/Vertex Buffer Cache
 		std::map<Mesh*, MeshBuffers> mesh_cache;
 
+		// Debug: Points to render in the scene
+		std::vector<PointData> debug_points;
+
 	public:
 		VisualEngine();
 		
@@ -84,14 +89,14 @@ namespace Graphics
 
 		// Debug Rendering Methods:
 		// Render a dot in 3D space
-		void debugPoint(Vector3& position, Vector3 color);
+		void debugPoint(Vector3& position, Vector3& color, float scale);
 
 	private:
 		// Traverse a SceneGraph for rendering
 		void traverseSceneGraph(Scene& scene, Object* object, Matrix4& m_parent);
 
 		// Renders a mesh in a scene, give a Local -> World transformation
-		void renderMesh(Mesh& mesh, Matrix4& m_transform, Scene& scene, bool cache);
+		void renderMesh(Mesh& mesh, Matrix4& m_transform, Scene& scene, std::string shader_config, bool instancing);
 
 		// Create Buffers
 		ID3D11Buffer* create_buffer(D3D11_BIND_FLAG, void *data, int byte_size);

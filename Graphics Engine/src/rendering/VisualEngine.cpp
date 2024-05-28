@@ -125,11 +125,17 @@ namespace Graphics
         }
 
         /* Build our Shaders */
-        // Compile Vertex Shader
+        // Default Renderer
         vertex_shaders["Default"] = CreateVertexShader(L"src/rendering/shaders/VertexShader.hlsl", "vs_main", XYZ | NORMAL);
-
-        // Create Pixel Shader
         pixel_shaders["Default"] = CreatePixelShader(L"src/rendering/shaders/PixelShader.hlsl", "ps_main");
+
+        // Debug Point Renderer (with Instancing)
+        debug_points.push_back({ {2.f, 3.f, 5.f}, 0.f, {0.75f, 0.25f, 0.35f}, 0.f, 5.f, {} });
+        debug_points.push_back({ {2.f, 3.f, 19.f}, 0.f, {0.25f, 0.25f, 0.35f}, 0.f, 10.f, {} });
+        debug_points.push_back({ {2.f, 3.f, 0.f}, 0.f, {0.35f, 0.55f, 0.35f}, 0.f, 5.f, {} });
+
+        vertex_shaders["DebugPoint"] = CreateVertexShader(L"src/rendering/shaders/PointRenderer.hlsl", "vs_main", XYZ | INSTANCING);
+        pixel_shaders["DebugPoint"] = CreatePixelShader(L"src/rendering/shaders/PointRenderer.hlsl", "ps_main");
     }
 
     /* --- Rendering --- */
@@ -184,7 +190,38 @@ namespace Graphics
         
         // Render the Terrain
         Matrix4 id = Matrix4::identity();
-        renderMesh(scene.getTerrain().getMesh(), id, scene, false);
+        {
+            Camera& camera = scene.getCamera();
+
+            // Bind transformation matrices to pipeline
+            Matrix4 m_worldToCamera = camera.getTransform().transformMatrix().inverse();
+            Matrix4 m_camera = camera.cameraMatrix();
+
+            // Create & populate struct with data
+            TransformData transform_data;
+
+            // Model -> World Space Transform (Vertices)
+            transform_data.m_modelToWorld = id;
+            // Model -> Camera Space Transform
+            transform_data.m_worldToCamera = m_worldToCamera * m_camera;
+            // Model -> World Space Transform (Normals)
+            transform_data.m_normalTransform = id.inverse().tranpose();
+
+            // Bind to vertex shader, into constant buffer @index 0
+            BindVSData(0, &transform_data, sizeof(TransformData));
+        }
+        renderMesh(scene.getTerrain().getMesh(), id, scene, "Default", false);
+
+        // Render Debug Points
+        Mesh* cube = Mesh::GetMesh("CubeDebug");
+        {
+            Matrix4 m_worldToCamera = camera.getTransform().transformMatrix().inverse();
+            Matrix4 m_camera = camera.cameraMatrix();
+            Matrix4 m_mat = m_worldToCamera * m_camera;
+            BindVSData(0, m_mat.getRawData(), sizeof(Matrix4));
+        }
+        BindVSData(1, debug_points.data(), debug_points.size() * sizeof(PointData));
+        renderMesh(*cube, id, scene, "DebugPoint", true);
 
         /* Presenting */
         swap_chain->Present(1, 0);
@@ -200,7 +237,29 @@ namespace Graphics
 
         // If mesh exists, render the object with this transform 
         if (object->getMesh() != nullptr)
-            renderMesh(*(object->getMesh()), m_local, scene, true);
+        {
+            Camera& camera = scene.getCamera();
+
+            // Bind transformation matrices to pipeline
+            Matrix4 m_worldToCamera = camera.getTransform().transformMatrix().inverse();
+            Matrix4 m_camera = camera.cameraMatrix();
+
+            // Create & populate struct with data
+            TransformData transform_data;
+
+            // Model -> World Space Transform (Vertices)
+            transform_data.m_modelToWorld = m_local;
+            // Model -> Camera Space Transform
+            transform_data.m_worldToCamera = m_worldToCamera * m_camera;
+            // Model -> World Space Transform (Normals)
+            transform_data.m_normalTransform = m_local.inverse().tranpose();
+
+            // Bind to vertex shader, into constant buffer @index 0
+            BindVSData(0, &transform_data, sizeof(TransformData));
+
+            renderMesh(*(object->getMesh()), m_local, scene, "Default", false);
+        }
+            
         
         // Recursively traverse the SceneGraph for the object's children
         for (Object* child : object->getChildren())
@@ -209,33 +268,11 @@ namespace Graphics
 
     // DrawObject:
     // Given a renderable mesh, renders it within the scene
-    void VisualEngine::renderMesh(Mesh& mesh, Matrix4& m_modelToWorld, Scene& scene, bool cache)
+    void VisualEngine::renderMesh(Mesh& mesh, Matrix4& m_modelToWorld, Scene& scene, std::string shader_config, bool instancing)
     {
         // If mesh has nothing, do nothing
         if (mesh.getIndexBuffer().size() == 0 || mesh.getVertexBuffer().size() == 0)
             return;
-
-        // Get scene camera
-        Camera& camera = scene.getCamera();
-
-        // Bind transformation matrices to vertex shader
-        {
-            Matrix4 m_worldToCamera = camera.getTransform().transformMatrix().inverse();
-            Matrix4 m_camera = camera.cameraMatrix();
-
-            // Create & populate struct with data
-            TransformData transform_data;
-
-            // Model -> World Space Transform (Vertices)
-            transform_data.m_modelToWorld = m_modelToWorld;
-            // Model -> Camera Space Transform
-            transform_data.m_worldToCamera = m_worldToCamera * m_camera;
-            // Model -> World Space Transform (Normals)
-            transform_data.m_normalTransform = m_modelToWorld.inverse().tranpose();
-
-            // Bind to vertex shader, into constant buffer @index 0
-            BindVSData(0, &transform_data, sizeof(TransformData));
-        }
 
         // Bind Mesh Vertex & Index Buffers
         // Get the mesh's vertex and index vectors
@@ -260,7 +297,7 @@ namespace Graphics
 
             // Check if the vertex / index buffers have already been created
             // before. If they have, just use the already created resources
-            if (cache && mesh_cache.contains(mem_addr))
+            if (mesh_cache.contains(mem_addr))
             {
                 // Obtain buffers from cache
                 MeshBuffers buffers = mesh_cache[mem_addr];
@@ -284,8 +321,7 @@ namespace Graphics
                     sizeof(int) * indices.size());
 
                 // Add buffer resources to cache
-                if (cache)
-                    mesh_cache[mem_addr] = { vertex_buffer, index_buffer };
+                mesh_cache[mem_addr] = { vertex_buffer, index_buffer };
             }
 
             // Bind vertex and index buffers
@@ -323,20 +359,16 @@ namespace Graphics
 
         /* Configure Shaders*/
         // Bind vertex shader
-        device_context->VSSetShader(vertex_shaders[mesh.getVertexShader()], NULL, 0);
+        device_context->VSSetShader(vertex_shaders[shader_config], NULL, 0);
 
         // Bind pixel shader
-        device_context->PSSetShader(pixel_shaders[mesh.getPixelShader()], NULL, 0);
+        device_context->PSSetShader(pixel_shaders[shader_config], NULL, 0);
 
         // Draw from our vertex buffer
-        device_context->DrawIndexed(num_indices, 0, 0);
-
-        // Free resources if no cache
-        if (!cache)
-        {
-            vertex_buffer->Release();
-            index_buffer->Release();
-        }
+        if (!instancing)
+            device_context->DrawIndexed(num_indices, 0, 0);
+        else
+            device_context->DrawIndexedInstanced(num_indices, debug_points.size(), 0, 0, 1);
     }
 
     
@@ -526,6 +558,8 @@ namespace Graphics
     }
 
     // Creates a vertex shader and adds it to the array of vertex shaders
+
+    // Creates a vertex shader and adds it to the array of vertex shaders
     ID3D11VertexShader* VisualEngine::CreateVertexShader(const wchar_t* filename, const char* entrypoint, char layout)
     {
         // Obtain shader blob
@@ -542,14 +576,32 @@ namespace Graphics
             D3D11_INPUT_ELEMENT_DESC input_desc[10];
             int input_desc_size = 0;
 
-            // Input configurations
-            if (layout == (XYZ | NORMAL))
+            // Supported input configurations with instancing
+            if ((layout & INSTANCING) == INSTANCING)
             {
-                // POSITION: float3, NORMAL: float3
-                input_desc[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-                input_desc[1] = { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, sizeof(float) * 3, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-                input_desc_size = 2;
+                // XYZ Position
+                if (layout == -127)
+                {
+                    // POSITION: float3, SV_InstanceID: uint
+                    input_desc[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 };
+                    input_desc[1] = { "SV_InstanceID", 0, DXGI_FORMAT_R32_UINT, 0, sizeof(float) * 3, D3D11_INPUT_PER_VERTEX_DATA, 0 };
+                    input_desc_size = 2;
+                }
+
             }
+            // Supported input configurations without instancing
+            else
+            {
+                // XYZ Position and Normal Vectors
+                if (layout == (XYZ | NORMAL))
+                {
+                    // POSITION: float3, NORMAL: float3
+                    input_desc[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 };
+                    input_desc[1] = { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, sizeof(float) * 3, D3D11_INPUT_PER_VERTEX_DATA, 0 };
+                    input_desc_size = 2;
+                }
+            }
+            
 
             // Create input layout resource
             device->CreateInputLayout(

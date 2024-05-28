@@ -244,13 +244,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
         int keycode = wParam;
 
+        /*
         if (keycode == 0x53 && terrain != NULL)
         {
             terrain->checkConfiguration(config++);
 
             _scene->clearObjects();
 
-            const int NUM_OBJECTS = 15;
+            const int NUM_OBJECTS = 2;
 
             for (int i = 0; i < NUM_OBJECTS; i++)
             {
@@ -278,6 +279,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             }
 
         }
+        */
 
         input_engine.handleKeyDown(keycode);
     }

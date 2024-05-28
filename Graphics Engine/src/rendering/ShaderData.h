@@ -34,5 +34,17 @@ namespace Graphics
 		Vector3 position;
 		float padding;
 	};
+
+	// PointData
+	// Contains data for a single point to be rendered (for debugging)
+	struct PointData
+	{
+		Vector3 position;
+		float padding;
+		Vector3 color;
+		float padding2;
+		float scale;
+		Vector3 padding3;
+	};
 }
 }

@@ -37,6 +37,11 @@ namespace Graphics
 		mesh = GetMesh("Cube2");
 		mesh->setShaders("Default", "Default");
 		mesh->calculateNormals();
+
+		parsePLYFile("data/cube.ply", "CubeDebug");
+		mesh = GetMesh("CubeDebug");
+		mesh->setShaders("DebugPoint", "DebugPoint");
+		mesh->vertex_layout |= INSTANCING;
 	}
 
 	// GetMesh:

@@ -15,11 +15,13 @@ namespace Graphics
 	// >>> 1st Bit) Position (X,Y,Z)
 	// >>> 2nd Bit) Color (R,G,B)
 	// >>> 3rd Bit) Normal (X,Y,Z)
+	// >>> 7th Bit) Instancing Flag
 	// Input data MUST be in this order.
 	enum VertexLayout { 
 		XYZ = 1, 
 		RGB = (1 << 1), 
-		NORMAL = (1 << 2) 
+		NORMAL = (1 << 2),
+		INSTANCING = (1 << 7)
 	};
 	
 	// Mesh Class

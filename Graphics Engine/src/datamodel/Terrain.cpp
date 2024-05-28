@@ -2,6 +2,7 @@
 
 #include "math/Compute.h"
 #include <assert.h>
+#include <map>
 
 #include "math/Matrix3.h"
 
@@ -9,6 +10,16 @@ namespace Engine
 {
 namespace Datamodel
 {
+	// TODO:
+	// https://github.com/weshoke/efficient-marching-cubes/blob/master/src/LookUpTable.h
+	// The original Marching Cubes is flawed. It has ambiguities that lead to holes in the terrain.
+	// https://www.ks.uiuc.edu/Research/vmd/projects/ece498/surf/lewiner.pdf
+	// There are many methods created to address this. This is one of them, extending the original technique.
+	// Can also consider Marching Tetrahedron
+	// More complex techniques are discussed here
+	// https://transvoxel.org/Lengyel-VoxelTerrain.pdf
+	// https://i.sstatic.net/2ndOx.png
+
 	// Vertex and edge layout:
     //
     //            6             7
@@ -20,15 +31,9 @@ namespace Datamodel
     //      |   /         |   /           3   8         1   9
     //      | /           | /             | /           | /       
     //    0 +-------------+ 1             +------0------+   
-    
-	const std::vector<int> TriangulationClass =
-	{
-
-	};
 
     // Data courtesy of https://gist.github.com/dwilliamson/c041e3454a713e58baf6e4f8e5fffecd
     
-   
     // For each MC case, a list of triangles, specified as triples of edge indices, terminated by -1
     const std::vector<std::vector<int>> TriangleTable = 
 	{
@@ -325,8 +330,6 @@ namespace Datamodel
 
         // Set outermost vertices of grid to non-surface so that the 
         // terrain is not transparent from any angle
-        
-		/*
         // X-Plane
         for (int j = 0; j < y_size; j++)
         {
@@ -356,7 +359,6 @@ namespace Datamodel
                 grid[j][k][z_size - 1] = surface_level - 1;
             }
         }
-		*/
 
 		// Generate mesh
 		generateMesh();
