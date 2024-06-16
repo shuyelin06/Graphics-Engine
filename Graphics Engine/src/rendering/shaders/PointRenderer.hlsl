@@ -3,15 +3,15 @@ struct PointData
 {
     // Defines the point's position
     float3 position;
-    float padding;
-    
-    // Defines the point's RGB color
-    float3 color;
-    float padding2;
     
     // Defines the point's scale
     float scale;
-    float3 padding3;
+    
+    // Defines the point's RGB color
+    float3 color;
+    
+    // Padding to make sure the struct is 4-byte aligned
+    float padding;
 };
 
 // Constant buffer storing transformation matrices
@@ -22,12 +22,12 @@ cbuffer TRANSFORM_MATRICES : register(b0)
 
 // Constant buffer storing per-point data
 // Maximum Allowable Points:
-// 4096 Vectors * 4 Components per Vector / 7 Components per Point
-// = ~2,300 Points
+// 4096 Vectors * 4 Components per Vector / 8 Components per Point
+// = ~2048 Points
 cbuffer POINTS : register(b1)
 {
     // Stores data for each point
-    PointData points[3];
+    PointData points[2048];
 }
 
 // Vertex Shader Input

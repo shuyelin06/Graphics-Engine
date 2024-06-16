@@ -150,8 +150,19 @@ namespace Math
 		return *this;
 	}
 
-	//
-	Vector3 Vector3::CrossProduct(Vector3 v1, Vector3 v2)
+	// DotProduct:
+	// Calculates the dot product between two vectors.
+	float Vector3::DotProduct(const Vector3& v1, const Vector3& v2)
+	{
+		float result = v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+		return result;
+	}
+
+	// CrossProduct:
+	// Calculates the cross product between two vectors. Note that
+	// the cross product is sensitive to the order of vectors
+	// provided.
+	Vector3 Vector3::CrossProduct(const Vector3& v1, const Vector3& v2)
 	{
 		Vector3 vector;
 		vector.x = v1.y * v2.z - v1.z * v2.y;

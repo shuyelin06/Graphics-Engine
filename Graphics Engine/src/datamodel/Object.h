@@ -5,12 +5,17 @@
 #include "math/Vector3.h"
 #include "math/Matrix4.h"
 
+#include "input/InputData.h"
 #include "rendering/Mesh.h"
+
+#include "simulation/Dynamics.h"
 
 namespace Engine
 {
 using namespace Math;
 using namespace Graphics;
+using namespace Simulation;
+
 namespace Datamodel
 {
 
@@ -27,8 +32,11 @@ namespace Datamodel
 		// Transform of the object
 		Transform transform;
 		
-		// Renderable Mesh
+		// Renderable Attributes
 		Mesh* mesh;
+
+		// Physics Attributes
+		Dynamics* dynamics;
 
 		// Physics Attributes
 		// May be dropped later
@@ -41,6 +49,10 @@ namespace Datamodel
 
 		// Destructor
 		~Object();
+
+		// Update the Object
+		// Can be overriden for object-specific behaviors
+		void update();
 
 		// Accessors
 		Object* getParent() const;

@@ -5,7 +5,10 @@
 // ShaderData.h
 // Contains structs that store data to be passed into shader
 // constant buffers.
-// Note that data in the structs MUST be aligned by 4 bytes.
+// 
+// Packing rules are discussed more in depth below, and are very
+// important to understand.
+// https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-packing-rules
 namespace Engine
 {
 using namespace Math;
@@ -35,16 +38,5 @@ namespace Graphics
 		float padding;
 	};
 
-	// PointData
-	// Contains data for a single point to be rendered (for debugging)
-	struct PointData
-	{
-		Vector3 position;
-		float padding;
-		Vector3 color;
-		float padding2;
-		float scale;
-		Vector3 padding3;
-	};
 }
 }

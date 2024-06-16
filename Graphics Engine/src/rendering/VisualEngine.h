@@ -44,8 +44,6 @@ namespace Graphics
 	// Provides an interface for the application's graphics
 	class VisualEngine
 	{
-	friend class VisualAttribute;
-
 	private:
 		// Window Handle
 		HWND window;
@@ -75,9 +73,6 @@ namespace Graphics
 		// Mesh Index/Vertex Buffer Cache
 		std::map<Mesh*, MeshBuffers> mesh_cache;
 
-		// Debug: Points to render in the scene
-		std::vector<PointData> debug_points;
-
 	public:
 		VisualEngine();
 		
@@ -87,16 +82,21 @@ namespace Graphics
 		// Renders an entire scene
 		void render(Scene& scene);
 
-		// Debug Rendering Methods:
-		// Render a dot in 3D space
-		void debugPoint(Vector3& position, Vector3& color, float scale);
-
 	private:
+		// --- Debug Rendering ---
+		void debugDrawPoints();
+		void debugDrawLines();
+
+		// --- Other ---
+
 		// Traverse a SceneGraph for rendering
 		void traverseSceneGraph(Scene& scene, Object* object, Matrix4& m_parent);
 
 		// Renders a mesh in a scene, give a Local -> World transformation
-		void renderMesh(Mesh& mesh, Matrix4& m_transform, Scene& scene, std::string shader_config, bool instancing);
+		void renderMesh(Mesh& mesh, Matrix4& m_transform, Scene& scene, std::string shader_config, bool instancing );
+
+		
+		
 
 		// Create Buffers
 		ID3D11Buffer* create_buffer(D3D11_BIND_FLAG, void *data, int byte_size);

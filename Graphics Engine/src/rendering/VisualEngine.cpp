@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <d3d11_1.h>
 
+#include "VisualDebug.h"
 #include "ShaderData.h"
 
 #include "datamodel/Scene.h"
@@ -129,11 +130,6 @@ namespace Graphics
         vertex_shaders["Default"] = CreateVertexShader(L"src/rendering/shaders/VertexShader.hlsl", "vs_main", XYZ | NORMAL);
         pixel_shaders["Default"] = CreatePixelShader(L"src/rendering/shaders/PixelShader.hlsl", "ps_main");
 
-        // Debug Point Renderer (with Instancing)
-        debug_points.push_back({ {2.f, 3.f, 5.f}, 0.f, {0.75f, 0.25f, 0.35f}, 0.f, 5.f, {} });
-        debug_points.push_back({ {2.f, 3.f, 19.f}, 0.f, {0.25f, 0.25f, 0.35f}, 0.f, 10.f, {} });
-        debug_points.push_back({ {2.f, 3.f, 0.f}, 0.f, {0.35f, 0.55f, 0.35f}, 0.f, 5.f, {} });
-
         vertex_shaders["DebugPoint"] = CreateVertexShader(L"src/rendering/shaders/PointRenderer.hlsl", "vs_main", XYZ | INSTANCING);
         pixel_shaders["DebugPoint"] = CreatePixelShader(L"src/rendering/shaders/PointRenderer.hlsl", "ps_main");
     }
@@ -195,7 +191,7 @@ namespace Graphics
 
             // Bind transformation matrices to pipeline
             Matrix4 m_worldToCamera = camera.getTransform().transformMatrix().inverse();
-            Matrix4 m_camera = camera.cameraMatrix();
+            Matrix4 m_camera = camera.getCameraMatrix();
 
             // Create & populate struct with data
             TransformData transform_data;
@@ -213,18 +209,26 @@ namespace Graphics
         renderMesh(scene.getTerrain().getMesh(), id, scene, "Default", false);
 
         // Render Debug Points
+        VisualDebug::DrawPoint(Vector3(2.f, 3.f, 5.f), 5.f, Vector3(0.75f, 0.25f, 0.35f));
+        VisualDebug::DrawPoint(Vector3(2.f, 3.f, 19.f), 10.f, Vector3(0.25f, 0.25f, 0.35f));
+        VisualDebug::DrawPoint(Vector3(2.f, 3.f, 0.f), 5.f, Vector3(0.35f, 0.55f, 0.35f));
+
         Mesh* cube = Mesh::GetMesh("CubeDebug");
         {
             Matrix4 m_worldToCamera = camera.getTransform().transformMatrix().inverse();
-            Matrix4 m_camera = camera.cameraMatrix();
+            Matrix4 m_camera = camera.getCameraMatrix();
             Matrix4 m_mat = m_worldToCamera * m_camera;
             BindVSData(0, m_mat.getRawData(), sizeof(Matrix4));
         }
-        BindVSData(1, debug_points.data(), debug_points.size() * sizeof(PointData));
+        BindVSData(1, VisualDebug::points.data(), VisualDebug::points.size() * sizeof(PointData));
         renderMesh(*cube, id, scene, "DebugPoint", true);
 
         /* Presenting */
         swap_chain->Present(1, 0);
+
+        /* Finishing */
+        // Clearing debug point vector
+        VisualDebug::points.clear();
     }
 
     // TraverseSceneGraph:
@@ -242,7 +246,7 @@ namespace Graphics
 
             // Bind transformation matrices to pipeline
             Matrix4 m_worldToCamera = camera.getTransform().transformMatrix().inverse();
-            Matrix4 m_camera = camera.cameraMatrix();
+            Matrix4 m_camera = camera.getCameraMatrix();
 
             // Create & populate struct with data
             TransformData transform_data;
@@ -368,7 +372,7 @@ namespace Graphics
         if (!instancing)
             device_context->DrawIndexed(num_indices, 0, 0);
         else
-            device_context->DrawIndexedInstanced(num_indices, debug_points.size(), 0, 0, 1);
+            device_context->DrawIndexedInstanced(num_indices, VisualDebug::points.size(), 0, 0, 1);
     }
 
     

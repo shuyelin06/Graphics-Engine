@@ -29,10 +29,10 @@ namespace Math
 	// Returns the 4x4 identity matrix
 	Matrix4 Matrix4::identity()
 	{
-		return Matrix4(1,0,0,0,
-						0,1,0,0,
-						0,0,1,0,
-						0,0,0,1);
+		return Matrix4( 1, 0, 0, 0,
+						0, 1, 0, 0,
+						0, 0, 1, 0,
+						0, 0, 0, 1 );
 	}
 
 	/* --- Matrix Operations --- */

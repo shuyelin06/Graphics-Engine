@@ -5,6 +5,8 @@
 
 #include <string>
 
+// TODO: Add materials
+
 namespace Engine
 {
 namespace Graphics

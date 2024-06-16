@@ -1,7 +1,7 @@
 // Ensure that the UNICODE symbol is defined
 #ifndef UNICODE
 #define UNICODE
-#endif 
+#endif
 
 // Assertions
 #include <assert.h>
@@ -27,6 +27,7 @@
 #include <time.h>
 
 // Main Engine Inclusions
+#include "simulation/SimulationEngine.h"  // Simulation Engine
 #include "rendering/VisualEngine.h" // Graphics Engine
 #include "input/InputEngine.h"		// Input Engine
 
@@ -43,6 +44,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 using namespace std;
 
 using namespace Engine;
+
+using namespace Engine::Simulation;
 using namespace Engine::Datamodel;
 using namespace Engine::Input;
 using namespace Engine::Graphics;
@@ -52,6 +55,15 @@ static InputEngine input_engine = InputEngine();
 static Scene* _scene;
 static Terrain* terrain;
 static int config;
+
+static bool TestFunction(InputData data)
+{
+    if (data.input_type == SYMBOL_DOWN)
+    {
+        return true;
+    }
+    return false;
+}
 
 // Main Function
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
@@ -96,6 +108,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     VisualEngine graphics_engine = VisualEngine();
     graphics_engine.initialize(hwnd);
 
+    /* Create and Initialize Physics Engine */
+    SimulationEngine simulation_engine = SimulationEngine();
+    simulation_engine.initalize();
+
     // Set screen center
     {
         RECT window_rect;
@@ -130,7 +146,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
     // Create Lights
     const int NUM_LIGHTS = 5;
-    
+
     for (int i = 0; i < NUM_LIGHTS; i++)
     {
         Light& light = scene.createLight();
@@ -152,20 +168,29 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         // Begin counting milliseconds elapsed for framerate
         framerate_watch.Reset();
 
-        // Handle Input
-        {
-            // Drain and process all queued messages
-            while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
-                TranslateMessage(&msg);
-                DispatchMessage(&msg);
+        // --- Process Input Data ---
+        // Drain and process all queued messages
+        while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
 
-                if (msg.message == WM_QUIT)
-                    return 0;
-            }
-
-            // Handle mouse x camera movement 
-            input_engine.updateCameraView();
+            if (msg.message == WM_QUIT)
+                return 0;
         }
+
+        // Dispatch accumulated input data
+        input_engine.dispatch();
+
+        // Handle mouse x camera movement 
+        // TODO: Integrate this with the existing input pipeline
+        input_engine.updateCameraView();
+
+        // --- Object Behavioral Update ---
+        scene.getCamera().update();
+        for (Object* object : scene.getObjects())
+            object->update();
+
+        // --- Physics Pass ---
         
         // Handle Physics
         {
@@ -186,7 +211,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
                 // Update Velocity
                 velocity += acceleration * time_elapsed;
-                
+
                 // Update Position
                 transform.offsetPosition(velocity.x * time_elapsed, velocity.y * time_elapsed, velocity.z * time_elapsed);
 
@@ -215,9 +240,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             // Reset watch
             physics_watch.Reset();
         }
-        
+
         // Handle Rendering
-        graphics_engine.render(scene);    
+        graphics_engine.render(scene);
 
         // Stall until enough time has elapsed for 60 frames / second
         while (framerate_watch.Duration() < 1 / 60.f) {}
@@ -232,66 +257,32 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch (uMsg)
     {
+    // Destroys the Application on any Force Quit or Escape
     case WM_DESTROY:
     {
         ClipCursor(NULL);
         PostQuitMessage(0);
     }
     return 0;
+
     
     // Key Down
     case WM_KEYDOWN:
     {
-        int keycode = wParam;
-
-        /*
-        if (keycode == 0x53 && terrain != NULL)
+        // Escape will always quit the application, just in case
+        if (wParam == VK_ESCAPE)
         {
-            terrain->checkConfiguration(config++);
-
-            _scene->clearObjects();
-
-            const int NUM_OBJECTS = 2;
-
-            for (int i = 0; i < NUM_OBJECTS; i++)
-            {
-                for (int j = 0; j < NUM_OBJECTS; j++)
-                {
-                    for (int k = 0; k < NUM_OBJECTS; k++)
-                    {
-                        Object& object = _scene->createObject();
-                        Transform& transform = object.getTransform();
-
-                        object.setMesh(Mesh::GetMesh("Cube"));
-                        if (_scene->getTerrain().samplePoint(i, j, k) >= 6.5f)
-                        {
-                            float scale = _scene->getTerrain().samplePoint(i, j, k);
-                            transform.setScale(2.5f, 2.5f, 2.5f);
-                        }
-                        else {
-                            transform.setScale(0.35f, 0.35f, 0.35f);
-                        }
-
-                        transform.setPosition(i * 7.5f, j * 7.5f, k * 7.5f);
-                    }
-                }
-
-            }
-
+            ClipCursor(NULL);
+            PostQuitMessage(0);
+            return 0;
         }
-        */
-
-        input_engine.handleKeyDown(keycode);
+        input_engine.logWin32Input(uMsg, wParam);
     }
     break;
 
     // Key Up
     case WM_KEYUP:
-    {
-        int keycode = wParam;
-
-        input_engine.handleKeyUp(keycode);
-    }
+        input_engine.logWin32Input(uMsg, wParam);
     break;
 
 

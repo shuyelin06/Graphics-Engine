@@ -16,6 +16,10 @@ namespace Datamodel
 	class Camera: public Object
 	{
 	private:
+		// Local cache of the world -> camera matrix to avoid 
+		// extra unnecessary computations
+		Matrix4 cameraMatrix;
+
 		float fov;
 
 		float z_near;
@@ -25,11 +29,22 @@ namespace Datamodel
 		Camera();
 		Camera(float fov);
 
+		// @Overriden
+		// Handle Camera Movement
+		void update();
+
+		// Get the local -> camera space matrix
+		const Matrix4& getCameraMatrix(void) const;
+
+		// Get the camera's attributes
 		float getFOV() const;
 		float getZNear() const;
 		float getZFar() const;
 
+		// Set the camera's attributes
 		void setFOV(float new_fov);
+		void setZNear(float new_znear);
+		void setZFar(float new_zfar);
 
 		// Overridden rotation method that will clamp the angle
 		void offsetRotation(float x, float y, float z);
@@ -38,8 +53,10 @@ namespace Datamodel
 		Vector3 forward();	// Camera forward vector
 		Vector3 right();	// Camera right vector
 
-		// Local -> Camera Matrix
-		Matrix4 cameraMatrix(void) const;
+		
+	private:
+		// Generate the local -> camera space matrix
+		void generateCameraMatrix(void);
 	};
 }
 }

@@ -155,6 +155,8 @@
     <ClCompile Include="src\datamodel\Scene.cpp" />
     <ClCompile Include="src\datamodel\Terrain.cpp" />
     <ClCompile Include="src\datamodel\Transform.cpp" />
+    <ClCompile Include="src\input\callbacks\InputPoller.cpp" />
+    <ClCompile Include="src\input\InputCallback.cpp" />
     <ClCompile Include="src\math\Compute.cpp" />
     <ClCompile Include="src\datamodel\Object.cpp" />
     <ClCompile Include="src\input\InputEngine.cpp" />
@@ -164,11 +166,12 @@
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\math\Matrix4.cpp" />
     <ClCompile Include="src\math\Vector4.cpp" />
+    <ClCompile Include="src\simulation\SimulationEngine.cpp" />
     <ClCompile Include="src\rendering\Mesh.cpp" />
     <ClCompile Include="src\rendering\parsers\CubeGenerator.cpp" />
     <ClCompile Include="src\rendering\parsers\OBJParser.cpp" />
     <ClCompile Include="src\rendering\parsers\PLYParser.cpp" />
-    <ClCompile Include="src\rendering\parsers\Test.cpp" />
+    <ClCompile Include="src\rendering\VisualDebug.cpp" />
     <ClCompile Include="src\rendering\VisualEngine.cpp" />
     <ClCompile Include="src\utility\Stopwatch.cpp" />
   </ItemGroup>
@@ -177,6 +180,9 @@
     <ClInclude Include="src\datamodel\Scene.h" />
     <ClInclude Include="src\datamodel\Terrain.h" />
     <ClInclude Include="src\datamodel\Transform.h" />
+    <ClInclude Include="src\input\callbacks\InputPoller.h" />
+    <ClInclude Include="src\input\InputCallback.h" />
+    <ClInclude Include="src\input\InputData.h" />
     <ClInclude Include="src\math\Compute.h" />
     <ClInclude Include="src\datamodel\Object.h" />
     <ClInclude Include="src\input\InputEngine.h" />
@@ -185,12 +191,13 @@
     <ClInclude Include="src\math\Vector3.h" />
     <ClInclude Include="src\math\Matrix4.h" />
     <ClInclude Include="src\math\Vector4.h" />
-    <ClInclude Include="src\physics\PhysicsBehavior.h" />
-    <ClInclude Include="src\physics\PhysicsEngine.h" />
+    <ClInclude Include="src\simulation\Dynamics.h" />
+    <ClInclude Include="src\simulation\SimulationEngine.h" />
     <ClInclude Include="src\rendering\Direct3D11.h" />
     <ClInclude Include="src\rendering\Material.h" />
     <ClInclude Include="src\rendering\Mesh.h" />
     <ClInclude Include="src\rendering\ShaderData.h" />
+    <ClInclude Include="src\rendering\VisualDebug.h" />
     <ClInclude Include="src\rendering\VisualEngine.h" />
     <ClInclude Include="src\utility\Stopwatch.h" />
   </ItemGroup>

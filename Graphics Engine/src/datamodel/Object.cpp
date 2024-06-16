@@ -37,6 +37,12 @@ namespace Datamodel
 			delete child;
 	}
 
+	// Update:
+	// Empty method which can be overriden for object-specific
+	// behaviors
+	void Object::update() { }
+
+
 	/* --- Accessors --- */
 	// GetParent:
 	// Returns the object's parent
