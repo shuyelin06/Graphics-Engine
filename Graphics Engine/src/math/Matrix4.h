@@ -36,9 +36,10 @@ namespace Math
 		float minor(int row, int col) const;
 		float cofactor(int row, int col) const;
 
-		float* const operator[](int); // Access an element by index
+		float* const operator[](int);
+		const float* const operator[](int) const;
 
-		Matrix4 operator*(Matrix4&) const;
+		Matrix4 operator*(const Matrix4&) const;
 		Vector4 operator*(const Vector4&) const;
 		Matrix4 operator*(const float) const;
 		Matrix4 operator/(const float) const;

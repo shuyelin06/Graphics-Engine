@@ -23,17 +23,25 @@ namespace Datamodel
 		Transform();
 
 		// Get and set the transform properties
-		const Vector3 getPosition() const;
+		const Vector3& getPosition() const;
 		void setPosition(float x, float y, float z);
 		void offsetPosition(float x, float y, float z);
 
-		const Vector3 getRotation() const;
+		const Vector3& getRotation() const;
 		void setRotation(float roll, float yaw, float pitch);
 		void offsetRotation(float roll, float yaw, float pitch);
 
-		const Vector3 getScale() const;
+		const Vector3& getScale() const;
 		void setScale(float x, float y, float z);
 		void offsetScale(float x, float y, float z);
+
+		// Get directional vectors based on the rotation
+		Vector3 forwardVector(void) const;
+		Vector3 backwardVector(void) const;
+		Vector3 rightVector(void) const;
+		Vector3 leftVector(void) const;
+		Vector3 upVector(void) const;
+		Vector3 downVector(void) const;
 
 		// Generates transformation matrices based off transform
 		Matrix4 transformMatrix(void) const;

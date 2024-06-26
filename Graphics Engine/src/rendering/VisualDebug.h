@@ -38,7 +38,7 @@ namespace Graphics
 	// Note: All debug rendering data is cleared after every frame
 	class VisualDebug
 	{
-	friend class VisualEngine;
+	friend class VisualSystem;
 
 	private:
 		static std::vector<PointData> points;

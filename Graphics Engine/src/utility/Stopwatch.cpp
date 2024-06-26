@@ -21,9 +21,9 @@ namespace Utility
 		start_time = steady_clock::now();
 	}
 
-	// End:
-	// Ends the stopwatch and calculates / returns the difference
-	// between the start and end time.
+	// Duration:
+	// Calculates / returns the difference
+	// between the current time and the last Reset.
 	double Stopwatch::Duration() 
 	{
 		// Find end time

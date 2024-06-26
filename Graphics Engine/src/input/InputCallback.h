@@ -15,7 +15,7 @@ namespace Input
 	class InputCallback
 	{
 	private:
-		friend class InputEngine;
+		friend class InputSystem;
 
 		static std::vector<bool (*)(InputData)> handlesToAdd;
 		static std::vector<bool (*)(InputData)> handlesToRemove;

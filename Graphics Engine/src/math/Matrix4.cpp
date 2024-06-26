@@ -165,9 +165,17 @@ namespace Math
 		return data[row];
 	}
 
+	// Index (Constant Version):
+	// Access a given element of the matrix by row
+	// and col indices
+	const float* const Matrix4::operator[](int row) const
+	{
+		return data[row];
+	}
+
 	// Multiply (Matrix):
 	// Multiplies two Matrix4's together
-	Matrix4 Matrix4::operator*(Matrix4& matrix) const
+	Matrix4 Matrix4::operator*(const Matrix4& matrix) const
 	{
 		Matrix4 new_matrix = Matrix4();
 

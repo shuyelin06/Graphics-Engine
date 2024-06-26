@@ -33,9 +33,9 @@ namespace Math
 		Vector4 operator*(const Vector4&) const;
 		Vector4 operator/(const Vector4&) const;
 		
-		static Vector4 PositiveXW();
-		static Vector4 PositiveYW();
-		static Vector4 PositiveZW();
+		static Vector4 PositiveXW(); // (1,0,0,1)
+		static Vector4 PositiveYW(); // (0,1,0,1)
+		static Vector4 PositiveZW(); // (0,0,1,1)
 	};
 
 } // Namespace Math

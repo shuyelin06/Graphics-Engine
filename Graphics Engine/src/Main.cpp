@@ -26,44 +26,31 @@
 #include <stdlib.h>
 #include <time.h>
 
-// Main Engine Inclusions
-#include "simulation/SimulationEngine.h"  // Simulation Engine
-#include "rendering/VisualEngine.h" // Graphics Engine
-#include "input/InputEngine.h"		// Input Engine
-
-#include "datamodel/Scene.h"
+#include "simulation/PhysicsSystem.h"
+#include "rendering/VisualSystem.h"
+#include "input/InputSystem.h"
 
 #include "math/Compute.h"
-
-// TEST
 #include "utility/Stopwatch.h"
 
-// Function Declaration
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-
-using namespace std;
-
 using namespace Engine;
-
 using namespace Engine::Simulation;
 using namespace Engine::Datamodel;
 using namespace Engine::Input;
 using namespace Engine::Graphics;
 
-static InputEngine input_engine = InputEngine();
+// Macro for creating new components
+#define NEW_COMPONENT(System, ComponentType) System.ComponentHandler<ComponentType>::createComponent()
 
-static Scene* _scene;
-static Terrain* terrain;
-static int config;
+// Handles windows messages, including input.
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-static bool TestFunction(InputData data)
-{
-    if (data.input_type == SYMBOL_DOWN)
-    {
-        return true;
-    }
-    return false;
-}
+// Updates all object transforms and caches their matrices prior to any
+// physics or render calls.
+void UpdateObjectTransforms(Object* object, const Matrix4& m_parent);
+
+// Static reference to the input system for use in the window message callback
+static InputSystem input_system;
 
 // Main Function
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
@@ -104,64 +91,57 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
     ShowWindow(hwnd, nCmdShow); // Set Window Visible
 
-    /* Create and Initialize Engines */
-    VisualEngine graphics_engine = VisualEngine();
-    graphics_engine.initialize(hwnd);
-
-    /* Create and Initialize Physics Engine */
-    SimulationEngine simulation_engine = SimulationEngine();
-    simulation_engine.initalize();
-
-    // Set screen center
-    {
-        RECT window_rect;
-        GetWindowRect(hwnd, &window_rect);
-
-        int center_x = (window_rect.right - window_rect.left) / 2;
-        int center_y = (window_rect.bottom - window_rect.top) / 2;
-        input_engine.setScreenCenter(center_x, center_y);
-    }
-
-    /* Seed Random Number Generator */
+    // Seed Random Number Generator
     srand(0);
-    // time(NULL)
 
-    /* Load All Meshes */
+    // Create Input System
+    input_system = InputSystem();
+    input_system.initialize();
+
+    // Create Visual System
+    VisualSystem visual_system = VisualSystem(hwnd);
+    visual_system.initialize();
+
+    // Create Physics System
+    PhysicsSystem physics_system = PhysicsSystem();
+    physics_system.initialize();
+
+    // Load All Meshes
     Mesh::LoadMeshes();
 
-    /* Initialize Scene */
-    Scene scene = Scene();
-    input_engine.setScene(&scene);
-    terrain = &(scene.getTerrain());
-    _scene = &scene;
+    // Create Object Hierarchy
+    // TODO:
+    Object* parent_object = new Object();
 
-    // Create Objects
+    // Create a camera
+    Object& camera = parent_object->createChild();
+    camera.getTransform().setPosition(0, 0, -25);
 
+    camera.registerComponent(NEW_COMPONENT(visual_system, ViewComponent));
+    camera.registerComponent(NEW_COMPONENT(input_system, MovementComponent));
+    
+    // TEMP
+    camera.registerComponent(NEW_COMPONENT(visual_system, LightComponent));
 
-    /*
-    Object& parent = scene.createObject();
-    parent.setMesh(Mesh::GetMesh("Cube"));
-    parent.getTransform().setScale(30, 2, 30);
-    */
-
-    // Create Lights
-    const int NUM_LIGHTS = 5;
-
-    for (int i = 0; i < NUM_LIGHTS; i++)
+    // Create some objects
+    for (int i = 0; i < 50; i++)
     {
-        Light& light = scene.createLight();
-        Transform& transform = light.getTransform();
+        Object& child = parent_object->createChild();
+        child.getTransform().setScale(5, 5, 5);
+        child.getTransform().setPosition(Compute::random(-25, 25), Compute::random(-25, 25), Compute::random(-25, 25));
+        
+        MeshComponent* mesh_component = visual_system.ComponentHandler<MeshComponent>::createComponent();
+        mesh_component->setMesh(Mesh::GetMesh("Cube"));
 
-        light.setMesh(Mesh::GetMesh("Cube"));
-        transform.setPosition(Compute::random(-20, 20), Compute::random(-20, 20), Compute::random(-20, 20));
+        child.registerComponent<MeshComponent>(mesh_component);
     }
 
+    
     // Begin window messaging loop
     MSG msg = { };
     bool close = false;
 
     Utility::Stopwatch framerate_watch = Utility::Stopwatch();
-    Utility::Stopwatch physics_watch = Utility::Stopwatch();
 
     // Main loop: runs once per frame
     while (!close) {
@@ -178,79 +158,79 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
                 return 0;
         }
 
-        // Dispatch accumulated input data
-        input_engine.dispatch();
-
-        // Handle mouse x camera movement 
-        // TODO: Integrate this with the existing input pipeline
-        input_engine.updateCameraView();
-
-        // --- Object Behavioral Update ---
-        scene.getCamera().update();
-        for (Object* object : scene.getObjects())
-            object->update();
-
-        // --- Physics Pass ---
+        // Update Object Transforms
+        Matrix4 identity = Matrix4::identity();
+        UpdateObjectTransforms(parent_object, identity);
         
-        // Handle Physics
-        {
-            // Determine time elapsed for physics updating
-            double time_elapsed = physics_watch.Duration();
+        // Dispatch Input Data
+        input_system.update();
 
-            vector<Object*>& objects = scene.getObjects();
-
-            for (int i = 0; i < objects.size(); i++)
-            {
-                Object* o = objects[i];
-
-                Transform& transform = o->getTransform();
-                Vector3& velocity = o->getVelocity();
-                Vector3& acceleration = o->getAcceleration();
-
-                transform.offsetRotation(0, 0.01f, 0);
-
-                // Update Velocity
-                velocity += acceleration * time_elapsed;
-
-                // Update Position
-                transform.offsetPosition(velocity.x * time_elapsed, velocity.y * time_elapsed, velocity.z * time_elapsed);
-
-                // Dampen Velocity
-                Vector3 newVelocity = velocity * 0.85f;
-                velocity.x = newVelocity.x;
-                velocity.y = newVelocity.y;
-                velocity.z = newVelocity.z;
-            }
-
-            Vector3& velocity = scene.getCamera().getVelocity();
-            Vector3& acceleration = scene.getCamera().getAcceleration();
-
-            // Update Velocity
-            velocity += acceleration * time_elapsed;
-
-            // Update Position
-            scene.getCamera().getTransform().offsetPosition(velocity.x * time_elapsed, velocity.y * time_elapsed, velocity.z * time_elapsed);
-
-            // Dampen Velocity
-            Vector3 newVelocity = velocity * 0.85f;
-            velocity.x = newVelocity.x;
-            velocity.y = newVelocity.y;
-            velocity.z = newVelocity.z;
-
-            // Reset watch
-            physics_watch.Reset();
-        }
-
-        // Handle Rendering
-        graphics_engine.render(scene);
+        // Update Physics System
+        physics_system.update();
+        
+        // Update Rendering System
+        visual_system.update();
 
         // Stall until enough time has elapsed for 60 frames / second
         while (framerate_watch.Duration() < 1 / 60.f) {}
     }
 
+    /*
+    * 
+        // Handle mouse x camera movement 
+        // TODO: Integrate this with the existing input pipeline
+        input_system.updateCameraView();
+
+
+    // Set screen center
+    {
+        RECT window_rect;
+        GetWindowRect(hwnd, &window_rect);
+
+        int center_x = (window_rect.right - window_rect.left) / 2;
+        int center_y = (window_rect.bottom - window_rect.top) / 2;
+        input_system.setScreenCenter(center_x, center_y);
+    }
+
+
+
+
+    // Create Lights
+    const int NUM_LIGHTS = 5;
+
+    for (int i = 0; i < NUM_LIGHTS; i++)
+    {
+        Light& light = scene.createLight();
+        Transform& transform = light.getTransform();
+
+        light.setMesh(Mesh::GetMesh("Cube"));
+        transform.setPosition(Compute::random(-20, 20), Compute::random(-20, 20), Compute::random(-20, 20));
+    }
+    */
+
     // Finish
     return 0;
 }
+
+// UpdateObjectTransforms:
+// Recursively traverses a scene hierarchy and updates the Local -> World
+// matrix for every object. Does this efficiently by using the matrix
+// for each object's parent. 
+void UpdateObjectTransforms(Object* object, const Matrix4& m_parent)
+{
+    // Object pointer should never be a null pointer.
+    if (object == nullptr)
+        assert(false);
+
+    // Update the object local matrix, and save it for the recursive call
+    // on its (potential) children.
+    Matrix4 m_local = object->updateLocalMatrix(m_parent);
+
+    for (Object* child : object->getChildren())
+        UpdateObjectTransforms(child, m_local);
+}
+
+
 
 // Defines the behavior of the window (appearance, user interaction, etc)
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -276,13 +256,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             PostQuitMessage(0);
             return 0;
         }
-        input_engine.logWin32Input(uMsg, wParam);
+        input_system.logWin32Input(uMsg, wParam);
     }
     break;
 
     // Key Up
     case WM_KEYUP:
-        input_engine.logWin32Input(uMsg, wParam);
+        input_system.logWin32Input(uMsg, wParam);
     break;
 
 

@@ -2,6 +2,30 @@
 
 #include <math.h>
 
+/*
+TODO:
+// Calculate camera's forward viewing vector
+	Vector3 Camera::forward()
+	{
+		// Get rotation matrix
+		Matrix4 rotation_matrix = transform.rotationMatrix().tranpose();
+
+		// Camera is by default looking in the +Z axis
+		Vector4 view = rotation_matrix * Vector4::PositiveZW();
+		return view.toVector3();
+	}
+
+	// Calculate camera's right viewing vector
+	Vector3 Camera::right()
+	{
+		// Get rotation matrix
+		Matrix4 rotation_matrix = transform.rotationMatrix().tranpose();
+
+		// Camera's left is by default looking in the +X axis
+		Vector4 view = rotation_matrix * Vector4::PositiveXW();
+		return view.toVector3();
+	}
+*/
 using namespace std;
 
 namespace Engine
@@ -19,7 +43,7 @@ namespace Datamodel
 
 	// GetPosition:
 	// Gets an object's position
-	const Vector3 Transform::getPosition() const
+	const Vector3& Transform::getPosition() const
 	{
 		return position_local;
 	}
@@ -42,7 +66,7 @@ namespace Datamodel
 
 	// GetRotation:
 	// Returns an object's rotation
-	const Vector3 Transform::getRotation() const
+	const Vector3& Transform::getRotation() const
 	{
 		return rotation;
 	}
@@ -65,7 +89,7 @@ namespace Datamodel
 
 	// GetScale:
 	// Get an object's scale
-	const Vector3 Transform::getScale() const
+	const Vector3& Transform::getScale() const
 	{
 		return scale;
 	}
@@ -86,6 +110,57 @@ namespace Datamodel
 		setScale(scale.x + x, scale.y + y, scale.z + z);
 	}
 
+	// ForwardVector:
+	// Returns the (local) forward vector for the transform. This is
+	// equivalent to the rotated Z-axis.
+	Vector3 Transform::forwardVector(void) const
+	{
+		Vector4 result = rotationMatrix().tranpose() * Vector4::PositiveZW();
+		return result.toVector3();
+	}
+	
+	// BackwardVector:
+	// Returns the (local) backward vector for the transform.
+	// This is equivalent to the rotated negative Z-axis
+	Vector3 Transform::backwardVector(void) const
+	{
+		return -forwardVector();
+	}
+
+	// RightVector:
+	// Returns the (local) right vector for the transform.
+	// This is equivalent to the rotated X-axis
+	Vector3 Transform::rightVector(void) const
+	{
+		Vector4 result = rotationMatrix().tranpose() * Vector4::PositiveXW();
+		return result.toVector3();
+	}
+
+	// LeftVector
+	// Returns the (local) left vector for the transform.
+	// This is equivalent to the rotated negative X-axis.
+	Vector3 Transform::leftVector(void) const
+	{
+		return -rightVector();
+	}
+
+	// UpVector:
+	// Returns the (local) up vector for the transform. 
+	// This is equivalent to the rotated Y-axis.
+	Vector3 Transform::upVector(void) const
+	{
+		Vector4 result = rotationMatrix().tranpose() * Vector4::PositiveYW();
+		return result.toVector3();
+	}
+
+	// DownVector:
+	// Returns the (local) up vector for the transform. 
+	// This is equivalent to the rotated negative Y-axis.
+	Vector3 Transform::downVector(void) const
+	{
+		return -upVector();
+	}
+	
 	// TransformMatrix:
 	// Returns the 4x4 matrix representing the scale, rotation,
 	// and translations for a given transform

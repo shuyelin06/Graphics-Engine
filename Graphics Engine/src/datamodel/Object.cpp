@@ -1,5 +1,7 @@
 #include "Object.h"
 
+#include "Component.h"
+
 #include <math.h>
 
 namespace Engine
@@ -8,7 +10,7 @@ using namespace Math;
 
 namespace Datamodel
 {
-	/* --- Constructors --- */
+	/* --- Constructors / Destructors --- */
 	// Constructor:
 	// Creates an object with no parent and a 
 	// local position of (0,0,0)
@@ -20,108 +22,74 @@ namespace Datamodel
 		
 		// Default transform
 		transform = Transform();
-
-		// Objects are by default not renderable
-		mesh = nullptr;
-
-		// No velocity or acceleration
-		velocity = Vector3();
-		acceleration = Vector3();
 	}
 
 	// Destructor:
-	// Frees all children of the object
+	// Frees all memory allocated for this object, including children
+	// and components.
 	Object::~Object()
 	{
+		// Deallocate components
+		for (auto& pair : components)
+			delete pair.second;
+
+		// Deallocate children
 		for (Object* child : children)
 			delete child;
 	}
 
-	// Update:
-	// Empty method which can be overriden for object-specific
-	// behaviors
-	void Object::update() { }
-
-
-	/* --- Accessors --- */
+	/* --- Object Hierarchy Methods --- */
 	// GetParent:
-	// Returns the object's parent
+	// Returns the object's parent. Returns nullptr if the parent does
+	// not exist.
 	Object* Object::getParent() const
-	{
-		return parent;
-	}
+		{ return parent; }
 
 	// GetChildren:
 	// Returns the object's children
 	std::vector<Object*>& Object::getChildren()
-	{
-		return children;
-	}
-
-	// GetTransform:
-	// Returns the object's transform property
-	Transform& Object::getTransform()
-	{
-		return transform;
-	}
-	
-	// GetVelocity:
-	// Returns the object's velocity
-	Vector3& Object::getVelocity()
-	{
-		return velocity;
-	}
-
-	// GetAcceleration:
-	// Returns the object's acceleration
-	Vector3& Object::getAcceleration()
-	{
-		return acceleration;
-	}
-
-	// GetMesh:
-	// Returns the object's renderable mesh
-	Mesh* Object::getMesh() const
-	{
-		return mesh;
-	}
-
-	// SetParent:
-	// Sets the Object's parent
-	void Object::setParent(Object* _parent)
-	{
-		parent = _parent;
-	}
-
-	// SetMesh
-	// Sets the object's mesh
-	void Object::setMesh(Mesh* _mesh)
-	{
-		mesh = _mesh;
-	}
+		{ return children; }
 
 	// CreateChild:
-	// Creates a child of the object
+	// Creates a child of the object and returns it
 	Object& Object::createChild()
 	{
 		Object* child = new Object();
+		child->parent = this;
 		children.push_back(child);
+
 		return *child;
 	}
 
-	// LocalToWorldMatrix:
-	// Returns an object's LocalToWorld transformation matrix
-	Matrix4 Object::localToWorldMatrix() const
+	
+	/* --- Transform Methods --- */
+	// GetTransform:
+	// Returns the object's transform property
+	Transform& Object::getTransform()
+		{ return transform; }
+
+	// GetLocalToWorldMatrix:
+	// Returns the Object's Local -> World matrix. This can be used
+	// to transform points in the object's local space into world space.
+	const Math::Matrix4& Object::getLocalMatrix() const
+		{ return m_local; }
+
+	// UpdateLocalToWorldMatrix:
+	// Update the Local -> World matrix for the object, given the 
+	// parent's Local -> World matrix.
+	// This method is called in an update pre-pass every frame, and lets us
+	// cache the matrix to save computation.
+	const Math::Matrix4& Object::updateLocalMatrix(const Math::Matrix4& m_parent)
 	{
-		// Get local transformation matrix 
-        Matrix4 m_local = transform.transformMatrix();
+		// Generate local transform
+		Matrix4 m_local_transform = transform.transformMatrix();
+		Matrix4 m_parent_transform = m_parent;
+		
+		// Update local matrix.
+		m_local = m_local_transform * m_parent_transform;
 
-        // If parent exists, get parent transformation matrix;
-        Matrix4 m_parent = (parent == nullptr) ? Matrix4::identity() : parent->localToWorldMatrix();
-
-		// Build final matrix - multiplication is in order of left first to right
-        // (row-major multiplication)
-        return m_local * m_parent;
+		return m_local;
 	}
+	
 }
 }
