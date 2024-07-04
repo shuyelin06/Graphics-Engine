@@ -13,23 +13,47 @@ namespace Graphics
 {
 	// Constructor
 	// Initializes the camera component with some default values.
-	ViewComponent::ViewComponent(Datamodel::ComponentHandler<ViewComponent>* _handler)
-		: Datamodel::Component<ViewComponent>(handler)
+	ViewComponent::ViewComponent(Datamodel::Object* object, VisualSystem* system)
+		: VisualComponent(object, system)
 	{
 		fov = 1.2f;
 		z_near = 1.f;
 		z_far = 200.f;
+	}
 
-		generateProjectionMatrix();
+	ViewComponent::~ViewComponent()
+	{
+		system->removeViewComponent(this);
+	}
+
+	// LoadViewData:
+	// Calculates and loads per-view data into constant buffer 1. 
+	// This includes
+	// - World to View Transform
+	// - Projection Transform 
+	// Should be called alongside some call to set a render view.
+	void ViewComponent::loadViewData(VisualSystem* system) const
+	{
+		// Get device context
+		ID3D11DeviceContext* device_context = system->getDeviceContext();
+
+		// Generate view structure data
+		ViewData view_data = { };
+
+		view_data.view_matrix = object->getLocalMatrix().inverse();
+		view_data.projection_matrix = generateProjectionMatrix();
+
+		// Load this view data into the vertex shader's constant buffer 1
+		system->BindVSData(CB_Type::PER_VIEW, &view_data, sizeof(ViewData));
 	}
 
 	// --- Accessors ---
 	// GetCameraMatrix:
 	// Returns a reference to the camera's precomputed world -> camera
 	// space matrix.
-	const Matrix4& ViewComponent::getProjectionMatrix(void) const
+	const Matrix4 ViewComponent::getProjectionMatrix(void) const
 	{
-		return projection_matrix;
+		return generateProjectionMatrix();
 	}
 
 	// GetFov: 
@@ -65,7 +89,6 @@ namespace Graphics
 	void ViewComponent::setFOV(float new_fov)
 	{
 		fov = Compute::clamp(new_fov, 0.5f, PI - 0.5f);
-		generateProjectionMatrix();
 	}
 
 	// SetZNear:
@@ -73,7 +96,6 @@ namespace Graphics
 	void ViewComponent::setZNear(float new_znear)
 	{
 		z_near = new_znear;
-		generateProjectionMatrix();
 	}
 
 	// SetZFar:
@@ -81,7 +103,6 @@ namespace Graphics
 	void ViewComponent::setZFar(float new_zfar)
 	{
 		z_far = new_zfar;
-		generateProjectionMatrix();
 	}
 
 	// --- Private Helpers --- 
@@ -89,8 +110,10 @@ namespace Graphics
 	// Generates the local -> camera space matrix. Separating this
 	// from the matrix retrieval lets us avoid recomputing this matrix
 	// more than necessary. This is called internally when the camera is updated.
-	void ViewComponent::generateProjectionMatrix(void)
+	Matrix4 ViewComponent::generateProjectionMatrix(void) const
 	{
+		Matrix4 projection_matrix = Matrix4();
+
 		float fov_factor = cosf(fov / 2.f) / sinf(fov / 2.f);
 
 		projection_matrix[0][0] = fov_factor / ASPECT_RATIO;
@@ -98,6 +121,8 @@ namespace Graphics
 		projection_matrix[2][2] = z_far / (z_far - z_near);
 		projection_matrix[2][3] = 1;
 		projection_matrix[3][2] = (z_near * z_far) / (z_near - z_far);
+
+		return projection_matrix;
 	}
 }
 }

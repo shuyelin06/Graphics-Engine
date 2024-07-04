@@ -12,8 +12,8 @@ namespace Simulation
 	// Registers the kinematic component with the
 	// engine's PhysicsSystem, and initializes its
 	// fields to 0.
-	KinematicComponent::KinematicComponent(Datamodel::ComponentHandler<KinematicComponent>* _handler) : 
-		Component<KinematicComponent>(handler),
+	KinematicComponent::KinematicComponent(Object* object, PhysicsSystem* system) : 
+		Component(object),
 		velocity(), acceleration()
 	{
 

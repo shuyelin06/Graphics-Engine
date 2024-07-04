@@ -23,6 +23,11 @@ namespace Graphics
     // system's data structures
     VisualSystem::VisualSystem(HWND _window)
     {
+        // Components
+        light_components = std::vector<LightComponent*>();
+        mesh_components = std::vector<MeshComponent*>();
+        view_components = std::vector<ViewComponent*>();
+
         window = _window;
 
         device = NULL;
@@ -131,51 +136,49 @@ namespace Graphics
 
         vertex_shaders["DebugPoint"] = CreateVertexShader(L"src/rendering/shaders/PointRenderer.hlsl", "vs_main", XYZ | INSTANCING);
         pixel_shaders["DebugPoint"] = CreatePixelShader(L"src/rendering/shaders/PointRenderer.hlsl", "ps_main");
+
+        vertex_shaders["Shadow"] = CreateVertexShader(L"src/rendering/shaders/ShadowShaderV.hlsl", "vs_main", XYZ | NORMAL);
+        pixel_shaders["Shadow"] = CreatePixelShader(L"src/rendering/shaders/ShadowShaderP.hlsl", "ps_main");
     }
 
     // Update:
     // Performs a render pass to render items to the screen.
     void VisualSystem::update()
     {
-        Matrix4 m_view;
-        Matrix4 m_projection;
-
-        // Clear the screen to be black
+        // Clear the the screen color
         float color[4] = { RGB(158.f), RGB(218.f), RGB(255.f), 1.0f };
         device_context->ClearRenderTargetView(render_target_view, color);
 
-        // Clear depth buffer and stencil buffer
-        LightComponent* light = ComponentHandler<LightComponent>::components[0];
+        // Load per-frame 
+        LightComponent* light = light_components[0];
+
+        light->setRenderTarget(this);
+        light->loadViewData(this);
         
-        light->setRenderTarget();
-        m_view = light->getObject()->getLocalMatrix().inverse();
-        m_projection = light->getProjectionMatrix();
+        device_context->VSSetShader(vertex_shaders["Default"], NULL, 0);
+        device_context->PSSetShader(pixel_shaders["Default"], NULL, 0); 
 
-        for (MeshComponent* mesh_component : ComponentHandler<MeshComponent>::components)
-        {
-            mesh_component->renderMesh(m_view, m_projection);
-        }
-
+        for (MeshComponent* mesh_component : mesh_components)
+            mesh_component->renderMesh(this);
 
         // Set render target
-        device_context->ClearDepthStencilView(depth_stencil, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
+        device_context->OMSetRenderTargets(1, &render_target_view, depth_stencil);
+        device_context->ClearDepthStencilView(depth_stencil, D3D11_CLEAR_DEPTH, 1.0f, 0);
+
         D3D11_VIEWPORT viewport = getViewport();
         device_context->RSSetViewports(1, &viewport);
-        device_context->OMSetRenderTargets(1, &render_target_view, depth_stencil);
-        
-        ID3D11ShaderResourceView* shader_view = light->getShaderResourceView();
-        device_context->PSSetShaderResources(0, 1, &shader_view);
 
         // Render Meshes
-        ViewComponent* view = ComponentHandler<ViewComponent>::components[0];
+        ViewComponent* view = view_components[0];
+        view->loadViewData(this);
+        
+        device_context->VSSetShader(vertex_shaders["Shadow"], NULL, 0);
+        device_context->PSSetShader(pixel_shaders["Shadow"], NULL, 0);
 
-        m_view = view->getObject()->getLocalMatrix().inverse();
-        m_projection = view->getProjectionMatrix();
+        light->bindShadowMap(this, 0);
 
-        for (MeshComponent* mesh_component : ComponentHandler<MeshComponent>::components)
-        {
-            mesh_component->renderMesh(m_view, m_projection);
-        }
+        for (MeshComponent* mesh_component : mesh_components)
+            mesh_component->renderMesh(this);
 
         // Present what we rendered to
         swap_chain->Present(1, 0);
@@ -268,11 +271,11 @@ namespace Graphics
     ViewComponent* VisualSystem::getActiveView()
     {
         // If there are no camera components, return nullptr.
-        if (ComponentHandler<ViewComponent>::components.size() == 0)
+        if (view_components.size() == 0)
             return nullptr;
         
         // Otherwise, (for now) just return the first one.
-        return ComponentHandler<ViewComponent>::components[0];
+        return view_components[0];
     }
 
     // GetMeshBuffers:
@@ -491,7 +494,7 @@ namespace Graphics
         // Initialize compiler settings
         ID3DInclude* include_settings = D3D_COMPILE_STANDARD_FILE_INCLUDE;
         const char* compiler_target = "";
-        const UINT flags = 0 | D3DCOMPILE_ENABLE_STRICTNESS;
+        const UINT flags = 0 | D3DCOMPILE_DEBUG | D3DCOMPILE_ENABLE_STRICTNESS;
 
         switch (type) {
         case Vertex:
@@ -843,5 +846,91 @@ namespace Graphics
     }
     
     */
+
+    // --- Component Handling ----
+    // MeshComponent:
+    // Allows the rendering of a mesh using the object's transform.
+    // Meshes have material properties, which specify how they are to be rendered.
+    MeshComponent* VisualSystem::bindMeshComponent(Datamodel::Object* object)
+    {
+        // Create component
+        MeshComponent* component = new MeshComponent(object, this);
+        mesh_components.push_back(component);
+
+        // Register with object
+        object->registerComponent<MeshComponent>(component);
+
+        return component;
+    }
+
+    bool VisualSystem::removeMeshComponent(MeshComponent* component)
+    {
+        auto index = std::find(mesh_components.begin(), mesh_components.end(), component);
+
+        if (index != mesh_components.end())
+        {
+            mesh_components.erase(index);
+            return true;
+        }
+        else
+            return false;
+    }
+
+    // ViewComponent:
+    // Contains data needed to render a scene from a particular view.
+    // This view can be used as a camera, or used to render to a texture
+    // (for techniques like shadowmapping)
+    ViewComponent* VisualSystem::bindViewComponent(Datamodel::Object* object)
+    {
+        // Create component
+        ViewComponent* component = new ViewComponent(object, this);
+        view_components.push_back(component);
+
+        // Register with object
+        object->registerComponent<ViewComponent>(component);
+
+        return component;
+    }
+
+    bool VisualSystem::removeViewComponent(ViewComponent* component)
+    {
+        auto index = std::find(view_components.begin(), view_components.end(), component);
+
+        if (index != view_components.end())
+        {
+            view_components.erase(index);
+            return true;
+        }
+        else
+            return false;
+    }
+
+    // LightComponent:
+    // Used to convert an object to a light source with shadows.
+    LightComponent* VisualSystem::bindLightComponent(Datamodel::Object* object)
+    {
+        // Create component
+        LightComponent* component = new LightComponent(object, this);
+        light_components.push_back(component);
+
+        // Register with object
+        object->registerComponent<LightComponent>(component);
+
+        return component;
+    }
+    
+    bool VisualSystem::removeLightComponent(LightComponent* component)
+    {
+        auto index = std::find(light_components.begin(), light_components.end(), component);
+
+        if (index != light_components.end())
+        {
+            light_components.erase(index);
+            return true;
+        }
+        else
+            return false;
+    }
+
 }
 }

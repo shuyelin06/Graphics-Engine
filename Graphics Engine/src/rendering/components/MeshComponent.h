@@ -1,8 +1,6 @@
 #pragma once
 
-#include "datamodel/ComponentHandler.h"
-#include "datamodel/Component.h"
-
+#include "VisualComponent.h"
 #include "rendering/Mesh.h"
 
 namespace Engine
@@ -12,26 +10,30 @@ namespace Graphics
 	// Forward Declare of VisualSystem
 	class VisualSystem;
 
+	struct MeshData
+	{
+		Matrix4 world_transform;
+		Matrix4 normal_transform;
+	};
+
 	// MeshComponent Class:
 	// Allows for the rendering of a triangular mesh in the scene.
 	// The mesh component contains a variety of attributes that
 	// affect what mesh is rendered, and how it is rendered.
-	class MeshComponent
-		: public Datamodel::Component<MeshComponent>
+	class MeshComponent : public VisualComponent
 	{
 	private:
-		VisualSystem* visual_system;
-
 		Mesh* mesh;
 
 	public:
-		MeshComponent(Datamodel::ComponentHandler<MeshComponent>* handler);
+		MeshComponent(Datamodel::Object* object, VisualSystem* system);
+		~MeshComponent();
 
 		// Sets the mesh to render
 		void setMesh(Mesh* _mesh);
 
 		// Renders a mesh using the VisualSystem.
-		void renderMesh(const Matrix4& view_matrix, const Matrix4& projection_matrix);
+		void renderMesh(VisualSystem* system);
 	};
 }
 }

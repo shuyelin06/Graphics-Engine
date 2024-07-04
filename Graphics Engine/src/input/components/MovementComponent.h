@@ -12,18 +12,20 @@ namespace Input
 	// MovementComponent Class:
 	// Implements basic WASD movement and mouse rotations for an object,
 	// by polling the input system.
-	class MovementComponent : 
-		public Datamodel::Component<MovementComponent>
+	class MovementComponent : public Datamodel::Component
 	{
 	private:
+		InputSystem* system;
+
 		// Center of the screen
 		int center_x, center_y;
 
 		float sensitivity;
 
 	public:
-		MovementComponent(Datamodel::ComponentHandler<MovementComponent>* handler);
-		
+		MovementComponent(Datamodel::Object* object, InputSystem* system);
+		~MovementComponent();
+
 		// Polls the input system to update the target
 		// object's transform
 		void update();

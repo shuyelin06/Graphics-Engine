@@ -7,9 +7,6 @@
 
 #include "Direct3D11.h"
 
-#include "datamodel/Subsystem.h"
-#include "datamodel/ComponentHandler.h"
-
 #include "rendering/components/LightComponent.h"
 #include "rendering/components/ViewComponent.h"
 #include "rendering/components/MeshComponent.h"
@@ -22,11 +19,22 @@ using namespace Datamodel;
 
 namespace Graphics
 {
+	// CB_Type:
+	// Represents the types of constant buffers available for rendering.
+	// The types are given in a more understandable format.
+	typedef enum 
+	{
+		PER_FRAME = 0, 
+		PER_VIEW = 1, 
+		PER_INSTANCE = 2
+	} CB_Type;
+
 	// Shader_Type Enum:
 	// Represents shader types in a more readable
 	// format, for internal use
 	typedef enum { Vertex, Pixel } Shader_Type;
 
+	
 	// MeshBuffers Struct:
 	// Stores pointers to D3D11 Index/Vertex Buffers, which are mapped to 
 	// Mesh pointers. Used to cache Index/Vertex Buffers, to avoid
@@ -38,15 +46,20 @@ namespace Graphics
 	};
 
 	// VisualSystem Class:
-	// Provides an interface for the application's graphics
+	// Provides an interface for the application's graphics.
+	// When rendering, the convention is to use the constant buffers
+	// as follows, based on update frequency:
+	// 1) Slot 1: Per-Frame Data
+	// 2) Slot 2: Per-View Data 
+	// 3) Slot 3: Per-Mesh / Instance Data 
 	class VisualSystem
-		:
-		public Datamodel::Subsystem,
-		public Datamodel::ComponentHandler<ViewComponent>,
-		public Datamodel::ComponentHandler<MeshComponent>,
-		public Datamodel::ComponentHandler<LightComponent>
 	{
 	private:
+		// Components
+		std::vector<LightComponent*> light_components;
+		std::vector<MeshComponent*> mesh_components;
+		std::vector<ViewComponent*> view_components;
+
 		// Window Handle
 		HWND window;
 
@@ -116,7 +129,16 @@ namespace Graphics
 		// Bind Data to Constant Buffers
 		void BindVSData(unsigned int index, void* data, int byte_size);
 		void BindPSData(unsigned int index, void* data, int byte_size);
-		
+
+		// --- Component Handling ---
+		MeshComponent* bindMeshComponent(Datamodel::Object* object);
+		bool removeMeshComponent(MeshComponent* component);
+
+		ViewComponent* bindViewComponent(Datamodel::Object* object);
+		bool removeViewComponent(ViewComponent* component);
+
+		LightComponent* bindLightComponent(Datamodel::Object* object);
+		bool removeLightComponent(LightComponent* component);
 
 	private:
 		void BindData(Shader_Type type, unsigned int index, void* data, int byte_size);

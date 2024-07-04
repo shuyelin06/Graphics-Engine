@@ -1,7 +1,6 @@
 #pragma once
 
-#include "datamodel/ComponentHandler.h"
-#include "datamodel/Component.h"
+#include "rendering/components/ViewComponent.h"
 
 #include "rendering/Direct3D11.h"
 #include "math/Matrix4.h"
@@ -19,35 +18,30 @@ namespace Graphics
 	// The "direction" of the light's view is given by the direction of its rotated +Z
 	// axis. To rotate a light, simply rotate its transform.
 	class LightComponent
-		: public Datamodel::Component<LightComponent>
+		: public ViewComponent
 	{
 	private:
-		VisualSystem* visual_system;
-
-		// Light "view" properties
-		float z_near;
-		float z_far;
-		float fov;
-
 		// Shadow map texture, and associated data to
 		// let us bind it to the shader and render to it.
 		ID3D11Texture2D* shadow_map;
 		D3D11_VIEWPORT viewport;
 
+		// Enables rendering to the texture
 		ID3D11DepthStencilView* depth_stencil_view;
-		ID3D11ShaderResourceView* shader_resource_view;
 		
+		// Enables use of / sampling of the texture in shaders
+		ID3D11ShaderResourceView* shader_resource_view;
+		ID3D11SamplerState* sampler_state;
 
 	public:
-		LightComponent(Datamodel::ComponentHandler<LightComponent>* handler);
-	
-		// Set render target
-		void setRenderTarget();
+		LightComponent(Datamodel::Object* object, VisualSystem* system);
+		~LightComponent();
 
-		ID3D11ShaderResourceView* getShaderResourceView();
+		// Set render target to be the texture
+		void setRenderTarget(VisualSystem* system);
 
-		// Generate projection matrix 
-		Matrix4 getProjectionMatrix(void) const;
+		// Bind the shadow map to a texture slot
+		void bindShadowMap(VisualSystem* system, int slot_index);
 	};
 }
 }

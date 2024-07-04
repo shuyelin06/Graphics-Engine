@@ -30,6 +30,8 @@
 #include "rendering/VisualSystem.h"
 #include "input/InputSystem.h"
 
+#include "rendering/MeshManager.h"
+
 #include "math/Compute.h"
 #include "utility/Stopwatch.h"
 
@@ -55,6 +57,9 @@ static InputSystem input_system;
 // Main Function
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
+    MeshManager manager = MeshManager();
+    manager.LoadMeshFromOBJ("data/cube.obj", "Test");
+
     /* Register a Window Class with the OS */
     // Registers information about the behavior of the application window
     const wchar_t CLASS_NAME[] = L"Application";
@@ -113,27 +118,29 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     // TODO:
     Object* parent_object = new Object();
 
+    // Create a light 
+    Object& light = parent_object->createChild();
+    visual_system.bindLightComponent(&light);
+    // visual_system.bindMeshComponent(&light)->setMesh(Mesh::GetMesh("Cube"));
+    
     // Create a camera
     Object& camera = parent_object->createChild();
     camera.getTransform().setPosition(0, 0, -25);
 
-    camera.registerComponent(NEW_COMPONENT(visual_system, ViewComponent));
-    camera.registerComponent(NEW_COMPONENT(input_system, MovementComponent));
-    
-    // TEMP
-    camera.registerComponent(NEW_COMPONENT(visual_system, LightComponent));
+    visual_system.bindViewComponent(&camera);
+    input_system.bindMovementComponent(&camera);
+    // visual_system.bindLightComponent(&camera);
+    // MeshComponent* mesh = visual_system.bindMeshComponent(&camera);
+    // mesh->setMesh(Mesh::GetMesh("Cube"));
 
-    // Create some objects
-    for (int i = 0; i < 50; i++)
+    for (int i = 0; i < 5; i++)
     {
         Object& child = parent_object->createChild();
         child.getTransform().setScale(5, 5, 5);
-        child.getTransform().setPosition(Compute::random(-25, 25), Compute::random(-25, 25), Compute::random(-25, 25));
+        child.getTransform().setPosition(Compute::random(-2.5f, 2.5f), Compute::random(-2.5f, 2.5f), Compute::random(15, 25));
         
-        MeshComponent* mesh_component = visual_system.ComponentHandler<MeshComponent>::createComponent();
+        MeshComponent* mesh_component = visual_system.bindMeshComponent(&child);
         mesh_component->setMesh(Mesh::GetMesh("Cube"));
-
-        child.registerComponent<MeshComponent>(mesh_component);
     }
 
     
@@ -157,6 +164,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             if (msg.message == WM_QUIT)
                 return 0;
         }
+
+        light.getTransform().offsetRotation(0.01f, 0, 0);
 
         // Update Object Transforms
         Matrix4 identity = Matrix4::identity();

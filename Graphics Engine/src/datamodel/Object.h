@@ -13,17 +13,13 @@ namespace Engine
 namespace Datamodel
 {
 	// Forward Declaration of Component
-	template <typename Type>
 	class Component;
 
 	// Object Class
 	// Stores data regarding a generic object in our engine.
 	// Every object has a parent and children. Together, their parent / child
 	// relationships form an entire scene.
-	// 
 	// Unique behaviors for objects are implemented using components, which can be registered.
-	// Objects will automatically update the references for components.
-	// When adding a component, simply call register(some component).
 	class Object
 	{
 	protected:
@@ -92,9 +88,6 @@ namespace Datamodel
 			if (!components.contains(index))
 			{
 				components[index] = component;
-				// TODO: This is some sort of template assumption which works,
-				// but i should add asserts to guarantee this is always true.
-				static_cast<ComponentType*>(components[index])->object = this;
 				return true;
 			}
 			else

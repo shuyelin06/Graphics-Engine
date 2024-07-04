@@ -151,7 +151,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\datamodel\ComponentHandler.cpp" />
+    <ClCompile Include="src\datamodel\Component.cpp" />
     <ClCompile Include="src\datamodel\Terrain.cpp" />
     <ClCompile Include="src\datamodel\Transform.cpp" />
     <ClCompile Include="src\input\callbacks\InputPoller.cpp" />
@@ -161,6 +161,7 @@
     <ClCompile Include="src\datamodel\Object.cpp" />
     <ClCompile Include="src\input\InputSystem.cpp" />
     <ClCompile Include="src\math\Matrix3.cpp" />
+    <ClCompile Include="src\math\Vector2.cpp" />
     <ClCompile Include="src\math\Vector3.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\math\Matrix4.cpp" />
@@ -168,11 +169,12 @@
     <ClCompile Include="src\rendering\components\ViewComponent.cpp" />
     <ClCompile Include="src\rendering\components\LightComponent.cpp" />
     <ClCompile Include="src\rendering\components\MeshComponent.cpp" />
+    <ClCompile Include="src\rendering\components\VisualComponent.cpp" />
+    <ClCompile Include="src\rendering\MeshManager.cpp" />
     <ClCompile Include="src\simulation\components\KinematicComponent.cpp" />
     <ClCompile Include="src\simulation\PhysicsSystem.cpp" />
     <ClCompile Include="src\rendering\Mesh.cpp" />
     <ClCompile Include="src\rendering\parsers\CubeGenerator.cpp" />
-    <ClCompile Include="src\rendering\parsers\OBJParser.cpp" />
     <ClCompile Include="src\rendering\parsers\PLYParser.cpp" />
     <ClCompile Include="src\rendering\VisualDebug.cpp" />
     <ClCompile Include="src\rendering\VisualSystem.cpp" />
@@ -180,8 +182,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\datamodel\Component.h" />
-    <ClInclude Include="src\datamodel\ComponentHandler.h" />
-    <ClInclude Include="src\datamodel\Subsystem.h" />
     <ClInclude Include="src\datamodel\Terrain.h" />
     <ClInclude Include="src\datamodel\Transform.h" />
     <ClInclude Include="src\input\callbacks\InputPoller.h" />
@@ -192,12 +192,16 @@
     <ClInclude Include="src\datamodel\Object.h" />
     <ClInclude Include="src\input\InputSystem.h" />
     <ClInclude Include="src\math\Matrix3.h" />
+    <ClInclude Include="src\math\Vector2.h" />
     <ClInclude Include="src\math\Vector3.h" />
     <ClInclude Include="src\math\Matrix4.h" />
     <ClInclude Include="src\math\Vector4.h" />
+    <ClInclude Include="src\rendering\Asset.h" />
     <ClInclude Include="src\rendering\components\ViewComponent.h" />
     <ClInclude Include="src\rendering\components\LightComponent.h" />
     <ClInclude Include="src\rendering\components\MeshComponent.h" />
+    <ClInclude Include="src\rendering\components\VisualComponent.h" />
+    <ClInclude Include="src\rendering\MeshManager.h" />
     <ClInclude Include="src\simulation\components\KinematicComponent.h" />
     <ClInclude Include="src\simulation\PhysicsSystem.h" />
     <ClInclude Include="src\rendering\Direct3D11.h" />

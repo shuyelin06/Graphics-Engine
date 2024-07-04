@@ -15,6 +15,8 @@ using namespace Math;
 
 namespace Graphics
 {
+	// ViewData
+	// Contains per-view data, including 
 	// TransformData
 	// Contains data needed to transform vertices and normals
 	// within the vertex shader

@@ -30,8 +30,8 @@ namespace Simulation
 		stopwatch.Reset();
 
 		// Execute all kinematic components
-		for (KinematicComponent* kin_comp : ComponentHandler<KinematicComponent>::components)
-			kin_comp->update(delta_time);
+		// for (KinematicComponent* kin_comp : ComponentHandler<KinematicComponent>::components)
+		//	kin_comp->update(delta_time);
 	}
 
 }

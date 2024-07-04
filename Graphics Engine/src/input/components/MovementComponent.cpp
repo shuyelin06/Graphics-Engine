@@ -5,15 +5,24 @@
 
 namespace Engine
 {
+using namespace Datamodel;
+
 namespace Input
 {
-	MovementComponent::MovementComponent(Datamodel::ComponentHandler<MovementComponent>* handler)
-		: Datamodel::Component<MovementComponent>(handler)
+	MovementComponent::MovementComponent(Object* object, InputSystem* _system) 
+		: Component(object)
 	{
+		system = _system;
+
 		sensitivity = 1;
 
 		center_x = 600;
 		center_y = 600;
+	}
+
+	MovementComponent::~MovementComponent()
+	{
+		system->removeMovementComponent(this);
 	}
 
 	void MovementComponent::update()
@@ -45,6 +54,7 @@ namespace Input
 		if (movementVector.magnitude() != 0)
 		{
 			movementVector.inplaceNormalize();
+			movementVector /= 3.f;
 
 			transform.offsetPosition(movementVector.x, movementVector.y, movementVector.z);
 		}

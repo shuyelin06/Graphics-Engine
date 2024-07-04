@@ -1,6 +1,5 @@
 #pragma once
 
-#include "datamodel/ComponentHandler.h"
 #include "datamodel/Component.h"
 
 #include "math/Vector3.h"
@@ -19,15 +18,14 @@ namespace Simulation
 	// at (in local space) (0,0,0).
 	// This component must be associated with a PhysicsSystem, and should only be
 	// created from a PhysicsSystem.
-	class KinematicComponent : 
-		public Datamodel::Component<KinematicComponent>
+	class KinematicComponent : Datamodel::Component
 	{
 	private:
 		Math::Vector3 velocity;
 		Math::Vector3 acceleration;
 
 	public:
-		KinematicComponent(Datamodel::ComponentHandler<KinematicComponent>* handler);
+		KinematicComponent(Datamodel::Object* object, PhysicsSystem* system);
 		
 		void update(float delta_time);
 	};

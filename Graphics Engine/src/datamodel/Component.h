@@ -1,6 +1,5 @@
 #pragma once
 
-#include "ComponentHandler.h"
 #include "Object.h"
 
 namespace Engine
@@ -8,44 +7,30 @@ namespace Engine
 namespace Datamodel
 {
 	// Component Class:
-	// Contains generic methods and fields that a component will
-	// always have access to.
-	// Components are managed by the object they are registered under. 
-	// Upon destruction, the component will automatically remove itself
-	// from the system that created it.
-	// When creating a component, it should inherit from Component<Type>,
-	// where "Type" is the subclass name itself.
-	template <typename Type>
+	// Represents a component which can be assigned to an object
+	// to define what that object is. 
+	// - Component creation is expected to be done by the system
+	//	 they belong to, which also registers the component under its object.
+	// - Component deletion is expected to be done by the object
+	//   they're assigned to, which also removes the component
+	//   from its system. 
+	// System deletion is expected to be manually done by the associated 
+	// component destructor. 
+	// The systems are responsible for creating components, and registering them / binding
+	// them to their object. 
+	// The objects are responsible for removing components, where the component should remove itself
+	// from its parent system.
+	// It's possible to use templates to do this, but I'm opting not to as using templates just made everything
+	// a lot more complicated.
 	class Component
 	{
 	protected:
-		ComponentHandler<Type>* handler;
-
-		// Allow direct object access, to update the pointer
-		// accordingly. 
-		friend class Object;
 		Object* object;
 
 	public:
 		// Constructor
 		// Assigns a reference to the handler that created this component
-		Component(ComponentHandler<Type>* _handler)
-		{
-			handler = _handler;
-		}
-		
-		// Destructor
-		// Automatically removes this component from the handler
-		~Component()
-		{
-			handler->removeComponent(static_cast<Type*>(this));
-		}
-
-		// Gets the object associated with this component.
-		const Object* getObject()
-		{
-			return object;
-		}
+		Component(Object* parent_object);
 	};
 }
 }

@@ -2,9 +2,6 @@
 
 #include <vector>
 
-#include "datamodel/Subsystem.h"
-#include "datamodel/ComponentHandler.h"
-
 #include "utility/Stopwatch.h"
 
 #include "components/KinematicComponent.h"
@@ -15,9 +12,7 @@ namespace Simulation
 {
 	// PhysicsSystem Class
 	// Manages physics behaviors in the game engine.
-	class PhysicsSystem : 
-		public Datamodel::Subsystem, 
-		public Datamodel::ComponentHandler<KinematicComponent>
+	class PhysicsSystem
 	{
 	private:
 		// Track delta time
