@@ -15,7 +15,8 @@ cbuffer CB2 : register(b2)
 /* Vertex Shader Input */
 struct VS_IN
 {
-    float3 position_local : POSITION; // POSITION Semantic
+    float3 position_local : POSITION;
+    float2 tex : TEXTURE;
     float3 normal : NORMAL;
 };
 

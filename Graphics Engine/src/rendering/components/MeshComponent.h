@@ -1,7 +1,8 @@
 #pragma once
 
+#include "rendering/Asset.h"
+
 #include "VisualComponent.h"
-#include "rendering/Mesh.h"
 
 namespace Engine
 {

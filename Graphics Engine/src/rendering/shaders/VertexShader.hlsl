@@ -14,6 +14,7 @@ cbuffer CB3 : register(b2)
 struct VS_IN
 {
     float3 position_local : POSITION; // POSITION Semantic
+    float2 tex : TEXTURE;
     float3 normal : NORMAL;
 };
 

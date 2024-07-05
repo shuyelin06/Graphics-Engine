@@ -45,16 +45,10 @@
     <ClCompile Include="src\utility\Stopwatch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\Mesh.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\rendering\parsers\PLYParser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\datamodel\Transform.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\rendering\parsers\CubeGenerator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\datamodel\Terrain.cpp">
@@ -93,10 +87,13 @@
     <ClCompile Include="src\rendering\components\VisualComponent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\MeshManager.cpp">
+    <ClCompile Include="src\rendering\AssetManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\math\Vector2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rendering\Asset.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -131,13 +128,7 @@
     <ClInclude Include="src\utility\Stopwatch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\Mesh.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\datamodel\Transform.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\rendering\Material.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\ShaderData.h">
@@ -182,7 +173,7 @@
     <ClInclude Include="src\rendering\components\VisualComponent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\MeshManager.h">
+    <ClInclude Include="src\rendering\AssetManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\math\Vector2.h">

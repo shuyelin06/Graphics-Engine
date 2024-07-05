@@ -57,14 +57,14 @@ namespace Graphics
         // Bind Vertex & Index Buffers:
         // Get the mesh's vertex and index vectors
         MeshBuffers buffers = visual_system->getMeshBuffers(mesh, true);
-        UINT vertex_stride = Mesh::VertexLayoutSize(mesh->getVertexLayout()) * sizeof(float);
+        UINT vertex_stride = sizeof(MeshVertex);
         UINT vertex_offset = 0;
         UINT num_indices = mesh->getIndexBuffer().size();
 
         /* Configure Input Assembler */
         // Define input layout
         device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        device_context->IASetInputLayout(visual_system->getInputLayout(mesh->getVertexLayout()));
+        device_context->IASetInputLayout(visual_system->getInputLayout(0));
 
         device_context->IASetVertexBuffers(0, 1, &buffers.vertex_buffer, &vertex_stride, &vertex_offset);
         device_context->IASetIndexBuffer(buffers.index_buffer, DXGI_FORMAT_R32_UINT, 0);

@@ -413,7 +413,7 @@ namespace Datamodel
 	// is changed.
 	void Terrain::generateMesh()
 	{
-        // Reset mesh
+        /*// Reset mesh
         mesh = Mesh(XYZ);
         
         // For every voxel, generate the marching cube
@@ -469,6 +469,7 @@ namespace Datamodel
         
         // Set shader
         mesh.setShaders("Default", "Default");
+		*/
 	}
 
     // SampleEdgeMask:

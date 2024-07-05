@@ -35,8 +35,7 @@ namespace Graphics
         swap_chain = NULL;
 
         // Create resources
-        input_layouts = std::map<char, ID3D11InputLayout*>();
-
+        inputLayout = nullptr;
         vertex_shaders = std::map<std::string, ID3D11VertexShader*>();
         pixel_shaders = std::map<std::string, ID3D11PixelShader*>();
 
@@ -48,6 +47,9 @@ namespace Graphics
     // Initializes Direct3D11 for use in rendering
     void VisualSystem::initialize()
     {
+        assetManager = AssetManager();
+        assetManager.LoadAssetFromOBJ("data/", "model.obj", "Model");
+
         // Get window width and height
         RECT rect;
         GetWindowRect(window, &rect);
@@ -131,13 +133,13 @@ namespace Graphics
 
         /* Build our Shaders */
         // Default Renderer
-        vertex_shaders["Default"] = CreateVertexShader(L"src/rendering/shaders/VertexShader.hlsl", "vs_main", XYZ | NORMAL);
+        vertex_shaders["Default"] = CreateVertexShader(L"src/rendering/shaders/VertexShader.hlsl", "vs_main");
         pixel_shaders["Default"] = CreatePixelShader(L"src/rendering/shaders/PixelShader.hlsl", "ps_main");
 
-        vertex_shaders["DebugPoint"] = CreateVertexShader(L"src/rendering/shaders/PointRenderer.hlsl", "vs_main", XYZ | INSTANCING);
+        vertex_shaders["DebugPoint"] = CreateVertexShader(L"src/rendering/shaders/PointRenderer.hlsl", "vs_main");
         pixel_shaders["DebugPoint"] = CreatePixelShader(L"src/rendering/shaders/PointRenderer.hlsl", "ps_main");
 
-        vertex_shaders["Shadow"] = CreateVertexShader(L"src/rendering/shaders/ShadowShaderV.hlsl", "vs_main", XYZ | NORMAL);
+        vertex_shaders["Shadow"] = CreateVertexShader(L"src/rendering/shaders/ShadowShaderV.hlsl", "vs_main");
         pixel_shaders["Shadow"] = CreatePixelShader(L"src/rendering/shaders/ShadowShaderP.hlsl", "ps_main");
     }
 
@@ -211,10 +213,7 @@ namespace Graphics
     // Returns the input layout format associated with the given bitwise flag.
     ID3D11InputLayout* VisualSystem::getInputLayout(char layout) const
     {
-        if (input_layouts.contains(layout))
-            return input_layouts.at(layout);
-        else
-            return NULL;
+        return inputLayout;
     }
 
     // GetVertexShader:
@@ -302,22 +301,19 @@ namespace Graphics
         // Bytes between each vertex 
         else
         {
-            // Get the size of every vertex
-            UINT vertex_stride = Mesh::VertexLayoutSize(mesh->getVertexLayout()) * sizeof(float);
-
             // Get vertex and index vectors for the mesh
-            std::vector<float> vertices = mesh->getVertexBuffer();
-            std::vector<int> indices = mesh->getIndexBuffer();
+            const std::vector<MeshVertex>& vertices = mesh->getVertexBuffer();
+            const std::vector<MeshTriangle>& indices = mesh->getIndexBuffer();
 
             // Create new buffer resources
             buffers.vertex_buffer = CreateBuffer(
                 D3D11_BIND_VERTEX_BUFFER,
                 (void*) vertices.data(),
-                sizeof(float) * vertices.size());
+                sizeof(MeshVertex) * vertices.size());
             buffers.index_buffer = CreateBuffer(
                 D3D11_BIND_INDEX_BUFFER,
                 (void*)indices.data(),
-                sizeof(int) * indices.size());
+                sizeof(MeshTriangle) * indices.size());
 
             // If caching is on, add buffer resources to cache
             if (cache)
@@ -392,62 +388,32 @@ namespace Graphics
 
     // CreateVertexShader:
     // Creates a vertex shader and adds it to the array of vertex shaders
-    ID3D11VertexShader* VisualSystem::CreateVertexShader(const wchar_t* filename, const char* entrypoint, char layout)
+    ID3D11VertexShader* VisualSystem::CreateVertexShader(const wchar_t* filename, const char* entrypoint)
     {
         // Obtain shader blob
         ID3DBlob* shader_blob = CompileShaderBlob(Vertex, filename, entrypoint);
 
         // Create input layout for vertex shader, or use it if it already exists
-        ID3D11InputLayout* input_layout = NULL;
+        inputLayout = NULL;
 
-        if (input_layouts.contains(layout))
-        {
-            input_layout = input_layouts.at(layout);
-        }
-        else {
-            D3D11_INPUT_ELEMENT_DESC input_desc[10];
-            int input_desc_size = 0;
+        D3D11_INPUT_ELEMENT_DESC input_desc[] = {
+            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "TEXTURE", 0, DXGI_FORMAT_R32G32_FLOAT, 0, sizeof(float) * 2, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, sizeof(float) * 5, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+        };
+        int input_desc_size = 3;
 
-            // Supported input configurations with instancing
-            if ((layout & INSTANCING) == INSTANCING)
-            {
-                // XYZ Position
-                if (layout == -127)
-                {
-                    // POSITION: float3, SV_InstanceID: uint
-                    input_desc[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-                    input_desc[1] = { "SV_InstanceID", 0, DXGI_FORMAT_R32_UINT, 0, sizeof(float) * 3, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-                    input_desc_size = 2;
-                }
+        // Create input layout resource
+        device->CreateInputLayout(
+            input_desc,
+            input_desc_size,
+            shader_blob->GetBufferPointer(),
+            shader_blob->GetBufferSize(),
+            &inputLayout
+        );
 
-            }
-            // Supported input configurations without instancing
-            else
-            {
-                // XYZ Position and Normal Vectors
-                if (layout == (XYZ | NORMAL))
-                {
-                    // POSITION: float3, NORMAL: float3
-                    input_desc[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-                    input_desc[1] = { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, sizeof(float) * 3, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-                    input_desc_size = 2;
-                }
-            }
-            
-            // Create input layout resource
-            device->CreateInputLayout(
-                input_desc,
-                input_desc_size,
-                shader_blob->GetBufferPointer(),
-                shader_blob->GetBufferSize(),
-                &input_layout
-            );
-
-            input_layouts[layout] = input_layout;
-
-            // Check for success
-            assert(input_layout != NULL);
-        }
+        // Check for success
+        assert(inputLayout != NULL);
 
         // Create vertex shader
         ID3D11VertexShader* vertex_shader = NULL;
