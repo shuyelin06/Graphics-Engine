@@ -21,6 +21,9 @@ namespace Graphics
 		AssetManager();
 		~AssetManager();
 
+		// Get assets
+		Asset* getAsset(std::string name);
+
 		// Load an asset from an OBJ file. Returns the index of the
 		// asset in the manager on success.
 		void LoadAssetFromOBJ(std::string path, std::string objFile, std::string assetName);

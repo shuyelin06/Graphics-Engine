@@ -169,7 +169,7 @@
     <ClCompile Include="src\rendering\Asset.cpp" />
     <ClCompile Include="src\rendering\components\ViewComponent.cpp" />
     <ClCompile Include="src\rendering\components\LightComponent.cpp" />
-    <ClCompile Include="src\rendering\components\MeshComponent.cpp" />
+    <ClCompile Include="src\rendering\components\AssetComponent.cpp" />
     <ClCompile Include="src\rendering\components\VisualComponent.cpp" />
     <ClCompile Include="src\rendering\AssetManager.cpp" />
     <ClCompile Include="src\simulation\components\KinematicComponent.cpp" />
@@ -198,7 +198,7 @@
     <ClInclude Include="src\rendering\Asset.h" />
     <ClInclude Include="src\rendering\components\ViewComponent.h" />
     <ClInclude Include="src\rendering\components\LightComponent.h" />
-    <ClInclude Include="src\rendering\components\MeshComponent.h" />
+    <ClInclude Include="src\rendering\components\AssetComponent.h" />
     <ClInclude Include="src\rendering\components\VisualComponent.h" />
     <ClInclude Include="src\rendering\AssetManager.h" />
     <ClInclude Include="src\simulation\components\KinematicComponent.h" />

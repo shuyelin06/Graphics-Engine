@@ -47,11 +47,11 @@ float4 ps_main(VS_OUT input) : SV_TARGET
     
     // Calculate attenuation of light
     float3 light_direction = light_position - input.world_position;
-    // float angle = dot(normalize(light_direction), input.normal);
-    float angle = 1;
+    float angle = dot(normalize(light_direction), input.normal);
+    // float angle = 1;
     
     float4 color = float4(0, 0, 0, 1.0f);
-    color.x = inShadow * 10 * angle / (length(light_direction) + 1);
+    color.x = inShadow * 35 * angle / (length(light_direction) + 1);
     
     return color;
 }

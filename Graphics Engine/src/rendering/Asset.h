@@ -85,6 +85,7 @@ namespace Graphics
 		const std::vector<MeshTriangle>& getIndexBuffer() const;
 
 		int vertexCount() const;
+		int triangleCount() const;
 	};
 
 	// Asset Class
@@ -106,6 +107,9 @@ namespace Graphics
 		Material* newMaterial();
 		
 		// Resource accessing
+		std::vector<Mesh>& getMeshes();
+		std::vector<Material>& getMaterials();
+
 		Mesh* getMesh(int mesh_index);
 		Material* getMaterial(int material_index);
 	};

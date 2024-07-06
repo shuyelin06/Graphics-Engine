@@ -75,7 +75,7 @@
     <ClCompile Include="src\rendering\components\ViewComponent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\components\MeshComponent.cpp">
+    <ClCompile Include="src\rendering\components\AssetComponent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\components\LightComponent.cpp">
@@ -164,7 +164,7 @@
     <ClInclude Include="src\rendering\components\ViewComponent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\components\MeshComponent.h">
+    <ClInclude Include="src\rendering\components\AssetComponent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\components\LightComponent.h">

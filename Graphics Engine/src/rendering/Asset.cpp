@@ -150,6 +150,11 @@ namespace Graphics
 		return vertexBuffer.size();
 	}
 
+	int Mesh::triangleCount() const
+	{
+		return indexBuffer.size();
+	}
+
 	// Asset Class
 	// Represents a collection of meshes and materials. An object
 	// can register an asset to obtain a renderable entity.
@@ -170,7 +175,18 @@ namespace Graphics
 		return &(materials[materials.size() - 1]);
 	}
 
-	// Get a particular mesh or material in the asset.
+	// Access the meshes and materials in the asset.
+	// Used in rendering.
+	std::vector<Mesh>& Asset::getMeshes()
+	{
+		return meshes;
+	}
+
+	std::vector<Material>& Asset::getMaterials()
+	{
+		return materials;
+	}
+
 	Mesh* Asset::getMesh(int mesh_index)
 	{
 		return &meshes[mesh_index];

@@ -25,7 +25,7 @@ namespace Graphics
     {
         // Components
         light_components = std::vector<LightComponent*>();
-        mesh_components = std::vector<MeshComponent*>();
+        asset_components = std::vector<AssetComponent*>();
         view_components = std::vector<ViewComponent*>();
 
         window = _window;
@@ -48,6 +48,7 @@ namespace Graphics
     void VisualSystem::initialize()
     {
         assetManager = AssetManager();
+        // assetManager.LoadAssetFromOBJ("data/", "cube-tex.obj", "Model");
         assetManager.LoadAssetFromOBJ("data/", "model.obj", "Model");
 
         // Get window width and height
@@ -160,8 +161,8 @@ namespace Graphics
         device_context->VSSetShader(vertex_shaders["Default"], NULL, 0);
         device_context->PSSetShader(pixel_shaders["Default"], NULL, 0); 
 
-        for (MeshComponent* mesh_component : mesh_components)
-            mesh_component->renderMesh(this);
+        for (AssetComponent* asset_component : asset_components)
+            asset_component->render(this);
 
         // Set render target
         device_context->OMSetRenderTargets(1, &render_target_view, depth_stencil);
@@ -179,8 +180,8 @@ namespace Graphics
 
         light->bindShadowMap(this, 0);
 
-        for (MeshComponent* mesh_component : mesh_components)
-            mesh_component->renderMesh(this);
+        for (AssetComponent* asset_component : asset_components)
+            asset_component->render(this);
 
         // Present what we rendered to
         swap_chain->Present(1, 0);
@@ -817,25 +818,26 @@ namespace Graphics
     // MeshComponent:
     // Allows the rendering of a mesh using the object's transform.
     // Meshes have material properties, which specify how they are to be rendered.
-    MeshComponent* VisualSystem::bindMeshComponent(Datamodel::Object* object)
+    AssetComponent* VisualSystem::bindAssetComponent(Datamodel::Object* object, std::string assetName)
     {
         // Create component
-        MeshComponent* component = new MeshComponent(object, this);
-        mesh_components.push_back(component);
+        Asset* asset = assetManager.getAsset(assetName);
+        AssetComponent* component = new AssetComponent(object, this, asset);
+        asset_components.push_back(component);
 
         // Register with object
-        object->registerComponent<MeshComponent>(component);
+        object->registerComponent<AssetComponent>(component);
 
         return component;
     }
 
-    bool VisualSystem::removeMeshComponent(MeshComponent* component)
+    bool VisualSystem::removeAssetComponent(AssetComponent* component)
     {
-        auto index = std::find(mesh_components.begin(), mesh_components.end(), component);
+        auto index = std::find(asset_components.begin(), asset_components.end(), component);
 
-        if (index != mesh_components.end())
+        if (index != asset_components.end())
         {
-            mesh_components.erase(index);
+            asset_components.erase(index);
             return true;
         }
         else

@@ -57,9 +57,6 @@ static InputSystem input_system;
 // Main Function
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
-    AssetManager manager = AssetManager();
-    manager.LoadAssetFromOBJ("data/", "model.obj", "Test");
-
     /* Register a Window Class with the OS */
     // Registers information about the behavior of the application window
     const wchar_t CLASS_NAME[] = L"Application";
@@ -130,14 +127,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     // MeshComponent* mesh = visual_system.bindMeshComponent(&camera);
     // mesh->setMesh(Mesh::GetMesh("Cube"));
 
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < 1; i++)
     {
         Object& child = parent_object->createChild();
         child.getTransform().setScale(5, 5, 5);
         child.getTransform().setPosition(Compute::random(-2.5f, 2.5f), Compute::random(-2.5f, 2.5f), Compute::random(15, 25));
         
-        // MeshComponent* mesh_component = visual_system.bindMeshComponent(&child);
-        // mesh_component->setMesh(Mesh::GetMesh("Cube"));
+        visual_system.bindAssetComponent(&child, "Model");
     }
 
     

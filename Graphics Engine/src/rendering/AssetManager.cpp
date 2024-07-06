@@ -25,6 +25,16 @@ namespace Graphics
     AssetManager::AssetManager() = default;
     AssetManager::~AssetManager() = default;
 
+    // GetAssets:
+    // Return an asset by name.
+    Asset* AssetManager::getAsset(std::string name)
+    {
+        if (assets.contains(name))
+            return assets[name];
+        else
+            return nullptr;
+    }
+
 	// LoadMeshFromOBJ
 	// Implements a simple OBJ file parser to load an asset.
     // Meshes can only have one material; so an obj file with multiple materials
@@ -203,7 +213,7 @@ namespace Graphics
                 // we can triangulate it as [0,1,2], [0,2,3], [0,3,4], [0,4,5].
                 for (int i = 2; i < indices.size(); i++)
                 {
-                    MeshTriangle triangle = MeshTriangle(indices[0], indices[i - 1], indices[i - 2]);
+                    MeshTriangle triangle = MeshTriangle(indices[0], indices[i - 1], indices[i]);
                     activeMesh->addTriangle(triangle);
                 }
             }
