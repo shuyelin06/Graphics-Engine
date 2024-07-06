@@ -7,9 +7,11 @@
 
 #include "Direct3D11.h"
 
+#include "AssetManager.h"
+
 #include "rendering/components/LightComponent.h"
 #include "rendering/components/ViewComponent.h"
-#include "rendering/components/MeshComponent.h"
+#include "rendering/components/AssetComponent.h"
 
 #include "ShaderData.h"
 
@@ -26,7 +28,8 @@ namespace Graphics
 	{
 		PER_FRAME = 0, 
 		PER_VIEW = 1, 
-		PER_INSTANCE = 2
+		PER_ASSET = 2,
+		PER_MESH = 3
 	} CB_Type;
 
 	// Shader_Type Enum:
@@ -51,13 +54,14 @@ namespace Graphics
 	// as follows, based on update frequency:
 	// 1) Slot 1: Per-Frame Data
 	// 2) Slot 2: Per-View Data 
-	// 3) Slot 3: Per-Mesh / Instance Data 
+	// 3) Slot 3: Per-Asset Data 
+	// 3) Slot 4: Per-Mesh
 	class VisualSystem
 	{
 	private:
 		// Components
 		std::vector<LightComponent*> light_components;
-		std::vector<MeshComponent*> mesh_components;
+		std::vector<AssetComponent*> asset_components;
 		std::vector<ViewComponent*> view_components;
 
 		// Window Handle
@@ -77,11 +81,13 @@ namespace Graphics
 		std::vector<ID3D11Buffer*> ps_constant_buffers;
 
 		// Available Resources
-		std::map<char, ID3D11InputLayout*> input_layouts;
+		ID3D11InputLayout* inputLayout;
 		std::map<std::string, ID3D11VertexShader*> vertex_shaders;
 		std::map<std::string, ID3D11PixelShader*> pixel_shaders;
 
 		// Mesh Index/Vertex Buffer Cache
+		AssetManager assetManager;
+
 		std::map<Mesh*, MeshBuffers> mesh_cache;
 
 	public:
@@ -122,7 +128,7 @@ namespace Graphics
 		ID3D11Texture2D* CreateTexture2D(D3D11_BIND_FLAG bind_flag, int width, int height);
 
 		// Compile and Create Shaders
-		ID3D11VertexShader* CreateVertexShader(const wchar_t* file, const char* entry, char layout);
+		ID3D11VertexShader* CreateVertexShader(const wchar_t* file, const char* entry);
 		ID3D11PixelShader* CreatePixelShader(const wchar_t* file, const char* entry);
 
 		// --- Render Binding ---
@@ -131,8 +137,8 @@ namespace Graphics
 		void BindPSData(unsigned int index, void* data, int byte_size);
 
 		// --- Component Handling ---
-		MeshComponent* bindMeshComponent(Datamodel::Object* object);
-		bool removeMeshComponent(MeshComponent* component);
+		AssetComponent* bindAssetComponent(Datamodel::Object* object, std::string assetName);
+		bool removeAssetComponent(AssetComponent* component);
 
 		ViewComponent* bindViewComponent(Datamodel::Object* object);
 		bool removeViewComponent(ViewComponent* component);

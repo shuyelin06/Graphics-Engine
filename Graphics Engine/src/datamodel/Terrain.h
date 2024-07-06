@@ -2,7 +2,7 @@
 
 #include "math/Vector3.h"
 
-#include "rendering/Mesh.h"
+#include "rendering/Asset.h"
 
 namespace Engine
 {

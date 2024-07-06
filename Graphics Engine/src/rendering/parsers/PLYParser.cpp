@@ -1,4 +1,4 @@
-#include "rendering/Mesh.h"
+// #include "rendering/Mesh.h"
 
 // Includes for Debug
 #include <assert.h>
@@ -19,7 +19,7 @@ namespace Engine
 {
 namespace Graphics
 {
-	
+	/*
 	// ParsePLYFile
 	// A simple PLY file parser. Only allows the ASCII 1.0 
 	// file format.
@@ -202,6 +202,6 @@ namespace Graphics
 		}
 
 	}
-
+	*/
 }
 }
