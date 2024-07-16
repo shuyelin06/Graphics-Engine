@@ -11,10 +11,11 @@ namespace Graphics
 	// Input layout configurations for the vertex shader
 	enum InputLayoutPin
 	{
-		XYZ = 1,			// Position
-		RGB = 1 << 1,		// Color
-		TEX = 1 << 2,		// Texture Coordinate
-		NORMAL = 1 << 3		// Normal Vector
+		XYZ = 1,			 // Position
+		RGB = 1 << 1,		 // Color
+		TEX = 1 << 2,		 // Texture Coordinate
+		NORMAL = 1 << 3,	 // Normal Vector
+		INSTANCE_ID = 1 << 4 // Instance ID
 	};
 
 	// Index references to available vertex and pixel 
@@ -22,15 +23,17 @@ namespace Graphics
 	// shaders can be accessed efficiently
 	enum VSSlot
 	{
-		VSDefault = 0,
-		VSShadow = 1,
+		VSDebugPoint = 0,
+		VSDefault = 1,
+		VSShadow = 2,
 		VSCount
 	};
 
 	enum PSSlot
 	{
-		PSDefault = 0,
-		PSShadow = 1,
+		PSDebugPoint = 0,
+		PSDefault = 1,
+		PSShadow = 2,
 		PSCount
 	};
 	
@@ -56,8 +59,8 @@ namespace Graphics
 
 	private:
 		// Helper functions for compiling and building vertex and pixel shaders
-		VertexShader* createVertexShader(ID3D11Device* device, int layout, const wchar_t* filename, const char* entrypoint);
-		PixelShader* createPixelShader(ID3D11Device* device, const wchar_t* filename, const char* entrypoint);
+		VertexShader* createVertexShader(ID3D11Device* device, int layout, const std::wstring filename, const char* entrypoint);
+		PixelShader* createPixelShader(ID3D11Device* device, const std::wstring filename, const char* entrypoint);
 	};
 }
 }

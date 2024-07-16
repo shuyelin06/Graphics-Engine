@@ -1,7 +1,10 @@
 #pragma once
 
+#include "Direct3D11.h"
+
 #include <vector>
 
+#include "rendering/Shader.h"
 #include "math/Vector3.h"
 
 namespace Engine
@@ -48,11 +51,12 @@ namespace Graphics
 		// Clear all debug rendering data
 		static void Clear();
 
-		// Draw a point in 3D space.
+		// Quick and dirty rendering in 3D space
 		static bool DrawPoint(const Vector3& position, float scale, const Vector3& color);
-
-		// Draw a line in 3D space.
 		static bool DrawLine(const Vector3& pos_1, const Vector3& pos_2, const Vector3& color);
+
+		// Pipeline Management
+		static int LoadPointData(CBHandle* cbHandle);
 	};
 }
 }

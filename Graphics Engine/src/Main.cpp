@@ -135,7 +135,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         child.getTransform().setScale(5, 5, 5);
         child.getTransform().setPosition(Compute::random(-2.5f, 2.5f), Compute::random(-2.5f, 2.5f), Compute::random(15, 25));
         
-        visual_system.bindAssetComponent(&child, "Model");
+        visual_system.bindAssetComponent(&child, Fox);
     }
 
     

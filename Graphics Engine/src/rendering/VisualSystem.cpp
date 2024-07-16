@@ -30,6 +30,7 @@ namespace Graphics
         view_components = std::vector<ViewComponent*>();
 
         // Managers
+        assetManager = AssetManager();
         shaderManager = ShaderManager();
 
         device = NULL;
@@ -43,12 +44,6 @@ namespace Graphics
     // Initializes Direct3D11 for use in rendering
     void VisualSystem::initialize()
     {
-        
-
-        assetManager = AssetManager();
-        // assetManager.LoadAssetFromOBJ("data/", "cube-tex.obj", "Model");
-        assetManager.LoadAssetFromOBJ("data/", "model.obj", "Model");
-
         // Get window width and height
         RECT rect;
         GetWindowRect(window, &rect);
@@ -130,6 +125,7 @@ namespace Graphics
             device->CreateDepthStencilView(depth_texture, &desc_stencil, &depth_stencil);
         }
 
+        assetManager.initialize();
         shaderManager.initialize(device);
     }
 
@@ -141,9 +137,12 @@ namespace Graphics
         float color[4] = { RGB(158.f), RGB(218.f), RGB(255.f), 1.0f };
         device_context->ClearRenderTargetView(render_target_view, color);
 
-        // Load per-frame
-        VertexShader* vShader = shaderManager.getVertexShader(VSDefault);
-        PixelShader* pShader = shaderManager.getPixelShader(PSDefault);
+        VertexShader* vShader;
+        PixelShader* pShader;
+
+        // Shadow Pass: Render to shadow maps
+        vShader = shaderManager.getVertexShader(VSDefault);
+        pShader = shaderManager.getPixelShader(PSDefault);
 
         LightComponent* light = light_components[0];
         
@@ -169,7 +168,7 @@ namespace Graphics
             }
         }
         
-        // Set render target
+        // Render Pass: Render Scene
         device_context->OMSetRenderTargets(1, &render_target_view, depth_stencil);
         device_context->ClearDepthStencilView(depth_stencil, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
@@ -203,6 +202,28 @@ namespace Graphics
                 vShader->getCBHandle(CB2)->clearData();
                 numIndices = asset_component->loadMeshData(device_context, vShader->getCBHandle(CB2), device);
             }
+        }
+        
+        // Debug Pass: Debug Visuals
+        {
+            vShader = shaderManager.getVertexShader(VSDebugPoint);
+            pShader = shaderManager.getPixelShader(PSDebugPoint);
+
+            vShader->getCBHandle(CB0)->clearData();
+            vShader->getCBHandle(CB1)->clearData();
+
+            Asset* cube = assetManager.getAsset(Cube);
+            int numIndices = cube->getMesh(0)->loadIndexVertexData(device_context, device);
+            
+            int numPoints = VisualDebug::LoadPointData(vShader->getCBHandle(CB0));
+            view->loadViewData(this, vShader->getCBHandle(CB1));
+
+            vShader->bindShader(device, device_context);
+            pShader->bindShader(device, device_context);
+
+            device_context->DrawIndexedInstanced(numIndices, numPoints, 0, 0, 1);
+
+            VisualDebug::Clear();
         }
 
         // Present what we rendered to
@@ -297,253 +318,12 @@ namespace Graphics
 
         return texture;
     }
-    
-   
-    /* 
-    TODO: When can i remove this: 
-    // Render:
-    // Renders an entire scene, from its camera
-    void VisualSystem::render(Scene& scene)
-    {
-        // Clear screen to be black
-
-
-        // Clear Depth Buffer and Depth Stencil
-
-
-        // Get main scene camera
-        Camera& camera = scene.getCamera();
-
-        // Get lights and objects
-        vector<Light*>& lights = scene.getLights();
-        vector<Object*>& objects = scene.getObjects();
-
-        {
-#define NUM_LIGHTS 10
-
-            vector<LightData> light_data;
-            light_data.resize(NUM_LIGHTS);
-
-            for (int i = 0; i < lights.size(); i++)
-            {
-                Light& light = *(lights[i]);
-
-                Transform& transform = light.getTransform();
-
-                Matrix4 m_transform = light.localToWorldMatrix();
-                Vector3 world_position = (Vector4(0, 0, 0, 1) * m_transform).toVector3();
-
-                light_data[i].position = world_position;
-
-                BindPSData(0, light_data.data(), light_data.size() * sizeof(LightData));
-            }
-
-        }
-
-        // Iterate through SceneGraph to render every object
-        Matrix4 m_transform = Matrix4::identity();
-
-        for (Object* object : objects)
-            traverseSceneGraph(scene, object, m_transform);
-
-        // Render the Terrain
-        Matrix4 id = Matrix4::identity();
-        {
-            Camera& camera = scene.getCamera();
-
-            // Bind transformation matrices to pipeline
-            Matrix4 m_worldToCamera = camera.getTransform().transformMatrix().inverse();
-            Matrix4 m_camera = camera.getCameraMatrix();
-
-            // Create & populate struct with data
-            TransformData transform_data;
-
-            // Model -> World Space Transform (Vertices)
-            transform_data.m_modelToWorld = id;
-            // Model -> Camera Space Transform
-            transform_data.m_worldToCamera = m_worldToCamera * m_camera;
-            // Model -> World Space Transform (Normals)
-            transform_data.m_normalTransform = id.inverse().tranpose();
-
-            // Bind to vertex shader, into constant buffer @index 0
-            BindVSData(0, &transform_data, sizeof(TransformData));
-        }
-        renderMesh(scene.getTerrain().getMesh(), id, scene, "Default", false);
-
-        // Render Debug Points
-        VisualDebug::DrawPoint(Vector3(2.f, 3.f, 5.f), 5.f, Vector3(0.75f, 0.25f, 0.35f));
-        VisualDebug::DrawPoint(Vector3(2.f, 3.f, 19.f), 10.f, Vector3(0.25f, 0.25f, 0.35f));
-        VisualDebug::DrawPoint(Vector3(2.f, 3.f, 0.f), 5.f, Vector3(0.35f, 0.55f, 0.35f));
-
-        Mesh* cube = Mesh::GetMesh("CubeDebug");
-        {
-            Matrix4 m_worldToCamera = camera.getTransform().transformMatrix().inverse();
-            Matrix4 m_camera = camera.getCameraMatrix();
-            Matrix4 m_mat = m_worldToCamera * m_camera;
-            BindVSData(0, m_mat.getRawData(), sizeof(Matrix4));
-        }
-        BindVSData(1, VisualDebug::points.data(), VisualDebug::points.size() * sizeof(PointData));
-        renderMesh(*cube, id, scene, "DebugPoint", true);
-
-
-        swap_chain->Present(1, 0);
-
-
-        // Clearing debug point vector
-        VisualDebug::points.clear();
-    }
-
-    // TraverseSceneGraph:
-    // Recursively traverses a SceneGraph and renders
-    // all renderable objects within this graph.
-    void VisualSystem::traverseSceneGraph(Scene& scene, Object* object, Matrix4& m_parent)
-    {
-        // Get Local -> World transform
-        Matrix4 m_local = object->getTransform().transformMatrix() * m_parent;
-
-        // If mesh exists, render the object with this transform 
-        if (object->getMesh() != nullptr)
-        {
-            Camera& camera = scene.getCamera();
-
-            // Bind transformation matrices to pipeline
-            Matrix4 m_worldToCamera = camera.getTransform().transformMatrix().inverse();
-            Matrix4 m_camera = camera.getCameraMatrix();
-
-            // Create & populate struct with data
-            TransformData transform_data;
-
-            // Model -> World Space Transform (Vertices)
-            transform_data.m_modelToWorld = m_local;
-            // Model -> Camera Space Transform
-            transform_data.m_worldToCamera = m_worldToCamera * m_camera;
-            // Model -> World Space Transform (Normals)
-            transform_data.m_normalTransform = m_local.inverse().tranpose();
-
-            // Bind to vertex shader, into constant buffer @index 0
-            BindVSData(0, &transform_data, sizeof(TransformData));
-
-            renderMesh(*(object->getMesh()), m_local, scene, "Default", false);
-        }
-
-
-        // Recursively traverse the SceneGraph for the object's children
-        for (Object* child : object->getChildren())
-            traverseSceneGraph(scene, child, m_local);
-    }
-
-    // DrawObject:
-    // Given a renderable mesh, renders it within the scene
-    void VisualSystem::renderMesh(Mesh& mesh, Matrix4& m_modelToWorld, Scene& scene, std::string shader_config, bool instancing)
-    {
-        // If mesh has nothing, do nothing
-        if (mesh.getIndexBuffer().size() == 0 || mesh.getVertexBuffer().size() == 0)
-            return;
-
-        // Bind Mesh Vertex & Index Buffers
-        // Get the mesh's vertex and index vectors
-        const vector<float>& vertices = mesh.getVertexBuffer();
-        const vector<int>& indices = mesh.getIndexBuffer();
-
-        // Number of indices
-        UINT num_indices = indices.size();
-
-        // Generate vertex and index buffers. If they have already been
-        // generated before, just get them.
-        ID3D11Buffer* vertex_buffer = NULL;
-        ID3D11Buffer* index_buffer = NULL;
-        {
-            // Memory address of mesh
-            Mesh* mem_addr = &mesh;
-
-            // Bytes between each vertex 
-            UINT vertex_stride = Mesh::VertexLayoutSize(mesh.getVertexLayout()) * sizeof(float);
-            // Offset into the vertex buffer to start reading from 
-            UINT vertex_offset = 0;
-
-            // Check if the vertex / index buffers have already been created
-            // before. If they have, just use the already created resources
-            if (mesh_cache.contains(mem_addr))
-            {
-                // Obtain buffers from cache
-                MeshBuffers buffers = mesh_cache[mem_addr];
-
-                // Use these buffers
-                vertex_buffer = buffers.vertex_buffer;
-                index_buffer = buffers.index_buffer;
-            }
-            // If they haven't, create these resources and add them to the cache
-            // so we don't need to recreate them
-            else
-            {
-                // Create new buffer resources
-                vertex_buffer = CreateBuffer(
-                    D3D11_BIND_VERTEX_BUFFER,
-                    (void*)vertices.data(),
-                    sizeof(float) * vertices.size());
-                index_buffer = CreateBuffer(
-                    D3D11_BIND_INDEX_BUFFER,
-                    (void*)indices.data(),
-                    sizeof(int) * indices.size());
-
-                // Add buffer resources to cache
-                mesh_cache[mem_addr] = { vertex_buffer, index_buffer };
-            }
-
-            // Bind vertex and index buffers
-            device_context->IASetVertexBuffers(0, 1, &vertex_buffer, &vertex_stride, &vertex_offset);
-            device_context->IASetIndexBuffer(index_buffer, DXGI_FORMAT_R32_UINT, 0);
-        }
-
-        // Perform a Draw Call
-        // Set the valid drawing area (our window)
-        RECT winRect;
-        GetClientRect(window, &winRect); // Get the windows rectangle
-
-        D3D11_VIEWPORT viewport = {
-            0.0f, 0.0f,
-            (FLOAT)(winRect.right - winRect.left),
-            (FLOAT)(winRect.bottom - winRect.top),
-            0.0f,
-            1.0f
-        };
-
-        // Set min and max depth for viewpoint (for depth testing)
-        viewport.MinDepth = 0;
-        viewport.MaxDepth = 1;
-
-        // Give rectangle to rasterizer state function
-        device_context->RSSetViewports(1, &viewport);
-
-        // Set output merger to use our render target and depth test
-        device_context->OMSetRenderTargets(1, &render_target_view, depth_stencil);
-
-     
-        // Define input layout
-        device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        device_context->IASetInputLayout(input_layouts[mesh.getVertexLayout()]);
-
- 
-        // Bind vertex shader
-        device_context->VSSetShader(vertex_shaders[shader_config], NULL, 0);
-
-        // Bind pixel shader
-        device_context->PSSetShader(pixel_shaders[shader_config], NULL, 0);
-
-        // Draw from our vertex buffer
-        if (!instancing)
-            device_context->DrawIndexed(num_indices, 0, 0);
-        else
-            
-    }
-    
-    */
 
     // --- Component Handling ----
     // MeshComponent:
     // Allows the rendering of a mesh using the object's transform.
     // Meshes have material properties, which specify how they are to be rendered.
-    AssetComponent* VisualSystem::bindAssetComponent(Datamodel::Object* object, std::string assetName)
+    AssetComponent* VisualSystem::bindAssetComponent(Datamodel::Object* object, AssetSlot assetName)
     {
         // Create component
         Asset* asset = assetManager.getAsset(assetName);

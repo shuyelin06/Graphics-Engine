@@ -25,14 +25,23 @@ namespace Graphics
     AssetManager::AssetManager() = default;
     AssetManager::~AssetManager() = default;
 
+    // Initialize:
+    // Loads assets into the asset manager.
+    void AssetManager::initialize()
+    {
+        assets.resize(AssetCount);
+
+        assets[Cube] = LoadCube();
+        // Fox by Jake Blakeley [CC-BY] via Poly Pizza
+        assets[Fox] = LoadAssetFromOBJ("data/", "model.obj", "Model");
+    }
+
     // GetAssets:
     // Return an asset by name.
-    Asset* AssetManager::getAsset(std::string name)
+    Asset* AssetManager::getAsset(AssetSlot asset)
     {
-        if (assets.contains(name))
-            return assets[name];
-        else
-            return nullptr;
+        assert(0 <= asset && asset < assets.size());
+        return assets[asset];
     }
 
 	// LoadMeshFromOBJ
@@ -60,7 +69,7 @@ namespace Graphics
 
     static void ParseMaterials(std::string path, std::string material_file, OBJData& data);
 
-    void AssetManager::LoadAssetFromOBJ(std::string path, std::string objFile, std::string assetName)
+    Asset* AssetManager::LoadAssetFromOBJ(std::string path, std::string objFile, std::string assetName)
 	{
 		// Open target file with file reader
 		std::ifstream file(path + objFile);
@@ -231,8 +240,7 @@ namespace Graphics
         if (activeMesh != nullptr)
             activeMesh->lockMesh();
 
-        // Finished parsing. We register the asset created under the asset manager.
-        assets[assetName] = data.asset;
+        return data.asset;
 	}
 
     // Parses a material (or materials), and registers them under the asset.
@@ -363,5 +371,51 @@ namespace Graphics
         return result;
     }
 
+    // Hard-Coded Cube Creator
+    // Used in debugging
+    Asset* AssetManager::LoadCube()
+    {
+        const float vertices[] =
+        {
+            -0.5, -0.5, -0.5,  // Vertex 0
+            0.5, -0.5, -0.5,   // Vertex 1
+            0.5, 0.5, -0.5,    // Vertex 2
+            -0.5, 0.5, -0.5,   // Vertex 3
+            -0.5, -0.5, 0.5,   // Vertex 4
+            0.5, -0.5, 0.5,    // Vertex 5
+            0.5, 0.5, 0.5,     // Vertex 6
+            -0.5, 0.5, 0.5     // Vertex 7
+        };
+
+        const int indices[] =
+        {
+            0, 3, 2,    2, 1, 0,    // Front face
+            1, 2, 6,    6, 5, 1,    // Right face
+            5, 6, 7,    7, 4, 5,    // Back face
+            4, 7, 3,    3, 0, 4,    // Left face
+            3, 7, 6,    6, 2, 3,    // Top face
+            4, 0, 1,    1, 5, 4     // Bottom face
+        };
+
+        Asset* cube = new Asset();
+        Mesh* mesh = cube->newMesh();
+
+        for (int i = 0; i < 8; i++)
+        {
+            MeshVertex vertex = MeshVertex(Vector3(vertices[i * 3], vertices[i * 3 + 1], vertices[i * 3 + 2]),
+                                Vector2(), Vector3());
+            mesh->addVertex(vertex);
+        }
+
+        for (int i = 0; i < 12; i++)
+        {
+            MeshTriangle triangle = MeshTriangle(indices[i * 3], indices[i * 3 + 1], indices[i * 3 + 2]);
+            mesh->addTriangle(triangle);
+;       }
+        
+        mesh->lockMesh();
+
+        return cube; 
+    }
 }
 }

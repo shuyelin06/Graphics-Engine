@@ -57,5 +57,19 @@ namespace Graphics
 
 		return true;
 	}
+
+	// LoadPointData:
+	// Loads the point data into a given constant buffer
+	int VisualDebug::LoadPointData(CBHandle* cbHandle)
+	{
+		for (const PointData& data : points)
+		{
+			cbHandle->loadData(&data.position, FLOAT3);
+			cbHandle->loadData(&data.scale, FLOAT);
+			cbHandle->loadData(&data.color, FLOAT3);
+		}
+
+		return points.size();
+	}
 }
 }
