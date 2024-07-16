@@ -30,6 +30,8 @@
 #include "rendering/VisualSystem.h"
 #include "input/InputSystem.h"
 
+#include "rendering/VisualDebug.h"
+
 #include "rendering/AssetManager.h"
 
 #include "math/Compute.h"
@@ -159,6 +161,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             if (msg.message == WM_QUIT)
                 return 0;
         }
+
+        VisualDebug::DrawPoint(Vector3(0, 0, 0), 1, Vector3(0, 1, 0));
 
         // light.getTransform().offsetRotation(0.01f, 0, 0);
 

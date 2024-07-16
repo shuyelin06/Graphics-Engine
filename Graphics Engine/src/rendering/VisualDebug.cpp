@@ -6,14 +6,12 @@ namespace Graphics
 {
 	// Initializing static fields
 	std::vector<PointData> VisualDebug::points = std::vector<PointData>();
-	std::vector<LineData> VisualDebug::lines = std::vector<LineData>();
 
 	// Clear:
 	// Clears all debug data
 	void VisualDebug::Clear()
 	{
 		points.clear();
-		lines.clear();
 	}
 
 	// DrawPoint:
@@ -41,21 +39,6 @@ namespace Graphics
 			return true;
 		}
 		
-	}
-
-	// DrawLine:
-	// Registers a line in 3D space to be drawn by the visual engine.
-	// Lines are cleared after every frame.
-	bool VisualDebug::DrawLine(const Vector3& pos_1, const Vector3& pos_2, const Vector3& color)
-	{
-		LineData data;
-		data.position_1 = pos_1;
-		data.position_2 = pos_2;
-		data.color = color;
-
-		lines.push_back(data);
-
-		return true;
 	}
 
 	// LoadPointData:

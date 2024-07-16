@@ -25,16 +25,6 @@ namespace Graphics
 		float padding;
 	};
 
-	// LineData Struct:
-	// Contains data for a single line to be rendered (for debugging)
-	// This data is loaded into the vertex buffer for direct rendering
-	struct LineData
-	{
-		Vector3 position_1;
-		Vector3 position_2;
-		Vector3 color;
-	};
-
 	// VisualDebug Class:
 	// Contains methods that can be called statically
 	// for convenient debugging purposes
@@ -45,7 +35,6 @@ namespace Graphics
 
 	private:
 		static std::vector<PointData> points;
-		static std::vector<LineData> lines;
 
 	public:
 		// Clear all debug rendering data
@@ -53,7 +42,6 @@ namespace Graphics
 
 		// Quick and dirty rendering in 3D space
 		static bool DrawPoint(const Vector3& position, float scale, const Vector3& color);
-		static bool DrawLine(const Vector3& pos_1, const Vector3& pos_2, const Vector3& color);
 
 		// Pipeline Management
 		static int LoadPointData(CBHandle* cbHandle);
