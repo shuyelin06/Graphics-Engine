@@ -125,7 +125,7 @@ namespace Graphics
 	}
 
 	// Binds the shadow map to a texture slot
-	void LightComponent::bindShadowMap(VisualSystem* system, int slot_index)
+	void LightComponent::bindShadowMap(VisualSystem* system, int slot_index, CBHandle* cbHandle)
 	{
 		ID3D11DeviceContext* device_context = system->getDeviceContext();
 
@@ -136,15 +136,14 @@ namespace Graphics
 		
 		// Bind light data to CB1
 		// Generate view structure data
-		ShadowData shadow_data = { };
+		const Vector3& position = object->getTransform().getPosition();
+		cbHandle->loadData(&position, FLOAT3);
 
-		shadow_data.light_position = object->getTransform().getPosition();
-		shadow_data.padding = 0;
-		shadow_data.view_matrix = object->getLocalMatrix().inverse();
-		shadow_data.projection_matrix = generateProjectionMatrix();
+		Matrix4 viewMatrix = object->getLocalMatrix().inverse();
+		cbHandle->loadData(&viewMatrix, FLOAT4X4);
 
-		// Load this view data into the vertex shader's constant buffer 1
-		system->BindPSData(CB_Type::PER_VIEW, &shadow_data, sizeof(ShadowData));
+		Matrix4 projectionMatrix = generateProjectionMatrix();
+		cbHandle->loadData(&projectionMatrix, FLOAT4X4);
 	}
 
 }

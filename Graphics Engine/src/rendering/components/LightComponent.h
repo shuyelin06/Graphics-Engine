@@ -2,6 +2,8 @@
 
 #include "rendering/components/ViewComponent.h"
 
+#include "rendering/Shader.h"
+
 #include "rendering/Direct3D11.h"
 #include "math/Matrix4.h"
 
@@ -41,7 +43,7 @@ namespace Graphics
 		void setRenderTarget(VisualSystem* system);
 
 		// Bind the shadow map to a texture slot
-		void bindShadowMap(VisualSystem* system, int slot_index);
+		void bindShadowMap(VisualSystem* system, int slot_index, CBHandle* cbHandle);
 	};
 }
 }

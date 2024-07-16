@@ -41,7 +41,7 @@ VS_OUT vs_main(VS_IN input)
     VS_OUT output = (VS_OUT) 0;
     
     float4 pos = float4(input.position_local, 1.0f);
-    float4 norm = float4(input.normal, 1.0f);
+    float4 norm = float4(input.normal, 0.0f);
 	
     // Find World Position
     pos = mul(pos, m_world);
@@ -52,9 +52,9 @@ VS_OUT vs_main(VS_IN input)
     pos = mul(pos, m_projection);
     output.position_clip = pos;
     
-    // Find normal
+    // Compute normal and normalize it for lighting
     norm = mul(norm, m_normals);
-    output.normal = norm.xyz;
+    output.normal = normalize(norm.xyz);
 	
     return output;
 }

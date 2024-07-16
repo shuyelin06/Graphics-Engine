@@ -2,6 +2,8 @@
 
 #include "VisualComponent.h"
 
+#include "rendering/Shader.h"
+
 namespace Engine
 {
 namespace Graphics
@@ -37,7 +39,7 @@ namespace Graphics
 
 		// Given a visual system, loads per-view data
 		// into constant buffer 1.
-		void loadViewData(VisualSystem* system) const;
+		void loadViewData(VisualSystem* system, CBHandle* handle) const;
 
 		// Get the local -> camera space matrix
 		const Matrix4 getProjectionMatrix(void) const;

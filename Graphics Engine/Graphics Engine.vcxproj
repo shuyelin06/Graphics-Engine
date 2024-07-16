@@ -172,6 +172,8 @@
     <ClCompile Include="src\rendering\components\AssetComponent.cpp" />
     <ClCompile Include="src\rendering\components\VisualComponent.cpp" />
     <ClCompile Include="src\rendering\AssetManager.cpp" />
+    <ClCompile Include="src\rendering\Shader.cpp" />
+    <ClCompile Include="src\rendering\ShaderManager.cpp" />
     <ClCompile Include="src\simulation\components\KinematicComponent.cpp" />
     <ClCompile Include="src\simulation\PhysicsSystem.cpp" />
     <ClCompile Include="src\rendering\parsers\PLYParser.cpp" />
@@ -201,10 +203,11 @@
     <ClInclude Include="src\rendering\components\AssetComponent.h" />
     <ClInclude Include="src\rendering\components\VisualComponent.h" />
     <ClInclude Include="src\rendering\AssetManager.h" />
+    <ClInclude Include="src\rendering\Shader.h" />
+    <ClInclude Include="src\rendering\ShaderManager.h" />
     <ClInclude Include="src\simulation\components\KinematicComponent.h" />
     <ClInclude Include="src\simulation\PhysicsSystem.h" />
     <ClInclude Include="src\rendering\Direct3D11.h" />
-    <ClInclude Include="src\rendering\ShaderData.h" />
     <ClInclude Include="src\rendering\VisualDebug.h" />
     <ClInclude Include="src\rendering\VisualSystem.h" />
     <ClInclude Include="src\utility\Stopwatch.h" />

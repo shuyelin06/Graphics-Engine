@@ -32,19 +32,17 @@ namespace Graphics
 	// - World to View Transform
 	// - Projection Transform 
 	// Should be called alongside some call to set a render view.
-	void ViewComponent::loadViewData(VisualSystem* system) const
+	void ViewComponent::loadViewData(VisualSystem* system, CBHandle* cbHandle) const
 	{
 		// Get device context
 		ID3D11DeviceContext* device_context = system->getDeviceContext();
 
 		// Generate view structure data
-		ViewData view_data = { };
+		Matrix4 viewMatrix = object->getLocalMatrix().inverse();
+		cbHandle->loadData(&viewMatrix, FLOAT4X4);
 
-		view_data.view_matrix = object->getLocalMatrix().inverse();
-		view_data.projection_matrix = generateProjectionMatrix();
-
-		// Load this view data into the vertex shader's constant buffer 1
-		system->BindVSData(CB_Type::PER_VIEW, &view_data, sizeof(ViewData));
+		Matrix4 projectionMatrix = generateProjectionMatrix();
+		cbHandle->loadData(&projectionMatrix, FLOAT4X4);
 	}
 
 	// --- Accessors ---

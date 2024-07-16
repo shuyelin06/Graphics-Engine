@@ -54,6 +54,8 @@ void UpdateObjectTransforms(Object* object, const Matrix4& m_parent);
 // Static reference to the input system for use in the window message callback
 static InputSystem input_system;
 
+#include "rendering/Shader.h"
+
 // Main Function
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
@@ -158,7 +160,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
                 return 0;
         }
 
-        light.getTransform().offsetRotation(0.01f, 0, 0);
+        // light.getTransform().offsetRotation(0.01f, 0, 0);
 
         // Update Object Transforms
         Matrix4 identity = Matrix4::identity();

@@ -8,36 +8,16 @@
 #include "Direct3D11.h"
 
 #include "AssetManager.h"
+#include "ShaderManager.h"
 
 #include "rendering/components/LightComponent.h"
 #include "rendering/components/ViewComponent.h"
 #include "rendering/components/AssetComponent.h"
 
-#include "ShaderData.h"
-
 namespace Engine
 {
-using namespace Datamodel;
-
 namespace Graphics
 {
-	// CB_Type:
-	// Represents the types of constant buffers available for rendering.
-	// The types are given in a more understandable format.
-	typedef enum 
-	{
-		PER_FRAME = 0, 
-		PER_VIEW = 1, 
-		PER_ASSET = 2,
-		PER_MESH = 3
-	} CB_Type;
-
-	// Shader_Type Enum:
-	// Represents shader types in a more readable
-	// format, for internal use
-	typedef enum { Vertex, Pixel } Shader_Type;
-
-	
 	// MeshBuffers Struct:
 	// Stores pointers to D3D11 Index/Vertex Buffers, which are mapped to 
 	// Mesh pointers. Used to cache Index/Vertex Buffers, to avoid
@@ -59,11 +39,6 @@ namespace Graphics
 	class VisualSystem
 	{
 	private:
-		// Components
-		std::vector<LightComponent*> light_components;
-		std::vector<AssetComponent*> asset_components;
-		std::vector<ViewComponent*> view_components;
-
 		// Window Handle
 		HWND window;
 
@@ -71,23 +46,24 @@ namespace Graphics
 		ID3D11Device* device;
 		ID3D11DeviceContext* device_context;
 		IDXGISwapChain* swap_chain;
+
+		// Components
+		std::vector<LightComponent*> light_components;
+		std::vector<AssetComponent*> asset_components;
+		std::vector<ViewComponent*> view_components;
+
+		
+
+		
 		
 		// Rendering
 		ID3D11RenderTargetView* render_target_view;
 		ID3D11DepthStencilView* depth_stencil;
 
-		// Available Constant Buffers
-		std::vector<ID3D11Buffer*> vs_constant_buffers;
-		std::vector<ID3D11Buffer*> ps_constant_buffers;
-
-		// Available Resources
-		ID3D11InputLayout* inputLayout;
-		std::map<std::string, ID3D11VertexShader*> vertex_shaders;
-		std::map<std::string, ID3D11PixelShader*> pixel_shaders;
-
-		// Mesh Index/Vertex Buffer Cache
+		// Managers
+		ShaderManager shaderManager;
 		AssetManager assetManager;
-
+		
 		std::map<Mesh*, MeshBuffers> mesh_cache;
 
 	public:
@@ -96,7 +72,7 @@ namespace Graphics
 		// Initialize Visual System
 		void initialize();
 
-		// Renders an Entire Scene
+		// Renders an entire scene
 		void update();
 
 		// --- Data / Resource Queries ---
@@ -106,35 +82,14 @@ namespace Graphics
 		ID3D11RenderTargetView* getRenderTargetView() const;
 		ID3D11DepthStencilView* getDepthStencil() const;
 
-		ID3D11InputLayout* getInputLayout(char layout) const;
-		ID3D11VertexShader* getVertexShader(std::string name) const;
-		ID3D11PixelShader* getPixelShader(std::string name) const;
-
 		// Get current viewport
 		D3D11_VIEWPORT getViewport() const;
 
 		// Returns the currently active view
 		ViewComponent* getActiveView();
 
-		// Creates / returns the index and vertex buffers for a mesh.
-		// Maintains the options to cache the buffers for later use.
-		MeshBuffers getMeshBuffers(Mesh* mesh, bool cache);
-		
-		// --- Resource Creation ---
-		// Create Buffers
-		ID3D11Buffer* CreateBuffer(D3D11_BIND_FLAG, void *data, int byte_size);
-
 		// Create Texture
 		ID3D11Texture2D* CreateTexture2D(D3D11_BIND_FLAG bind_flag, int width, int height);
-
-		// Compile and Create Shaders
-		ID3D11VertexShader* CreateVertexShader(const wchar_t* file, const char* entry);
-		ID3D11PixelShader* CreatePixelShader(const wchar_t* file, const char* entry);
-
-		// --- Render Binding ---
-		// Bind Data to Constant Buffers
-		void BindVSData(unsigned int index, void* data, int byte_size);
-		void BindPSData(unsigned int index, void* data, int byte_size);
 
 		// --- Component Handling ---
 		AssetComponent* bindAssetComponent(Datamodel::Object* object, std::string assetName);
@@ -145,9 +100,6 @@ namespace Graphics
 
 		LightComponent* bindLightComponent(Datamodel::Object* object);
 		bool removeLightComponent(LightComponent* component);
-
-	private:
-		void BindData(Shader_Type type, unsigned int index, void* data, int byte_size);
 	};
 }
 }
