@@ -4,7 +4,6 @@
 #include <d3d11_1.h>
 
 #include "VisualDebug.h"
-#include "ShaderData.h"
 
 #include "datamodel/Object.h"
 
@@ -23,22 +22,19 @@ namespace Graphics
     // system's data structures
     VisualSystem::VisualSystem(HWND _window)
     {
+        window = _window;
+
         // Components
         light_components = std::vector<LightComponent*>();
         asset_components = std::vector<AssetComponent*>();
         view_components = std::vector<ViewComponent*>();
 
-        window = _window;
+        // Managers
+        shaderManager = ShaderManager();
 
         device = NULL;
         device_context = NULL;
         swap_chain = NULL;
-
-        // Create resources
-        inputLayout = nullptr;
-        vertex_shaders = std::map<std::string, ID3D11VertexShader*>();
-        pixel_shaders = std::map<std::string, ID3D11PixelShader*>();
-
         render_target_view = NULL;
         depth_stencil = NULL;
     }
@@ -47,6 +43,8 @@ namespace Graphics
     // Initializes Direct3D11 for use in rendering
     void VisualSystem::initialize()
     {
+        
+
         assetManager = AssetManager();
         // assetManager.LoadAssetFromOBJ("data/", "cube-tex.obj", "Model");
         assetManager.LoadAssetFromOBJ("data/", "model.obj", "Model");
@@ -132,16 +130,7 @@ namespace Graphics
             device->CreateDepthStencilView(depth_texture, &desc_stencil, &depth_stencil);
         }
 
-        /* Build our Shaders */
-        // Default Renderer
-        vertex_shaders["Default"] = CreateVertexShader(L"src/rendering/shaders/VertexShader.hlsl", "vs_main");
-        pixel_shaders["Default"] = CreatePixelShader(L"src/rendering/shaders/PixelShader.hlsl", "ps_main");
-
-        vertex_shaders["DebugPoint"] = CreateVertexShader(L"src/rendering/shaders/PointRenderer.hlsl", "vs_main");
-        pixel_shaders["DebugPoint"] = CreatePixelShader(L"src/rendering/shaders/PointRenderer.hlsl", "ps_main");
-
-        vertex_shaders["Shadow"] = CreateVertexShader(L"src/rendering/shaders/ShadowShaderV.hlsl", "vs_main");
-        pixel_shaders["Shadow"] = CreatePixelShader(L"src/rendering/shaders/ShadowShaderP.hlsl", "ps_main");
+        shaderManager.initialize(device);
     }
 
     // Update:
@@ -152,18 +141,34 @@ namespace Graphics
         float color[4] = { RGB(158.f), RGB(218.f), RGB(255.f), 1.0f };
         device_context->ClearRenderTargetView(render_target_view, color);
 
-        // Load per-frame 
-        LightComponent* light = light_components[0];
+        // Load per-frame
+        VertexShader* vShader = shaderManager.getVertexShader(VSDefault);
+        PixelShader* pShader = shaderManager.getPixelShader(PSDefault);
 
-        light->setRenderTarget(this);
-        light->loadViewData(this);
+        LightComponent* light = light_components[0];
         
-        device_context->VSSetShader(vertex_shaders["Default"], NULL, 0);
-        device_context->PSSetShader(pixel_shaders["Default"], NULL, 0); 
+        light->setRenderTarget(this);
+        vShader->getCBHandle(CB1)->clearData();
+        light->loadViewData(this, vShader->getCBHandle(CB1));
 
         for (AssetComponent* asset_component : asset_components)
-            asset_component->render(this);
+        {
+            asset_component->beginLoading();
 
+            vShader->getCBHandle(CB2)->clearData();
+            int numIndices = asset_component->loadMeshData(device_context, vShader->getCBHandle(CB2), device);
+
+            while (numIndices != -1)
+            {
+                vShader->bindShader(device, device_context);
+                pShader->bindShader(device, device_context);
+                device_context->DrawIndexed(numIndices, 0, 0);
+
+                vShader->getCBHandle(CB2)->clearData();
+                numIndices = asset_component->loadMeshData(device_context, vShader->getCBHandle(CB2), device);
+            }
+        }
+        
         // Set render target
         device_context->OMSetRenderTargets(1, &render_target_view, depth_stencil);
         device_context->ClearDepthStencilView(depth_stencil, D3D11_CLEAR_DEPTH, 1.0f, 0);
@@ -172,16 +177,33 @@ namespace Graphics
         device_context->RSSetViewports(1, &viewport);
 
         // Render Meshes
-        ViewComponent* view = view_components[0];
-        view->loadViewData(this);
-        
-        device_context->VSSetShader(vertex_shaders["Shadow"], NULL, 0);
-        device_context->PSSetShader(pixel_shaders["Shadow"], NULL, 0);
+        vShader = shaderManager.getVertexShader(VSShadow);
+        pShader = shaderManager.getPixelShader(PSShadow);
 
-        light->bindShadowMap(this, 0);
+        ViewComponent* view = view_components[0];
+
+        vShader->getCBHandle(CB1)->clearData();
+        view->loadViewData(this, vShader->getCBHandle(CB1));
+        pShader->getCBHandle(CB1)->clearData();
+        light->bindShadowMap(this, 0, pShader->getCBHandle(CB1));
 
         for (AssetComponent* asset_component : asset_components)
-            asset_component->render(this);
+        {
+            asset_component->beginLoading();
+
+            vShader->getCBHandle(CB2)->clearData();
+            int numIndices = asset_component->loadMeshData(device_context, vShader->getCBHandle(CB2), device);
+
+            while (numIndices != -1)
+            {
+                vShader->bindShader(device, device_context);
+                pShader->bindShader(device, device_context);
+                device_context->DrawIndexed(numIndices, 0, 0);
+
+                vShader->getCBHandle(CB2)->clearData();
+                numIndices = asset_component->loadMeshData(device_context, vShader->getCBHandle(CB2), device);
+            }
+        }
 
         // Present what we rendered to
         swap_chain->Present(1, 0);
@@ -210,36 +232,6 @@ namespace Graphics
     ID3D11DepthStencilView* VisualSystem::getDepthStencil() const
         { return depth_stencil; }
 
-    // GetInputLayout:
-    // Returns the input layout format associated with the given bitwise flag.
-    ID3D11InputLayout* VisualSystem::getInputLayout(char layout) const
-    {
-        return inputLayout;
-    }
-
-    // GetVertexShader:
-    // Queries the stored vertex shaders to return the corresponding vertex
-    // shader with the provided name. Returns NULL if such a shader does not
-    // exist.
-    ID3D11VertexShader* VisualSystem::getVertexShader(std::string name) const
-    {
-        if (vertex_shaders.contains(name))
-            return vertex_shaders.at(name);
-        else
-            return NULL;
-    }
-
-    // GetVertexShader:
-    // Queries the stored pixel shaders to return the corresponding vertex
-    // shader with the provided name. Returns NULL if such a shader does not
-    // exist.
-    ID3D11PixelShader* VisualSystem::getPixelShader(std::string name) const
-    {
-        if (pixel_shaders.contains(name))
-            return pixel_shaders.at(name);
-        else
-            return NULL;
-    }
 
     // GetViewport:
     // Returns the current viewport
@@ -252,8 +244,8 @@ namespace Graphics
         // Generate viewport description
         D3D11_VIEWPORT viewport = {
             0.0f, 0.0f,
-            (FLOAT) (winRect.right - winRect.left),
-            (FLOAT) (winRect.bottom - winRect.top),
+            (float) (winRect.right - winRect.left),
+            (float) (winRect.bottom - winRect.top),
             0.0f,
             1.0f
         };
@@ -276,84 +268,6 @@ namespace Graphics
         
         // Otherwise, (for now) just return the first one.
         return view_components[0];
-    }
-
-    // GetMeshBuffers:
-    // Given a pointer to a mesh, creates and returns the index and vertex buffers 
-    // for it.
-    // If the boolean is flipped, then caches the buffer for later use. Calling the method
-    // again with the same memory address will just return the already created buffers
-    // without creating new resources.
-    MeshBuffers VisualSystem::getMeshBuffers(Mesh* mesh, bool cache)
-    {
-        MeshBuffers buffers = { 0 };
-
-        // If nullptr is provided, return an empty struct
-        if (mesh == nullptr)
-            return buffers;
-
-        // Otherwise, check the boolean flag. If true, then tries to search the cache
-        // for an already created buffer.
-        if (cache && mesh_cache.contains(mesh))
-        {
-            buffers = mesh_cache[mesh];
-        }
-        // If not found or boolean is false, create the buffer resources.
-        // Bytes between each vertex 
-        else
-        {
-            // Get vertex and index vectors for the mesh
-            const std::vector<MeshVertex>& vertices = mesh->getVertexBuffer();
-            const std::vector<MeshTriangle>& indices = mesh->getIndexBuffer();
-
-            // Create new buffer resources
-            buffers.vertex_buffer = CreateBuffer(
-                D3D11_BIND_VERTEX_BUFFER,
-                (void*) vertices.data(),
-                sizeof(MeshVertex) * vertices.size());
-            buffers.index_buffer = CreateBuffer(
-                D3D11_BIND_INDEX_BUFFER,
-                (void*)indices.data(),
-                sizeof(MeshTriangle) * indices.size());
-
-            // If caching is on, add buffer resources to cache
-            if (cache)
-                mesh_cache[mesh] = buffers;
-        }
-
-        return buffers;
-    }
-
-    /* --- Resource Creation --- */
-    // CreateBuffer:
-    // Creates a generic buffer that can be used throughout our graphics pipeline. 
-    // Uses include but are not limited to:
-    // 1) Constant Buffers (without resource renaming)
-    // 2) Vertex Buffers
-    // 3) Index Buffers 
-    ID3D11Buffer* VisualSystem::CreateBuffer(D3D11_BIND_FLAG bind_flag, void* data, int byte_size)
-    {
-        ID3D11Buffer* buffer = NULL;
-
-        // Fill buffer description
-        D3D11_BUFFER_DESC buff_desc = {};
-
-        buff_desc.ByteWidth = byte_size;
-        buff_desc.Usage = D3D11_USAGE_DEFAULT; 
-        buff_desc.BindFlags = bind_flag;
-
-        // Fill subresource data
-        D3D11_SUBRESOURCE_DATA sr_data = { 0 };
-        sr_data.pSysMem = data;
-
-        // Create buffer
-        HRESULT result = device->CreateBuffer(
-            &buff_desc, &sr_data, &buffer
-        );
-
-        assert(SUCCEEDED(result));
-
-        return buffer;
     }
     
     // CreateTexture2D:
@@ -384,196 +298,7 @@ namespace Graphics
         return texture;
     }
     
-    
-    static ID3DBlob* CompileShaderBlob(Shader_Type type, const wchar_t* file, const char* entry);
-
-    // CreateVertexShader:
-    // Creates a vertex shader and adds it to the array of vertex shaders
-    ID3D11VertexShader* VisualSystem::CreateVertexShader(const wchar_t* filename, const char* entrypoint)
-    {
-        // Obtain shader blob
-        ID3DBlob* shader_blob = CompileShaderBlob(Vertex, filename, entrypoint);
-
-        // Create input layout for vertex shader, or use it if it already exists
-        inputLayout = NULL;
-
-        D3D11_INPUT_ELEMENT_DESC input_desc[] = {
-            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "TEXTURE", 0, DXGI_FORMAT_R32G32_FLOAT, 0, sizeof(float) * 2, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, sizeof(float) * 5, D3D11_INPUT_PER_VERTEX_DATA, 0 }
-        };
-        int input_desc_size = 3;
-
-        // Create input layout resource
-        device->CreateInputLayout(
-            input_desc,
-            input_desc_size,
-            shader_blob->GetBufferPointer(),
-            shader_blob->GetBufferSize(),
-            &inputLayout
-        );
-
-        // Check for success
-        assert(inputLayout != NULL);
-
-        // Create vertex shader
-        ID3D11VertexShader* vertex_shader = NULL;
-
-        device->CreateVertexShader(
-            shader_blob->GetBufferPointer(),
-            shader_blob->GetBufferSize(),
-            NULL,
-            &vertex_shader
-        );
-
-        return vertex_shader;
-    }
-
-    // CreatePixelShader:
-    // Creates a pixel shader and adds it to the array of pixel shaders
-    ID3D11PixelShader* VisualSystem::CreatePixelShader(const wchar_t* filename, const char* entrypoint)
-    {
-        // Obtain shader blob
-        ID3DBlob* shader_blob = CompileShaderBlob(Pixel, filename, entrypoint);
-
-        // Create pixel shader
-        ID3D11PixelShader* pixel_shader = NULL;
-
-        device->CreatePixelShader(
-            shader_blob->GetBufferPointer(),
-            shader_blob->GetBufferSize(),
-            NULL,
-            &pixel_shader
-        );
-
-        // Check for success
-        assert(pixel_shader != NULL);
-
-        // Add to array of pixel shaders
-        return pixel_shader;
-    }
-
-    // CompileShaderBlob:
-    // Compiles a file into a shader blob. Used in the creation of vertex
-    // and pixel shaders.
-    static ID3DBlob* CompileShaderBlob(Shader_Type type, const wchar_t* file, const char* entry)
-    {
-        // Initialize compiler settings
-        ID3DInclude* include_settings = D3D_COMPILE_STANDARD_FILE_INCLUDE;
-        const char* compiler_target = "";
-        const UINT flags = 0 | D3DCOMPILE_DEBUG | D3DCOMPILE_ENABLE_STRICTNESS;
-
-        switch (type) {
-        case Vertex:
-            compiler_target = "vs_5_0";
-            break;
-
-        case Pixel:
-            compiler_target = "ps_5_0";
-            break;
-        }
-
-        // Compile blob
-        ID3DBlob* error_blob = NULL;
-        ID3DBlob* compiled_blob = NULL;
-
-        HRESULT result = D3DCompileFromFile(
-            file,
-            nullptr,
-            include_settings,
-            entry,
-            compiler_target,
-            flags,
-            0,
-            &compiled_blob,
-            &error_blob
-        );
-
-        // Error handling
-        if (FAILED(result))
-        {
-            // Print error if message exists
-            if (error_blob)
-            {
-                OutputDebugStringA((char*)error_blob->GetBufferPointer());
-                error_blob->Release();
-            }
-            // Release shader blob if allocated
-            if (compiled_blob) { compiled_blob->Release(); }
-            assert(false);
-        }
-
-        return compiled_blob;
-    }
-
-    /* --- Render Binding --- */
-    // BindData
-    // Uses dynamic resource renaming to fairly efficiently bind data to the vertex / pixel
-    // shader constant registers, for use in the shaders
-    void VisualSystem::BindVSData(unsigned int index, void* data, int byte_size)
-        { BindData(Vertex, index, data, byte_size); }
-    void VisualSystem::BindPSData(unsigned int index, void* data, int byte_size)
-        { BindData(Pixel, index, data, byte_size); }
-    void VisualSystem::BindData(Shader_Type type, unsigned int index, void* data, int byte_size)
-    {
-        // Get vertex or pixel buffers depending on what's requested
-        std::vector<ID3D11Buffer*> buffers = (type == Vertex) ? vs_constant_buffers : ps_constant_buffers;
-
-        // Check if our buffer index exists, and if it doesn't,
-        // resize our vector so that it's included
-        if (index >= buffers.size())
-            buffers.resize(index + 1);
-
-        // Create buffer if it does not exist at that index
-        if (buffers[index] == NULL)
-        {
-            // Create buffer description 
-            D3D11_BUFFER_DESC buff_desc = {};
-
-            buff_desc.ByteWidth = byte_size;                    // # Bytes Input Data Takes
-            buff_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;   // Constant Buffer
-            buff_desc.Usage = D3D11_USAGE_DYNAMIC;              // Accessible by GPU Read + CPU Write
-            buff_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;  // Allow CPU Writes
-
-            // Allocate resources
-            D3D11_SUBRESOURCE_DATA sr_data;
-
-            sr_data.pSysMem = data;
-            sr_data.SysMemPitch = 0;
-            sr_data.SysMemSlicePitch = 0;
-
-            // Create buffer
-            device->CreateBuffer(&buff_desc, &sr_data, &buffers[index]);
-        }
-        // If buffer exists, perform resource renaming to update buffer data 
-        // instead of creating a new buffer
-        else
-        {
-            // Will store data for the already existing shader buffer 
-            D3D11_MAPPED_SUBRESOURCE mapped_resource = { 0 };
-
-            // Disable GPU access to data and obtain the resource
-            device_context->Map(buffers[index], 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_resource);
-
-            // Update data
-            memcpy(mapped_resource.pData, data, byte_size);
-
-            // Reenable GPU access to data
-            device_context->Unmap(buffers[index], 0);
-        }
-
-        // Set constant buffer into shader
-        switch (type)
-        {
-        case Vertex:
-            device_context->VSSetConstantBuffers(index, 1, &buffers[index]);
-            break;
-        case Pixel:
-            device_context->PSSetConstantBuffers(index, 1, &buffers[index]);
-            break;
-        }
-    }
-
+   
     /* 
     TODO: When can i remove this: 
     // Render:

@@ -1,5 +1,7 @@
 #include "Asset.h"
 
+#include <assert.h>
+
 namespace Engine
 {
 using namespace Math;
@@ -48,8 +50,13 @@ namespace Graphics
 		vertexBuffer = std::vector<MeshVertex>();
 		indexBuffer = std::vector<MeshTriangle>();
 
+		indexBufferResource = nullptr;
+		vertexBufferResource = nullptr;
+
 		material = nullptr;
+		
 		lock = false;
+		isStatic = true;
 	}
 
 	// Mesh Initializers
@@ -153,6 +160,51 @@ namespace Graphics
 	int Mesh::triangleCount() const
 	{
 		return indexBuffer.size();
+	}
+
+	int Mesh::loadIndexVertexData(ID3D11DeviceContext* context, ID3D11Device* device)
+	{
+		// Generate buffer resources for the mesh vertex and index buffer (on demand)
+		// if they do not yet exist.
+		if (!isStatic || indexBufferResource == nullptr || vertexBufferResource == nullptr)
+		{
+			// Free resources if they already exist
+			if (indexBufferResource != nullptr)
+				indexBufferResource->Release();
+			if (vertexBufferResource != nullptr)
+				vertexBufferResource->Release();
+
+			D3D11_BUFFER_DESC buff_desc = {};
+			D3D11_SUBRESOURCE_DATA sr_data = { 0 };
+
+			// Create resource for vertex buffer
+			buff_desc.ByteWidth = sizeof(MeshVertex) * vertexBuffer.size();
+			buff_desc.Usage = D3D11_USAGE_DEFAULT;
+			buff_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+			sr_data.pSysMem = (void*)vertexBuffer.data();
+
+			device->CreateBuffer(&buff_desc, &sr_data, &vertexBufferResource);
+			assert(vertexBufferResource != nullptr);
+
+			// Create resource for index buffer
+			buff_desc.ByteWidth = sizeof(MeshTriangle) * indexBuffer.size();
+			buff_desc.Usage = D3D11_USAGE_DEFAULT;
+			buff_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+			sr_data.pSysMem = (void*)indexBuffer.data();
+
+			device->CreateBuffer(&buff_desc, &sr_data, &indexBufferResource);
+			assert(indexBufferResource != nullptr);
+		}
+
+		// Load these buffers into the pipeline
+		UINT vertexStride = sizeof(MeshVertex);
+		UINT vertexOffset = 0;
+
+		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		context->IASetVertexBuffers(0, 1, &vertexBufferResource, &vertexStride, &vertexOffset);
+		context->IASetIndexBuffer(indexBufferResource, DXGI_FORMAT_R32_UINT, 0);
+
+		return triangleCount() * 3;
 	}
 
 	// Asset Class

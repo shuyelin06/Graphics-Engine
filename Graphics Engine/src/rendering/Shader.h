@@ -16,7 +16,7 @@ namespace Graphics
 	// a corresponding CBHandle object.
 	enum CBSlot {
 		CB0 = 0, CB1 = 1, CB2 = 2, CB3 = 3,
-		COUNT // Enum trick to track the # of slots supported
+		CBCOUNT // Enum trick to track the # of slots supported
 	};
 
 	enum CBDataFormat
@@ -26,18 +26,30 @@ namespace Graphics
 		FLOAT4X4 = 64
 	};
 	
-	struct CBHandle
+	class CBHandle
 	{
+	friend class Shader;
+	friend class VertexShader;
+	friend class PixelShader;
+
+	private:
 		std::vector<CBDataFormat> format;
 		int formatIndex;
+
 		std::vector<float> data;
 		ID3D11Buffer* resource;
 
-		CBHandle();
+	public:
+		CBHandle(const CBDataFormat formatDescription[], int numberDescriptors);
+		~CBHandle();
 
 		// Returns the number of bytes the constant buffer is 
 		// expected to store (accounting for padding)
 		int byteSize() const;
+
+		// Manage Data in the CB
+		void loadData(const void* dataPtr, CBDataFormat format);
+		void clearData();
 	};
 
 	// Shaders:
@@ -50,17 +62,15 @@ namespace Graphics
 	class Shader
 	{
 	protected:
-		CBHandle constantBuffers[4];
-		std::bitset<CBSlot::COUNT> activeConstantBuffers;
-
+		CBHandle* constantBuffers[CBSlot::CBCOUNT];
+		
 	public:
 		Shader();
 		~Shader();
 
 		// Constant Buffer Management
 		void enableCB(CBSlot slot, const CBDataFormat formatDescription[], int numberDescriptors);
-		void addCBData(CBSlot slot, void* data, CBDataFormat format);
-		void clearCBData(CBSlot slot);
+		CBHandle* getCBHandle(CBSlot slot);
 
 		// Pipeline Management
 		virtual void bindShader(ID3D11Device* device, ID3D11DeviceContext* context) = 0;
@@ -74,8 +84,13 @@ namespace Graphics
 	{
 	private:
 		ID3D11VertexShader* shader;
+		ID3D11InputLayout* layout;
 
 	public:
+		VertexShader(ID3D11VertexShader* shader, ID3D11InputLayout* layout);
+		~VertexShader();
+
+		// Binds the vertex shader to the pipeline with its constant buffers
 		void bindShader(ID3D11Device* device, ID3D11DeviceContext* context) override;
 	};
 
@@ -85,6 +100,10 @@ namespace Graphics
 		ID3D11PixelShader* shader;
 
 	public:
+		PixelShader(ID3D11PixelShader* shader);
+		~PixelShader();
+
+		// Binds the pixel shader to the pipeline with its constant buffers
 		void bindShader(ID3D11Device* device, ID3D11DeviceContext* context) override;
 	};
 

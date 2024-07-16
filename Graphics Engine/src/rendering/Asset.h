@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Direct3D11.h"
+
 #include <string>
 #include <vector>
 
@@ -65,8 +67,16 @@ namespace Graphics
 
 		Material* material;
 
+		// Direct3D Resources
+		ID3D11Buffer* indexBufferResource;
+		ID3D11Buffer* vertexBufferResource;
+
 		// Determines if the mesh can be edited or not
 		bool lock;
+
+		// Determines if the mesh is static, i.e. if
+		// it can change. If it is static, we can reuse resources.
+		bool isStatic;
 
 	public:
 		// Mesh Constructor
@@ -86,6 +96,11 @@ namespace Graphics
 
 		int vertexCount() const;
 		int triangleCount() const;
+
+		// Pipeline Management
+		// Loads the index and vertex buffers into the pipeline
+		// and returns the number of indices to render
+		int loadIndexVertexData(ID3D11DeviceContext* context, ID3D11Device* device);
 	};
 
 	// Asset Class
@@ -112,6 +127,8 @@ namespace Graphics
 
 		Mesh* getMesh(int mesh_index);
 		Material* getMaterial(int material_index);
+
+		// Pipeline Binding
 	};
 
 	

@@ -208,7 +208,6 @@
     <ClInclude Include="src\simulation\components\KinematicComponent.h" />
     <ClInclude Include="src\simulation\PhysicsSystem.h" />
     <ClInclude Include="src\rendering\Direct3D11.h" />
-    <ClInclude Include="src\rendering\ShaderData.h" />
     <ClInclude Include="src\rendering\VisualDebug.h" />
     <ClInclude Include="src\rendering\VisualSystem.h" />
     <ClInclude Include="src\utility\Stopwatch.h" />

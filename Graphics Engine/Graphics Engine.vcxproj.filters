@@ -137,9 +137,6 @@
     <ClInclude Include="src\datamodel\Transform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\ShaderData.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\datamodel\Terrain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
