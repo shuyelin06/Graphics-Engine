@@ -32,11 +32,8 @@ namespace Graphics
 	// - World to View Transform
 	// - Projection Transform 
 	// Should be called alongside some call to set a render view.
-	void ViewComponent::loadViewData(VisualSystem* system, CBHandle* cbHandle) const
+	void ViewComponent::loadViewData(CBHandle* cbHandle) const
 	{
-		// Get device context
-		ID3D11DeviceContext* device_context = system->getDeviceContext();
-
 		// Generate view structure data
 		Matrix4 viewMatrix = object->getLocalMatrix().inverse();
 		cbHandle->loadData(&viewMatrix, FLOAT4X4);

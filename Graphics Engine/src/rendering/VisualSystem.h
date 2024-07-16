@@ -29,7 +29,7 @@ namespace Graphics
 
 		// Direct 3D 11 Interfaces
 		ID3D11Device* device;
-		ID3D11DeviceContext* device_context;
+		ID3D11DeviceContext* context;
 
 		// Managers
 		ShaderManager shaderManager;
@@ -54,12 +54,6 @@ namespace Graphics
 		void update();
 
 		// --- Data / Resource Queries ---
-		// Direct3D Resource / Interface Queries
-		ID3D11Device* getDevice() const;
-		ID3D11DeviceContext* getDeviceContext();
-		ID3D11RenderTargetView* getRenderTargetView() const;
-		ID3D11DepthStencilView* getDepthStencil() const;
-
 		// Get current viewport
 		D3D11_VIEWPORT getViewport() const;
 
@@ -69,7 +63,7 @@ namespace Graphics
 		// Create Texture
 		ID3D11Texture2D* CreateTexture2D(D3D11_BIND_FLAG bind_flag, int width, int height);
 
-		// --- Component Handling ---
+		// Component Handling
 		AssetComponent* bindAssetComponent(Datamodel::Object* object, AssetSlot assetName);
 		bool removeAssetComponent(AssetComponent* component);
 

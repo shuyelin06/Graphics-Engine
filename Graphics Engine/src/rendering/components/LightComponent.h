@@ -1,5 +1,7 @@
 #pragma once
 
+#include "rendering/Direct3D11.h"
+
 #include "rendering/components/ViewComponent.h"
 
 #include "rendering/Shader.h"
@@ -36,14 +38,14 @@ namespace Graphics
 		ID3D11SamplerState* sampler_state;
 
 	public:
-		LightComponent(Datamodel::Object* object, VisualSystem* system);
+		LightComponent(Datamodel::Object* object, VisualSystem* system, ID3D11Device* device);
 		~LightComponent();
 
 		// Set render target to be the texture
-		void setRenderTarget(VisualSystem* system);
+		void setRenderTarget(ID3D11DeviceContext* context);
 
 		// Bind the shadow map to a texture slot
-		void bindShadowMap(VisualSystem* system, int slot_index, CBHandle* cbHandle);
+		void bindShadowMap(ID3D11DeviceContext* context, int slot_index, CBHandle* cbHandle);
 	};
 }
 }

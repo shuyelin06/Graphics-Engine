@@ -24,14 +24,11 @@ namespace Graphics
 
 	// Constructor:
 	// Initializes a texture resource for use in the shadow mapping.
-	LightComponent::LightComponent(Datamodel::Object* object, VisualSystem* system)
+	LightComponent::LightComponent(Datamodel::Object* object, VisualSystem* system, ID3D11Device* device)
 		: ViewComponent(object, system)
 	{
 		// Cast the handler to a visual system (TODO: probably a better way to do this)
 		VisualSystem* visual_system = system;
-
-		// Get device to create resources. This can probably be moved to the visual system later
-		ID3D11Device* device = visual_system->getDevice();
 
 		// Create my texture
 		shadow_map = NULL;
@@ -113,26 +110,20 @@ namespace Graphics
 	}
 
 	// Sets the shadow map as the render target
-	void LightComponent::setRenderTarget(VisualSystem* system)
+	void LightComponent::setRenderTarget(ID3D11DeviceContext* context)
 	{
-		ID3D11DeviceContext* device_context = system->getDeviceContext();
-
-		// Set render target view and viewport
-		device_context->OMSetRenderTargets(0, nullptr, depth_stencil_view);
-		device_context->ClearDepthStencilView(depth_stencil_view, D3D11_CLEAR_DEPTH, 1.0f, 0);
-
-		device_context->RSSetViewports(1, &viewport);
+		context->OMSetRenderTargets(0, nullptr, depth_stencil_view);
+		context->ClearDepthStencilView(depth_stencil_view, D3D11_CLEAR_DEPTH, 1.0f, 0);
+		context->RSSetViewports(1, &viewport);
 	}
 
 	// Binds the shadow map to a texture slot
-	void LightComponent::bindShadowMap(VisualSystem* system, int slot_index, CBHandle* cbHandle)
+	void LightComponent::bindShadowMap(ID3D11DeviceContext* context, int slot_index, CBHandle* cbHandle)
 	{
-		ID3D11DeviceContext* device_context = system->getDeviceContext();
-
 		// Bind view of the texture
-		device_context->PSSetShaderResources(slot_index, 1, &shader_resource_view);
+		context->PSSetShaderResources(slot_index, 1, &shader_resource_view);
 		// Configure sampling of the texture
-		device_context->PSSetSamplers(slot_index, 1, &sampler_state);
+		context->PSSetSamplers(slot_index, 1, &sampler_state);
 		
 		// Bind light data to CB1
 		// Generate view structure data

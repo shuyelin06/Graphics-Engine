@@ -162,7 +162,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
                 return 0;
         }
 
-        VisualDebug::DrawPoint(Vector3(0, 0, 0), 1, Vector3(0, 1, 0));
+        // Draw XYZ Axes (R: +X, G: +Y, B: +Z)
+        VisualDebug::DrawPoint(Vector3(0, 0, 0), 1, Vector3(1, 1, 1));
+        VisualDebug::DrawPoint(Vector3(1, 0, 0), 1, Vector3(1, 0, 0));
+        VisualDebug::DrawPoint(Vector3(0, 1, 0), 1, Vector3(0, 1, 0));
+        VisualDebug::DrawPoint(Vector3(0, 0, 1), 1, Vector3(0, 0, 1));
 
         // light.getTransform().offsetRotation(0.01f, 0, 0);
 

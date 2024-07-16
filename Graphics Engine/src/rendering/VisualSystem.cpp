@@ -34,7 +34,7 @@ namespace Graphics
         shaderManager = ShaderManager();
 
         device = NULL;
-        device_context = NULL;
+        context = NULL;
         swap_chain = NULL;
         render_target_view = NULL;
         depth_stencil = NULL;
@@ -81,10 +81,10 @@ namespace Graphics
             &swap_chain,
             &device,
             &feature_level,
-            &device_context);
+            &context);
 
         // Check for success
-        assert(S_OK == result && swap_chain && device && device_context);
+        assert(S_OK == result && swap_chain && device && context);
 
 
         /* Create Render Target (Output Images) */
@@ -135,7 +135,7 @@ namespace Graphics
     {
         // Clear the the screen color
         float color[4] = { RGB(158.f), RGB(218.f), RGB(255.f), 1.0f };
-        device_context->ClearRenderTargetView(render_target_view, color);
+        context->ClearRenderTargetView(render_target_view, color);
 
         VertexShader* vShader;
         PixelShader* pShader;
@@ -146,34 +146,34 @@ namespace Graphics
 
         LightComponent* light = light_components[0];
         
-        light->setRenderTarget(this);
+        light->setRenderTarget(context);
         vShader->getCBHandle(CB1)->clearData();
-        light->loadViewData(this, vShader->getCBHandle(CB1));
+        light->loadViewData(vShader->getCBHandle(CB1));
 
         for (AssetComponent* asset_component : asset_components)
         {
             asset_component->beginLoading();
 
             vShader->getCBHandle(CB2)->clearData();
-            int numIndices = asset_component->loadMeshData(device_context, vShader->getCBHandle(CB2), device);
+            int numIndices = asset_component->loadMeshData(context, vShader->getCBHandle(CB2), device);
 
             while (numIndices != -1)
             {
-                vShader->bindShader(device, device_context);
-                pShader->bindShader(device, device_context);
-                device_context->DrawIndexed(numIndices, 0, 0);
+                vShader->bindShader(device, context);
+                pShader->bindShader(device, context);
+                context->DrawIndexed(numIndices, 0, 0);
 
                 vShader->getCBHandle(CB2)->clearData();
-                numIndices = asset_component->loadMeshData(device_context, vShader->getCBHandle(CB2), device);
+                numIndices = asset_component->loadMeshData(context, vShader->getCBHandle(CB2), device);
             }
         }
         
         // Render Pass: Render Scene
-        device_context->OMSetRenderTargets(1, &render_target_view, depth_stencil);
-        device_context->ClearDepthStencilView(depth_stencil, D3D11_CLEAR_DEPTH, 1.0f, 0);
+        context->OMSetRenderTargets(1, &render_target_view, depth_stencil);
+        context->ClearDepthStencilView(depth_stencil, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
         D3D11_VIEWPORT viewport = getViewport();
-        device_context->RSSetViewports(1, &viewport);
+        context->RSSetViewports(1, &viewport);
 
         // Render Meshes
         vShader = shaderManager.getVertexShader(VSShadow);
@@ -182,25 +182,25 @@ namespace Graphics
         ViewComponent* view = view_components[0];
 
         vShader->getCBHandle(CB1)->clearData();
-        view->loadViewData(this, vShader->getCBHandle(CB1));
+        view->loadViewData(vShader->getCBHandle(CB1));
         pShader->getCBHandle(CB1)->clearData();
-        light->bindShadowMap(this, 0, pShader->getCBHandle(CB1));
+        light->bindShadowMap(context, 0, pShader->getCBHandle(CB1));
 
         for (AssetComponent* asset_component : asset_components)
         {
             asset_component->beginLoading();
 
             vShader->getCBHandle(CB2)->clearData();
-            int numIndices = asset_component->loadMeshData(device_context, vShader->getCBHandle(CB2), device);
+            int numIndices = asset_component->loadMeshData(context, vShader->getCBHandle(CB2), device);
 
             while (numIndices != -1)
             {
-                vShader->bindShader(device, device_context);
-                pShader->bindShader(device, device_context);
-                device_context->DrawIndexed(numIndices, 0, 0);
+                vShader->bindShader(device, context);
+                pShader->bindShader(device, context);
+                context->DrawIndexed(numIndices, 0, 0);
 
                 vShader->getCBHandle(CB2)->clearData();
-                numIndices = asset_component->loadMeshData(device_context, vShader->getCBHandle(CB2), device);
+                numIndices = asset_component->loadMeshData(context, vShader->getCBHandle(CB2), device);
             }
         }
         
@@ -213,15 +213,15 @@ namespace Graphics
             vShader->getCBHandle(CB1)->clearData();
 
             Asset* cube = assetManager.getAsset(Cube);
-            int numIndices = cube->getMesh(0)->loadIndexVertexData(device_context, device);
+            int numIndices = cube->getMesh(0)->loadIndexVertexData(context, device);
             
             int numPoints = VisualDebug::LoadPointData(vShader->getCBHandle(CB0));
-            view->loadViewData(this, vShader->getCBHandle(CB1));
+            view->loadViewData(vShader->getCBHandle(CB1));
 
-            vShader->bindShader(device, device_context);
-            pShader->bindShader(device, device_context);
+            vShader->bindShader(device, context);
+            pShader->bindShader(device, context);
 
-            device_context->DrawIndexedInstanced(numIndices, numPoints, 0, 0, 1);
+            context->DrawIndexedInstanced(numIndices, numPoints, 0, 0, 1);
 
             VisualDebug::Clear();
         }
@@ -232,27 +232,6 @@ namespace Graphics
         // Clear debug points
         VisualDebug::points.clear();
     }
-
-    // GetDevice:
-    // Returns the device
-    ID3D11Device* VisualSystem::getDevice() const
-        { return device; }
-
-    // GetDeviceContext:
-    // Returns the device context
-    ID3D11DeviceContext* VisualSystem::getDeviceContext()
-        { return device_context; }
-
-    // GetRenderTargetView:
-    // Returns the render target view
-    ID3D11RenderTargetView* VisualSystem::getRenderTargetView() const
-        { return render_target_view; }
-
-    // GetDepthStencilView:
-    // Returns the depth & stencil buffer
-    ID3D11DepthStencilView* VisualSystem::getDepthStencil() const
-        { return depth_stencil; }
-
 
     // GetViewport:
     // Returns the current viewport
@@ -383,7 +362,7 @@ namespace Graphics
     LightComponent* VisualSystem::bindLightComponent(Datamodel::Object* object)
     {
         // Create component
-        LightComponent* component = new LightComponent(object, this);
+        LightComponent* component = new LightComponent(object, this, device);
         light_components.push_back(component);
 
         // Register with object
