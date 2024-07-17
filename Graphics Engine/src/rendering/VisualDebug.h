@@ -5,7 +5,9 @@
 #include <vector>
 
 #include "rendering/Shader.h"
+
 #include "math/Vector3.h"
+#include "math/Color.h"
 
 namespace Engine
 {
@@ -21,7 +23,7 @@ namespace Graphics
 		Vector3 position;
 		float scale;
 
-		Vector3 color;
+		Color color;
 		float padding;
 	};
 	
@@ -31,7 +33,7 @@ namespace Graphics
 	struct LinePoint
 	{
 		Vector3 point;
-		Vector3 color;
+		Color color;
 	};
 
 	// VisualDebug Class:
@@ -53,9 +55,9 @@ namespace Graphics
 		static void Clear();
 
 		// Quick and dirty rendering in 3D space
-		static bool DrawPoint(const Vector3& position, float scale, const Vector3& color);
+		static bool DrawPoint(const Vector3& position, float scale, const Color& color);
 		static bool DrawPoint(const Vector3& position, float scale);
-		static bool DrawLine(const Vector3& p1, const Vector3& rgb1, const Vector3& p2, const Vector3& rgb2);
+		static bool DrawLine(const Vector3& p1, const Vector3& p2, const Color& rgb);
 		static bool DrawLine(const Vector3& p1, const Vector3& p2);
 
 		// Pipeline Management

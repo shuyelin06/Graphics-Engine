@@ -22,7 +22,7 @@ namespace Graphics
 	// DrawPoint:
 	// Registers a point in 3D space to be drawn by the visual
 	// engine. Points are cleared after every frame
-	bool VisualDebug::DrawPoint(const Vector3& position, float scale, const Vector3& color)
+	bool VisualDebug::DrawPoint(const Vector3& position, float scale, const Color& color)
 	{
 		const int POINT_CAP = (4096 * 4 * sizeof(float)) / sizeof(PointData);
 
@@ -48,22 +48,22 @@ namespace Graphics
 
 	bool VisualDebug::DrawPoint(const Vector3& position, float scale)
 	{
-		DrawPoint(position, scale, Vector3(1, 0, 0));
+		return DrawPoint(position, scale, Color::Red());
 	}
 
 	// DrawLine:
 	// Registers a line in 3D space to be drawn by the visual engine.
 	// Like points, lines are cleared after every frame.
-	bool VisualDebug::DrawLine(const Vector3& p1, const Vector3& rgb1, const Vector3& p2, const Vector3& rgb2)
+	bool VisualDebug::DrawLine(const Vector3& p1, const Vector3& p2, const Color& rgb)
 	{
 		LinePoint data1;
 		data1.point = p1;
-		data1.color = rgb1;
+		data1.color = rgb;
 		lines.push_back(data1);
 
 		LinePoint data2;
 		data2.point = p2;
-		data2.color = rgb2;
+		data2.color = rgb;
 		lines.push_back(data2);
 
 		return true;
@@ -71,7 +71,7 @@ namespace Graphics
 
 	bool VisualDebug::DrawLine(const Vector3& p1, const Vector3& p2)
 	{
-		DrawLine(p1, Vector3(1, 0, 0), p2, Vector3(1, 0, 0));
+		return DrawLine(p1, p2, Color::Red());
 	}
 
 	// LoadPointData:
