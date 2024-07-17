@@ -33,6 +33,13 @@ namespace Graphics
         }
         pixelShaders[PSDebugPoint] = createPixelShader(device, shaderFolder + L"DebugPointRenderer.hlsl", "ps_main");
 
+        vertexShaders[VSDebugLine] = createVertexShader(device, XYZ | RGB, shaderFolder + L"DebugLineRenderer.hlsl", "vs_main");
+        {
+            CBDataFormat cb1[] = { FLOAT4X4, FLOAT4X4 };
+            vertexShaders[VSDebugLine]->enableCB(CB1, cb1, 2);
+        }
+        pixelShaders[PSDebugLine] = createPixelShader(device, shaderFolder + L"DebugLineRenderer.hlsl", "ps_main");
+
         vertexShaders[VSDefault] = createVertexShader(device, XYZ | TEX | NORMAL, shaderFolder + L"VertexShader.hlsl", "vs_main");
         {
             CBDataFormat cb1[] = { FLOAT4X4, FLOAT4X4 };
@@ -157,6 +164,24 @@ namespace Graphics
 
         switch (layout)
         {
+        case (XYZ | RGB):
+        {
+            D3D11_INPUT_ELEMENT_DESC input_desc[] = {
+                { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+                { "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, sizeof(float) * 3, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+            };
+            int input_desc_size = 2;
+
+            device->CreateInputLayout(
+                input_desc,
+                input_desc_size,
+                shader_blob->GetBufferPointer(),
+                shader_blob->GetBufferSize(),
+                &inputLayout
+            );
+        }
+        break;
+
         case (XYZ | INSTANCE_ID):
         {
             D3D11_INPUT_ELEMENT_DESC input_desc[] = {

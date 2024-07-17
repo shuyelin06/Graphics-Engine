@@ -206,6 +206,7 @@ namespace Graphics
         
         // Debug Pass: Debug Visuals
         {
+            // Render Points
             vShader = shaderManager.getVertexShader(VSDebugPoint);
             pShader = shaderManager.getPixelShader(PSDebugPoint);
 
@@ -223,8 +224,23 @@ namespace Graphics
 
             context->DrawIndexedInstanced(numIndices, numPoints, 0, 0, 1);
 
+            // Render Lines
+            vShader = shaderManager.getVertexShader(VSDebugLine);
+            pShader = shaderManager.getPixelShader(PSDebugLine);
+
+            vShader->getCBHandle(CB1)->clearData();
+
+            int numLines = VisualDebug::LoadLineData(context, device);
+            view->loadViewData(vShader->getCBHandle(CB1));
+
+            vShader->bindShader(device, context);
+            pShader->bindShader(device, context);
+
+            context->Draw(numLines, 0);
+
             VisualDebug::Clear();
         }
+
 
         // Present what we rendered to
         swap_chain->Present(1, 0);

@@ -24,6 +24,15 @@ namespace Graphics
 		Vector3 color;
 		float padding;
 	};
+	
+	// LineData Struct:
+	// Contains data for a line to be rendered (for debugging)
+	// This data is loaded into a vertex buffer with a line list format
+	struct LinePoint
+	{
+		Vector3 point;
+		Vector3 color;
+	};
 
 	// VisualDebug Class:
 	// Contains methods that can be called statically
@@ -36,15 +45,22 @@ namespace Graphics
 	private:
 		static std::vector<PointData> points;
 
+		static std::vector<LinePoint> lines;
+		static ID3D11Buffer* lineVertexBuffer;
+
 	public:
 		// Clear all debug rendering data
 		static void Clear();
 
 		// Quick and dirty rendering in 3D space
 		static bool DrawPoint(const Vector3& position, float scale, const Vector3& color);
+		static bool DrawPoint(const Vector3& position, float scale);
+		static bool DrawLine(const Vector3& p1, const Vector3& rgb1, const Vector3& p2, const Vector3& rgb2);
+		static bool DrawLine(const Vector3& p1, const Vector3& p2);
 
 		// Pipeline Management
 		static int LoadPointData(CBHandle* cbHandle);
+		static int LoadLineData(ID3D11DeviceContext* context, ID3D11Device* device);
 	};
 }
 }

@@ -1,17 +1,22 @@
 #include "VisualDebug.h"
 
+#include <assert.h>
+
 namespace Engine
 {
 namespace Graphics
 {
 	// Initializing static fields
 	std::vector<PointData> VisualDebug::points = std::vector<PointData>();
+	std::vector<LinePoint> VisualDebug::lines = std::vector<LinePoint>();
+	ID3D11Buffer* VisualDebug::lineVertexBuffer = nullptr;
 
 	// Clear:
 	// Clears all debug data
 	void VisualDebug::Clear()
 	{
 		points.clear();
+		lines.clear();
 	}
 
 	// DrawPoint:
@@ -41,10 +46,41 @@ namespace Graphics
 		
 	}
 
+	bool VisualDebug::DrawPoint(const Vector3& position, float scale)
+	{
+		DrawPoint(position, scale, Vector3(1, 0, 0));
+	}
+
+	// DrawLine:
+	// Registers a line in 3D space to be drawn by the visual engine.
+	// Like points, lines are cleared after every frame.
+	bool VisualDebug::DrawLine(const Vector3& p1, const Vector3& rgb1, const Vector3& p2, const Vector3& rgb2)
+	{
+		LinePoint data1;
+		data1.point = p1;
+		data1.color = rgb1;
+		lines.push_back(data1);
+
+		LinePoint data2;
+		data2.point = p2;
+		data2.color = rgb2;
+		lines.push_back(data2);
+
+		return true;
+	}
+
+	bool VisualDebug::DrawLine(const Vector3& p1, const Vector3& p2)
+	{
+		DrawLine(p1, Vector3(1, 0, 0), p2, Vector3(1, 0, 0));
+	}
+
 	// LoadPointData:
 	// Loads the point data into a given constant buffer
 	int VisualDebug::LoadPointData(CBHandle* cbHandle)
 	{
+		if (points.size() == 0)
+			return -1;
+
 		for (const PointData& data : points)
 		{
 			cbHandle->loadData(&data.position, FLOAT3);
@@ -53,6 +89,37 @@ namespace Graphics
 		}
 
 		return points.size();
+	}
+
+	// LoadLineData:
+	// Loads the line data into a vertex buffer, and binds it to
+	// the pipeline. Returns the number of lines to render.
+	int VisualDebug::LoadLineData(ID3D11DeviceContext* context, ID3D11Device* device)
+	{
+		if (lines.size() == 0)
+			return -1;
+
+		if (lineVertexBuffer != nullptr)
+			lineVertexBuffer->Release();
+
+		D3D11_BUFFER_DESC buff_desc = {};
+		buff_desc.ByteWidth = sizeof(LinePoint) * lines.size();
+		buff_desc.Usage = D3D11_USAGE_DEFAULT;
+		buff_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		
+		D3D11_SUBRESOURCE_DATA sr_data = { 0 };
+		sr_data.pSysMem = (void*)lines.data();
+
+		device->CreateBuffer(&buff_desc, &sr_data, &lineVertexBuffer);
+		assert(lineVertexBuffer != nullptr);
+
+		UINT vertexStride = sizeof(LinePoint);
+		UINT vertexOffset = 0;
+
+		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+		context->IASetVertexBuffers(0, 1, &lineVertexBuffer, &vertexStride, &vertexOffset);
+
+		return lines.size() * 2;
 	}
 }
 }

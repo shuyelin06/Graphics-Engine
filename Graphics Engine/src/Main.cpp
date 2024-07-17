@@ -168,6 +168,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         VisualDebug::DrawPoint(Vector3(0, 1, 0), 1, Vector3(0, 1, 0));
         VisualDebug::DrawPoint(Vector3(0, 0, 1), 1, Vector3(0, 0, 1));
 
+        VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(1, 0, 0), Vector3(5, 0, 0), Vector3(1, 0, 0));
+        VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(0, 1, 0), Vector3(0, 5, 0), Vector3(0, 1, 0));
+        VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(0, 0, 1), Vector3(0, 0, 5), Vector3(0, 0, 1));
+
         // light.getTransform().offsetRotation(0.01f, 0, 0);
 
         // Update Object Transforms

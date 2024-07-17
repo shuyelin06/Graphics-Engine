@@ -24,16 +24,18 @@ namespace Graphics
 	enum VSSlot
 	{
 		VSDebugPoint = 0,
-		VSDefault = 1,
-		VSShadow = 2,
+		VSDebugLine = 1,
+		VSDefault = 2,
+		VSShadow = 3,
 		VSCount
 	};
 
 	enum PSSlot
 	{
 		PSDebugPoint = 0,
-		PSDefault = 1,
-		PSShadow = 2,
+		PSDebugLine = 1,
+		PSDefault = 2,
+		PSShadow = 3,
 		PSCount
 	};
 	
