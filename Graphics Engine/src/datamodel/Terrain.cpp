@@ -1,5 +1,7 @@
 #include "Terrain.h"
 
+#include "TerrainLookupTables.h"
+
 #include "math/Compute.h"
 #include <assert.h>
 #include <map>
@@ -10,6 +12,319 @@ namespace Engine
 {
 namespace Datamodel
 {
+	// Terrain Generation using an adapted version of Lewiner, et. al's 
+	// 3D Marching Cubes implementation.
+	// http://thomas.lewiner.org/pdfs/marching_cubes_jgt.pdf
+	
+	/* 
+	* Cube Mappings:
+	* X-axis goes left to right, Z-axis goes bottom to top, Y-axis goes back to front.
+	* 
+	*         7 ________ 6           _____6__             ________
+	*         /|       /|         7/|       /|          /|       /|
+	*       /  |     /  |        /  |     /5 |        /  6     /  |
+	*   4 /_______ /    |      /__4____ /    10     /_______3/    |
+	*    |     |  |5    |     |    11  |     |     |     |  |   2 |
+	*    |    3|__|_____|2    |     |__|__2__|     | 4   |__|_____|
+	*    |    /   |    /      8   3/   9    /      |    /   |    /
+	*    |  /     |  /        |  /     |  /1       |  /     5  /
+	*    |/_______|/          |/___0___|/          |/_1_____|/
+	*   0          1                   
+	* 
+	* In order from left to right:
+	* 1) Vertex IDs
+	* 2) Edge IDs
+	* 3) Face IDs
+	*/
+
+	/*
+	// MarchingCube Class:
+	// Represents a cube with float values at each of its 8 vertices. These float values can be positive
+	// or negative, and we assume that a surface exists where these values are 0 (after linearly interpolating the
+	// vertex values across the entire cube).
+	// This class implements the marching cubes algorithm to generate a non-ambiguous triangulation for a surface approximating
+	// where these values are 0. 
+	class MarchingCube
+	{
+	private:
+		// Data is given in order of the vertex id mapping shown above
+		float vertexData[8];
+	
+	public:
+		MarchingCube();
+		~MarchingCube();
+
+		void generateSurface();
+
+	private:
+		bool testFaceAmbiguity(char faceID);
+		bool testInternalAmbiguity(char sign);
+
+		char computeVertexMask();
+	};
+
+	// Given a face, returns if the center of the face is positive, as this can be an ambiguous case
+	// when the pairs of vertices on opposite diagonals have different signs.
+	// As we are linearly interpolating across the cube, we can test if the center of the face should be inside the surface or not.
+	// This information helps us resolve the ambiguity. This is known as the asymptotic decider.
+	// A negative ID indicates that we need to flip the results of the test.
+	bool MarchingCube::testFaceAmbiguity(char faceID)
+	{
+		float a, b, c, d;
+
+		// Given the face ID, load the data from the face's vertices
+		switch (faceID)
+		{
+		case -1: case 1:
+			a = vertexData[0]; b = vertexData[4]; c = vertexData[5]; d = vertexData[1];
+			break;
+
+		case -2: case 2:
+			a = vertexData[1]; b = vertexData[5]; c = vertexData[6]; d = vertexData[2];
+			break;
+
+		case -3:
+		case 3:
+			a = vertexData[2]; b = vertexData[6]; c = vertexData[7]; d = vertexData[3];
+			break;
+
+		case -4:
+		case 4:
+			a = vertexData[3]; b = vertexData[7]; c = vertexData[4]; d = vertexData[0];
+			break;
+
+		case -5:
+		case 5:
+			a = vertexData[0]; b = vertexData[3]; c = vertexData[2]; d = vertexData[1];
+			break;
+
+		case -6:
+		case 6:
+			a = vertexData[4]; b = vertexData[7]; c = vertexData[6]; d = vertexData[5];
+			break;
+		}
+
+		return faceID * a * (a * c - b * d) >= 0;
+	}
+
+	// Given the cube, returns if the center of the cube is positive, as this can be an ambiguous case
+	// when the vertices on opposite diagonals are the same sign, all others the opposite sign.
+	// In this case, the vertices could be connected through a tunnel, or disconnected.
+	// Using our assumption that the values are linearly interpolated, we can determine the sign of the cube's center
+	// to resolve this ambiguity.
+	// Sign can either be 7 or -7, indicating if we should invert the results of the test or not.
+	// If 7, return true if the interior is empty. If -7, return false if the interior is empty.
+	bool MarchingCube::testInternalAmbiguity(char caseID, char sign)
+	{
+		float at = 0, bt = 0, ct = 0, dt = 0, t, a, b;
+
+		// Based on our case, 
+		real t, At = 0, Bt = 0, Ct = 0, Dt = 0, a, b;
+		char  test = 0;
+		char  edge = -1; // reference edge of the triangulation
+
+		switch (_case)
+		{
+		case  4:
+		case 10:
+			a = (_cube[4] - _cube[0]) * (_cube[6] - _cube[2]) - (_cube[7] - _cube[3]) * (_cube[5] - _cube[1]);
+			b = _cube[2] * (_cube[4] - _cube[0]) + _cube[0] * (_cube[6] - _cube[2])
+				- _cube[1] * (_cube[7] - _cube[3]) - _cube[3] * (_cube[5] - _cube[1]);
+			t = -b / (2 * a);
+			if (t < 0 || t>1) return s > 0;
+
+			At = _cube[0] + (_cube[4] - _cube[0]) * t;
+			Bt = _cube[3] + (_cube[7] - _cube[3]) * t;
+			Ct = _cube[2] + (_cube[6] - _cube[2]) * t;
+			Dt = _cube[1] + (_cube[5] - _cube[1]) * t;
+			break;
+
+		case  6:
+		case  7:
+		case 12:
+		case 13:
+			switch (_case)
+			{
+			case  6: edge = test6[_config][2]; break;
+			case  7: edge = test7[_config][4]; break;
+			case 12: edge = test12[_config][3]; break;
+			case 13: edge = tiling13_5_1[_config][_subconfig][0]; break;
+			}
+			switch (edge)
+			{
+			case  0:
+				t = _cube[0] / (_cube[0] - _cube[1]);
+				At = 0;
+				Bt = _cube[3] + (_cube[2] - _cube[3]) * t;
+				Ct = _cube[7] + (_cube[6] - _cube[7]) * t;
+				Dt = _cube[4] + (_cube[5] - _cube[4]) * t;
+				break;
+			case  1:
+				t = _cube[1] / (_cube[1] - _cube[2]);
+				At = 0;
+				Bt = _cube[0] + (_cube[3] - _cube[0]) * t;
+				Ct = _cube[4] + (_cube[7] - _cube[4]) * t;
+				Dt = _cube[5] + (_cube[6] - _cube[5]) * t;
+				break;
+			case  2:
+				t = _cube[2] / (_cube[2] - _cube[3]);
+				At = 0;
+				Bt = _cube[1] + (_cube[0] - _cube[1]) * t;
+				Ct = _cube[5] + (_cube[4] - _cube[5]) * t;
+				Dt = _cube[6] + (_cube[7] - _cube[6]) * t;
+				break;
+			case  3:
+				t = _cube[3] / (_cube[3] - _cube[0]);
+				At = 0;
+				Bt = _cube[2] + (_cube[1] - _cube[2]) * t;
+				Ct = _cube[6] + (_cube[5] - _cube[6]) * t;
+				Dt = _cube[7] + (_cube[4] - _cube[7]) * t;
+				break;
+			case  4:
+				t = _cube[4] / (_cube[4] - _cube[5]);
+				At = 0;
+				Bt = _cube[7] + (_cube[6] - _cube[7]) * t;
+				Ct = _cube[3] + (_cube[2] - _cube[3]) * t;
+				Dt = _cube[0] + (_cube[1] - _cube[0]) * t;
+				break;
+			case  5:
+				t = _cube[5] / (_cube[5] - _cube[6]);
+				At = 0;
+				Bt = _cube[4] + (_cube[7] - _cube[4]) * t;
+				Ct = _cube[0] + (_cube[3] - _cube[0]) * t;
+				Dt = _cube[1] + (_cube[2] - _cube[1]) * t;
+				break;
+			case  6:
+				t = _cube[6] / (_cube[6] - _cube[7]);
+				At = 0;
+				Bt = _cube[5] + (_cube[4] - _cube[5]) * t;
+				Ct = _cube[1] + (_cube[0] - _cube[1]) * t;
+				Dt = _cube[2] + (_cube[3] - _cube[2]) * t;
+				break;
+			case  7:
+				t = _cube[7] / (_cube[7] - _cube[4]);
+				At = 0;
+				Bt = _cube[6] + (_cube[5] - _cube[6]) * t;
+				Ct = _cube[2] + (_cube[1] - _cube[2]) * t;
+				Dt = _cube[3] + (_cube[0] - _cube[3]) * t;
+				break;
+			case  8:
+				t = _cube[0] / (_cube[0] - _cube[4]);
+				At = 0;
+				Bt = _cube[3] + (_cube[7] - _cube[3]) * t;
+				Ct = _cube[2] + (_cube[6] - _cube[2]) * t;
+				Dt = _cube[1] + (_cube[5] - _cube[1]) * t;
+				break;
+			case  9:
+				t = _cube[1] / (_cube[1] - _cube[5]);
+				At = 0;
+				Bt = _cube[0] + (_cube[4] - _cube[0]) * t;
+				Ct = _cube[3] + (_cube[7] - _cube[3]) * t;
+				Dt = _cube[2] + (_cube[6] - _cube[2]) * t;
+				break;
+			case 10:
+				t = _cube[2] / (_cube[2] - _cube[6]);
+				At = 0;
+				Bt = _cube[1] + (_cube[5] - _cube[1]) * t;
+				Ct = _cube[0] + (_cube[4] - _cube[0]) * t;
+				Dt = _cube[3] + (_cube[7] - _cube[3]) * t;
+				break;
+			case 11:
+				t = _cube[3] / (_cube[3] - _cube[7]);
+				At = 0;
+				Bt = _cube[2] + (_cube[6] - _cube[2]) * t;
+				Ct = _cube[1] + (_cube[5] - _cube[1]) * t;
+				Dt = _cube[0] + (_cube[4] - _cube[0]) * t;
+				break;
+			default: printf("Invalid edge %d\n", edge);  print_cube();  break;
+			}
+			break;
+
+		default: printf("Invalid ambiguous case %d\n", _case);  print_cube();  break;
+		}
+
+		if (At >= 0) test++;
+		if (Bt >= 0) test += 2;
+		if (Ct >= 0) test += 4;
+		if (Dt >= 0) test += 8;
+		switch (test)
+		{
+		case  0: return s > 0;
+		case  1: return s > 0;
+		case  2: return s > 0;
+		case  3: return s > 0;
+		case  4: return s > 0;
+		case  5: if (At* Ct - Bt * Dt < FLT_EPSILON) return s > 0; break;
+		case  6: return s > 0;
+		case  7: return s < 0;
+		case  8: return s > 0;
+		case  9: return s > 0;
+		case 10: if (At * Ct - Bt * Dt >= FLT_EPSILON) return s > 0; break;
+		case 11: return s < 0;
+		case 12: return s > 0;
+		case 13: return s < 0;
+		case 14: return s < 0;
+		case 15: return s < 0;
+		}
+
+		return s < 0;
+	}
+
+
+	// Generate a mask for the cube indicating what vertices of the voxel are inside
+	// the surface, and what vertices are outside. Voxels with bit flipped to 1 are inside the surface,
+	// and voxels with bit flipped to 0 are outside the surface.
+	char MarchingCube::computeVertexMask()
+	{
+		char mask = 0;
+
+		// For each vertex in the voxel, test if it is inside the surface by checking
+		// if its data value is positive. Add this result to the bitmask.
+		for (int i = 0; i < 8; i++)
+			mask |= (vertexData[i] >= 0) << i;
+
+		return mask;
+	}
+
+	// Triangulation for a given voxel. Using Lewiner's implementation, this triangulation is guaranteed
+	// not to have ambiguities and will be watertight with other adjacent voxels.
+	void MarchingCube::generateSurface()
+	{
+		// Compute the voxel's vertex mask, and use it to determine the case
+		// we need to process and configuration type.
+		const int vertexMask = computeVertexMask(x, y, z);
+
+		const char caseID = CaseTable[vertexMask][0];
+		const char configID = CaseTable[vertexMask][0];
+		
+		// On a case-by-case basis, determine how we should triangulate this voxel.
+		// There are 15 main cases to test, but they vary in complexity as some cases may have ambiguity
+		// we need to test against.
+		// Some cases may even have sub-cases which we need to test.
+		switch (caseID)
+		{
+		case  0:
+			break;
+
+		case  1:
+			addTriangle(TilingTableCase1[configID], 1);
+			break;
+
+		case  2:
+			addTriangle(TilingTableCase2[configID], 2);
+			break;
+
+		case  3:
+			if (faceContainsSurface(x, y, z, TestTableCase3[configID]))
+				addTriangle(TilingTableCase3_2[configID], 4); // 3.2
+			else
+				addTriangle(TilingTableCase3_1[configID], 2); // 3.1
+			break;
+
+	}
+
+
+	// 
 	// TODO:
 	// https://github.com/weshoke/efficient-marching-cubes/blob/master/src/LookUpTable.h
 	// The original Marching Cubes is flawed. It has ambiguities that lead to holes in the terrain.
@@ -413,7 +728,7 @@ namespace Datamodel
 	// is changed.
 	void Terrain::generateMesh()
 	{
-        /*// Reset mesh
+        // Reset mesh
         mesh = Mesh(XYZ);
         
         // For every voxel, generate the marching cube
@@ -469,7 +784,6 @@ namespace Datamodel
         
         // Set shader
         mesh.setShaders("Default", "Default");
-		*/
 	}
 
     // SampleEdgeMask:
@@ -638,5 +952,6 @@ namespace Datamodel
         return coords;
     }
 
+	*/
 }
 }

@@ -116,9 +116,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     // TODO:
     Object* parent_object = new Object();
 
-    // Create a light 
-    Object& light = parent_object->createChild();
-    visual_system.bindLightComponent(&light);
     // visual_system.bindMeshComponent(&light)->setMesh(Mesh::GetMesh("Cube"));
     
     // Create a camera
@@ -130,14 +127,25 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     // visual_system.bindLightComponent(&camera);
     // MeshComponent* mesh = visual_system.bindMeshComponent(&camera);
     // mesh->setMesh(Mesh::GetMesh("Cube"));
-
-    for (int i = 0; i < 1; i++)
+    
     {
         Object& child = parent_object->createChild();
         child.getTransform().setScale(5, 5, 5);
         child.getTransform().setPosition(Compute::random(-2.5f, 2.5f), Compute::random(-2.5f, 2.5f), Compute::random(15, 25));
         
         visual_system.bindAssetComponent(&child, Fox);
+    }
+
+    Object& light = parent_object->createChild();
+    // light.getTransform().offsetRotation(-0.05f, 0, 0);
+    visual_system.bindLightComponent(&light);
+
+    {
+        Object& child = parent_object->createChild();
+        child.getTransform().setScale(100, 2.5f, 100);
+        child.getTransform().setPosition(0, -10, 0);
+
+        visual_system.bindAssetComponent(&child, Cube);
     }
 
     
@@ -172,7 +180,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(0, 5, 0), Color::Green());
         VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(0, 0, 5), Color::Blue());
 
-        // light.getTransform().offsetRotation(0.01f, 0, 0);
+        light.getTransform().offsetRotation(0.01f, 0, 0);
 
         // Update Object Transforms
         Matrix4 identity = Matrix4::identity();

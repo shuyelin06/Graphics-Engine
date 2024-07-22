@@ -88,7 +88,7 @@ namespace Graphics
 		bool addTriangle(MeshTriangle& triangle);
 
 		// Finalize mesh and lock it from further editing
-		void lockMesh();
+		void lockMesh(bool regenerateNormals);
 
 		// Mesh Accessors
 		const std::vector<MeshVertex>& getVertexBuffer() const;

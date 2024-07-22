@@ -39,6 +39,7 @@ namespace Graphics
 		// Generate a cube
 		Asset* LoadCube();
 
+
 		// Load an asset from an OBJ file. Returns the index of the
 		// asset in the manager on success.
 		Asset* LoadAssetFromOBJ(std::string path, std::string objFile, std::string assetName);

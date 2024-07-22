@@ -96,46 +96,50 @@ namespace Graphics
 	// Finalize the mesh format and prevent further editing of the mesh.
 	// This method will fix any degenerate normals by manually generating new
 	// ones, and toggle the mesh lock.
-	void Mesh::lockMesh()
+	void Mesh::lockMesh(bool regenerateNormals)
 	{
 		// Toggle the mesh lock
 		lock = true;
 
-		// Regenerate mesh normals. We do this by calculating the normal 
-		// for each triangle face, and adding them to a vector to 
-		// accumulate their contribution to each vertex
-		std::vector<Vector3> meshNormals;
-		meshNormals.resize(vertexBuffer.size());
-
-		for (int i = 0; i < indexBuffer.size(); i++)
+		if (regenerateNormals)
 		{
-			// Calculate vertex normal
-			const MeshTriangle& triangle = indexBuffer[i];
+			// Regenerate mesh normals. We do this by calculating the normal 
+			// for each triangle face, and adding them to a vector to 
+			// accumulate their contribution to each vertex
+			std::vector<Vector3> meshNormals;
+			meshNormals.resize(vertexBuffer.size());
 
-			const Vector3& vertex0 = vertexBuffer[triangle.vertex0].position;
-			const Vector3& vertex1 = vertexBuffer[triangle.vertex1].position;
-			const Vector3& vertex2 = vertexBuffer[triangle.vertex2].position;
-
-			Vector3 normal = Vector3::CrossProduct(vertex1 - vertex0, vertex2 - vertex0);
-
-			// Add this normal's contribution for all vertices of the face
-			meshNormals[triangle.vertex0] += normal;
-			meshNormals[triangle.vertex1] += normal;
-			meshNormals[triangle.vertex2] += normal;
-		}
-
-		// Iterate through all vertices in the mesh. If their normal is degenerate (0,0,0),
-		// replace it with the generated normal.
-		for (int i = 0; i < vertexBuffer.size(); i++)
-		{
-			Vector3& normal = vertexBuffer[i].normal;
-
-			if (normal.magnitude() == 0)
+			for (int i = 0; i < indexBuffer.size(); i++)
 			{
-				meshNormals[i].inplaceNormalize();
-				vertexBuffer[i].normal = meshNormals[i];
+				// Calculate vertex normal
+				const MeshTriangle& triangle = indexBuffer[i];
+
+				const Vector3& vertex0 = vertexBuffer[triangle.vertex0].position;
+				const Vector3& vertex1 = vertexBuffer[triangle.vertex1].position;
+				const Vector3& vertex2 = vertexBuffer[triangle.vertex2].position;
+
+				Vector3 normal = Vector3::CrossProduct(vertex1 - vertex0, vertex2 - vertex0);
+
+				// Add this normal's contribution for all vertices of the face
+				meshNormals[triangle.vertex0] += normal;
+				meshNormals[triangle.vertex1] += normal;
+				meshNormals[triangle.vertex2] += normal;
+			}
+
+			// Iterate through all vertices in the mesh. If their normal is degenerate (0,0,0),
+			// replace it with the generated normal.
+			for (int i = 0; i < vertexBuffer.size(); i++)
+			{
+				Vector3& normal = vertexBuffer[i].normal;
+
+				if (normal.magnitude() == 0)
+				{
+					meshNormals[i].inplaceNormalize();
+					vertexBuffer[i].normal = meshNormals[i];
+				}
 			}
 		}
+		
 	}
 
 	

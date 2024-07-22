@@ -59,7 +59,8 @@ float4 ps_main(VS_OUT input) : SV_TARGET
     // ...
     
     float4 color = float4(0, 0, 0, 1.0f);
-    color.x = inShadow * 35 * diffuseContribution / (light_distance + 1);
+    // color.x = inShadow * 70 * diffuseContribution / (light_distance + 1);
+    color.x = inShadow * diffuseContribution;
     
     return color;
 }

@@ -185,6 +185,7 @@
   <ItemGroup>
     <ClInclude Include="src\datamodel\Component.h" />
     <ClInclude Include="src\datamodel\Terrain.h" />
+    <ClInclude Include="src\datamodel\TerrainLookupTables.h" />
     <ClInclude Include="src\datamodel\Transform.h" />
     <ClInclude Include="src\input\callbacks\InputPoller.h" />
     <ClInclude Include="src\input\components\MovementComponent.h" />

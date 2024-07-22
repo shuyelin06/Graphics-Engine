@@ -28,6 +28,10 @@ struct VS_INPUT
     // Position of one of the cube's vertices
     float3 vertex_position : POSITION;
     
+    // UNUSED
+    float2 tex_UNUSED : TEXTURE;
+    float3 norm_UNUSED : NORMAL;
+    
     // Unique identifier for the cube (point)
     uint instance : SV_InstanceID;
 };

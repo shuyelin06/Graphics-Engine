@@ -139,7 +139,7 @@ namespace Graphics
             {
                 // Finish active mesh by locking it
                 if (activeMesh != nullptr)
-                    activeMesh->lockMesh();
+                    activeMesh->lockMesh(true);
 
                 // Retrieve material
                 char* materialName = ParseToken(&line, " ");
@@ -238,7 +238,7 @@ namespace Graphics
 
         // Finish active mesh by locking it
         if (activeMesh != nullptr)
-            activeMesh->lockMesh();
+            activeMesh->lockMesh(true);
 
         return data.asset;
 	}
@@ -375,35 +375,57 @@ namespace Graphics
     // Used in debugging
     Asset* AssetManager::LoadCube()
     {
-        const float vertices[] =
+        // We duplicate vertices so that the cube has sharp normals.
+        const MeshVertex vertices[] =
         {
-            -0.5, -0.5, -0.5,  // Vertex 0
-            0.5, -0.5, -0.5,   // Vertex 1
-            0.5, 0.5, -0.5,    // Vertex 2
-            -0.5, 0.5, -0.5,   // Vertex 3
-            -0.5, -0.5, 0.5,   // Vertex 4
-            0.5, -0.5, 0.5,    // Vertex 5
-            0.5, 0.5, 0.5,     // Vertex 6
-            -0.5, 0.5, 0.5     // Vertex 7
+            // Front Face
+            MeshVertex(Vector3(-1, -1, 1), Vector2(), Vector3(0, 0, 1)),
+            MeshVertex(Vector3(1, -1, 1), Vector2(), Vector3(0, 0, 1)),
+            MeshVertex(Vector3(1, 1, 1), Vector2(), Vector3(0, 0, 1)),
+            MeshVertex(Vector3(-1, 1, 1), Vector2(), Vector3(0, 0, 1)),
+            // Back Face
+            MeshVertex(Vector3(-1, -1, -1), Vector2(), Vector3(0, 0, -1)),
+            MeshVertex(Vector3(1, -1, -1), Vector2(), Vector3(0, 0, -1)),
+            MeshVertex(Vector3(1, 1, -1), Vector2(), Vector3(0, 0, -1)),
+            MeshVertex(Vector3(-1, 1, -1), Vector2(), Vector3(0, 0, -1)),
+            // Top Face
+            MeshVertex(Vector3(-1, 1, -1), Vector2(), Vector3(0, 1, 0)),
+            MeshVertex(Vector3(1, 1, -1), Vector2(), Vector3(0, 1, 0)),
+            MeshVertex(Vector3(1, 1, 1), Vector2(), Vector3(0, 1, 0)),
+            MeshVertex(Vector3(-1, 1, 1), Vector2(), Vector3(0, 1, 0)),
+            // Bottom Face
+            MeshVertex(Vector3(-1, -1, -1), Vector2(), Vector3(0, -1, 0)),
+            MeshVertex(Vector3(1, -1, -1), Vector2(), Vector3(0, -1, 0)),
+            MeshVertex(Vector3(1, -1, 1), Vector2(), Vector3(0, -1, 0)),
+            MeshVertex(Vector3(-1, -1, 1), Vector2(), Vector3(0, -1, 0)),
+            // Right Face
+            MeshVertex(Vector3(1, -1, -1), Vector2(), Vector3(1, 0, 0)),
+            MeshVertex(Vector3(1, 1, -1), Vector2(), Vector3(1, 0, 0)),
+            MeshVertex(Vector3(1, 1, 1), Vector2(), Vector3(1, 0, 0)),
+            MeshVertex(Vector3(1, -1, 1), Vector2(), Vector3(1, 0, 0)),
+            // Left Face
+            MeshVertex(Vector3(-1, -1, -1), Vector2(), Vector3(-1, 0, 0)),
+            MeshVertex(Vector3(-1, 1, -1), Vector2(), Vector3(-1, 0, 0)),
+            MeshVertex(Vector3(-1, 1, 1), Vector2(), Vector3(-1, 0, 0)),
+            MeshVertex(Vector3(-1, -1, 1), Vector2(), Vector3(-1, 0, 0)),
         };
 
         const int indices[] =
         {
-            0, 3, 2,    2, 1, 0,    // Front face
-            1, 2, 6,    6, 5, 1,    // Right face
-            5, 6, 7,    7, 4, 5,    // Back face
-            4, 7, 3,    3, 0, 4,    // Left face
-            3, 7, 6,    6, 2, 3,    // Top face
-            4, 0, 1,    1, 5, 4     // Bottom face
+            0, 2, 1,  2, 0, 3,   // Front Face
+            4, 6, 5,  6, 4, 7,   // Back Face
+            8, 10, 9,  10, 8, 11, // Top Face
+            12, 14, 13,  14, 12, 15, // Bottom Face
+            16, 18, 17,  18, 16, 19, // Right Face
+            20, 22, 21,  22, 20, 23  // Left Face
         };
 
         Asset* cube = new Asset();
         Mesh* mesh = cube->newMesh();
 
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < 24; i++)
         {
-            MeshVertex vertex = MeshVertex(Vector3(vertices[i * 3], vertices[i * 3 + 1], vertices[i * 3 + 2]),
-                                Vector2(), Vector3());
+            MeshVertex vertex = vertices[i];
             mesh->addVertex(vertex);
         }
 
@@ -411,9 +433,9 @@ namespace Graphics
         {
             MeshTriangle triangle = MeshTriangle(indices[i * 3], indices[i * 3 + 1], indices[i * 3 + 2]);
             mesh->addTriangle(triangle);
-;       }
-        
-        mesh->lockMesh();
+        }
+
+        mesh->lockMesh(false);
 
         return cube; 
     }
