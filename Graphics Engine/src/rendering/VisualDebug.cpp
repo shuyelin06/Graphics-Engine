@@ -86,6 +86,7 @@ namespace Graphics
 			cbHandle->loadData(&data.position, FLOAT3);
 			cbHandle->loadData(&data.scale, FLOAT);
 			cbHandle->loadData(&data.color, FLOAT3);
+			cbHandle->loadData(nullptr, FLOAT);
 		}
 
 		return points.size();

@@ -34,22 +34,22 @@ namespace Graphics
 	friend class PixelShader;
 
 	private:
-		std::vector<CBDataFormat> format;
-		int formatIndex;
-
-		std::vector<float> data;
+		std::vector<char> data;
 		ID3D11Buffer* resource;
 
 	public:
-		CBHandle(const CBDataFormat formatDescription[], int numberDescriptors);
+		CBHandle();
 		~CBHandle();
+		
+		// Returns the number of bytes currently loaded into the constant buffer.
+		unsigned int byteSize();
 
-		// Returns the number of bytes the constant buffer is 
-		// expected to store (accounting for padding)
-		int byteSize() const;
-
-		// Manage Data in the CB
+		// Load data into the constant buffer. Note that validation and padding
+		// is not done on the input.
+		// To pass in padding (0's), pass in a null pointer.
 		void loadData(const void* dataPtr, CBDataFormat format);
+
+		// Clear data stored within the constant buffer. 
 		void clearData();
 	};
 
@@ -70,7 +70,7 @@ namespace Graphics
 		~Shader();
 
 		// Constant Buffer Management
-		void enableCB(CBSlot slot, const CBDataFormat formatDescription[], int numberDescriptors);
+		void enableCB(CBSlot slot);
 		CBHandle* getCBHandle(CBSlot slot);
 
 		// Pipeline Management

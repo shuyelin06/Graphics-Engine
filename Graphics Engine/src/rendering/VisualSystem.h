@@ -36,9 +36,9 @@ namespace Graphics
 		AssetManager assetManager;
 
 		// Components
-		std::vector<LightComponent*> light_components;
-		std::vector<AssetComponent*> asset_components;
-		std::vector<ViewComponent*> view_components;
+		std::vector<LightComponent*> lightComponents;
+		std::vector<AssetComponent*> assetComponents;
+		std::vector<ViewComponent*> viewComponents;
 		
 		// Main Render Target
 		ID3D11RenderTargetView* render_target_view;
@@ -51,8 +51,16 @@ namespace Graphics
 		void initialize();
 
 		// Renders an entire scene
-		void update();
+		void render();
 
+	private:
+		// Rendering helper methods
+		void performShadowPass();
+		void performRenderPass();
+		void renderDebugPoints();
+		void renderDebugLines();
+
+	public:
 		// --- Data / Resource Queries ---
 		// Get current viewport
 		D3D11_VIEWPORT getViewport() const;

@@ -105,8 +105,10 @@ namespace Graphics
 	{
 		const Vector3& position = object->getTransform().getPosition();
 		cbHandle->loadData(&position, FLOAT3);
+		cbHandle->loadData(nullptr, FLOAT);
 
 		cbHandle->loadData(&color, FLOAT3);
+		cbHandle->loadData(nullptr, FLOAT);
 
 		Matrix4 viewMatrix = object->getLocalMatrix().inverse();
 		cbHandle->loadData(&viewMatrix, FLOAT4X4);

@@ -19,59 +19,24 @@ namespace Graphics
         const std::wstring shaderFolder = L"src/rendering/shaders/";
         
         vertexShaders[VSDebugPoint] = createVertexShader(device, XYZ | INSTANCE_ID, shaderFolder + L"DebugPointRenderer.hlsl", "vs_main");
-        {
-            std::vector<CBDataFormat> cb0 = std::vector<CBDataFormat>();
-            for (int i = 0; i < 2048; i++)
-            {
-                cb0.push_back(FLOAT3); // Position
-                cb0.push_back(FLOAT);  // Scale
-                cb0.push_back(FLOAT3); // Color
-            }
-            vertexShaders[VSDebugPoint]->enableCB(CB0, cb0.data(), cb0.size());
-            CBDataFormat cb1[] = { FLOAT4X4, FLOAT4X4 };
-            vertexShaders[VSDebugPoint]->enableCB(CB1, cb1, 2);
-        }
+        vertexShaders[VSDebugPoint]->enableCB(CB0);
+        vertexShaders[VSDebugPoint]->enableCB(CB1);
         pixelShaders[PSDebugPoint] = createPixelShader(device, shaderFolder + L"DebugPointRenderer.hlsl", "ps_main");
 
         vertexShaders[VSDebugLine] = createVertexShader(device, XYZ | RGB, shaderFolder + L"DebugLineRenderer.hlsl", "vs_main");
-        {
-            CBDataFormat cb1[] = { FLOAT4X4, FLOAT4X4 };
-            vertexShaders[VSDebugLine]->enableCB(CB1, cb1, 2);
-        }
+        vertexShaders[VSDebugLine]->enableCB(CB1);
         pixelShaders[PSDebugLine] = createPixelShader(device, shaderFolder + L"DebugLineRenderer.hlsl", "ps_main");
 
         vertexShaders[VSDefault] = createVertexShader(device, XYZ | TEX | NORMAL, shaderFolder + L"VertexShader.hlsl", "vs_main");
-        {
-            CBDataFormat cb1[] = { FLOAT4X4, FLOAT4X4 };
-            vertexShaders[VSDefault]->enableCB(CB1, cb1, 2);
-            CBDataFormat cb2[] = { FLOAT4X4, FLOAT4X4 };
-            vertexShaders[VSDefault]->enableCB(CB2, cb2, 2);
-        }
-        
+        vertexShaders[VSDefault]->enableCB(CB1);
+        vertexShaders[VSDefault]->enableCB(CB2);
         pixelShaders[PSDefault] = createPixelShader(device, shaderFolder + L"PixelShader.hlsl", "ps_main");
 
         vertexShaders[VSShadow] = createVertexShader(device, XYZ | TEX | NORMAL, shaderFolder + L"ShadowShaderV.hlsl", "vs_main");
-        {
-            CBDataFormat cb1[] = { FLOAT4X4, FLOAT4X4 };
-            vertexShaders[VSShadow]->enableCB(CB1, cb1, 2);
-            CBDataFormat cb2[] = { FLOAT4X4, FLOAT4X4 };
-            vertexShaders[VSShadow]->enableCB(CB2, cb2, 2);
-        }
-
+        vertexShaders[VSShadow]->enableCB(CB1);
+        vertexShaders[VSShadow]->enableCB(CB2);
         pixelShaders[PSShadow] = createPixelShader(device, shaderFolder + L"ShadowShaderP.hlsl", "ps_main");
-        {
-            std::vector<CBDataFormat> cb1 = std::vector<CBDataFormat>();
-            cb1.push_back(INT);
-            cb1.push_back(FLOAT3); // PADDING
-            for (int i = 0; i < 10; i++)
-            {
-                cb1.push_back(FLOAT3); // Position
-                cb1.push_back(FLOAT3); // Color
-                cb1.push_back(FLOAT4X4);  // View Matrix
-                cb1.push_back(FLOAT4X4); // Projection Matrix
-            }
-            pixelShaders[PSShadow]->enableCB(CB1, cb1.data(), cb1.size());
-        }
+        pixelShaders[PSShadow]->enableCB(CB1);
 	}
 
     // GetVertexShader:

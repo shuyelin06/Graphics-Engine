@@ -200,7 +200,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         physics_system.update();
         
         // Update Rendering System
-        visual_system.update();
+        visual_system.render();
 
         // Stall until enough time has elapsed for 60 frames / second
         while (framerate_watch.Duration() < 1 / 60.f) {}

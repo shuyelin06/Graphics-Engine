@@ -7,66 +7,42 @@ namespace Engine
 {
 namespace Graphics
 {
-	CBHandle::CBHandle(const CBDataFormat formatDescription[], int numberDescriptors) :
-		format(), formatIndex(0), data(), resource(nullptr) 
-	{
-		for (int i = 0; i < numberDescriptors; i++)
-			format.push_back(formatDescription[i]);
-	}
+	CBHandle::CBHandle() : data(0), resource(nullptr) {}
 	CBHandle::~CBHandle() = default;
+
+	unsigned int CBHandle::byteSize()
+	{
+		return data.size();
+	}
 
 	void CBHandle::loadData(const void* dataPtr, CBDataFormat dataFormat)
 	{
-		// Validate that this is the correct data format to pass into the constant buffer
-		assert(sizeof(float) == 4);
-		assert(dataFormat % 4 == 0);
+		// Convert our data into a character array, and read the number of bytes 
+		// specified by the CBDataFormat into our constant buffer.
+		const char* charData = static_cast<const char*>(dataPtr);
+		const int numBytes = dataFormat;
 
-		assert(formatIndex < format.size());
-		assert(format[formatIndex] == dataFormat);
-
-		// If the format will not fit into the 16-byte alignment, add padding.
-		// Note that floats are 4 bytes by the IEEE standard.
-		const int numFloats = dataFormat / 4;
-
-		if (data.size() % 4 != 0 && (data.size() % 4) + numFloats > 4)
-			data.resize(data.size() + 4 - (data.size() % 4));
-
-		// Now, copy our data into the data vector.
-		const float* floatData = static_cast<const float*>(dataPtr);
-		float value;
-
-		for (int i = 0; i < numFloats; i++)
+		if (dataPtr != nullptr)
 		{
-			std::memcpy(&value, floatData + i, sizeof(float));
-			data.push_back(value);
-		}
+			char value;
 
-		formatIndex++;
+			for (int i = 0; i < numBytes; i++)
+			{
+				std::memcpy(&value, charData + i, sizeof(char));
+				data.push_back(value);
+			}
+		}
+		else
+		{
+			for (int i = 0; i < numBytes; i++)
+				data.push_back(0);
+		}
+		
 	}
 
 	void CBHandle::clearData()
 	{
-		formatIndex = 0;
 		data.clear();
-	}
-
-	int CBHandle::byteSize() const
-	{
-		assert(sizeof(float) == 4);
-
-		int numFloats = 0;
-
-		for (CBDataFormat format : format)
-		{
-			// Verify that alignment is being met. If not, add necessary
-			// padding until met.
-			if (numFloats % 4 != 0 && (numFloats % 4) + format > 4)
-				numFloats += 4 - (numFloats % 4);
-
-			numFloats += format;
-		}
-
-		return numFloats * sizeof(float);
 	}
 
 	Shader::Shader()
@@ -77,13 +53,16 @@ namespace Graphics
 	Shader::~Shader()
 	{
 		for (int i = 0; i < CBSlot::CBCOUNT; i++)
-			delete constantBuffers[i];
+		{
+			if (constantBuffers[i] != nullptr)
+				delete constantBuffers[i];
+		}
 	}
 
-	void Shader::enableCB(CBSlot slot, const CBDataFormat formatDescription[], int numberDescriptors)
+	void Shader::enableCB(CBSlot slot)
 	{
 		assert(constantBuffers[slot] == nullptr);
-		constantBuffers[slot] = new CBHandle(formatDescription, numberDescriptors);
+		constantBuffers[slot] = new CBHandle();
 	}
 
 	CBHandle* Shader::getCBHandle(CBSlot slot)
@@ -176,7 +155,7 @@ namespace Graphics
 		{
 			if (constantBuffers[i] != nullptr)
 			{
-				updateCBResource((CBSlot)i, device, context);
+				updateCBResource((CBSlot) i, device, context);
 				context->PSSetConstantBuffers(i, 1, &(constantBuffers[i]->resource));
 			}
 		}

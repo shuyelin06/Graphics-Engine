@@ -25,9 +25,9 @@ namespace Graphics
         window = _window;
 
         // Components
-        light_components = std::vector<LightComponent*>();
-        asset_components = std::vector<AssetComponent*>();
-        view_components = std::vector<ViewComponent*>();
+        lightComponents = std::vector<LightComponent*>();
+        assetComponents = std::vector<AssetComponent*>();
+        viewComponents = std::vector<ViewComponent*>();
 
         // Managers
         assetManager = AssetManager();
@@ -129,57 +129,72 @@ namespace Graphics
         shaderManager.initialize(device);
     }
 
-    // Update:
-    // Performs a render pass to render items to the screen.
-    void VisualSystem::update()
+    // Render:
+    // Renders the entire scene to the screen.
+    void VisualSystem::render()
     {
         // Clear the the screen color
         float color[4] = { RGB(158.f), RGB(218.f), RGB(255.f), 1.0f };
         context->ClearRenderTargetView(render_target_view, color);
 
-        VertexShader* vShader;
-        PixelShader* pShader;
-
-        // Shadow Pass: Render to shadow maps
-        vShader = shaderManager.getVertexShader(VSDefault);
-        pShader = shaderManager.getPixelShader(PSDefault);
-
-        LightComponent* light = light_components[0];
+        performShadowPass();
+        performRenderPass();
         
-        light->setRenderTarget(context);
-        vShader->getCBHandle(CB1)->clearData();
-        light->loadViewData(vShader->getCBHandle(CB1));
+#if defined(_DEBUG)
+        // Debug Functionality
+        renderDebugPoints();
+        renderDebugLines();
+        VisualDebug::Clear();
+#endif
 
-        for (AssetComponent* asset_component : asset_components)
+        // Present what we rendered to
+        swap_chain->Present(1, 0);
+    }
+
+    void VisualSystem::performShadowPass()
+    {
+        VertexShader* vShader = shaderManager.getVertexShader(VSDefault);
+        PixelShader* pShader = shaderManager.getPixelShader(PSDefault);
+
+        // Render the scene to each light's shadow map.
+        for (LightComponent* light : lightComponents)
         {
-            asset_component->beginLoading();
+            vShader->getCBHandle(CB1)->clearData();
+            light->loadViewData(vShader->getCBHandle(CB1));
 
-            vShader->getCBHandle(CB2)->clearData();
-            int numIndices = asset_component->loadMeshData(context, vShader->getCBHandle(CB2), device);
+            light->setRenderTarget(context);
 
-            while (numIndices != -1)
+            for (AssetComponent* asset: assetComponents)
             {
-                vShader->bindShader(device, context);
-                pShader->bindShader(device, context);
-                context->DrawIndexed(numIndices, 0, 0);
+                asset->beginLoading();
 
                 vShader->getCBHandle(CB2)->clearData();
-                numIndices = asset_component->loadMeshData(context, vShader->getCBHandle(CB2), device);
+                int numIndices = asset->loadMeshData(context, vShader->getCBHandle(CB2), device);
+
+                while (numIndices != -1)
+                {
+                    vShader->bindShader(device, context);
+                    pShader->bindShader(device, context);
+                    context->DrawIndexed(numIndices, 0, 0);
+
+                    vShader->getCBHandle(CB2)->clearData();
+                    numIndices = asset->loadMeshData(context, vShader->getCBHandle(CB2), device);
+                }
             }
         }
-        
-        // Render Pass: Render Scene
+    }
+
+    void VisualSystem::performRenderPass()
+    {
+        VertexShader* vShader = shaderManager.getVertexShader(VSShadow);
+        PixelShader* pShader = shaderManager.getPixelShader(PSShadow);
+
+        ViewComponent* view = viewComponents[0];
+
         context->OMSetRenderTargets(1, &render_target_view, depth_stencil);
         context->ClearDepthStencilView(depth_stencil, D3D11_CLEAR_DEPTH, 1.0f, 0);
-
         D3D11_VIEWPORT viewport = getViewport();
         context->RSSetViewports(1, &viewport);
-
-        // Render Meshes
-        vShader = shaderManager.getVertexShader(VSShadow);
-        pShader = shaderManager.getPixelShader(PSShadow);
-
-        ViewComponent* view = view_components[0];
 
         vShader->getCBHandle(CB1)->clearData();
         view->loadViewData(vShader->getCBHandle(CB1));
@@ -187,18 +202,17 @@ namespace Graphics
         CBHandle* pCB1 = pShader->getCBHandle(CB1);
         pCB1->clearData();
 
-        int lightCount = light_components.size();
+        int lightCount = lightComponents.size();
         pCB1->loadData(&lightCount, INT);
-        Vector3 padding;
-        pCB1->loadData(&padding, FLOAT3);
+        pCB1->loadData(nullptr, FLOAT3);
 
-        for (int i = 0; i < light_components.size(); i++)
+        for (int i = 0; i < lightComponents.size(); i++)
         {
-            light_components[i]->loadLightData(pCB1);
-            light_components[i]->bindShadowMap(context, i, pCB1);
+            lightComponents[i]->loadLightData(pCB1);
+            lightComponents[i]->bindShadowMap(context, i, pCB1);
         }
 
-        for (AssetComponent* asset_component : asset_components)
+        for (AssetComponent* asset_component : assetComponents)
         {
             asset_component->beginLoading();
 
@@ -215,50 +229,44 @@ namespace Graphics
                 numIndices = asset_component->loadMeshData(context, vShader->getCBHandle(CB2), device);
             }
         }
-        
-        // Debug Pass: Debug Visuals
-        {
-            // Render Points
-            vShader = shaderManager.getVertexShader(VSDebugPoint);
-            pShader = shaderManager.getPixelShader(PSDebugPoint);
+    }
 
-            vShader->getCBHandle(CB0)->clearData();
-            vShader->getCBHandle(CB1)->clearData();
+    void VisualSystem::renderDebugPoints()
+    {
+        VertexShader* vShader = shaderManager.getVertexShader(VSDebugPoint);
+        PixelShader* pShader = shaderManager.getPixelShader(PSDebugPoint);
+        ViewComponent* view = viewComponents[0];
 
-            Asset* cube = assetManager.getAsset(Cube);
-            int numIndices = cube->getMesh(0)->loadIndexVertexData(context, device);
-            
-            int numPoints = VisualDebug::LoadPointData(vShader->getCBHandle(CB0));
-            view->loadViewData(vShader->getCBHandle(CB1));
+        vShader->getCBHandle(CB0)->clearData();
+        vShader->getCBHandle(CB1)->clearData();
 
-            vShader->bindShader(device, context);
-            pShader->bindShader(device, context);
+        Asset* cube = assetManager.getAsset(Cube);
+        int numIndices = cube->getMesh(0)->loadIndexVertexData(context, device);
 
-            context->DrawIndexedInstanced(numIndices, numPoints, 0, 0, 1);
+        int numPoints = VisualDebug::LoadPointData(vShader->getCBHandle(CB0));
+        view->loadViewData(vShader->getCBHandle(CB1));
 
-            // Render Lines
-            vShader = shaderManager.getVertexShader(VSDebugLine);
-            pShader = shaderManager.getPixelShader(PSDebugLine);
+        vShader->bindShader(device, context);
+        pShader->bindShader(device, context);
 
-            vShader->getCBHandle(CB1)->clearData();
+        context->DrawIndexedInstanced(numIndices, numPoints, 0, 0, 1);
+    }
 
-            int numLines = VisualDebug::LoadLineData(context, device);
-            view->loadViewData(vShader->getCBHandle(CB1));
+    void VisualSystem::renderDebugLines()
+    {
+        VertexShader* vShader = shaderManager.getVertexShader(VSDebugLine);
+        PixelShader* pShader = shaderManager.getPixelShader(PSDebugLine);
+        ViewComponent* view = viewComponents[0];
 
-            vShader->bindShader(device, context);
-            pShader->bindShader(device, context);
+        vShader->getCBHandle(CB1)->clearData();
 
-            context->Draw(numLines, 0);
+        int numLines = VisualDebug::LoadLineData(context, device);
+        view->loadViewData(vShader->getCBHandle(CB1));
 
-            VisualDebug::Clear();
-        }
+        vShader->bindShader(device, context);
+        pShader->bindShader(device, context);
 
-
-        // Present what we rendered to
-        swap_chain->Present(1, 0);
-
-        // Clear debug points
-        VisualDebug::points.clear();
+        context->Draw(numLines, 0);
     }
 
     // GetViewport:
@@ -291,11 +299,11 @@ namespace Graphics
     ViewComponent* VisualSystem::getActiveView()
     {
         // If there are no camera components, return nullptr.
-        if (view_components.size() == 0)
+        if (viewComponents.size() == 0)
             return nullptr;
         
         // Otherwise, (for now) just return the first one.
-        return view_components[0];
+        return viewComponents[0];
     }
     
     // CreateTexture2D:
@@ -335,7 +343,7 @@ namespace Graphics
         // Create component
         Asset* asset = assetManager.getAsset(assetName);
         AssetComponent* component = new AssetComponent(object, this, asset);
-        asset_components.push_back(component);
+        assetComponents.push_back(component);
 
         // Register with object
         object->registerComponent<AssetComponent>(component);
@@ -345,11 +353,11 @@ namespace Graphics
 
     bool VisualSystem::removeAssetComponent(AssetComponent* component)
     {
-        auto index = std::find(asset_components.begin(), asset_components.end(), component);
+        auto index = std::find(assetComponents.begin(), assetComponents.end(), component);
 
-        if (index != asset_components.end())
+        if (index != assetComponents.end())
         {
-            asset_components.erase(index);
+            assetComponents.erase(index);
             return true;
         }
         else
@@ -364,7 +372,7 @@ namespace Graphics
     {
         // Create component
         ViewComponent* component = new ViewComponent(object, this);
-        view_components.push_back(component);
+        viewComponents.push_back(component);
 
         // Register with object
         object->registerComponent<ViewComponent>(component);
@@ -374,11 +382,11 @@ namespace Graphics
 
     bool VisualSystem::removeViewComponent(ViewComponent* component)
     {
-        auto index = std::find(view_components.begin(), view_components.end(), component);
+        auto index = std::find(viewComponents.begin(), viewComponents.end(), component);
 
-        if (index != view_components.end())
+        if (index != viewComponents.end())
         {
-            view_components.erase(index);
+            viewComponents.erase(index);
             return true;
         }
         else
@@ -391,7 +399,7 @@ namespace Graphics
     {
         // Create component
         LightComponent* component = new LightComponent(object, this, device);
-        light_components.push_back(component);
+        lightComponents.push_back(component);
 
         // Register with object
         object->registerComponent<LightComponent>(component);
@@ -401,11 +409,11 @@ namespace Graphics
     
     bool VisualSystem::removeLightComponent(LightComponent* component)
     {
-        auto index = std::find(light_components.begin(), light_components.end(), component);
+        auto index = std::find(lightComponents.begin(), lightComponents.end(), component);
 
-        if (index != light_components.end())
+        if (index != lightComponents.end())
         {
-            light_components.erase(index);
+            lightComponents.erase(index);
             return true;
         }
         else
