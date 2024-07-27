@@ -11,5 +11,10 @@ namespace Datamodel
 		object = parent_object;
 	}
 
+	Object* Component::getObject()
+	{
+		return object;
+	}
+
 }
 }

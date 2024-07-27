@@ -202,9 +202,11 @@ namespace Graphics
         CBHandle* pCB1 = pShader->getCBHandle(CB1);
         pCB1->clearData();
 
+        const Vector3& viewPosition = view->getObject()->getTransform().getPosition();
+        pCB1->loadData(&viewPosition, FLOAT3);
+        
         int lightCount = lightComponents.size();
         pCB1->loadData(&lightCount, INT);
-        pCB1->loadData(nullptr, FLOAT3);
 
         for (int i = 0; i < lightComponents.size(); i++)
         {

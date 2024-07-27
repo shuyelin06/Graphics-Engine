@@ -31,6 +31,8 @@ namespace Datamodel
 		// Constructor
 		// Assigns a reference to the handler that created this component
 		Component(Object* parent_object);
+
+		Object* getObject();
 	};
 }
 }

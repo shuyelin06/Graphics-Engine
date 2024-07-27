@@ -16,8 +16,8 @@ SamplerState lightDepthSamplers[10] : register(s0);
 
 cbuffer CB1 : register(b1)
 {
+    float3 view_world_position;
     int light_count;
-    float3 padding;
     
     LightData light_instances[10];
     
@@ -63,23 +63,40 @@ float4 ps_main(VS_OUT input) : SV_TARGET
                 // To represent this,
                 float inShadow = step(depth, sampledDepth + 0.01f);
     
-                // Let's now perform our lighting calculation! First, normalize our normal
-                // and find our direction to the light (as well as distance to the light)
+                // Let's now perform our lighting calculations! 
+                // To do this, we need the find the following:
+                // 1) Surface normal
+                // 2) Light direction vector & light distance
+                // 3) View direction vector
+                // 4) Reflected light direction vector (across normal)
                 float3 normal = normalize(input.normal);
     
-                float3 light_direction = light_instances[i].position - input.world_position;
+                // Light --> Surface
+                float3 light_direction = input.world_position - light_instances[i].position;
                 float light_distance = length(light_direction);
                 light_direction = light_direction / light_distance;
     
-                // Calculate diffuse contribution. We do this by comparing how close the normal
-                // is to the direction to the light
-                float diffuseContribution = max(0, dot(light_direction, normal));
-    
-                // Calculate specular contribution. We do this by comparing how close the view is
-                // to the "reflected" light direction across the normal.
-                // ...
-    
-                color.x += float4(inShadow * diffuseContribution, 0, 0, 0);
+                // Surface --> View 
+                float3 view_direction = view_world_position - input.world_position;
+                view_direction = normalize(view_direction);
+                
+                float3 light_direction_reflected = light_direction - 2 * dot(light_direction, normal) * normal;
+                light_direction_reflected = normalize(light_direction_reflected);
+                
+                // --- Diffuse Contribution ---
+                // Compare how close the normal is to the direction to the light.
+                // Flip the light direction since it points from light --> surface
+                float diffuseContribution = max(0, dot(-light_direction, normal));
+                // Apply a contribution from the material (0 -> 1, 1 meaning perfect reflection; 0.5: kinda okay)
+                diffuseContribution *= 0.35f;
+                
+                // --- Specular Contribution ---
+                // Compare how close the view direction is to the reflected light direction.
+                float specularContribution = max(0, dot(view_direction, light_direction_reflected));
+                // Apply a shininess contribution from the material (0 -> infty, 50+ is pretty shiny)
+                specularContribution *= pow(specularContribution, 50);
+                
+                color.x += float4(inShadow * (diffuseContribution + specularContribution), 0, 0, 0);
             }
         }
     }
