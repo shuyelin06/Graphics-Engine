@@ -48,33 +48,40 @@ float4 ps_main(VS_OUT input) : SV_TARGET
         view_position = view_position / view_position.w; // Manual W-Divide 
         float depth = view_position.z;
     
-        // Now, sample the light's shadow map to see its depth at that location, i.e.
-        // how "far" it can see.
-        float2 shadowmap_coords = float2((view_position.x + 1) / 2.f, (-view_position.y + 1) / 2.f);
-        float sampledDepth = lightDepthMaps[i].Sample(lightDepthSamplers[i], shadowmap_coords).r;
+        // USES BRANCHES.. avoid somehow?
+        if (-1 <= view_position.x && view_position.x <= 1)
+        {
+            if (-1 <= view_position.y && view_position.y <= 1)
+            {
+                // Now, sample the light's shadow map to see its depth at that location, i.e.
+                // how "far" it can see.
+                float2 shadowmap_coords = float2((view_position.x + 1) / 2.f, (-view_position.y + 1) / 2.f);
+                float sampledDepth = lightDepthMaps[i].Sample(lightDepthSamplers[i], shadowmap_coords).r;
     
-        // If sampled depth is < depth, that means the light cannot see the
-        // point, so its in shadow.
-        // To represent this,
-        float inShadow = step(depth, sampledDepth + 0.005f);
+                // If sampled depth is < depth, that means the light cannot see the
+                // point, so its in shadow.
+                // To represent this,
+                float inShadow = step(depth, sampledDepth + 0.01f);
     
-        // Let's now perform our lighting calculation! First, normalize our normal
-        // and find our direction to the light (as well as distance to the light)
-        float3 normal = normalize(input.normal);
+                // Let's now perform our lighting calculation! First, normalize our normal
+                // and find our direction to the light (as well as distance to the light)
+                float3 normal = normalize(input.normal);
     
-        float3 light_direction = light_instances[i].position - input.world_position;
-        float light_distance = length(light_direction);
-        light_direction = light_direction / light_distance;
+                float3 light_direction = light_instances[i].position - input.world_position;
+                float light_distance = length(light_direction);
+                light_direction = light_direction / light_distance;
     
-        // Calculate diffuse contribution. We do this by comparing how close the normal
-        // is to the direction to the light
-        float diffuseContribution = max(0, dot(light_direction, normal));
+                // Calculate diffuse contribution. We do this by comparing how close the normal
+                // is to the direction to the light
+                float diffuseContribution = max(0, dot(light_direction, normal));
     
-        // Calculate specular contribution. We do this by comparing how close the view is
-        // to the "reflected" light direction across the normal.
-        // ...
+                // Calculate specular contribution. We do this by comparing how close the view is
+                // to the "reflected" light direction across the normal.
+                // ...
     
-        color.x += float4(inShadow * diffuseContribution, 0, 0, 0);
+                color.x += float4(inShadow * diffuseContribution, 0, 0, 0);
+            }
+        }
     }
     
     return color;
