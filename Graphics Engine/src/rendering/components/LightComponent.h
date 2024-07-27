@@ -3,11 +3,10 @@
 #include "rendering/Direct3D11.h"
 
 #include "rendering/components/ViewComponent.h"
-
 #include "rendering/Shader.h"
 
-#include "rendering/Direct3D11.h"
 #include "math/Matrix4.h"
+#include "math/Color.h"
 
 namespace Engine
 {
@@ -25,6 +24,9 @@ namespace Graphics
 		: public ViewComponent
 	{
 	private:
+		// Light emission color
+		Color color;
+
 		// Shadow map texture, and associated data to
 		// let us bind it to the shader and render to it.
 		ID3D11Texture2D* shadow_map;
@@ -40,6 +42,9 @@ namespace Graphics
 	public:
 		LightComponent(Datamodel::Object* object, VisualSystem* system, ID3D11Device* device);
 		~LightComponent();
+
+		// Load light data to a constant buffer
+		void loadLightData(CBHandle* handle) const;
 
 		// Set render target to be the texture
 		void setRenderTarget(ID3D11DeviceContext* context);

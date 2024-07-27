@@ -183,8 +183,20 @@ namespace Graphics
 
         vShader->getCBHandle(CB1)->clearData();
         view->loadViewData(vShader->getCBHandle(CB1));
-        pShader->getCBHandle(CB1)->clearData();
-        light->bindShadowMap(context, 0, pShader->getCBHandle(CB1));
+
+        CBHandle* pCB1 = pShader->getCBHandle(CB1);
+        pCB1->clearData();
+
+        int lightCount = light_components.size();
+        pCB1->loadData(&lightCount, INT);
+        Vector3 padding;
+        pCB1->loadData(&padding, FLOAT3);
+
+        for (int i = 0; i < light_components.size(); i++)
+        {
+            light_components[i]->loadLightData(pCB1);
+            light_components[i]->bindShadowMap(context, i, pCB1);
+        }
 
         for (AssetComponent* asset_component : asset_components)
         {

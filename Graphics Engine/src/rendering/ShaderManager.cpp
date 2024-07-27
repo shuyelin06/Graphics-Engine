@@ -60,8 +60,17 @@ namespace Graphics
 
         pixelShaders[PSShadow] = createPixelShader(device, shaderFolder + L"ShadowShaderP.hlsl", "ps_main");
         {
-            CBDataFormat cb1[] = { FLOAT3, FLOAT4X4, FLOAT4X4 };
-            pixelShaders[PSShadow]->enableCB(CB1, cb1, 3);
+            std::vector<CBDataFormat> cb1 = std::vector<CBDataFormat>();
+            cb1.push_back(INT);
+            cb1.push_back(FLOAT3); // PADDING
+            for (int i = 0; i < 10; i++)
+            {
+                cb1.push_back(FLOAT3); // Position
+                cb1.push_back(FLOAT3); // Color
+                cb1.push_back(FLOAT4X4);  // View Matrix
+                cb1.push_back(FLOAT4X4); // Projection Matrix
+            }
+            pixelShaders[PSShadow]->enableCB(CB1, cb1.data(), cb1.size());
         }
 	}
 

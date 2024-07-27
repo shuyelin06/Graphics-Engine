@@ -4,29 +4,21 @@
 
 #include "rendering/VisualSystem.h"
 
-#define SHADOWMAP_WIDTH 256
-#define SHADOWMAP_HEIGHT 256
+#define SHADOWMAP_WIDTH 128
+#define SHADOWMAP_HEIGHT 128
 
 //DXGI_FORMAT_R8G8B8A8_UNORM
 namespace Engine
 {
 namespace Graphics
 {
-	// LightData Struct:
-	// Contains data that the Pixel Shader needs to perform shadow calculations
-	struct ShadowData
-	{
-		Vector3 light_position;
-		float padding;
-		Matrix4 view_matrix;
-		Matrix4 projection_matrix;
-	};
-
 	// Constructor:
 	// Initializes a texture resource for use in the shadow mapping.
 	LightComponent::LightComponent(Datamodel::Object* object, VisualSystem* system, ID3D11Device* device)
 		: ViewComponent(object, system)
 	{
+		color = Color(0.5f, 0.25f, 1.0f);
+
 		// Cast the handler to a visual system (TODO: probably a better way to do this)
 		VisualSystem* visual_system = system;
 
@@ -109,6 +101,21 @@ namespace Graphics
 		system->removeLightComponent(this);
 	}
 
+	void LightComponent::loadLightData(CBHandle* cbHandle) const
+	{
+		const Vector3& position = object->getTransform().getPosition();
+		cbHandle->loadData(&position, FLOAT3);
+
+		cbHandle->loadData(&color, FLOAT3);
+
+		Matrix4 viewMatrix = object->getLocalMatrix().inverse();
+		cbHandle->loadData(&viewMatrix, FLOAT4X4);
+
+		Matrix4 projectionMatrix = generateProjectionMatrix();
+		cbHandle->loadData(&projectionMatrix, FLOAT4X4);
+
+	}
+
 	// Sets the shadow map as the render target
 	void LightComponent::setRenderTarget(ID3D11DeviceContext* context)
 	{
@@ -124,17 +131,6 @@ namespace Graphics
 		context->PSSetShaderResources(slot_index, 1, &shader_resource_view);
 		// Configure sampling of the texture
 		context->PSSetSamplers(slot_index, 1, &sampler_state);
-		
-		// Bind light data to CB1
-		// Generate view structure data
-		const Vector3& position = object->getTransform().getPosition();
-		cbHandle->loadData(&position, FLOAT3);
-
-		Matrix4 viewMatrix = object->getLocalMatrix().inverse();
-		cbHandle->loadData(&viewMatrix, FLOAT4X4);
-
-		Matrix4 projectionMatrix = generateProjectionMatrix();
-		cbHandle->loadData(&projectionMatrix, FLOAT4X4);
 	}
 
 }

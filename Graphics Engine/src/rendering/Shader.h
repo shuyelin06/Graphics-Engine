@@ -21,6 +21,7 @@ namespace Graphics
 
 	enum CBDataFormat
 	{
+		INT = 4,
 		FLOAT = 4, FLOAT2 = 8,
 		FLOAT3 = 12, FLOAT4 = 16,
 		FLOAT4X4 = 64

@@ -136,9 +136,18 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         visual_system.bindAssetComponent(&child, Fox);
     }
 
-    Object& light = parent_object->createChild();
-    // light.getTransform().offsetRotation(-0.05f, 0, 0);
-    visual_system.bindLightComponent(&light);
+    {
+        Object& light = parent_object->createChild();
+        light.getTransform().offsetRotation(0.15f, 0, 0);
+        visual_system.bindLightComponent(&light);
+    }
+
+    {
+        Object& light = parent_object->createChild();
+        light.getTransform().offsetPosition(0, 5, 0);
+        light.getTransform().offsetRotation(0.25f, 0, 0);
+        visual_system.bindLightComponent(&light);
+    }
 
     {
         Object& child = parent_object->createChild();
@@ -179,8 +188,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(5, 0, 0), Color::Red());
         VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(0, 5, 0), Color::Green());
         VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(0, 0, 5), Color::Blue());
-
-        light.getTransform().offsetRotation(0.01f, 0, 0);
 
         // Update Object Transforms
         Matrix4 identity = Matrix4::identity();
