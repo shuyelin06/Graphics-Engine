@@ -20,6 +20,9 @@ namespace Input
 		// Center of the screen
 		int center_x, center_y;
 
+		Quaternion xRotation;
+		Quaternion yRotation;
+
 		float sensitivity;
 
 	public:

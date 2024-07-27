@@ -162,6 +162,7 @@
     <ClCompile Include="src\datamodel\Object.cpp" />
     <ClCompile Include="src\input\InputSystem.cpp" />
     <ClCompile Include="src\math\Matrix3.cpp" />
+    <ClCompile Include="src\math\Quaternion.cpp" />
     <ClCompile Include="src\math\Vector2.cpp" />
     <ClCompile Include="src\math\Vector3.cpp" />
     <ClCompile Include="src\Main.cpp" />
@@ -197,6 +198,7 @@
     <ClInclude Include="src\datamodel\Object.h" />
     <ClInclude Include="src\input\InputSystem.h" />
     <ClInclude Include="src\math\Matrix3.h" />
+    <ClInclude Include="src\math\Quaternion.h" />
     <ClInclude Include="src\math\Vector2.h" />
     <ClInclude Include="src\math\Vector3.h" />
     <ClInclude Include="src\math\Matrix4.h" />

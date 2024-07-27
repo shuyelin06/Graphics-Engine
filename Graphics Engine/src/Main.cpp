@@ -138,14 +138,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
     {
         Object& light = parent_object->createChild();
-        light.getTransform().offsetRotation(0.15f, 0, 0);
+        light.getTransform().offsetRotation(Vector3::PositiveX(), 0.015f);
         visual_system.bindLightComponent(&light);
     }
 
     {
         Object& light = parent_object->createChild();
         light.getTransform().offsetPosition(0, 5, 0);
-        light.getTransform().offsetRotation(0.25f, 0, 0);
+        light.getTransform().offsetRotation(Vector3::PositiveX(), 0.05f);
         visual_system.bindLightComponent(&light);
     }
 

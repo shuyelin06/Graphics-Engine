@@ -16,6 +16,9 @@ namespace Input
 
 		sensitivity = 1;
 
+		xRotation = Quaternion(Vector3(), 1.f);
+		yRotation = Quaternion(Vector3(), 1.f);
+
 		center_x = 600;
 		center_y = 600;
 	}
@@ -68,11 +71,11 @@ namespace Input
 
 		// Convert to Angular Displacement
 		// Roll = Rotation Around X (Up/Down)
-		// Pitch = Rotation Around Y (Left/Right
-		float roll_delta = y_delta / 100.f;
-		float pitch_delta = x_delta / 100.f;
+		// Pitch = Rotation Around Y (Left/Right)
+		xRotation *= Quaternion::RotationAroundAxis(Vector3::PositiveY(), -x_delta / 100.f);
+		yRotation *= Quaternion::RotationAroundAxis(Vector3::PositiveX(), -y_delta / 100.f);
 
-		object->getTransform().offsetRotation(roll_delta, pitch_delta, 0);
+		object->getTransform().setRotation(yRotation * xRotation);
 
 		// Reset mouse to center of application
 		SetCursorPos(center_x, center_y);
