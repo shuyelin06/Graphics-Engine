@@ -15,16 +15,17 @@ namespace Graphics
 	// Clears all debug data
 	void VisualDebug::Clear()
 	{
-		points.clear();
 		lines.clear();
 	}
 
 	// DrawPoint:
 	// Registers a point in 3D space to be drawn by the visual
 	// engine. Points are cleared after every frame
-	bool VisualDebug::DrawPoint(const Vector3& position, float scale, const Color& color)
+	bool VisualDebug::DrawPoint(const Vector3& position, float scale, const Color& color, int expiration)
 	{
 		const int POINT_CAP = (4096 * 4 * sizeof(float)) / sizeof(PointData);
+
+		assert(expiration == -1 || expiration > 0);
 
 		// Check if there is space in the constant buffer for the point. If not
 		// fail
@@ -38,6 +39,7 @@ namespace Graphics
 			data.position = position;
 			data.scale = scale;
 			data.color = color;
+			data.frameExpiration = expiration;
 
 			points.push_back(data);
 			
@@ -46,9 +48,9 @@ namespace Graphics
 		
 	}
 
-	bool VisualDebug::DrawPoint(const Vector3& position, float scale)
+	bool VisualDebug::DrawPoint(const Vector3& position, float scale, int expiration)
 	{
-		return DrawPoint(position, scale, Color::Red());
+		return DrawPoint(position, scale, Color::Red(), expiration);
 	}
 
 	// DrawLine:
@@ -79,17 +81,33 @@ namespace Graphics
 	int VisualDebug::LoadPointData(CBHandle* cbHandle)
 	{
 		if (points.size() == 0)
-			return -1;
+			return 0;
 
-		for (const PointData& data : points)
+		int head = 0;
+
+		// Load data into the constant buffer handle, while removing points
+		// which are expired
+		for (int i = 0; i < points.size(); i++)
 		{
+			PointData& data = points[i];
 			cbHandle->loadData(&data.position, FLOAT3);
 			cbHandle->loadData(&data.scale, FLOAT);
 			cbHandle->loadData(&data.color, FLOAT3);
 			cbHandle->loadData(nullptr, FLOAT);
+
+			if (data.frameExpiration > 0)
+				data.frameExpiration -= 1;
+
+			if (data.frameExpiration == -1 || data.frameExpiration > 0)
+			{
+				points[head] = data;
+				head++;
+			}
 		}
 
-		return points.size();
+		points.resize(head);
+
+		return head;
 	}
 
 	// LoadLineData:
@@ -98,7 +116,7 @@ namespace Graphics
 	int VisualDebug::LoadLineData(ID3D11DeviceContext* context, ID3D11Device* device)
 	{
 		if (lines.size() == 0)
-			return -1;
+			return 0;
 
 		if (lineVertexBuffer != nullptr)
 			lineVertexBuffer->Release();

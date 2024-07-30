@@ -4,6 +4,9 @@
 
 #include "rendering/Asset.h"
 
+// Enables debug rendering for the terrain
+// #define TERRAIN_DEBUG
+
 #define CHUNK_X_SIZE 25
 #define CHUNK_Y_SIZE 10
 #define CHUNK_Z_SIZE 25
@@ -37,49 +40,6 @@ namespace Datamodel
 
 		Asset* getMesh();
 		void generateMesh();
-
-		/*
-		void generateMesh();
-
-		Terrain(int x, int y, int z, float voxel_size);
-		~Terrain();
-
-		
-		// Gets the terrain mesh
-		Mesh& getMesh();
-
-		// Sample value at point
-		float samplePoint(int x, int y, int z);
-
-		// DEBUG: Test the configuration
-		void checkConfiguration(int mask);
-
-	private:
-		// Helper methods for the Marching Cube implementation
-		void processVoxel(int x, int y, int z);
-		
-		bool testInteriorAmbiguity();
-		bool testFaceAmbiguity(int x, int y, int z);
-
-		void addTriangle(const char* triangleList, char n, int v12 = -1);
-		bool faceContainsSurface(int x, int y, int z, char faceID);
-		float sampleVoxelData(int x, int y, int z, char vertexID);
-		char computeVertexMask(int x, int y, int z);
-
-		
-
-
-		void generateMesh();
-
-		// Finds the edge mask at the cube with bottom-left corner
-		// given at (x,y,z)
-		int edgeMask(int x, int y, int z);
-
-		// Determines the coordinates of the edge identifier in the
-		// cube given at (x,y,z)
-		Vector3 terrainCoordinate(int x, int y, int z, int edge_ID);
-
-		*/
 	};
 }
 }

@@ -24,7 +24,11 @@ namespace Graphics
 		float scale;
 
 		Color color;
-		float padding;
+
+		// Determines for how many frames the point should persist. If -1,
+		// the point should exist indefinitely over the entire program.
+		// Unused in the shader, but conveniently pads the line data
+		int frameExpiration; 
 	};
 	
 	// LineData Struct:
@@ -55,8 +59,8 @@ namespace Graphics
 		static void Clear();
 
 		// Quick and dirty rendering in 3D space
-		static bool DrawPoint(const Vector3& position, float scale, const Color& color);
-		static bool DrawPoint(const Vector3& position, float scale);
+		static bool DrawPoint(const Vector3& position, float scale, const Color& color, int expiration);
+		static bool DrawPoint(const Vector3& position, float scale, int expiration);
 		static bool DrawLine(const Vector3& p1, const Vector3& p2, const Color& rgb);
 		static bool DrawLine(const Vector3& p1, const Vector3& p2);
 

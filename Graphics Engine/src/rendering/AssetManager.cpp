@@ -417,11 +417,11 @@ namespace Graphics
 
         const int indices[] =
         {
-            0, 2, 1,  2, 0, 3,   // Front Face
+            0, 1, 2,  2, 3, 0,   // Front Face
             4, 6, 5,  6, 4, 7,   // Back Face
             8, 10, 9,  10, 8, 11, // Top Face
-            12, 14, 13,  14, 12, 15, // Bottom Face
-            16, 18, 17,  18, 16, 19, // Right Face
+            12, 13, 14,  14, 15, 12, // Bottom Face
+            16, 17, 18,  18, 19, 16, // Right Face
             20, 22, 21,  22, 20, 23  // Left Face
         };
 

@@ -144,7 +144,7 @@ namespace Graphics
         // Debug Functionality
         renderDebugPoints();
         // renderDebugLines();
-        // VisualDebug::Clear();
+        VisualDebug::Clear();
 #endif
 
         // Present what we rendered to
@@ -246,12 +246,16 @@ namespace Graphics
         int numIndices = cube->getMesh(0)->loadIndexVertexData(context, device);
 
         int numPoints = VisualDebug::LoadPointData(vShader->getCBHandle(CB0));
-        view->loadViewData(vShader->getCBHandle(CB1));
 
-        vShader->bindShader(device, context);
-        pShader->bindShader(device, context);
+        if (numPoints > 0)
+        {
+            view->loadViewData(vShader->getCBHandle(CB1));
 
-        context->DrawIndexedInstanced(numIndices, numPoints, 0, 0, 1);
+            vShader->bindShader(device, context);
+            pShader->bindShader(device, context);
+
+            context->DrawIndexedInstanced(numIndices, numPoints, 0, 0, 1);
+        }
     }
 
     void VisualSystem::renderDebugLines()
@@ -263,12 +267,16 @@ namespace Graphics
         vShader->getCBHandle(CB1)->clearData();
 
         int numLines = VisualDebug::LoadLineData(context, device);
-        view->loadViewData(vShader->getCBHandle(CB1));
+        
+        if (numLines > 0)
+        {
+            view->loadViewData(vShader->getCBHandle(CB1));
 
-        vShader->bindShader(device, context);
-        pShader->bindShader(device, context);
+            vShader->bindShader(device, context);
+            pShader->bindShader(device, context);
 
-        context->Draw(numLines, 0);
+            context->Draw(numLines, 0);
+        }
     }
 
     // GetViewport:

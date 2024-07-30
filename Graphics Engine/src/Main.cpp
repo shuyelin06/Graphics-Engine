@@ -174,13 +174,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
     Utility::Stopwatch framerate_watch = Utility::Stopwatch();
     
-    // Datamodel::Terrain terrain = Datamodel::Terrain();
-    // terrain.generateMesh();
+    VisualDebug::DrawPoint(Vector3(0, 0, 0), 1, Color::White(), 60 * 7);
+    VisualDebug::DrawPoint(Vector3(1, 0, 0), 1, Color::Red(), 60 * 7);
+    VisualDebug::DrawPoint(Vector3(0, 1, 0), 1, Color::Green(), 60 * 7);
+    VisualDebug::DrawPoint(Vector3(0, 0, 1), 1, Color::Blue(), 60 * 7);
 
     // Main loop: runs once per frame
     while (!close) {
-        // terrain.getMesh();
-
         // Begin counting milliseconds elapsed for framerate
         framerate_watch.Reset();
 
@@ -193,12 +193,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             if (msg.message == WM_QUIT)
                 return 0;
         }
-
-        // Draw XYZ Axes (R: +X, G: +Y, B: +Z)
-        // VisualDebug::DrawPoint(Vector3(0, 0, 0), 1, Color::White());
-        // VisualDebug::DrawPoint(Vector3(1, 0, 0), 1, Color::Red());
-        // VisualDebug::DrawPoint(Vector3(0, 1, 0), 1, Color::Green());
-        // VisualDebug::DrawPoint(Vector3(0, 0, 1), 1, Color::Blue());
 
         // VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(5, 0, 0), Color::Red());
         // VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(0, 5, 0), Color::Green());

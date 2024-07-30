@@ -6,10 +6,12 @@
 #include <assert.h>
 #include <map>
 
-#include "rendering/VisualDebug.h"
-
 #include "math/Triangle.h"
 #include "math/Matrix3.h"
+
+#if defined(TERRAIN_DEBUG)
+#include "rendering/VisualDebug.h"
+#endif
 
 namespace Engine
 {
@@ -47,106 +49,6 @@ namespace Datamodel
 
 		char computeVertexMask();
 	};
-
-	Terrain::Terrain()
-	{
-		// Initialize terrain data
-		for (int i = 0; i < CHUNK_X_SIZE; i++)
-		{
-			for (int j = 0; j < CHUNK_Y_SIZE; j++)
-			{
-				for (int k = 0; k < CHUNK_Z_SIZE; k++)
-					terrainData[i][j][k] = Compute::random(-2.5f, 2.5f);
-			}
-		}
-		
-		/*
-		char c = 126;
-
-		if (c & 1) terrainData[0][0][0] = 1;
-		if ((c >> 1) & 1) terrainData[1][0][0] = 1;
-		if ((c >> 2) & 1) terrainData[0][1][0] = 1;
-		if ((c >> 3) & 1) terrainData[1][1][0] = 1;
-		if ((c >> 4) & 1) terrainData[0][0][1] = 1;
-		if ((c >> 5) & 1) terrainData[1][0][1] = 1;
-		if ((c >> 6) & 1) terrainData[0][1][1] = 1;
-		if ((c >> 7) & 1) terrainData[1][1][1] = 1;
-		*/
-
-		mesh = nullptr;
-	}
-	Terrain::~Terrain() = default;
-
-	Asset* Terrain::getMesh()
-	{
-		// TEMP
-		for (int i = 0; i < CHUNK_X_SIZE; i++)
-		{
-			for (int j = 0; j < CHUNK_Y_SIZE; j++)
-			{
-				for (int k = 0; k < CHUNK_Z_SIZE; k++)
-				{
-					if (terrainData[i][j][k] < 0)
-						Graphics::VisualDebug::DrawPoint(Vector3(i,j,k) * CHUNK_VOXEL_SIZE, 1.5f, Color::Red());
-					else
-						Graphics::VisualDebug::DrawPoint(Vector3(i, j, k) * CHUNK_VOXEL_SIZE, 1.5f, Color::Green());
-				}
-			}
-		}
-
-		return mesh;
-	}
-
-	void Terrain::generateMesh()
-	{
-		if (mesh != nullptr)
-			delete mesh;
-		
-		mesh = new Asset();
-		Mesh* meshData = mesh->newMesh();
-		int curIndex = 0;
-
-		for (int i = 0; i < CHUNK_X_SIZE - 1; i++)
-		{
-			for (int j = 0; j < CHUNK_Y_SIZE - 1; j++)
-			{
-				for (int k = 0; k < CHUNK_Z_SIZE - 1; k++)
-				{
-					// Load data into a marching cube
-					MarchingCube marchingCube = MarchingCube(terrainData[i][j][k], terrainData[i + 1][j][k], terrainData[i + 1][j + 1][k], terrainData[i][j + 1][k],
-															terrainData[i][j][k + 1], terrainData[i + 1][j][k + 1], terrainData[i + 1][j + 1][k + 1], terrainData[i][j + 1][k + 1]);
-					
-					// Generate triangulation for this cube
-					marchingCube.generateSurface();
-					const std::vector<Triangle>& triangulation = marchingCube.getTriangles();
-
-					// Scale and transform to the voxel location
-					Vector3 offset = Vector3(i, j, k) * CHUNK_VOXEL_SIZE;
-					
-					for (const Triangle& triangle : triangulation)
-					{
-						MeshVertex meshVertex;
-
-						// Flip orientation of triangle
-						meshVertex.position = triangle.vertex(0) * CHUNK_VOXEL_SIZE + offset;
-						meshData->addVertex(meshVertex);
-						meshVertex.position = triangle.vertex(2) * CHUNK_VOXEL_SIZE + offset;
-						meshData->addVertex(meshVertex);
-						meshVertex.position = triangle.vertex(1) * CHUNK_VOXEL_SIZE + offset;
-						meshData->addVertex(meshVertex);
-						
-						MeshTriangle meshTriangle;
-						meshTriangle.vertex0 = curIndex++;
-						meshTriangle.vertex1 = curIndex++;
-						meshTriangle.vertex2 = curIndex++;
-						meshData->addTriangle(meshTriangle);
-					}
-				}
-			}
-		}
-
-		meshData->lockMesh(true);
-	}
 
 	// -------------------------------------------------------------
 	// Terrain Generation using an adapted version of Lewiner, et. al's 
@@ -917,6 +819,95 @@ namespace Datamodel
 				mask |= 1 << i;
 
 		return mask;
+	}
+
+
+	Terrain::Terrain()
+	{
+		// Initialize terrain data
+		for (int i = 0; i < CHUNK_X_SIZE; i++)
+		{
+			for (int j = 0; j < CHUNK_Y_SIZE; j++)
+			{
+				for (int k = 0; k < CHUNK_Z_SIZE; k++)
+					terrainData[i][j][k] = Compute::random(-2.5f, 2.5f);
+			}
+		}
+
+		mesh = nullptr;
+
+#if defined(TERRAIN_DEBUG)
+		for (int i = 0; i < CHUNK_X_SIZE; i++)
+		{
+			for (int j = 0; j < CHUNK_Y_SIZE; j++)
+			{
+				for (int k = 0; k < CHUNK_Z_SIZE; k++)
+				{
+					if (terrainData[i][j][k] < 0)
+						Graphics::VisualDebug::DrawPoint(Vector3(i, j, k) * CHUNK_VOXEL_SIZE, 1.5f, Color::Red(), -1);
+					else
+						Graphics::VisualDebug::DrawPoint(Vector3(i, j, k) * CHUNK_VOXEL_SIZE, 1.5f, Color::Green(), -1);
+				}
+			}
+		}
+#endif
+	}
+	Terrain::~Terrain() = default;
+
+	Asset* Terrain::getMesh()
+	{
+		return mesh;
+	}
+
+	void Terrain::generateMesh()
+	{
+		if (mesh != nullptr)
+			delete mesh;
+
+		mesh = new Asset();
+		Mesh* meshData = mesh->newMesh();
+		int curIndex = 0;
+
+		for (int i = 0; i < CHUNK_X_SIZE - 1; i++)
+		{
+			for (int j = 0; j < CHUNK_Y_SIZE - 1; j++)
+			{
+				for (int k = 0; k < CHUNK_Z_SIZE - 1; k++)
+				{
+					// Load data into a marching cube
+					MarchingCube marchingCube = MarchingCube(terrainData[i][j][k], terrainData[i + 1][j][k], terrainData[i + 1][j + 1][k], terrainData[i][j + 1][k],
+						terrainData[i][j][k + 1], terrainData[i + 1][j][k + 1], terrainData[i + 1][j + 1][k + 1], terrainData[i][j + 1][k + 1]);
+
+					// Generate triangulation for this cube
+					marchingCube.generateSurface();
+					const std::vector<Triangle>& triangulation = marchingCube.getTriangles();
+
+					// Scale and transform to the voxel location
+					Vector3 offset = Vector3(i, j, k) * CHUNK_VOXEL_SIZE;
+
+					for (const Triangle& triangle : triangulation)
+					{
+						MeshVertex meshVertex;
+
+						// Flip orientation of triangle
+						meshVertex.position = triangle.vertex(0) * CHUNK_VOXEL_SIZE + offset;
+						meshData->addVertex(meshVertex);
+						meshVertex.position = triangle.vertex(2) * CHUNK_VOXEL_SIZE + offset;
+						meshData->addVertex(meshVertex);
+						meshVertex.position = triangle.vertex(1) * CHUNK_VOXEL_SIZE + offset;
+						meshData->addVertex(meshVertex);
+
+						MeshTriangle meshTriangle;
+						meshTriangle.vertex0 = curIndex++;
+						meshTriangle.vertex1 = curIndex++;
+						meshTriangle.vertex2 = curIndex++;
+						meshData->addTriangle(meshTriangle);
+					}
+				}
+			}
+		}
+
+		meshData->lockMesh(true);
 	}
 
 }
