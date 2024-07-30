@@ -10,6 +10,7 @@
 
 #include <assert.h>
 
+#include "datamodel/Terrain.h"
 #include "math/Vector3.h"
 #include "math/Vector2.h"
 
@@ -34,6 +35,10 @@ namespace Graphics
         assets[Cube] = LoadCube();
         // Fox by Jake Blakeley [CC-BY] via Poly Pizza
         assets[Fox] = LoadAssetFromOBJ("data/", "model.obj", "Model");
+
+        Datamodel::Terrain terrain = Datamodel::Terrain();
+        terrain.generateMesh();
+        assets[Terrain] = terrain.getMesh();
     }
 
     // GetAssets:

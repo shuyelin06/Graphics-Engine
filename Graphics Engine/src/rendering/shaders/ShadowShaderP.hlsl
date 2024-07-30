@@ -35,7 +35,7 @@ struct VS_OUT
 // Takes clipping coordinates, and returns a color
 float4 ps_main(VS_OUT input) : SV_TARGET
 {
-    float4 color = float4(0, 0, 0, 1.0f);
+    float4 color = float4(0, 0.15f, 0.25f, 1.0f);
     
     for (int i = 0; i < light_count; i++)
     {

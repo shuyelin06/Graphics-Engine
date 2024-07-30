@@ -14,6 +14,8 @@
 #include "rendering/components/ViewComponent.h"
 #include "rendering/components/AssetComponent.h"
 
+#include "datamodel/Terrain.h"
+
 namespace Engine
 {
 namespace Graphics

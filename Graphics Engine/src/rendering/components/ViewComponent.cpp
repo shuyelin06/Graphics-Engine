@@ -18,7 +18,7 @@ namespace Graphics
 	{
 		fov = 1.2f;
 		z_near = 1.f;
-		z_far = 200.f;
+		z_far = 500.f;
 	}
 
 	ViewComponent::~ViewComponent()

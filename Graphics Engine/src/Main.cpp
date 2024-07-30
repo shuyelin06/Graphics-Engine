@@ -37,6 +37,8 @@
 #include "math/Compute.h"
 #include "utility/Stopwatch.h"
 
+#include "datamodel/Terrain.h"
+
 using namespace Engine;
 using namespace Engine::Simulation;
 using namespace Engine::Datamodel;
@@ -123,11 +125,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     camera.getTransform().setPosition(0, 0, -25);
 
     visual_system.bindViewComponent(&camera);
+    visual_system.bindLightComponent(&camera);
     input_system.bindMovementComponent(&camera);
     // visual_system.bindLightComponent(&camera);
     // MeshComponent* mesh = visual_system.bindMeshComponent(&camera);
     // mesh->setMesh(Mesh::GetMesh("Cube"));
     
+    {
+        Object& child = parent_object->createChild();
+        visual_system.bindAssetComponent(&child, AssetSlot::Terrain);
+    }
+
     {
         Object& child = parent_object->createChild();
         child.getTransform().setScale(5, 5, 5);
@@ -136,11 +144,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         visual_system.bindAssetComponent(&child, Fox);
     }
 
+    /*
     {
         Object& light = parent_object->createChild();
         light.getTransform().offsetRotation(Vector3::PositiveX(), 0.015f);
         visual_system.bindLightComponent(&light);
     }
+    */
 
     {
         Object& light = parent_object->createChild();
@@ -163,9 +173,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     bool close = false;
 
     Utility::Stopwatch framerate_watch = Utility::Stopwatch();
+    
+    // Datamodel::Terrain terrain = Datamodel::Terrain();
+    // terrain.generateMesh();
 
     // Main loop: runs once per frame
     while (!close) {
+        // terrain.getMesh();
+
         // Begin counting milliseconds elapsed for framerate
         framerate_watch.Reset();
 
@@ -180,14 +195,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         }
 
         // Draw XYZ Axes (R: +X, G: +Y, B: +Z)
-        VisualDebug::DrawPoint(Vector3(0, 0, 0), 1, Color::White());
-        VisualDebug::DrawPoint(Vector3(1, 0, 0), 1, Color::Red());
-        VisualDebug::DrawPoint(Vector3(0, 1, 0), 1, Color::Green());
-        VisualDebug::DrawPoint(Vector3(0, 0, 1), 1, Color::Blue());
+        // VisualDebug::DrawPoint(Vector3(0, 0, 0), 1, Color::White());
+        // VisualDebug::DrawPoint(Vector3(1, 0, 0), 1, Color::Red());
+        // VisualDebug::DrawPoint(Vector3(0, 1, 0), 1, Color::Green());
+        // VisualDebug::DrawPoint(Vector3(0, 0, 1), 1, Color::Blue());
 
-        VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(5, 0, 0), Color::Red());
-        VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(0, 5, 0), Color::Green());
-        VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(0, 0, 5), Color::Blue());
+        // VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(5, 0, 0), Color::Red());
+        // VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(0, 5, 0), Color::Green());
+        // VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(0, 0, 5), Color::Blue());
 
         // Update Object Transforms
         Matrix4 identity = Matrix4::identity();

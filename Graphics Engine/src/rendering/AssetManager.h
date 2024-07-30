@@ -14,6 +14,7 @@ namespace Graphics
 	{
 		Cube = 0,
 		Fox = 1,
+		Terrain = 2, // Temp
 		AssetCount
 	};
 

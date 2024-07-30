@@ -4,10 +4,10 @@
 
 #include "rendering/Asset.h"
 
-#define TERRAIN_X_SIZE 15
-#define TERRAIN_Y_SIZE 15
-#define TERRAIN_Z_SIZE 15
-#define TERRAIN_VOXEL_SIZE 5
+#define CHUNK_X_SIZE 25
+#define CHUNK_Y_SIZE 10
+#define CHUNK_Z_SIZE 25
+#define CHUNK_VOXEL_SIZE 75
 
 namespace Engine
 {
@@ -26,12 +26,18 @@ namespace Datamodel
 	{
 	private:
 		// Stores a scalar field's values at vertices of each voxel within the chunk.
-		float terrainData[TERRAIN_X_SIZE][TERRAIN_Y_SIZE][TERRAIN_Z_SIZE];
+		float terrainData[CHUNK_X_SIZE][CHUNK_Y_SIZE][CHUNK_Z_SIZE];
 
-		// UNUSED
-		Mesh mesh;
+		// Terrain mesh
+		Asset* mesh;
 
 	public:
+		Terrain();
+		~Terrain();
+
+		Asset* getMesh();
+		void generateMesh();
+
 		/*
 		void generateMesh();
 
