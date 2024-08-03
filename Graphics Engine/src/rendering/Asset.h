@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "math/Color.h"
 #include "math/Vector3.h"
 #include "math/Vector2.h"
 
@@ -46,9 +47,9 @@ namespace Graphics
 	// Specifies renderable properties for a mesh
 	struct Material
 	{
-		Math::Vector3 ka; // Ambient Color
-		Math::Vector3 kd; // Diffuse Color
-		Math::Vector3 ks; // Specular Color
+		Math::Color ka; // Ambient Color
+		Math::Color kd; // Diffuse Color
+		Math::Color ks; // Specular Color
 
 		std::string texture; // Texture
 
@@ -129,6 +130,7 @@ namespace Graphics
 		Material* getMaterial(int material_index);
 
 		// Pipeline Binding
+		int loadMesh(ID3D11DeviceContext* context, ID3D11Device* device);
 	};
 
 	

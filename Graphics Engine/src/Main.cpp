@@ -59,6 +59,7 @@ void UpdateObjectTransforms(Object* object, const Matrix4& m_parent);
 static InputSystem input_system;
 
 #include "rendering/Shader.h"
+#include "utility/FileReader.h"
 
 // Main Function
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)

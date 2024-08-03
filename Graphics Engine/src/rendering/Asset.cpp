@@ -36,9 +36,9 @@ namespace Graphics
 	// Material Constructor
 	Material::Material()
 	{
-		ka = Vector3(0.2f, 0.2f, 0.2f);
-		kd = Vector3(0.8f, 0.8f, 0.8f);
-		ks = Vector3(1.f, 1.f, 1.f);
+		ka = Color(0.2f, 0.2f, 0.2f);
+		kd = Color(0.8f, 0.8f, 0.8f);
+		ks = Color(1.f, 1.f, 1.f);
 
 		texture = std::string();
 	}

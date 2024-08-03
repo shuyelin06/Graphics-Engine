@@ -183,6 +183,7 @@
     <ClCompile Include="src\rendering\parsers\PLYParser.cpp" />
     <ClCompile Include="src\rendering\VisualDebug.cpp" />
     <ClCompile Include="src\rendering\VisualSystem.cpp" />
+    <ClCompile Include="src\utility\FileReader.cpp" />
     <ClCompile Include="src\utility\Stopwatch.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -219,6 +220,7 @@
     <ClInclude Include="src\rendering\Direct3D11.h" />
     <ClInclude Include="src\rendering\VisualDebug.h" />
     <ClInclude Include="src\rendering\VisualSystem.h" />
+    <ClInclude Include="src\utility\FileReader.h" />
     <ClInclude Include="src\utility\Stopwatch.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

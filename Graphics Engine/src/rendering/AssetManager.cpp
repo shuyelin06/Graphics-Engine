@@ -288,23 +288,23 @@ namespace Graphics
             else if (strcmp(token, "Ka") == 0)
             {
                 assert(activeMaterial != nullptr);
-                activeMaterial->ka.x = ParseFloat(&line, " ");
-                activeMaterial->ka.y = ParseFloat(&line, " ");
-                activeMaterial->ka.z = ParseFloat(&line, " ");
+                activeMaterial->ka.r = ParseFloat(&line, " ");
+                activeMaterial->ka.g = ParseFloat(&line, " ");
+                activeMaterial->ka.b = ParseFloat(&line, " ");
             }
             else if (strcmp(token, "Kd") == 0)
             {
                 assert(activeMaterial != nullptr);
-                activeMaterial->kd.x = ParseFloat(&line, " ");
-                activeMaterial->kd.y = ParseFloat(&line, " ");
-                activeMaterial->kd.z = ParseFloat(&line, " ");
+                activeMaterial->kd.r = ParseFloat(&line, " ");
+                activeMaterial->kd.g = ParseFloat(&line, " ");
+                activeMaterial->kd.b = ParseFloat(&line, " ");
             }
             else if (strcmp(token, "Ks") == 0)
             {
                 assert(activeMaterial != nullptr);
-                activeMaterial->ks.x = ParseFloat(&line, " ");
-                activeMaterial->ks.y = ParseFloat(&line, " ");
-                activeMaterial->ks.z = ParseFloat(&line, " ");
+                activeMaterial->ks.r = ParseFloat(&line, " ");
+                activeMaterial->ks.g = ParseFloat(&line, " ");
+                activeMaterial->ks.b = ParseFloat(&line, " ");
             }
             else
                 std::cout << token << "\n";
