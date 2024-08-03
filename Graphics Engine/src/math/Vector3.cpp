@@ -40,14 +40,38 @@ namespace Math
 		return sqrtf(x * x + y * y + z * z);
 	}
 
+	// Unit:
+	// Returns a unit vector. Does not modify this vector.
+	Vector3 Vector3::unit() const
+	{
+		const float length = magnitude();
+		return Vector3(x / length, y / length, z / length);
+	}
+
 	// InplaceNormalize:
 	// Normalizes the vector inplace
 	void Vector3::inplaceNormalize()
 	{
-		float magn = magnitude();
-		x /= magn;
-		y /= magn;
-		z /= magn;
+		const float length = magnitude();
+		x /= length;
+		y /= length;
+		z /= length;
+	}
+
+	// Dot:
+	// Performs the dot product between two vectors.
+	float Vector3::dot(const Vector3& vector) const
+	{
+		return x * vector.x + y * vector.y + z * vector.z;
+	}
+
+	// Cross:
+	// Performs the cross product between two vectors.
+	Vector3 Vector3::cross(const Vector3& vector) const
+	{
+		return Vector3(y * vector.z - z * vector.y,
+			x * vector.z - z * vector.x,
+			x * vector.y - y * vector.x);
 	}
 
 	// + Operator:
@@ -148,27 +172,6 @@ namespace Math
 		y /= f;
 		z /= f;
 		return *this;
-	}
-
-	// DotProduct:
-	// Calculates the dot product between two vectors.
-	float Vector3::DotProduct(const Vector3& v1, const Vector3& v2)
-	{
-		float result = v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
-		return result;
-	}
-
-	// CrossProduct:
-	// Calculates the cross product between two vectors. Note that
-	// the cross product is sensitive to the order of vectors
-	// provided.
-	Vector3 Vector3::CrossProduct(const Vector3& v1, const Vector3& v2)
-	{
-		Vector3 vector;
-		vector.x = v1.y * v2.z - v1.z * v2.y;
-		vector.y = v1.x * v2.z - v1.z * v2.x;
-		vector.z = v1.x * v2.y - v1.y * v2.x;
-		return vector;
 	}
 
 	Vector3 Vector3::PositiveX()

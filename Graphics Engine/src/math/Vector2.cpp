@@ -4,25 +4,29 @@ namespace Engine
 {
 namespace Math
 {
-	// Construtors and Destructor:
+	// Constructors and Destructor:
 	Vector2::Vector2()
-	{
-		u = 0;
-		v = 0;
-	}
+		: x(0)
+		, y(0)
+	{}
 
 	Vector2::Vector2(const Vector2& copy)
-	{
-		u = copy.u;
-		v = copy.v;
-	}
+		: x(copy.x)
+		, y(copy.y)
+	{}
 
-	Vector2::Vector2(float _u, float _v)
-	{
-		u = _u;
-		v = _v;
-	}
+	Vector2::Vector2(float _x, float _y)
+		: x(_x)
+		, y(_y)
+	{}
 
 	Vector2::~Vector2() = default;
+
+	// Dot:
+	// Calculates the dot product between two 2D vectors.
+	float Vector2::dot(const Vector2& vector) const
+	{
+		return x * vector.x + y * vector.y;
+	}
 }
 }

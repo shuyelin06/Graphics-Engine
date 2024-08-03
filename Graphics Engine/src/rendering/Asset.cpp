@@ -118,7 +118,7 @@ namespace Graphics
 				const Vector3& vertex1 = vertexBuffer[triangle.vertex1].position;
 				const Vector3& vertex2 = vertexBuffer[triangle.vertex2].position;
 
-				Vector3 normal = Vector3::CrossProduct(vertex1 - vertex0, vertex2 - vertex0);
+				Vector3 normal = (vertex1 - vertex0).cross(vertex2 - vertex0);
 
 				// Add this normal's contribution for all vertices of the face
 				meshNormals[triangle.vertex0] += normal;

@@ -17,7 +17,9 @@ namespace Math
 		~Triangle();
 
 		const Vector3& vertex(char vertex) const;
+		Vector3& vertex(char vertex);
 
+		Vector3 center() const;
 		Vector3 normal() const;
 	};
 }

@@ -64,8 +64,8 @@ namespace Math
 	Quaternion Quaternion::operator*(const Quaternion& qhat) const
 	{
 		Quaternion new_qhat;
-		new_qhat.im = Vector3::CrossProduct(im, qhat.im) + qhat.im * r + im * qhat.r;
-		new_qhat.r = r * qhat.r - Vector3::DotProduct(im, qhat.im);
+		new_qhat.im = im.cross(qhat.im) + qhat.im * r + im * qhat.r;
+		new_qhat.r = r * qhat.r - im.dot(qhat.im);
 		return new_qhat;
 	}
 
@@ -74,8 +74,8 @@ namespace Math
 	// in place
 	Quaternion& Quaternion::operator*=(const Quaternion& qhat)
 	{
-		const Vector3 imNew = Vector3::CrossProduct(im, qhat.im) + qhat.im * r + im * qhat.r;
-		const float rNew = r * qhat.r - Vector3::DotProduct(im, qhat.im);
+		const Vector3 imNew = im.cross(qhat.im) + qhat.im * r + im * qhat.r;
+		const float rNew = r * qhat.r - im.dot(qhat.im);
 		im = imNew;
 		r = rNew;
 		return *this;
