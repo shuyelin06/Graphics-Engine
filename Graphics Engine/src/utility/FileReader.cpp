@@ -29,43 +29,64 @@ namespace Utility
 	// The block of data extracted is removed from the parent it was taken from.
 	bool TextFileReader::extractBlock(char terminator)
 	{
+		bool success = false;
+
 		// If no blocks currently exist, read directly from file until we
 		// hit our terminator.
 		if (blocks.size() == 0)
 		{
 			std::string block;
 
+			// Read from the file
 			char c;
-			while (inputStream.get(c) && c != terminator)
-				block.push_back(c);
-
-			// Check if anything was read.
-			if (block.length() != 0)
+			while (inputStream.get(c))
 			{
-				blocks.push_back(block);
-				return true;
+				success = true;
+				
+				if (c != terminator)
+					block.push_back(c);
+				else
+					break;
 			}
-			else
-				return false;
+
+			// If anything was read, push the block back
+			if (success)
+				blocks.push_back(block);
 		}
 		// Otherwise, read directly from the last block
 		else
 		{
-			const int terminatorIndex = blocks[blocks.size() - 1].find(terminator, 0);
+			// If block is empty, we cannot extract anything
+			const std::string lastBlock = blocks[blocks.size() - 1];
 
-			// Check if we found the terminator. If not, the extraction failed.
-			if (terminatorIndex != std::string::npos)
-			{
-				const std::string extractedBlock = blocks[blocks.size() - 1].substr(0, terminatorIndex);
-				blocks[blocks.size() - 1] = blocks[blocks.size() - 1].substr(terminatorIndex + 1);
-				blocks.push_back(extractedBlock);
-				return true;
-			}
+			if (lastBlock.length() == 0)
+				success = false;
 			else
 			{
-				return false;
+				success = true;
+
+				// Otherwise, extract up to the terminator. If not found, extract the entire block.
+				const int terminatorIndex = lastBlock.find(terminator, 0);
+
+				// Check if we found the terminator. If not, the extraction failed.
+				std::string extractedBlock;
+
+				if (terminatorIndex != std::string::npos)
+				{
+					extractedBlock = lastBlock.substr(0, terminatorIndex);
+					blocks[blocks.size() - 1] = lastBlock.substr(terminatorIndex + 1);
+				}
+				else
+				{
+					extractedBlock = lastBlock;
+					blocks[blocks.size() - 1] = "";
+				}
+
+				blocks.push_back(extractedBlock);
 			}
 		}
+
+		return success;
 	}
 
 	// ViewBlock:
@@ -88,6 +109,21 @@ namespace Utility
 			return false;
 	}
 
+	// TrimBlockFront:
+	// Removes all occurrences of the character c from the front of the block.
+	int TextFileReader::lstripBlock(char c)
+	{
+		std::string block = blocks[blocks.size() - 1];
+
+		int lastOccurrence = 0;
+		while (lastOccurrence < block.length() && block[lastOccurrence] == c)
+			lastOccurrence++;
+
+		blocks[blocks.size() - 1] = block.substr(lastOccurrence, block.size());
+
+		return lastOccurrence;
+	}
+
 	// Parsers:
 	// Tries to parse the most recent block as a certain data type. 
 	// Returns true on success, and loads result. On fail, does nothing and returns false.
@@ -106,10 +142,10 @@ namespace Utility
 
 	bool TextFileReader::parseAsInt(int* result)
 	{
-		if (blocks.size() > 0)
+		if (blocks.size() > 0 && blocks[blocks.size() - 1].length() > 0)
 		{
 			const std::string& block = blocks[blocks.size() - 1];
-			int parsed = (int) std::stoi(block.c_str());
+			int parsed = (int) std::atoi(block.c_str());
 			*result = parsed;
 			return true;
 		}
@@ -123,26 +159,38 @@ namespace Utility
 	// in cases where you're sure what comes next.
 	bool TextFileReader::readString(std::string* result, char terminator)
 	{
-		extractBlock(terminator);
-		*result = viewBlock();
-		popBlock();
-		return true;
+		if (extractBlock(terminator))
+		{
+			*result = viewBlock();
+			popBlock();
+			return true;
+		}
+		else
+			return false;
 	}
 
 	bool TextFileReader::readFloat(float* result, char terminator)
 	{
-		extractBlock(terminator); 
-		bool status = parseAsFloat(result);
-		popBlock();
-		return status;		
+		if (extractBlock(terminator))
+		{
+			bool status = parseAsFloat(result);
+			popBlock();
+			return status;
+		}
+		else
+			return false;
 	}
 	
 	bool TextFileReader::readInt(int* result, char terminator)
 	{
-		extractBlock(terminator);
-		bool status = parseAsInt(result);
-		popBlock();
-		return status;
+		if (extractBlock(terminator))
+		{
+			bool status = parseAsInt(result);
+			popBlock();
+			return status;
+		}
+		else
+			return false;
 	}
 }
 }

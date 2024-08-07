@@ -10,6 +10,7 @@
 
 #include <assert.h>
 
+#include "utility/FileReader.h"
 #include "datamodel/Terrain.h"
 #include "math/Vector3.h"
 #include "math/Vector2.h"
@@ -19,7 +20,7 @@ using namespace std;
 namespace Engine
 {
 using namespace Math;
-
+using namespace Utility;
 namespace Graphics
 {
 	// Constructor and Destructor
@@ -77,9 +78,8 @@ namespace Graphics
     Asset* AssetManager::LoadAssetFromOBJ(std::string path, std::string objFile, std::string assetName)
 	{
 		// Open target file with file reader
-		std::ifstream file(path + objFile);
-		std::string parsedLine;
-
+        TextFileReader fileReader = TextFileReader(path + objFile);
+		
 		// List of (indexed) vertex positions, textures and normals
 		OBJData data;
         data.asset = new Asset();
@@ -92,154 +92,155 @@ namespace Graphics
         std::map<std::string, int> vertexMap = std::map<std::string, int>();
 
 		// Read each line
-		while (getline(file, parsedLine))
+		while (fileReader.extractBlock('\n'))
 		{
-			// Convert line to a C-format string for use in string functions
-			char* line = &parsedLine[0];
-
 			// Ignore empty lines
-			if (strlen(line) == 0)
-				continue;
-            
-            // Examine the first token of the line to determine what to do.
-            char* token = ParseToken(&line, " ");
+            if (fileReader.viewBlock().length() != 0)
+            {
+                std::string token;
+                fileReader.readString(&token, ' ');
 
-            // #: Comment; Ignore
-            if (strcmp(token, "#") == 0)
-                continue;
-            // Material Data (mtllib): Load materials
-            else if (strcmp(token, "mtllib") == 0)
-            {
-                char* matFile = ParseToken(&line, " ");
-                ParseMaterials(path, matFile, data);
-            }
-            // Vertex Data (v): Load x,y,z position
-            else if (strcmp(token, "v") == 0)
-            {
-                Vector3 position;
-                position.x = ParseFloat(&line, " ");
-                position.y = ParseFloat(&line, " ");
-                position.z = ParseFloat(&line, " ");
-                data.positions.push_back(position);
-            }
-            // Texture Data (vt): u,v texture coordinate
-            else if (strcmp(token, "vt") == 0)
-            {
-                Vector2 texture_coord;
-                texture_coord.u = ParseFloat(&line, " ");
-                texture_coord.v = ParseFloat(&line, " ");
-                data.textureCoords.push_back(texture_coord);
-            }
-            // Normal Data (vn): x,y,z normal
-            else if (strcmp(token, "vn") == 0)
-            {
-                Vector3 normal;
-                normal.x = ParseFloat(&line, " ");
-                normal.y = ParseFloat(&line, " ");
-                normal.z = ParseFloat(&line, " ");
-                data.normals.push_back(normal);
-            }
-            // Use Material (usemtl): Create mesh w/ given material
-            else if (strcmp(token, "usemtl") == 0)
-            {
-                // Finish active mesh by locking it
-                if (activeMesh != nullptr)
-                    activeMesh->lockMesh(true);
-
-                // Retrieve material
-                char* materialName = ParseToken(&line, " ");
-                assert(data.materialMap.contains(materialName));
-                Material* material = data.materialMap[materialName];
-
-                // Create mesh and assign the material
-                activeMesh = data.asset->newMesh();
-                activeMesh->setMaterial(material);
-
-                // Clear vertex map
-                vertexMap.clear();
-            }
-            // Face Data (f): Register vertex data under the mesh
-            else if (strcmp(token, "f") == 0)
-            {
-                // If there is no active mesh, create one.
-                if (activeMesh == nullptr)
+                // #: Comment; Ignore
+                // Material Data (mtllib): Load materials
+                if (token == "mtllib")
                 {
+                    std::string matFile;
+                    fileReader.readString(&matFile, ' ');
+                    ParseMaterials(path, matFile, data);
+                }
+                // Vertex Data (v): Load x,y,z position
+                else if (token == "v")
+                {
+                    Vector3 position;
+                    fileReader.readFloat(&position.x, ' ');
+                    fileReader.readFloat(&position.y, ' ');
+                    fileReader.readFloat(&position.z, ' ');
+                    data.positions.push_back(position);
+                }
+                // Texture Data (vt): u,v texture coordinate
+                else if (token == "vt")
+                {
+                    Vector2 texture_coord;
+                    fileReader.readFloat(&texture_coord.x, ' ');
+                    fileReader.readFloat(&texture_coord.y, ' ');
+                    data.textureCoords.push_back(texture_coord);
+                }
+                // Normal Data (vn): x,y,z normal
+                else if (token == "vn")
+                {
+                    Vector3 normal;
+                    fileReader.readFloat(&normal.x, ' ');
+                    fileReader.readFloat(&normal.y, ' ');
+                    fileReader.readFloat(&normal.z, ' ');
+                    data.normals.push_back(normal);
+                }
+                // Use Material (usemtl): Create mesh w/ given material
+                else if (token == "usemtl")
+                {
+                    // Finish active mesh by locking it
+                    if (activeMesh != nullptr)
+                        activeMesh->lockMesh(true);
+
+                    // Retrieve material
+                    std::string materialName;
+                    fileReader.readString(&materialName, ' ');
+                    assert(data.materialMap.contains(materialName));
+                    Material* material = data.materialMap[materialName];
+
+                    // Create mesh and assign the material
                     activeMesh = data.asset->newMesh();
+                    activeMesh->setMaterial(material);
 
                     // Clear vertex map
                     vertexMap.clear();
                 }
-
-                // Stores the indices for this face. If there are >3 vertices, we'll have to
-                // triangulate the face.
-                std::vector<int> indices;
-
-                // Read each vertex in the face
-                while (strlen(line) > 0)
+                // Face Data (f): Register vertex data under the mesh
+                else if (token == "f")
                 {
-                    char* vertexData = ParseToken(&line, " ");
-                    int vertexIndex = -1;
+                    // If there is no active mesh, create one.
+                    if (activeMesh == nullptr)
+                    {
+                        activeMesh = data.asset->newMesh();
 
-                    // Check if the _/_/_ vertex combination exists. 
-                    // If it does, use the pre-existing index. 
-                    if (vertexMap.contains(vertexData))
-                        vertexIndex = vertexMap[vertexData];
-                    // Otherwise, create a new vertex in the vertex buffer
-                    // and register the combination in the vertex_map.
-                    else {
-                        vertexIndex = activeMesh->vertexCount();
-                        vertexMap[vertexData] = vertexIndex;
-
-                        // Parse the _/_/_ vertex combination. Note that OBJ files
-                        // are 1-indexed, whereas our vectors are 0-indexed.
-                        MeshVertex newVertex = MeshVertex();
-
-                        // Position
-                        int vIndex = ParseUInt(&vertexData, "/") - 1;
-                        assert(vIndex >= 0); // Position should ALWAYS be given.
-                        newVertex.position = data.positions[vIndex];
-
-                        // Parse texture index
-                        int vtIndex = ParseUInt(&vertexData, "/") - 1;
-                        if (vtIndex < 0)
-                            newVertex.textureCoord = Vector2(-1, -1);
-                        else
-                            newVertex.textureCoord = data.textureCoords[vtIndex];
-
-                        // Parse normal index
-                        int vnIndex = ParseUInt(&vertexData, "/") - 1;
-                        if (vnIndex < 0)
-                            newVertex.normal = Vector3(0, 0, 0);
-                        else
-                            newVertex.normal = data.normals[vnIndex];
-                        
-                        activeMesh->addVertex(newVertex);
+                        // Clear vertex map
+                        vertexMap.clear();
                     }
 
-                    // Log index
-                    indices.push_back(vertexIndex);
+                    // Stores the indices for this face. If there are >3 vertices, we'll have to
+                    // triangulate the face.
+                    std::vector<int> indices;
+
+                    // Read each vertex _/_/_ in the face
+                    while (fileReader.extractBlock(' '))
+                    {
+                        const std::string vertexData = fileReader.viewBlock();
+                        int vertexIndex = -1;
+
+                        // Check if the _/_/_ vertex combination exists. 
+                        // If it does, use the pre-existing index. 
+                        if (vertexMap.contains(vertexData))
+                            vertexIndex = vertexMap[vertexData];
+                        // Otherwise, create a new vertex in the vertex buffer
+                        // and register the combination in the vertex_map.
+                        else {
+                            vertexIndex = activeMesh->vertexCount();
+                            vertexMap[vertexData] = vertexIndex;
+
+                            // Parse the _/_/_ vertex combination. Note that OBJ files
+                            // are 1-indexed, whereas our vectors are 0-indexed.
+                            MeshVertex newVertex = MeshVertex();
+
+                            // Position
+                            int vIndex;
+                            if (fileReader.readInt(&vIndex, '/'))
+                                newVertex.position = data.positions[vIndex - 1];
+                            else // Position should ALWAYS be given.
+                                assert(false); 
+                            
+                            // Parse texture index
+                            int vtIndex;
+                            if (fileReader.readInt(&vtIndex, '/'))
+                                newVertex.textureCoord = data.textureCoords[vtIndex - 1];
+                            else
+                                newVertex.textureCoord = Vector2(-1, -1);    
+
+                            // Parse normal index
+                            int vnIndex;
+                            if (fileReader.readInt(&vnIndex, '/'))
+                                newVertex.normal = data.normals[vnIndex - 1];
+                            else
+                                newVertex.normal = Vector3(0, 0, 0);
+
+                            activeMesh->addVertex(newVertex);
+                        }
+
+                        // Log index
+                        indices.push_back(vertexIndex);
+                        
+                        fileReader.popBlock();
+                    }
+
+                    assert(indices.size() >= 3);
+
+                    // We now parse the indices of the face into individual triangles.
+                    // If we have an N-gon formed by indices 0, 1, 2, 3, 4, 5,
+                    // we can triangulate it as [0,1,2], [0,2,3], [0,3,4], [0,4,5].
+                    for (int i = 2; i < indices.size(); i++)
+                    {
+                        MeshTriangle triangle = MeshTriangle(indices[0], indices[i - 1], indices[i]);
+                        activeMesh->addTriangle(triangle);
+                    }
                 }
-
-                assert(indices.size() >= 3);
-
-                // We now parse the indices of the face into individual triangles.
-                // If we have an N-gon formed by indices 0, 1, 2, 3, 4, 5,
-                // we can triangulate it as [0,1,2], [0,2,3], [0,3,4], [0,4,5].
-                for (int i = 2; i < indices.size(); i++)
+                // Print if unhandled
+                else
                 {
-                    MeshTriangle triangle = MeshTriangle(indices[0], indices[i - 1], indices[i]);
-                    activeMesh->addTriangle(triangle);
+                    std::cout << token << "\n";
+                    // assert(false);
                 }
             }
-            // Print if unhandled
-            else
-            {
-                std::cout << token << "\n";
-                // assert(false);
-            }
-		}
 
-        file.close();
+            fileReader.popBlock();
+		}
 
         // Finish active mesh by locking it
         if (activeMesh != nullptr)
@@ -253,61 +254,61 @@ namespace Graphics
     void ParseMaterials(std::string path, std::string material_file, OBJData& data)
     {
         // Open target file with file reader
-        std::ifstream file(path + material_file);
-        std::string parsedLine;
+        TextFileReader fileReader = TextFileReader(path + material_file);
 
         // Current Material
         Material* activeMaterial = nullptr;
 
         // Read each line
-        while (getline(file, parsedLine))
+        while (fileReader.extractBlock('\n'))
         {
-            // Convert line to a C-format string for use in string functions
-            char* line = &parsedLine[0];
-
             // Ignore empty lines
-            if (strlen(line) == 0)
-                continue;
+            if (fileReader.viewBlock().length() != 0)
+            {
+                fileReader.lstripBlock(' ');
 
-            // Examine the first token of the line to determine what to do.
-            char* token = ParseToken(&line, " ");
+                // Examine the first token of the line to determine what to do.
+                std::string token;
+                fileReader.readString(&token, ' ');
 
-            // #: Comment; Ignore
-            if (strcmp(token, "#") == 0)
-                continue;
-            else if (strcmp(token, "newmtl") == 0)
-            {
-                // Get the material name
-                char* matName = ParseToken(&line, " ");
+                // #: Comment; Ignore
+                if (token == "newmtl")
+                {
+                    // Get the material name
+                    std::string matName;
+                    fileReader.readString(&matName, ' ');
 
-                // Create a new material and register it to its name.
-                // Set it as the active material to work on.
-                activeMaterial = data.asset->newMaterial();
-                data.materialMap[std::string(matName)] = activeMaterial;
+                    // Create a new material and register it to its name.
+                    // Set it as the active material to work on.
+                    activeMaterial = data.asset->newMaterial();
+                    data.materialMap[matName] = activeMaterial;
+                }
+                else if (token == "Ka")
+                {
+                    assert(activeMaterial != nullptr);
+                    fileReader.readFloat(&activeMaterial->ka.r, ' ');
+                    fileReader.readFloat(&activeMaterial->ka.g, ' ');
+                    fileReader.readFloat(&activeMaterial->ka.b, ' ');
+                }
+                else if (token == "Kd")
+                {
+                    assert(activeMaterial != nullptr);
+                    fileReader.readFloat(&activeMaterial->kd.r, ' ');
+                    fileReader.readFloat(&activeMaterial->kd.g, ' ');
+                    fileReader.readFloat(&activeMaterial->kd.b, ' ');
+                }
+                else if (token == "Ks")
+                {
+                    assert(activeMaterial != nullptr);
+                    fileReader.readFloat(&activeMaterial->ks.r, ' ');
+                    fileReader.readFloat(&activeMaterial->ks.g, ' ');
+                    fileReader.readFloat(&activeMaterial->ks.b, ' ');
+                }
+                else
+                    std::cout << token << "\n";
             }
-            else if (strcmp(token, "Ka") == 0)
-            {
-                assert(activeMaterial != nullptr);
-                activeMaterial->ka.r = ParseFloat(&line, " ");
-                activeMaterial->ka.g = ParseFloat(&line, " ");
-                activeMaterial->ka.b = ParseFloat(&line, " ");
-            }
-            else if (strcmp(token, "Kd") == 0)
-            {
-                assert(activeMaterial != nullptr);
-                activeMaterial->kd.r = ParseFloat(&line, " ");
-                activeMaterial->kd.g = ParseFloat(&line, " ");
-                activeMaterial->kd.b = ParseFloat(&line, " ");
-            }
-            else if (strcmp(token, "Ks") == 0)
-            {
-                assert(activeMaterial != nullptr);
-                activeMaterial->ks.r = ParseFloat(&line, " ");
-                activeMaterial->ks.g = ParseFloat(&line, " ");
-                activeMaterial->ks.b = ParseFloat(&line, " ");
-            }
-            else
-                std::cout << token << "\n";
+
+            fileReader.popBlock();
         }
     }
 

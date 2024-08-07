@@ -35,6 +35,8 @@ namespace Utility
 		const std::string& viewBlock() const;
 		bool popBlock();
 
+		int lstripBlock(char c);
+
 		// Attempt to parse the current block into a differnt format
 		bool parseAsFloat(float* result);
 		bool parseAsInt(int* result);
