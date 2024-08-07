@@ -265,7 +265,7 @@ namespace Graphics
             // Ignore empty lines
             if (fileReader.viewBlock().length() != 0)
             {
-                fileReader.lstripBlock(' ');
+                fileReader.lstripBlock(' ', LSTRIP_INFINITE);
 
                 // Examine the first token of the line to determine what to do.
                 std::string token;

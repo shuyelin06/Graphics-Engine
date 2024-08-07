@@ -5,6 +5,8 @@
 
 #include <vector>
 
+#define LSTRIP_INFINITE -1
+
 namespace Engine
 {
 namespace Utility
@@ -13,29 +15,47 @@ namespace Utility
 	// Helper class that can be used to more conveniently
 	// read files for data. Assumes text input.
 	// The way the reading works is as follows:
-	// 1) Read a "block" of data from the file, with the end of the block
-	//    specified by a delimiter.
+	// 1) Read a "block" of data with the end of the block specified by a delimiter.
+	//    If a block already exists, uses the most recently extracted block as the data.
+	//    Any extracted data is removed from its source.
 	// 2) Process this block of data using the reader's built-in functionalities.
+	// 3) Pop this block.
+	struct BlockInterval;
 	class TextFileReader
 	{
 	private:
 		std::ifstream inputStream;
 
-		// Stack of currently read blocks. Each one is a subset
-		// of the previous (with the first being a subset of the file data)
-		std::vector<std::string> blocks;
+		// Current data from the input stream
+		std::string sourceData;
+
+		// Stack of blocks of our currently read data. All blocks reference the same source
+		// data, but can reference different substring indices of this data.
+		std::vector<BlockInterval> blocks;
 
 	public:
 		TextFileReader(const std::string& fileName);
 		~TextFileReader();
 
-		// Extracts a block of data from the existing block (or if none, the file), 
-		// terminating at the character specified. Removes this block from its parent.
+		// Extracts a block of data from the most recent block (or if none, the file), terminating 
+		// at the character specified, or until the end of the existing block.
+		// Removes any extracted data from its parent, dropping the terminator. 
+		// Returns true if the parent block was modified, false otherwise.
 		bool extractBlock(char terminator);
-		const std::string& viewBlock() const;
+		
+		// View the most recently extracted block
+		std::string viewBlock() const;
+		
+		// Pops the most recently extracted block.
 		bool popBlock();
 
-		int lstripBlock(char c);
+		// --- Block Operations ---
+		// Strips n occurrences of the character off the left end of 
+		// the current block, or until there is no more of the character.
+		// Returns the # of characters stripped.
+		// Pass in -1 for n if we don't want to set a limit on the number of characters
+		// to strip.
+		int lstripBlock(char c, int n);
 
 		// Attempt to parse the current block into a differnt format
 		bool parseAsFloat(float* result);

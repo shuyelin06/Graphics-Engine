@@ -7,11 +7,30 @@ namespace Engine
 {
 namespace Utility
 {
+	// Represents a substring of the source data [begin, end),
+	// which is treated as a "block" of data. 
+	struct BlockInterval
+	{
+		int begin;
+		int end;
+
+		BlockInterval()
+			: begin(-1)
+			, end(-1)
+		{}
+
+		BlockInterval(int _begin, int _end)
+			: begin(_begin)
+			, end(_end)
+		{}
+	};
+	
 	// Constructor:
 	// Initializes the file reader and opens a stream.
 	TextFileReader::TextFileReader(const std::string& fileName)
 		: inputStream(fileName)
-		, blocks()
+		, sourceData()
+		, blocks(0)
 	{}
 
 	// Destructor:
@@ -35,54 +54,62 @@ namespace Utility
 		// hit our terminator.
 		if (blocks.size() == 0)
 		{
-			std::string block;
+			sourceData.clear();
 
-			// Read from the file
+			// Read from the file until we hit our terminator, or there is no
+			// more to read from the file.
 			char c;
+
 			while (inputStream.get(c))
 			{
 				success = true;
 				
 				if (c != terminator)
-					block.push_back(c);
+					sourceData.push_back(c);
 				else
 					break;
 			}
 
-			// If anything was read, push the block back
+			// If anything was read, load a block encompassing the entirety of the
+			// read data
 			if (success)
-				blocks.push_back(block);
+			{
+				const BlockInterval interval = BlockInterval(0, sourceData.length());
+				blocks.push_back(interval);
+			}
 		}
 		// Otherwise, read directly from the last block
 		else
 		{
-			// If block is empty, we cannot extract anything
-			const std::string lastBlock = blocks[blocks.size() - 1];
+			BlockInterval& mostRecentInterval = blocks[blocks.size() - 1];
 
-			if (lastBlock.length() == 0)
+			// If the most recent block is empty, we cannot extract anything and fail.
+			if (mostRecentInterval.begin == mostRecentInterval.end)
 				success = false;
+			// Otherwise, we extract the substring between the beginning of the block 
+			// and the terminator (or the end of the block, if terminator does not exist)
 			else
 			{
 				success = true;
 
-				// Otherwise, extract up to the terminator. If not found, extract the entire block.
-				const int terminatorIndex = lastBlock.find(terminator, 0);
+				const int terminatorIndex = sourceData.find(terminator, mostRecentInterval.begin);
 
-				// Check if we found the terminator. If not, the extraction failed.
-				std::string extractedBlock;
-
-				if (terminatorIndex != std::string::npos)
+				// If we could find the terminator within the source block, 
+				// extract begin -> terminator from the current block
+				if (terminatorIndex != std::string::npos && terminatorIndex < mostRecentInterval.end)
 				{
-					extractedBlock = lastBlock.substr(0, terminatorIndex);
-					blocks[blocks.size() - 1] = lastBlock.substr(terminatorIndex + 1);
+					const BlockInterval interval = BlockInterval(mostRecentInterval.begin, terminatorIndex);
+					mostRecentInterval.begin = terminatorIndex + 1;
+					blocks.push_back(interval);
 				}
+				// Otherwise, extract the entirety of the most recent block.
 				else
 				{
-					extractedBlock = lastBlock;
-					blocks[blocks.size() - 1] = "";
+					const BlockInterval interval = BlockInterval(mostRecentInterval.begin, mostRecentInterval.end);
+					mostRecentInterval.begin = mostRecentInterval.end;
+					blocks.push_back(interval);
 				}
 
-				blocks.push_back(extractedBlock);
 			}
 		}
 
@@ -91,9 +118,15 @@ namespace Utility
 
 	// ViewBlock:
 	// Returns the currently loaded block of the text file reader.
-	const std::string& TextFileReader::viewBlock() const
+	std::string TextFileReader::viewBlock() const
 	{
-		return blocks[blocks.size() - 1];
+		if (blocks.size() > 0)
+		{
+			const BlockInterval interval = blocks[blocks.size() - 1];
+			return sourceData.substr(interval.begin, interval.end);
+		}
+		else
+			return 0;
 	}
 
 	// PopBlock:
@@ -110,18 +143,21 @@ namespace Utility
 	}
 
 	// TrimBlockFront:
-	// Removes all occurrences of the character c from the front of the block.
-	int TextFileReader::lstripBlock(char c)
+	// Removes n occurrences of the character c from the front of the block.
+	int TextFileReader::lstripBlock(char c, int n)
 	{
-		std::string block = blocks[blocks.size() - 1];
+		BlockInterval& mostRecentInterval = blocks[blocks.size() - 1];
 
-		int lastOccurrence = 0;
-		while (lastOccurrence < block.length() && block[lastOccurrence] == c)
-			lastOccurrence++;
+		int numStripped = 0;
+		while (mostRecentInterval.begin < mostRecentInterval.end
+			&& (n == -1 || numStripped < n)
+			&& sourceData[mostRecentInterval.begin] == c)
+		{
+			mostRecentInterval.begin++;
+			numStripped++;
+		}
 
-		blocks[blocks.size() - 1] = block.substr(lastOccurrence, block.size());
-
-		return lastOccurrence;
+		return numStripped;
 	}
 
 	// Parsers:
@@ -131,8 +167,9 @@ namespace Utility
 	{
 		if (blocks.size() > 0)
 		{
-			const std::string& block = blocks[blocks.size() - 1];
-			float parsed = (float) std::stof(block.c_str());
+			const BlockInterval recentInterval = blocks[blocks.size() - 1];
+			const std::string str = sourceData.substr(recentInterval.begin, recentInterval.end);
+			float parsed = (float) std::stof(str.c_str());
 			*result = parsed;
 			return true;
 		}
@@ -142,12 +179,18 @@ namespace Utility
 
 	bool TextFileReader::parseAsInt(int* result)
 	{
-		if (blocks.size() > 0 && blocks[blocks.size() - 1].length() > 0)
+		if (blocks.size() > 0)
 		{
-			const std::string& block = blocks[blocks.size() - 1];
-			int parsed = (int) std::atoi(block.c_str());
-			*result = parsed;
-			return true;
+			const BlockInterval recentInterval = blocks[blocks.size() - 1];
+			if (recentInterval.begin == recentInterval.end)
+				return false;
+			else
+			{
+				const std::string str = sourceData.substr(recentInterval.begin, recentInterval.end);
+				int parsed = (int)std::atoi(str.c_str());
+				*result = parsed;
+				return true;
+			}
 		}
 		else
 			return false;
