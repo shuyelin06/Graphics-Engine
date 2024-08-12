@@ -27,6 +27,9 @@ namespace Math
 		float dot(const Vector3& vector) const;
 		Vector3 cross(const Vector3& vector) const;
 
+		Vector3 componentMin(const Vector3& vector) const;
+		Vector3 componentMax(const Vector3& vector) const;
+
 		// Vector Operations
 		Vector3 operator+(const Vector3&) const; // Addition
 		Vector3& operator+=(const Vector3&);	 // Compound (In-Place) Addition
@@ -43,6 +46,12 @@ namespace Math
 		static Vector3 PositiveX();
 		static Vector3 PositiveY();
 		static Vector3 PositiveZ();
+		static Vector3 NegativeX();
+		static Vector3 NegativeY();
+		static Vector3 NegativeZ();
+
+		static Vector3 VectorMax();
+		static Vector3 VectorMin();
 	};
 
 

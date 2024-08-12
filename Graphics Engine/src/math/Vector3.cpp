@@ -1,6 +1,7 @@
 #include "Vector3.h"
 
 #include <math.h>
+#include <algorithm>
 
 namespace Engine
 {
@@ -72,6 +73,28 @@ namespace Math
 		return Vector3(y * vector.z - z * vector.y,
 			x * vector.z - z * vector.x,
 			x * vector.y - y * vector.x);
+	}
+	
+	// Min:
+	// Returns the component-wise minimum.
+	Vector3 Vector3::componentMin(const Vector3& vector) const
+	{
+		const Vector3 result(
+			std::min(x, vector.x),
+			std::min(y, vector.y),
+			std::min(z, vector.z));
+		return result;
+	}
+
+	// Max:
+	// Returns the component-wise maximum.
+	Vector3 Vector3::componentMax(const Vector3& vector) const
+	{
+		const Vector3 result(
+			std::max(x, vector.x),
+			std::max(y, vector.y),
+			std::max(z, vector.z));
+		return result;
 	}
 
 	// + Operator:
@@ -174,6 +197,8 @@ namespace Math
 		return *this;
 	}
 
+	// Static Vector Operations:
+	// Statically create vectors
 	Vector3 Vector3::PositiveX()
 	{
 		return Vector3(1, 0, 0);
@@ -187,6 +212,31 @@ namespace Math
 	Vector3 Vector3::PositiveZ()
 	{
 		return Vector3(0, 0, 1);
+	}
+
+	Vector3 Vector3::NegativeX()
+	{
+		return Vector3(-1, 0, 0);
+	}
+
+	Vector3 Vector3::NegativeY()
+	{
+		return Vector3(0, -1, 0);
+	}
+
+	Vector3 Vector3::NegativeZ()
+	{
+		return Vector3(0, 0, -1);
+	}
+
+	Vector3 Vector3::VectorMax()
+	{
+		return Vector3(FLT_MAX, FLT_MAX, FLT_MAX);
+	}
+
+	Vector3 Vector3::VectorMin()
+	{
+		return Vector3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 	}
 
 } // Namespace Math
