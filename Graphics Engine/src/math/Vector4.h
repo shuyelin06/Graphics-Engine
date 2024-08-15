@@ -25,7 +25,7 @@ namespace Math
 		void normalize();
 
 		float magnitude();
-		Vector3 toVector3(); // Drops the w term
+		Vector3 xyz(); // Drops the w term
 
 		Vector4 operator*(Matrix4&) const; // Row-Major Multiplication
 		Vector4 operator+(const Vector4&) const;

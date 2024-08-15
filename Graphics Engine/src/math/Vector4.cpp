@@ -65,7 +65,7 @@ namespace Math
 
 	// ToVector3:
 	// Drops the w component of the vector
-	Vector3 Vector4::toVector3()
+	Vector3 Vector4::xyz()
 	{
 		return Vector3(x, y, z);
 	}

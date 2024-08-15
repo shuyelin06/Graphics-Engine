@@ -96,7 +96,7 @@ namespace Datamodel
 	Vector3 Transform::forwardVector(void) const
 	{
 		Vector4 result = rotationMatrix().tranpose() * Vector4::PositiveZW();
-		return result.toVector3();
+		return result.xyz();
 	}
 	
 	// BackwardVector:
@@ -113,7 +113,7 @@ namespace Datamodel
 	Vector3 Transform::rightVector(void) const
 	{
 		Vector4 result = rotationMatrix().tranpose() * Vector4::PositiveXW();
-		return result.toVector3();
+		return result.xyz();
 	}
 
 	// LeftVector
@@ -130,7 +130,7 @@ namespace Datamodel
 	Vector3 Transform::upVector(void) const
 	{
 		Vector4 result = rotationMatrix().tranpose() * Vector4::PositiveYW();
-		return result.toVector3();
+		return result.xyz();
 	}
 
 	// DownVector:

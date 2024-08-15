@@ -143,7 +143,7 @@ namespace Graphics
 #if defined(_DEBUG)
         // Debug Functionality
         renderDebugPoints();
-        // renderDebugLines();
+        renderDebugLines();
         VisualDebug::Clear();
 #endif
 

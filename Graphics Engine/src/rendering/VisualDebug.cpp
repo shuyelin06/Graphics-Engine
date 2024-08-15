@@ -76,6 +76,44 @@ namespace Graphics
 		return DrawLine(p1, p2, Color::Red());
 	}
 
+	// DrawFrustum:
+	// Draws a frustum, given a camera space -> world space matrix.
+	void VisualDebug::DrawFrustum(const Matrix4& frustumMatrix, const Color& rgb)
+	{
+		// Cube from (-1, -1, -1) to (1, 1, 1). Represents Direct3D's
+		// render space in normalized device coordinates.
+		Vector4 cube[8] = {
+			Vector4(-1, -1, -1, 1),
+			Vector4(1, -1, -1, 1),
+			Vector4(1, 1, -1, 1),
+			Vector4(-1, 1, -1, 1),
+			Vector4(-1, -1, 1, 1),
+			Vector4(1, -1, 1, 1),
+			Vector4(1, 1, 1, 1),
+			Vector4(-1, 1, 1, 1),
+		};
+
+		// Project the cube back into world coordinates.
+		for (int i = 0; i < 8; i++)
+			cube[i] = frustumMatrix * cube[i];
+		
+		// Render cube
+		DrawLine(cube[0].xyz(), cube[1].xyz(), rgb);
+		DrawLine(cube[1].xyz(), cube[2].xyz(), rgb);
+		DrawLine(cube[2].xyz(), cube[3].xyz(), rgb);
+		DrawLine(cube[3].xyz(), cube[0].xyz(), rgb);
+
+		DrawLine(cube[0].xyz(), cube[4].xyz(), rgb);
+		DrawLine(cube[1].xyz(), cube[5].xyz(), rgb);
+		DrawLine(cube[2].xyz(), cube[6].xyz(), rgb);
+		DrawLine(cube[3].xyz(), cube[7].xyz(), rgb);
+
+		DrawLine(cube[4].xyz(), cube[5].xyz(), rgb);
+		DrawLine(cube[5].xyz(), cube[6].xyz(), rgb);
+		DrawLine(cube[6].xyz(), cube[7].xyz(), rgb);
+		DrawLine(cube[7].xyz(), cube[4].xyz(), rgb);
+	}
+
 	// LoadPointData:
 	// Loads the point data into a given constant buffer
 	int VisualDebug::LoadPointData(CBHandle* cbHandle)

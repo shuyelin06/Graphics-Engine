@@ -6,8 +6,11 @@
 
 #include "rendering/Shader.h"
 
+#include "math/Matrix4.h"
 #include "math/Vector3.h"
 #include "math/Color.h"
+
+#define ENABLE_DEBUG_VISUALS
 
 namespace Engine
 {
@@ -63,6 +66,9 @@ namespace Graphics
 		static bool DrawPoint(const Vector3& position, float scale, int expiration);
 		static bool DrawLine(const Vector3& p1, const Vector3& p2, const Color& rgb);
 		static bool DrawLine(const Vector3& p1, const Vector3& p2);
+
+		// Rendering for specific features
+		static void DrawFrustum(const Matrix4& frustumMatrix, const Color& rgb);
 
 		// Pipeline Management
 		static int LoadPointData(CBHandle* cbHandle);
