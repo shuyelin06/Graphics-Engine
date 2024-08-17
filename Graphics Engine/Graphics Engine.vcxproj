@@ -218,7 +218,6 @@
     <ClInclude Include="src\math\Vector3.h" />
     <ClInclude Include="src\math\Matrix4.h" />
     <ClInclude Include="src\math\Vector4.h" />
-    <ClInclude Include="src\Common.h" />
     <ClInclude Include="src\rendering\Asset.h" />
     <ClInclude Include="src\rendering\components\ViewComponent.h" />
     <ClInclude Include="src\rendering\components\LightComponent.h" />

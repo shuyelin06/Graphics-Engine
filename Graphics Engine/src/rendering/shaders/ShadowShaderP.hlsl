@@ -7,8 +7,8 @@ struct LightData
     float3 color;
     float padding2;
     
-    row_major float4x4 m_view;
-    row_major float4x4 m_projection;
+    float4x4 m_view;
+    float4x4 m_projection;
 };
 
 Texture2D lightDepthMaps[10] : register(t0);
@@ -43,8 +43,8 @@ float4 ps_main(VS_OUT input) : SV_TARGET
         // point to the light by converting it to the light projection
         // space
         float4 view_position = float4(input.world_position, 1);
-        view_position = mul(view_position, light_instances[i].m_view);
-        view_position = mul(view_position, light_instances[i].m_projection);
+        view_position = mul(light_instances[i].m_view, view_position);
+        view_position = mul(light_instances[i].m_projection, view_position);
         view_position = view_position / view_position.w; // Manual W-Divide 
         float depth = view_position.z;
     

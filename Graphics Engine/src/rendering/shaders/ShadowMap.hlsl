@@ -3,7 +3,7 @@
 // transform the 
 cbuffer TRANSFORM_MATRICES : register(b0)
 {
-    row_major float4x4 m_modelToLight;
+    float4x4 m_modelToLight;
 }
 
 // Vertex Shader Input
@@ -30,7 +30,7 @@ PS_IN vs_main(VS_IN input)
     
     // Create 4D position vector with w = 1 value
     float4 vertex_pos = float4(input.position, 1);
-    output.position_clip = mul(m_modelToLight, vertex_pos);
+    output.position_clip = mul(vertex_pos, m_modelToLight);
     
     return output;
 }

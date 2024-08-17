@@ -19,8 +19,8 @@ cbuffer CB0 : register(b0)
 
 cbuffer CB1 : register(b1)
 {
-    row_major float4x4 m_view;
-    row_major float4x4 m_projection;
+    float4x4 m_view;
+    float4x4 m_projection;
 }
 
 struct VS_INPUT
@@ -57,8 +57,8 @@ PS_INPUT vs_main(VS_INPUT input)
     
     // Transform to camera space
     float4 pos = float4(input.vertex_position, 1.0f);
-    pos = mul(pos, m_view);
-    pos = mul(pos, m_projection);
+    pos = mul(m_view, pos);
+    pos = mul(m_projection, pos);
     
     output.position_clip = pos;
     

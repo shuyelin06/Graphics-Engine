@@ -95,7 +95,7 @@ namespace Datamodel
 	// equivalent to the rotated Z-axis.
 	Vector3 Transform::forwardVector(void) const
 	{
-		Vector4 result = rotationMatrix().tranpose() * Vector4::PositiveZW();
+		Vector4 result = rotationMatrix() * Vector4::PositiveZW();
 		return result.xyz();
 	}
 	
@@ -112,7 +112,7 @@ namespace Datamodel
 	// This is equivalent to the rotated X-axis
 	Vector3 Transform::rightVector(void) const
 	{
-		Vector4 result = rotationMatrix().tranpose() * Vector4::PositiveXW();
+		Vector4 result = rotationMatrix() * Vector4::PositiveXW();
 		return result.xyz();
 	}
 
@@ -129,7 +129,7 @@ namespace Datamodel
 	// This is equivalent to the rotated Y-axis.
 	Vector3 Transform::upVector(void) const
 	{
-		Vector4 result = rotationMatrix().tranpose() * Vector4::PositiveYW();
+		Vector4 result = rotationMatrix() * Vector4::PositiveYW();
 		return result.xyz();
 	}
 
@@ -153,7 +153,7 @@ namespace Datamodel
 
 		// Build final matrix
 		// Left matrix gets precedence, as we are performing row-major multiplication
-		return m_scale * m_rotation * m_translation;
+		return m_translation * m_rotation * m_scale;
 	}
 
 	// ScaleMatrix:
@@ -174,27 +174,12 @@ namespace Datamodel
 		const float qw = rotation.r;
 
 		// Create quaternion matrix 
-		Matrix4 rotation_matrix;
-
-		rotation_matrix[0][0] = 1 - 2 * (qv.y * qv.y + qv.z * qv.z);
-		rotation_matrix[0][1] = 2 * (qv.x * qv.y - qw * qv.z);
-		rotation_matrix[0][2] = 2 * (qv.x * qv.z + qw * qv.y);
-		rotation_matrix[0][3] = 0.f;
-
-		rotation_matrix[1][0] = 2 * (qv.x * qv.y + qw * qv.z);
-		rotation_matrix[1][1] = 1 - 2 * (qv.x * qv.x + qv.z * qv.z);
-		rotation_matrix[1][2] = 2 * (qv.y * qv.z - qw * qv.x);
-		rotation_matrix[1][3] = 0.f;
-
-		rotation_matrix[2][0] = 2 * (qv.x * qv.z - qw * qv.y);
-		rotation_matrix[2][1] = 2 * (qv.y * qv.z + qw * qv.x);
-		rotation_matrix[2][2] = 1 - 2 * (qv.x * qv.x + qv.y * qv.y);
-		rotation_matrix[2][3] = 0.f;
-
-		rotation_matrix[3][0] = 0.f;
-		rotation_matrix[3][1] = 0.f;
-		rotation_matrix[3][2] = 0.f;
-		rotation_matrix[3][3] = 1.f;
+		const Matrix4 rotation_matrix = Matrix4(
+			1 - 2 * (qv.y * qv.y + qv.z * qv.z), 2 * (qv.x * qv.y - qw * qv.z), 2 * (qv.x * qv.z + qw * qv.y), 0.f,
+			2 * (qv.x * qv.y + qw * qv.z), 1 - 2 * (qv.x * qv.x + qv.z * qv.z), 2 * (qv.y * qv.z - qw * qv.x), 0.f,
+			2 * (qv.x * qv.z - qw * qv.y), 2 * (qv.y * qv.z + qw * qv.x), 1 - 2 * (qv.x * qv.x + qv.y * qv.y), 0.f,
+			0.f, 0.f, 0.f, 1.f
+		);
 
 		return rotation_matrix;
 	}
@@ -204,10 +189,10 @@ namespace Datamodel
 	Matrix4 Transform::translationMatrix(void) const
 	{
 		return Matrix4(
-			1, 0, 0, 0,
-			0, 1, 0, 0,
-			0, 0, 1, 0,
-			position_local.x, position_local.y, position_local.z, 1);
+			1, 0, 0, position_local.x,
+			0, 1, 0, position_local.y,
+			0, 0, 1, position_local.z,
+			0, 0, 0, 1);
 	}
 }
 }

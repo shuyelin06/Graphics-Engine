@@ -10,6 +10,7 @@ namespace Math
 	// Matrix3
 	// Contains methods and data for a 3x3
 	// matrix.
+	// TODO: Currently row major. We should make it column major instead.
 	class Matrix3
 	{
 	protected:

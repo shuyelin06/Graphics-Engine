@@ -9,15 +9,18 @@ namespace Math
 {
 
 	// Matrix4
-	// Contains methods and data for a 4x4
-	// matrix.
+	// Contains methods and data for a 4x4 matrix
+	// in column major order.
 	class Matrix4
 	{
 	private:
+		// Values are stored by column for more predictable
+		// memory access patterns.
 		float data[4][4];
 
 	public:
-		Matrix4(); // Initialize to 0
+		Matrix4();
+		Matrix4(const Vector4& col1, const Vector4& col2, const Vector4& col3, const Vector4& col4);
 		Matrix4(float, float, float, float,
 				float, float, float, float,
 				float, float, float, float,
@@ -33,8 +36,8 @@ namespace Math
 		float trace() const;
 		float determinant() const; 
 
-		float minor(int row, int col) const;
-		float cofactor(int row, int col) const;
+		float minor(int col, int row) const;
+		float cofactor(int col, int row) const;
 
 		float* const operator[](int);
 		const float* const operator[](int) const;

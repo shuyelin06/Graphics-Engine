@@ -108,7 +108,6 @@ namespace Graphics
 	Matrix4 ViewComponent::generateProjectionMatrix(void) const
 	{
 		Matrix4 projection_matrix = Matrix4();
-
 		float fov_factor = cosf(fov / 2.f) / sinf(fov / 2.f);
 
 		projection_matrix[0][0] = fov_factor / ASPECT_RATIO;

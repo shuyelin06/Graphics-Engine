@@ -1,13 +1,13 @@
 cbuffer CB2 : register(b1)
 {
-    row_major float4x4 m_view;
-    row_major float4x4 m_projection;
+    float4x4 m_view;
+    float4x4 m_projection;
 }
 
 cbuffer CB3 : register(b2)
 {
-    row_major float4x4 m_world;
-    row_major float4x4 m_normals;
+    float4x4 m_world;
+    float4x4 m_normals;
 }
 
 /* Vertex Shader Input */
@@ -42,16 +42,16 @@ VS_OUT vs_main(VS_IN input)
     float4 norm = float4(input.normal, 1.0f);
 	
     // Find World Position
-    pos = mul(pos, m_world);
+    pos = mul(m_world, pos);
     output.world_position = pos.xyz;
     
     // Find Clipping Position
-    pos = mul(pos, m_view);
-    pos = mul(pos, m_projection);
+    pos = mul(m_view, pos);
+    pos = mul(m_projection, pos);
     output.position_clip = pos;
     
     // Find normal
-    norm = mul(norm, m_normals);
+    norm = mul(m_normals, norm);
     output.normal = norm.xyz;
 	
     return output;

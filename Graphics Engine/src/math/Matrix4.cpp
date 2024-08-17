@@ -5,25 +5,37 @@ namespace Engine
 {
 namespace Math
 {
-	/* --- Constructors --- */
-	// Default Constructor: 
-	// Initialize a 4x4 matrix with only 0s
-	// as entries
-	Matrix4::Matrix4() :
-		data{ {0} } {}
+	// Constructors:
+	// Initialize a 4x4 matrix with only 0s as entries
+	Matrix4::Matrix4()
+		: data{ {0} } 
+	{
+	}
 
-	// Constructor:
-	// Initialize a 4x4 matrix with any 16 values as
-	// entries. Initialization occurs in order of
-	// column, then row (a11, a12, a13, a14, a21...).
+	// Initialize a matrix with given vectors as its column vectors.
+	Matrix4::Matrix4(const Vector4& col1, const Vector4& col2, const Vector4& col3, const Vector4& col4)
+		: data{
+			{ col1.x, col1.y, col1.z, col1.w },
+			{ col2.x, col2.y, col2.z, col2.w },
+			{ col3.x, col3.y, col3.z, col3.w },
+			{ col4.x, col4.y, col4.z, col4.w }
+		}
+	{
+	}
+
+	// TODO
+	// Initialize a 4x4 matrix with any 16 values as entries. 
 	Matrix4::Matrix4(float c1, float c2, float c3, float c4,
 					float c5, float c6, float c7, float c8,
 					float c9, float c10, float c11, float c12,
 					float c13, float c14, float c15, float c16) 
-		: data{ {c1, c2, c3, c4}, 
-				{c5, c6, c7, c8}, 
-				{c9, c10, c11, c12}, 
-				{c13, c14, c15, c16} } {}
+		: data{ 
+			{ c1, c5, c9, c13 }, 
+			{ c2, c6, c10, c14 }, 
+			{ c3, c7, c11, c15 }, 
+			{ c4, c8, c12, c16 } 
+		} 
+	{}
 
 	// Identity 
 	// Returns the 4x4 identity matrix
@@ -47,13 +59,9 @@ namespace Math
 	{
 		Matrix4 matrix_transpose;
 
-		for (int row = 0; row < 4; row++)
-		{
-			for (int col = 0; col < 4; col++)
-			{
-				matrix_transpose[row][col] = data[col][row];
-			}
-		}
+		for (int col = 0; col < 4; col++)
+			for (int row = 0; row < 4; row++)
+				matrix_transpose[col][row] = data[row][col];
 
 		return matrix_transpose;
 	}
@@ -66,18 +74,14 @@ namespace Math
 		Matrix4 matrix_inverse;
 
 		// Find determinant
-		float det = determinant();
+		const float det = determinant();
 
 		// Build inverse matrix by simultaneously taking
 		// the transpose of the cofactor matrix
 		// and dividing it by the determinant
-		for (int row = 0; row < 4; row++)
-		{
-			for (int col = 0; col < 4; col++)
-			{
-				matrix_inverse[row][col] = cofactor(col, row) / det;
-			}
-		}
+		for (int col = 0; col < 4; col++)
+			for (int row = 0; row < 4; row++)
+				matrix_inverse[col][row] = cofactor(row, col) / det;
 
 		return matrix_inverse;
 	}
@@ -87,14 +91,8 @@ namespace Math
 	// entries along the main diagonal
 	float Matrix4::trace() const
 	{
-		float sum = 0;
-
-		for (int i = 0; i < 4; i++)
-		{
-			sum += data[i][i];
-		}
-
-		return sum;
+		const float trace = data[0][0] + data[1][1] + data[2][2] + data[3][3];
+		return trace;
 	}
 	
 	// Determinant:
@@ -104,11 +102,9 @@ namespace Math
 	{
 		float det = 0;
 
-		// Sum the cofactors of the first row
-		for (int col = 0; col < 4; col++)
-		{
-			det += data[0][col] * cofactor(0, col);
-		}
+		// Sum the cofactors of the first column
+		for (int row = 0; row < 4; row++)
+			det += data[0][row] * cofactor(0, row);
 
 		return det;
 	}
@@ -116,7 +112,7 @@ namespace Math
 	// Minor:
 	// Returns the minor of the matrix for a
 	// given row and col
-	float Matrix4::minor(int row, int col) const
+	float Matrix4::minor(int col, int row) const
 	{
 		// Create a 3x3 matrix by deleting the row
 		// and col of this matrix
@@ -131,7 +127,7 @@ namespace Math
 			{
 				// Only add entries to matrix whose row and 
 				// col don't match
-				if (i != row && j != col)
+				if (i != col && j != row)
 				{
 					// Add to 3x3 matrix
 					matrix3[index / 3][index % 3] = data[i][j];
@@ -149,10 +145,10 @@ namespace Math
 	// Cofactor:
 	// Returns the cofactor of the matrix for a
 	// given row and col.
-	float Matrix4::cofactor(int row, int col) const
+	float Matrix4::cofactor(int col, int row) const
 	{
-		int sign = (row + col) % 2 == 0 ? 1 : -1;
-		return minor(row, col) * sign;
+		const int sign = (row + col) % 2 == 0 ? 1 : -1;
+		return sign * minor(col, row);
 	}
 	
 
@@ -160,17 +156,17 @@ namespace Math
 	// Index:
 	// Access a given element of the matrix by row
 	// and col indices
-	float* const Matrix4::operator[](int row)
+	float* const Matrix4::operator[](int col)
 	{
-		return data[row];
+		return data[col];
 	}
 
 	// Index (Constant Version):
 	// Access a given element of the matrix by row
 	// and col indices
-	const float* const Matrix4::operator[](int row) const
+	const float* const Matrix4::operator[](int col) const
 	{
-		return data[row];
+		return data[col];
 	}
 
 	// Multiply (Matrix):
@@ -179,18 +175,16 @@ namespace Math
 	{
 		Matrix4 new_matrix = Matrix4();
 
-		for (int row = 0; row < 4; row++)
+		for (int col = 0; col < 4; col++)
 		{
-			for (int col = 0; col < 4; col++)
+			for (int row = 0; row < 4; row++)
 			{
 				float value = 0;
 
 				for (int i = 0; i < 4; i++)
-				{
-					value += data[row][i] * matrix[i][col];
-				}
+					value += data[i][row] * matrix[col][i];
 
-				new_matrix[row][col] = value;
+				new_matrix[col][row] = value;
 			}
 		}
 
@@ -202,10 +196,10 @@ namespace Math
 	// and returns the result
 	Vector4 Matrix4::operator*(const Vector4& vec) const
 	{
-		float x = data[0][0] * vec.x + data[0][1] * vec.y + data[0][2] * vec.z + data[0][3] * vec.w;
-		float y = data[1][0] * vec.x + data[1][1] * vec.y + data[1][2] * vec.z + data[1][3] * vec.w;
-		float z = data[2][0] * vec.x + data[2][1] * vec.y + data[2][2] * vec.z + data[2][3] * vec.w;
-		float w = data[3][0] * vec.x + data[3][1] * vec.y + data[3][2] * vec.z + data[3][3] * vec.w;
+		const float x = data[0][0] * vec.x + data[1][0] * vec.y + data[2][0] * vec.z + data[3][0] * vec.w;
+		const float y = data[0][1] * vec.x + data[1][1] * vec.y + data[2][1] * vec.z + data[3][1] * vec.w;
+		const float z = data[0][2] * vec.x + data[1][2] * vec.y + data[2][2] * vec.z + data[3][2] * vec.w;
+		const float w = data[0][3] * vec.x + data[1][3] * vec.y + data[2][3] * vec.z + data[3][3] * vec.w;
 
 		return Vector4(x, y, z, w);
 	}
@@ -217,13 +211,9 @@ namespace Math
 	{
 		Matrix4 new_matrix;
 
-		for (int row = 0; row < 4; row++)
-		{
-			for (int col = 0; col < 4; col++)
-			{
-				new_matrix[row][col] = data[row][col] * c;
-			}
-		}
+		for (int col = 0; col < 4; col++)
+			for (int row = 0; row < 4; row++)
+				new_matrix[col][row] = data[col][row] * c;
 
 		return new_matrix;
 	}
@@ -235,13 +225,9 @@ namespace Math
 	{
 		Matrix4 new_matrix;
 
-		for (int row = 0; row < 4; row++)
-		{
-			for (int col = 0; col < 4; col++)
-			{
-				new_matrix[row][col] = data[row][col] / c;
-			}
-		}
+		for (int col = 0; col < 4; col++)
+			for (int row = 0; row < 4; row++)
+				new_matrix[col][row] = data[col][row] / c;
 
 		return new_matrix;
 	}

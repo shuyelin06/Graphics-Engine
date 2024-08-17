@@ -86,7 +86,7 @@ namespace Datamodel
 		Matrix4 m_parent_transform = m_parent;
 		
 		// Update local matrix.
-		m_local = m_local_transform * m_parent_transform;
+		m_local = m_parent_transform * m_local_transform;
 
 		return m_local;
 	}
