@@ -23,7 +23,6 @@ namespace Math
 	{
 	}
 
-	// TODO
 	// Initialize a 4x4 matrix with any 16 values as entries. 
 	Matrix4::Matrix4(float c1, float c2, float c3, float c4,
 					float c5, float c6, float c7, float c8,
@@ -55,7 +54,7 @@ namespace Math
 
 	// Tranpose: 
 	// Returns the transpose of the matrix
-	Matrix4 Matrix4::tranpose() const
+	Matrix4 Matrix4::transpose() const
 	{
 		Matrix4 matrix_transpose;
 

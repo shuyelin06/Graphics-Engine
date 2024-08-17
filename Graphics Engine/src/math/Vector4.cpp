@@ -130,6 +130,17 @@ namespace Math
 			w / vec.w);
 	}
 
+	// Scalar Divide:
+	// Divides the Vector4 with a scalar value
+	Vector4 Vector4::operator/(float scalar) const
+	{
+		return Vector4(
+			x / scalar,
+			y / scalar,
+			z / scalar,
+			w / scalar);
+	}
+
 	// PositiveXW:
 	// Returns the vector in the positive x
 	// and w direction

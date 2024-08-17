@@ -30,7 +30,7 @@ namespace Math
 
 		float (*getRawData(void))[4];
 
-		Matrix4 tranpose() const;
+		Matrix4 transpose() const;
 		Matrix4 inverse() const;
 		
 		float trace() const;
@@ -39,7 +39,8 @@ namespace Math
 		float minor(int col, int row) const;
 		float cofactor(int col, int row) const;
 
-		float* const operator[](int);
+		// Access the matrix as (column, row) coordinates 
+		float* const operator[](int); 
 		const float* const operator[](int) const;
 
 		Matrix4 operator*(const Matrix4&) const;

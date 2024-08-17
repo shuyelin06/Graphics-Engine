@@ -32,6 +32,8 @@ namespace Math
 		Vector4 operator-(const Vector4&) const;
 		Vector4 operator*(const Vector4&) const;
 		Vector4 operator/(const Vector4&) const;
+
+		Vector4 operator/(float) const;
 		
 		static Vector4 PositiveXW(); // (1,0,0,1)
 		static Vector4 PositiveYW(); // (0,1,0,1)

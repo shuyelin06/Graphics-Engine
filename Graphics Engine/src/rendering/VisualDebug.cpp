@@ -80,13 +80,13 @@ namespace Graphics
 	// Draws a frustum, given a camera space -> world space matrix.
 	void VisualDebug::DrawFrustum(const Matrix4& frustumMatrix, const Color& rgb)
 	{
-		// Cube from (-1, -1, -1) to (1, 1, 1). Represents Direct3D's
+		// Box from (-1, -1, 0) to (1, 1, 1). Represents Direct3D's
 		// render space in normalized device coordinates.
 		Vector4 cube[8] = {
-			Vector4(-1, -1, -1, 1),
-			Vector4(1, -1, -1, 1),
-			Vector4(1, 1, -1, 1),
-			Vector4(-1, 1, -1, 1),
+			Vector4(-1, -1, 0, 1),
+			Vector4(1, -1, 0, 1),
+			Vector4(1, 1, 0, 1),
+			Vector4(-1, 1, 0, 1),
 			Vector4(-1, -1, 1, 1),
 			Vector4(1, -1, 1, 1),
 			Vector4(1, 1, 1, 1),
@@ -95,7 +95,11 @@ namespace Graphics
 
 		// Project the cube back into world coordinates.
 		for (int i = 0; i < 8; i++)
+		{
 			cube[i] = frustumMatrix * cube[i];
+			cube[i] = cube[i] / cube[i].w;
+		}
+			
 		
 		// Render cube
 		DrawLine(cube[0].xyz(), cube[1].xyz(), rgb);

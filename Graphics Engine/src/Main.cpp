@@ -126,7 +126,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     camera.getTransform().setPosition(0, 0, -25);
 
     visual_system.bindViewComponent(&camera);
-    visual_system.bindLightComponent(&camera);
     input_system.bindMovementComponent(&camera);
     // visual_system.bindLightComponent(&camera);
     // MeshComponent* mesh = visual_system.bindMeshComponent(&camera);

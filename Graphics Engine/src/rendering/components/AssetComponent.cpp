@@ -48,7 +48,7 @@ namespace Graphics
             Matrix4 worldTransform = object->getLocalMatrix();
             cbHandle->loadData(&worldTransform, FLOAT4X4);
 
-            Matrix4 normalTransform = object->getLocalMatrix().inverse().tranpose();
+            Matrix4 normalTransform = object->getLocalMatrix().inverse().transpose();
             cbHandle->loadData(&worldTransform, FLOAT4X4);
 
             // Load the data for one mesh. 

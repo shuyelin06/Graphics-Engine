@@ -118,8 +118,8 @@ namespace Graphics
 		Matrix4 projectionMatrix = generateProjectionMatrix();
 		cbHandle->loadData(&projectionMatrix, FLOAT4X4);
 
-		// const Matrix4 frustumMatrix = (projectionMatrix * viewMatrix).tranpose().inverse();
-		// VisualDebug::DrawFrustum(frustumMatrix, Color::Green());
+		const Matrix4 frustumMatrix = viewMatrix.inverse() * projectionMatrix.inverse();
+		VisualDebug::DrawFrustum(frustumMatrix, Color::Green());
 	}
 
 	// Sets the shadow map as the render target
