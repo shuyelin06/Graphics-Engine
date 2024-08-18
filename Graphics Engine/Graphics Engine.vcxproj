@@ -159,7 +159,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include=".clang-format" />
     <ClCompile Include="src\datamodel\Component.cpp" />
     <ClCompile Include="src\datamodel\Terrain.cpp" />
     <ClCompile Include="src\datamodel\Transform.cpp" />
