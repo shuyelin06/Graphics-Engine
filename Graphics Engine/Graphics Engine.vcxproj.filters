@@ -72,7 +72,7 @@
     <ClCompile Include="src\rendering\components\AssetComponent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\components\LightComponent.cpp">
+    <ClCompile Include="src\rendering\components\Light.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\datamodel\Component.cpp">
@@ -185,7 +185,7 @@
     <ClInclude Include="src\rendering\components\AssetComponent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\components\LightComponent.h">
+    <ClInclude Include="src\rendering\components\Light.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\components\VisualComponent.h">

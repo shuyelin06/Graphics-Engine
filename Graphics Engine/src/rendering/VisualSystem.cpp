@@ -25,10 +25,10 @@ namespace Graphics
         window = _window;
 
         // Components
-        lightComponents = std::vector<LightComponent*>();
         assetComponents = std::vector<AssetComponent*>();
 
         camera = Camera();
+        lights = std::vector<Light*>();
 
         // Managers
         assetManager = AssetManager();
@@ -167,7 +167,7 @@ namespace Graphics
         PixelShader* pShader = shaderManager.getPixelShader(PSDefault);
 
         // Render the scene to each light's shadow map.
-        for (LightComponent* light : lightComponents)
+        for (Light* light : lights)
         {
             vCB1->clearData();
             {
@@ -232,13 +232,13 @@ namespace Graphics
             pCB1->loadData(&cameraPosition, FLOAT3);
         }
         
-        int lightCount = lightComponents.size();
+        int lightCount = lights.size();
         pCB1->loadData(&lightCount, INT);
 
-        for (int i = 0; i < lightComponents.size(); i++)
+        for (int i = 0; i < lights.size(); i++)
         {
-            lightComponents[i]->loadLightData(pCB1);
-            lightComponents[i]->bindShadowMap(context, i, pCB1);
+            lights[i]->loadLightData(pCB1);
+            lights[i]->bindShadowMap(context, i, pCB1);
         }
 
         for (AssetComponent* asset_component : assetComponents)
@@ -411,25 +411,22 @@ namespace Graphics
 
     // LightComponent:
     // Used to convert an object to a light source with shadows.
-    LightComponent* VisualSystem::bindLightComponent(Datamodel::Object* object)
+    Light* VisualSystem::bindLightComponent(Datamodel::Object* object)
     {
         // Create component
-        LightComponent* component = new LightComponent(device);
-        lightComponents.push_back(component);
-
-        // Register with object
-        object->registerComponent<LightComponent>(component);
+        Light* component = new Light(device);
+        lights.push_back(component);
 
         return component;
     }
     
-    bool VisualSystem::removeLightComponent(LightComponent* component)
+    bool VisualSystem::removeLightComponent(Light* component)
     {
-        auto index = std::find(lightComponents.begin(), lightComponents.end(), component);
+        auto index = std::find(lights.begin(), lights.end(), component);
 
-        if (index != lightComponents.end())
+        if (index != lights.end())
         {
-            lightComponents.erase(index);
+            lights.erase(index);
             return true;
         }
         else

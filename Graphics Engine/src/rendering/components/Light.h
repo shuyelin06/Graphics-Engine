@@ -12,15 +12,12 @@ namespace Engine
 {
 namespace Graphics
 {
-	// Forward declaration of VisualSystem
-	class VisualSystem;
-
 	// LightComponent Class:
 	// Represents a directional light. Lights create shadows, and we create them
 	// using a shadow mapping technique.
 	// The "direction" of the light's view is given by the direction of its rotated +Z
 	// axis. To rotate a light, simply rotate its transform.
-	class LightComponent
+	class Light
         : public Camera
 	{
 	private:
@@ -40,8 +37,8 @@ namespace Graphics
 		ID3D11SamplerState* sampler_state;
 
 	public:
-		LightComponent(ID3D11Device* device);
-		~LightComponent();
+		Light(ID3D11Device* device);
+		~Light();
 
 		// Load light data to a constant buffer
 		void loadLightData(CBHandle* handle) const;

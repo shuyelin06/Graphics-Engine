@@ -10,10 +10,10 @@
 #include "AssetManager.h"
 #include "ShaderManager.h"
 
-#include "rendering/components/LightComponent.h"
 #include "rendering/components/AssetComponent.h"
 
 #include "rendering/components/Camera.h"
+#include "rendering/components/Light.h"
 
 #include "datamodel/Terrain.h"
 
@@ -39,15 +39,20 @@ namespace Graphics
 		AssetManager assetManager;
 
 		// Components
-		std::vector<LightComponent*> lightComponents;
+		
 		std::vector<AssetComponent*> assetComponents;
 		
 		// Main Render Target
 		ID3D11RenderTargetView* render_target_view;
 		ID3D11DepthStencilView* depth_stencil;
 
-        // Main Camera: The scene is rendered from this camera
+        // Main Camera: 
+        // The scene is rendered from this camera
         Camera camera;
+
+        // Dynamic Lights:
+        // Lights that are transformable in the scene
+        std::vector<Light*> lights;
 
 	public:
 		VisualSystem(HWND _window);
@@ -80,8 +85,8 @@ namespace Graphics
 		AssetComponent* bindAssetComponent(Datamodel::Object* object, AssetSlot assetName);
 		bool removeAssetComponent(AssetComponent* component);
 
-		LightComponent* bindLightComponent(Datamodel::Object* object);
-		bool removeLightComponent(LightComponent* component);
+		Light* bindLightComponent(Datamodel::Object* object);
+		bool removeLightComponent(Light* component);
 	};
 }
 }
