@@ -11,8 +11,9 @@
 #include "ShaderManager.h"
 
 #include "rendering/components/LightComponent.h"
-#include "rendering/components/ViewComponent.h"
 #include "rendering/components/AssetComponent.h"
+
+#include "rendering/components/Camera.h"
 
 #include "datamodel/Terrain.h"
 
@@ -40,15 +41,20 @@ namespace Graphics
 		// Components
 		std::vector<LightComponent*> lightComponents;
 		std::vector<AssetComponent*> assetComponents;
-		std::vector<ViewComponent*> viewComponents;
 		
 		// Main Render Target
 		ID3D11RenderTargetView* render_target_view;
 		ID3D11DepthStencilView* depth_stencil;
 
+        // Main Camera: The scene is rendered from this camera
+        Camera camera;
+
 	public:
 		VisualSystem(HWND _window);
 		
+        // Returns the system's camera
+        Camera& getCamera();
+
 		// Initialize Visual System
 		void initialize();
 
@@ -67,18 +73,12 @@ namespace Graphics
 		// Get current viewport
 		D3D11_VIEWPORT getViewport() const;
 
-		// Returns the currently active view
-		ViewComponent* getActiveView();
-
 		// Create Texture
 		ID3D11Texture2D* CreateTexture2D(D3D11_BIND_FLAG bind_flag, int width, int height);
 
 		// Component Handling
 		AssetComponent* bindAssetComponent(Datamodel::Object* object, AssetSlot assetName);
 		bool removeAssetComponent(AssetComponent* component);
-
-		ViewComponent* bindViewComponent(Datamodel::Object* object);
-		bool removeViewComponent(ViewComponent* component);
 
 		LightComponent* bindLightComponent(Datamodel::Object* object);
 		bool removeLightComponent(LightComponent* component);

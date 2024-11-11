@@ -1,8 +1,8 @@
 #pragma once
 
-#include "rendering/Direct3D11.h"
+#include "Camera.h"
 
-#include "rendering/components/ViewComponent.h"
+#include "rendering/Direct3D11.h"
 #include "rendering/Shader.h"
 
 #include "math/Matrix4.h"
@@ -21,7 +21,7 @@ namespace Graphics
 	// The "direction" of the light's view is given by the direction of its rotated +Z
 	// axis. To rotate a light, simply rotate its transform.
 	class LightComponent
-		: public ViewComponent
+        : public Camera
 	{
 	private:
 		// Light emission color
@@ -40,7 +40,7 @@ namespace Graphics
 		ID3D11SamplerState* sampler_state;
 
 	public:
-		LightComponent(Datamodel::Object* object, VisualSystem* system, ID3D11Device* device);
+		LightComponent(ID3D11Device* device);
 		~LightComponent();
 
 		// Load light data to a constant buffer

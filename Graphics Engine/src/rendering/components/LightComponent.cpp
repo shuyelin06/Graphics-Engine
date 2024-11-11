@@ -16,13 +16,10 @@ namespace Graphics
 {
 	// Constructor:
 	// Initializes a texture resource for use in the shadow mapping.
-	LightComponent::LightComponent(Datamodel::Object* object, VisualSystem* system, ID3D11Device* device)
-		: ViewComponent(object, system)
+	LightComponent::LightComponent(ID3D11Device* device)
+		: Camera()
 	{
 		color = Color(0.5f, 0.25f, 1.0f);
-
-		// Cast the handler to a visual system (TODO: probably a better way to do this)
-		VisualSystem* visual_system = system;
 
 		// Create my texture
 		shadow_map = NULL;
@@ -98,24 +95,21 @@ namespace Graphics
 		device->CreateSamplerState(&sampler_desc, &sampler_state);
 	}
 
-	LightComponent::~LightComponent()
-	{
-		system->removeLightComponent(this);
-	}
+	LightComponent::~LightComponent() = default;
 
 	void LightComponent::loadLightData(CBHandle* cbHandle) const
 	{
-		const Vector3& position = object->getTransform().getPosition();
+		const Vector3& position = transform.getPosition();
 		cbHandle->loadData(&position, FLOAT3);
 		cbHandle->loadData(nullptr, FLOAT);
 
 		cbHandle->loadData(&color, FLOAT3);
 		cbHandle->loadData(nullptr, FLOAT);
 
-		Matrix4 viewMatrix = object->getLocalMatrix().inverse();
+		Matrix4 viewMatrix = getWorldToCameraMatrix();
 		cbHandle->loadData(&viewMatrix, FLOAT4X4);
 
-		Matrix4 projectionMatrix = generateProjectionMatrix();
+		Matrix4 projectionMatrix = getProjectionMatrix();
 		cbHandle->loadData(&projectionMatrix, FLOAT4X4);
 
 		const Matrix4 frustumMatrix = viewMatrix.inverse() * projectionMatrix.inverse();

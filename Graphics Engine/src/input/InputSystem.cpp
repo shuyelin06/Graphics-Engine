@@ -24,8 +24,6 @@ namespace Input
 	// Initializes the input engine
 	InputSystem::InputSystem()
 	{
-		movement_components = std::vector<MovementComponent*>();
-
 		inputData = std::vector<InputData>();
 
 		// Set screen center at 0
@@ -98,10 +96,6 @@ namespace Input
 		// Clear accumulated inputData, and only keep unprocessed data
 		inputData.clear();
 		inputData.insert(std::end(inputData), std::begin(unprocessed), std::end(unprocessed));
-
-		// Execute all input components
-		for (MovementComponent* component : movement_components)
-			component->update();
 	}
 
 	// LogWin32Input:
@@ -172,36 +166,6 @@ namespace Input
 		}
 
 		return output;
-	}
-
-	// --- Component Handling ---
-	// MovementComponents:
-	// Lets objects be controlled by input bindings, such as WASD and mouse movement.
-	// Binding returns a pointer to the component. Removal returns true if removal was successful,
-	// false otherwise
-	MovementComponent* InputSystem::bindMovementComponent(Datamodel::Object* object)
-	{
-		// Create component
-		MovementComponent* component = new MovementComponent(object, this);
-		movement_components.push_back(component);
-
-		// Register with object
-		object->registerComponent<MovementComponent>(component);
-
-		return component;
-	}
-
-	bool InputSystem::removeMovementComponent(MovementComponent* component)
-	{
-		auto index = std::find(movement_components.begin(), movement_components.end(), component);
-
-		if (index != movement_components.end())
-		{
-			movement_components.erase(index);
-			return true;
-		}
-		else
-			return false;
 	}
 
 }

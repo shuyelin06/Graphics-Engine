@@ -4,12 +4,14 @@
 #include <vector>
 #include <typeindex>
 
-#include "Transform.h"
+#include "math/Transform.h"
 #include "math/Matrix4.h"
 #include "math/Vector3.h"
 
 namespace Engine
 {
+using namespace Math;
+
 namespace Datamodel
 {
 	// Forward Declaration of Component
@@ -28,7 +30,7 @@ namespace Datamodel
 		std::vector<Object*> children;
 
 		// Transform of the object
-		Transform transform;
+		Math::Transform transform;
 
 		// (Cached) Local --> World Matrix
 		Math::Matrix4 m_local;
@@ -48,7 +50,7 @@ namespace Datamodel
 		Object& createChild();
 
 		// Transform Methods
-		Transform& getTransform();
+		Math::Transform& getTransform();
 
 		const Math::Matrix4& getLocalMatrix() const;
 		const Math::Matrix4& updateLocalMatrix(const Math::Matrix4& m_parent);

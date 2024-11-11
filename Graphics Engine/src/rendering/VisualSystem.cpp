@@ -27,7 +27,8 @@ namespace Graphics
         // Components
         lightComponents = std::vector<LightComponent*>();
         assetComponents = std::vector<AssetComponent*>();
-        viewComponents = std::vector<ViewComponent*>();
+
+        camera = Camera();
 
         // Managers
         assetManager = AssetManager();
@@ -38,6 +39,13 @@ namespace Graphics
         swap_chain = NULL;
         render_target_view = NULL;
         depth_stencil = NULL;
+    }
+
+    // GetCamera:
+    // Returns the camera
+    Camera& VisualSystem::getCamera()
+    {
+        return camera;
     }
 
     // Initialize: 
@@ -154,13 +162,21 @@ namespace Graphics
     void VisualSystem::performShadowPass()
     {
         VertexShader* vShader = shaderManager.getVertexShader(VSDefault);
+        CBHandle* vCB1 = vShader->getCBHandle(CB1);
+
         PixelShader* pShader = shaderManager.getPixelShader(PSDefault);
 
         // Render the scene to each light's shadow map.
         for (LightComponent* light : lightComponents)
         {
-            vShader->getCBHandle(CB1)->clearData();
-            light->loadViewData(vShader->getCBHandle(CB1));
+            vCB1->clearData();
+            {
+                const Matrix4 viewMatrix = light->getWorldToCameraMatrix();
+                vCB1->loadData(&viewMatrix, FLOAT4X4);
+
+                const Matrix4 projectionMatrix = light->getProjectionMatrix();
+                vCB1->loadData(&projectionMatrix, FLOAT4X4);
+            }
 
             light->setRenderTarget(context);
 
@@ -187,23 +203,34 @@ namespace Graphics
     void VisualSystem::performRenderPass()
     {
         VertexShader* vShader = shaderManager.getVertexShader(VSShadow);
+        CBHandle* vCB1 = vShader->getCBHandle(CB1);
+        
         PixelShader* pShader = shaderManager.getPixelShader(PSShadow);
-
-        ViewComponent* view = viewComponents[0];
+        CBHandle* pCB1 = pShader->getCBHandle(CB1);
 
         context->OMSetRenderTargets(1, &render_target_view, depth_stencil);
         context->ClearDepthStencilView(depth_stencil, D3D11_CLEAR_DEPTH, 1.0f, 0);
         D3D11_VIEWPORT viewport = getViewport();
         context->RSSetViewports(1, &viewport);
 
-        vShader->getCBHandle(CB1)->clearData();
-        view->loadViewData(vShader->getCBHandle(CB1));
+        // Vertex Constant Buffer 1:
+        // Stores the camera view and projection matrices
+        vCB1->clearData();
+        {   
+            const Matrix4 viewMatrix = camera.getWorldToCameraMatrix();
+            vCB1->loadData(&viewMatrix, FLOAT4X4);
 
-        CBHandle* pCB1 = pShader->getCBHandle(CB1);
+            const Matrix4 projectionMatrix = camera.getProjectionMatrix();
+            vCB1->loadData(&projectionMatrix, FLOAT4X4);
+        }
+
+        // Pixel Constant Buffer 1:
+        // Stores camera position, and the scene's light instances.
         pCB1->clearData();
-
-        const Vector3& viewPosition = view->getObject()->getTransform().getPosition();
-        pCB1->loadData(&viewPosition, FLOAT3);
+        {
+            const Vector3& cameraPosition = camera.getTransform().getPosition();
+            pCB1->loadData(&cameraPosition, FLOAT3);
+        }
         
         int lightCount = lightComponents.size();
         pCB1->loadData(&lightCount, INT);
@@ -236,8 +263,9 @@ namespace Graphics
     void VisualSystem::renderDebugPoints()
     {
         VertexShader* vShader = shaderManager.getVertexShader(VSDebugPoint);
+        CBHandle* vCB1 = vShader->getCBHandle(CB1);
+
         PixelShader* pShader = shaderManager.getPixelShader(PSDebugPoint);
-        ViewComponent* view = viewComponents[0];
 
         vShader->getCBHandle(CB0)->clearData();
         vShader->getCBHandle(CB1)->clearData();
@@ -249,7 +277,16 @@ namespace Graphics
 
         if (numPoints > 0)
         {
-            view->loadViewData(vShader->getCBHandle(CB1));
+            // Vertex Constant Buffer 1:
+            // Stores the camera view and projection matrices
+            vCB1->clearData();
+            {
+                const Matrix4 viewMatrix = camera.getWorldToCameraMatrix();
+                vCB1->loadData(&viewMatrix, FLOAT4X4);
+
+                const Matrix4 projectionMatrix = camera.getProjectionMatrix();
+                vCB1->loadData(&projectionMatrix, FLOAT4X4);
+            }
 
             vShader->bindShader(device, context);
             pShader->bindShader(device, context);
@@ -261,8 +298,9 @@ namespace Graphics
     void VisualSystem::renderDebugLines()
     {
         VertexShader* vShader = shaderManager.getVertexShader(VSDebugLine);
+        CBHandle* vCB1 = vShader->getCBHandle(CB1);
+
         PixelShader* pShader = shaderManager.getPixelShader(PSDebugLine);
-        ViewComponent* view = viewComponents[0];
 
         vShader->getCBHandle(CB1)->clearData();
 
@@ -270,7 +308,16 @@ namespace Graphics
         
         if (numLines > 0)
         {
-            view->loadViewData(vShader->getCBHandle(CB1));
+            // Vertex Constant Buffer 1:
+            // Stores the camera view and projection matrices
+            vCB1->clearData();
+            {
+                const Matrix4 viewMatrix = camera.getWorldToCameraMatrix();
+                vCB1->loadData(&viewMatrix, FLOAT4X4);
+
+                const Matrix4 projectionMatrix = camera.getProjectionMatrix();
+                vCB1->loadData(&projectionMatrix, FLOAT4X4);
+            }
 
             vShader->bindShader(device, context);
             pShader->bindShader(device, context);
@@ -302,18 +349,6 @@ namespace Graphics
 
         // Return
         return viewport;
-    }
-
-    // GetActiveCamera:
-    // Returns the currently active camera in the scene.
-    ViewComponent* VisualSystem::getActiveView()
-    {
-        // If there are no camera components, return nullptr.
-        if (viewComponents.size() == 0)
-            return nullptr;
-        
-        // Otherwise, (for now) just return the first one.
-        return viewComponents[0];
     }
     
     // CreateTexture2D:
@@ -374,41 +409,12 @@ namespace Graphics
             return false;
     }
 
-    // ViewComponent:
-    // Contains data needed to render a scene from a particular view.
-    // This view can be used as a camera, or used to render to a texture
-    // (for techniques like shadowmapping)
-    ViewComponent* VisualSystem::bindViewComponent(Datamodel::Object* object)
-    {
-        // Create component
-        ViewComponent* component = new ViewComponent(object, this);
-        viewComponents.push_back(component);
-
-        // Register with object
-        object->registerComponent<ViewComponent>(component);
-
-        return component;
-    }
-
-    bool VisualSystem::removeViewComponent(ViewComponent* component)
-    {
-        auto index = std::find(viewComponents.begin(), viewComponents.end(), component);
-
-        if (index != viewComponents.end())
-        {
-            viewComponents.erase(index);
-            return true;
-        }
-        else
-            return false;
-    }
-
     // LightComponent:
     // Used to convert an object to a light source with shadows.
     LightComponent* VisualSystem::bindLightComponent(Datamodel::Object* object)
     {
         // Create component
-        LightComponent* component = new LightComponent(object, this, device);
+        LightComponent* component = new LightComponent(device);
         lightComponents.push_back(component);
 
         // Register with object

@@ -30,6 +30,8 @@
 #include "rendering/VisualSystem.h"
 #include "input/InputSystem.h"
 
+#include "input/components/MovementHandler.h"
+
 #include "rendering/VisualDebug.h"
 
 #include "rendering/AssetManager.h"
@@ -120,13 +122,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     Object* parent_object = new Object();
 
     // visual_system.bindMeshComponent(&light)->setMesh(Mesh::GetMesh("Cube"));
-    
-    // Create a camera
-    Object& camera = parent_object->createChild();
-    camera.getTransform().setPosition(0, 0, -25);
 
-    visual_system.bindViewComponent(&camera);
-    input_system.bindMovementComponent(&camera);
+    MovementHandler movementHandler(&(visual_system.getCamera().getTransform()));
+
     // visual_system.bindLightComponent(&camera);
     // MeshComponent* mesh = visual_system.bindMeshComponent(&camera);
     // mesh->setMesh(Mesh::GetMesh("Cube"));
@@ -203,6 +201,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         UpdateObjectTransforms(parent_object, identity);
         
         // Dispatch Input Data
+        movementHandler.update();
         input_system.update();
 
         // Update Physics System
