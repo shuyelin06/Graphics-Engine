@@ -11,22 +11,24 @@ namespace Engine
 namespace Graphics
 {
 
-    Camera::Camera() : transform()
+    Camera::Camera()
     {
         fov = 1.2f;
         z_near = 1.f;
         z_far = 500.f;
+
+        transform = new Transform();
     }
     Camera::~Camera() = default;
 
     // GetTransform:
     // Returns the camera's transform
-    const Transform& Camera::getTransform() const 
+    const Transform* Camera::getTransform() const 
     {
         return transform;
     }
 
-    Transform& Camera::getTransform()
+    Transform* Camera::getTransform()
     {
         return transform;
     }
@@ -54,6 +56,14 @@ namespace Graphics
         return z_far; 
     }
 
+    // SetTransform:
+    // Sets the camera's transform to follow a particular transform.
+    // Can be used
+    void Camera::setTransform(Transform* _transform)
+    {
+        transform = _transform;
+    }
+
     // SetFOV:
     // Set's the camera's FOV. Clamped to prevent excessively wide
     // FOVs.
@@ -76,9 +86,9 @@ namespace Graphics
         z_far = new_zfar; 
     }
 
-        // Camera -> World Matrix
+    // Camera -> World Matrix
     const Matrix4 Camera::getWorldToCameraMatrix(void) const {
-        return transform.transformMatrix().inverse();
+        return transform->transformMatrix().inverse();
     }
 
     // Camera -> Projected Space Matrix

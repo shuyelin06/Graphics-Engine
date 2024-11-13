@@ -99,7 +99,7 @@ namespace Graphics
 
 	void Light::loadLightData(CBHandle* cbHandle) const
 	{
-		const Vector3& position = transform.getPosition();
+		const Vector3& position = transform->getPosition();
 		cbHandle->loadData(&position, FLOAT3);
 		cbHandle->loadData(nullptr, FLOAT);
 

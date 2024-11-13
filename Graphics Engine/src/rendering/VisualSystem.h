@@ -10,8 +10,6 @@
 #include "AssetManager.h"
 #include "ShaderManager.h"
 
-#include "rendering/components/AssetComponent.h"
-
 #include "rendering/components/Camera.h"
 #include "rendering/components/Light.h"
 
@@ -20,7 +18,18 @@
 namespace Engine
 {
 namespace Graphics
-{
+{   
+    // RenderRequest Class(es):
+    // Structures that represent render requests that are submitted
+    // to the visual system.
+    struct AssetRenderRequest 
+    {
+        AssetSlot slot;
+        Matrix4 mLocalToWorld;
+
+        AssetRenderRequest(AssetSlot slot, const Matrix4& mLocalToWorld);
+    };
+
 	// VisualSystem Class:
 	// Provides an interface for the application's graphics.
 	class VisualSystem
@@ -36,12 +45,8 @@ namespace Graphics
 
 		// Managers
 		ShaderManager shaderManager;
-		AssetManager assetManager;
+		AssetManager* assetManager;
 
-		// Components
-		
-		std::vector<AssetComponent*> assetComponents;
-		
 		// Main Render Target
 		ID3D11RenderTargetView* render_target_view;
 		ID3D11DepthStencilView* depth_stencil;
@@ -54,15 +59,26 @@ namespace Graphics
         // Lights that are transformable in the scene
         std::vector<Light*> lights;
 
+        // Render Requests:
+        // Vectors of render requests submitted to the visual system.
+        std::vector<AssetRenderRequest> assetRequests;
+
 	public:
 		VisualSystem(HWND _window);
 		
         // Returns the system's camera
+        const Camera& getCamera() const;
         Camera& getCamera();
 
 		// Initialize Visual System
 		void initialize();
 
+        // Create objects in the visual system
+        Light* createLight();
+
+        // Submit render requests to the visual system
+        void drawAsset(AssetSlot asset, const Matrix4& mLocalToWorld);
+        
 		// Renders an entire scene
 		void render();
 
@@ -81,12 +97,6 @@ namespace Graphics
 		// Create Texture
 		ID3D11Texture2D* CreateTexture2D(D3D11_BIND_FLAG bind_flag, int width, int height);
 
-		// Component Handling
-		AssetComponent* bindAssetComponent(Datamodel::Object* object, AssetSlot assetName);
-		bool removeAssetComponent(AssetComponent* component);
-
-		Light* bindLightComponent(Datamodel::Object* object);
-		bool removeLightComponent(Light* component);
 	};
 }
 }

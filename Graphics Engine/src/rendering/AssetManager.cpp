@@ -23,8 +23,18 @@ using namespace Math;
 using namespace Utility;
 namespace Graphics
 {
+    AssetWrapper::AssetWrapper(Asset* _asset, ID3D11Device* device)
+    {
+        asset = _asset;
+        loader = new AssetLoader(_asset, device);
+    }
+
 	// Constructor and Destructor
-    AssetManager::AssetManager() = default;
+    AssetWrapper::AssetWrapper() = default;
+    AssetManager::AssetManager(ID3D11Device* _device)
+    {
+        device = _device;
+    }
     AssetManager::~AssetManager() = default;
 
     // Initialize:
@@ -33,23 +43,31 @@ namespace Graphics
     {
         assets.resize(AssetCount);
 
-        assets[Cube] = LoadCube();
+        assets[Cube] = AssetWrapper(LoadCube(), device);
         // Fox by Jake Blakeley [CC-BY] via Poly Pizza
-        assets[Fox] = LoadAssetFromOBJ("data/", "model.obj", "Model");
+        assets[Fox] = AssetWrapper(LoadAssetFromOBJ("data/", "model.obj", "Model"), device);
 
         Datamodel::Terrain terrain = Datamodel::Terrain();
         terrain.generateMesh();
-        assets[Terrain] = terrain.getMesh();
+        assets[Terrain] = AssetWrapper(terrain.getMesh(), device);
     }
 
-    // GetAssets:
+    // GetAsset:
     // Return an asset by name.
     Asset* AssetManager::getAsset(AssetSlot asset)
     {
         assert(0 <= asset && asset < assets.size());
-        return assets[asset];
+        return assets[asset].asset;
     }
 
+    // GetAssetLoader:
+    // Return an asset's loader by name
+    AssetLoader* AssetManager::getAssetLoader(AssetSlot asset)
+    {
+        assert(0 <= asset && asset < assets.size());
+        return assets[asset].loader;
+    }
+    
 	// LoadMeshFromOBJ
 	// Implements a simple OBJ file parser to load an asset.
     // Meshes can only have one material; so an obj file with multiple materials

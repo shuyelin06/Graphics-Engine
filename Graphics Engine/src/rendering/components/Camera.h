@@ -24,25 +24,27 @@ namespace Graphics {
         float z_far;
 
         // Transform
-        Transform transform;
+        Transform* transform;
 
     public:
         Camera();
         ~Camera();
 
         // Get the camera's attributes
-        const Transform& getTransform() const;
-        Transform& getTransform();
+        const Transform* getTransform() const;
+        Transform* getTransform();
 
         float getFOV() const;
         float getZNear() const;
         float getZFar() const;
 
         // Set the camera's attributes
+        void setTransform(Transform* transform);
+
         void setFOV(float new_fov);
         void setZNear(float new_znear);
         void setZFar(float new_zfar);
-
+        
         // World -> Camera Matrix
         const Matrix4 getWorldToCameraMatrix(void) const;
 

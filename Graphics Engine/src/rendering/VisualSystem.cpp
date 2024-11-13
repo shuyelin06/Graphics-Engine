@@ -17,6 +17,12 @@ namespace Engine
 
 namespace Graphics
 {
+    AssetRenderRequest::AssetRenderRequest(AssetSlot _slot, const Matrix4& _mLocalToWorld)
+    {
+        slot = _slot;
+        mLocalToWorld = _mLocalToWorld;
+    }
+
     // Constructor
     // Saves the handle to the application window and initializes the
     // system's data structures
@@ -24,15 +30,12 @@ namespace Graphics
     {
         window = _window;
 
-        // Components
-        assetComponents = std::vector<AssetComponent*>();
-
         camera = Camera();
         lights = std::vector<Light*>();
 
         // Managers
-        assetManager = AssetManager();
         shaderManager = ShaderManager();
+        assetManager = nullptr;
 
         device = NULL;
         context = NULL;
@@ -43,6 +46,11 @@ namespace Graphics
 
     // GetCamera:
     // Returns the camera
+    const Camera& VisualSystem::getCamera() const
+    {
+        return camera;
+    }
+
     Camera& VisualSystem::getCamera()
     {
         return camera;
@@ -132,9 +140,26 @@ namespace Graphics
             // Create depth stencil
             device->CreateDepthStencilView(depth_texture, &desc_stencil, &depth_stencil);
         }
-
-        assetManager.initialize();
+        
+        assetManager = new AssetManager(device);
+        assetManager->initialize();
         shaderManager.initialize(device);
+    }
+    
+    // CreateLight:
+    // Creates and returns a light in the visual system
+    Light* VisualSystem::createLight()
+    {
+        Light* newLight = new Light(device);
+        lights.push_back(newLight);
+        return newLight;
+    }
+
+    // DrawAsset:
+    // Generates an asset render request
+    void VisualSystem::drawAsset(AssetSlot asset, const Matrix4& mLocalToWorld)
+    {
+        assetRequests.push_back(AssetRenderRequest(asset, mLocalToWorld));
     }
 
     // Render:
@@ -147,6 +172,7 @@ namespace Graphics
 
         performShadowPass();
         performRenderPass();
+        assetRequests.clear();
         
 #if defined(_DEBUG)
         // Debug Functionality
@@ -163,12 +189,14 @@ namespace Graphics
     {
         VertexShader* vShader = shaderManager.getVertexShader(VSDefault);
         CBHandle* vCB1 = vShader->getCBHandle(CB1);
+        CBHandle* vCB2 = vShader->getCBHandle(CB2);
 
         PixelShader* pShader = shaderManager.getPixelShader(PSDefault);
 
         // Render the scene to each light's shadow map.
         for (Light* light : lights)
         {
+            // Load light view and projection matrix
             vCB1->clearData();
             {
                 const Matrix4 viewMatrix = light->getWorldToCameraMatrix();
@@ -177,25 +205,43 @@ namespace Graphics
                 const Matrix4 projectionMatrix = light->getProjectionMatrix();
                 vCB1->loadData(&projectionMatrix, FLOAT4X4);
             }
-
             light->setRenderTarget(context);
 
-            for (AssetComponent* asset: assetComponents)
+            // For each asset, load its mesh
+            for (const AssetRenderRequest& assetRequest : assetRequests)
             {
-                asset->beginLoading();
+                const Matrix4& mLocalToWorld = assetRequest.mLocalToWorld;
+                AssetLoader* assetLoader = assetManager->getAssetLoader(assetRequest.slot);
+                assetLoader->reset();
 
-                vShader->getCBHandle(CB2)->clearData();
-                int numIndices = asset->loadMeshData(context, vShader->getCBHandle(CB2), device);
-
-                while (numIndices != -1)
+                vCB2->clearData();
+                // Load mesh vertex transformation matrix
+                vCB2->loadData(&mLocalToWorld, FLOAT4X4);
+                // Load mesh normal transformation matrix 
+                Matrix4 normalTransform = mLocalToWorld.inverse().transpose();
+                vCB2->loadData(&(normalTransform), FLOAT4X4);
+                
+                // Load each mesh
+                while (assetLoader->hasNextMesh())
                 {
+                    const MeshLoader& meshLoader = assetLoader->nextMesh();
+
+                    ID3D11Buffer* indexBuffer = meshLoader.getIndexBuffer();
+                    ID3D11Buffer* vertexBuffer = meshLoader.getVertexBuffer(); 
+                    int numIndices = meshLoader.getTriangleCount() * 3;
+
+                    UINT vertexStride = sizeof(MeshVertex);
+                    UINT vertexOffset = 0;
+
+                    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+                    context->IASetVertexBuffers(0, 1, &vertexBuffer, &vertexStride, &vertexOffset);
+                    context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
                     vShader->bindShader(device, context);
                     pShader->bindShader(device, context);
                     context->DrawIndexed(numIndices, 0, 0);
-
-                    vShader->getCBHandle(CB2)->clearData();
-                    numIndices = asset->loadMeshData(context, vShader->getCBHandle(CB2), device);
                 }
+                
             }
         }
     }
@@ -204,7 +250,8 @@ namespace Graphics
     {
         VertexShader* vShader = shaderManager.getVertexShader(VSShadow);
         CBHandle* vCB1 = vShader->getCBHandle(CB1);
-        
+        CBHandle* vCB2 = vShader->getCBHandle(CB2);
+
         PixelShader* pShader = shaderManager.getPixelShader(PSShadow);
         CBHandle* pCB1 = pShader->getCBHandle(CB1);
 
@@ -228,7 +275,7 @@ namespace Graphics
         // Stores camera position, and the scene's light instances.
         pCB1->clearData();
         {
-            const Vector3& cameraPosition = camera.getTransform().getPosition();
+            const Vector3& cameraPosition = camera.getTransform()->getPosition();
             pCB1->loadData(&cameraPosition, FLOAT3);
         }
         
@@ -241,23 +288,43 @@ namespace Graphics
             lights[i]->bindShadowMap(context, i, pCB1);
         }
 
-        for (AssetComponent* asset_component : assetComponents)
+        for (const AssetRenderRequest& assetRequest : assetRequests)
         {
-            asset_component->beginLoading();
+            const Matrix4& mLocalToWorld = assetRequest.mLocalToWorld;
+            AssetLoader* assetLoader = assetManager->getAssetLoader(assetRequest.slot);
+            assetLoader->reset();
 
-            vShader->getCBHandle(CB2)->clearData();
-            int numIndices = asset_component->loadMeshData(context, vShader->getCBHandle(CB2), device);
+            vCB2->clearData();
+            // Load mesh vertex transformation matrix
+            vCB2->loadData(&mLocalToWorld, FLOAT4X4);
+            // Load mesh normal transformation matrix 
+            Matrix4 normalTransform = mLocalToWorld.inverse().transpose();
+            vCB2->loadData(&(normalTransform), FLOAT4X4);
 
-            while (numIndices != -1)
+            // Load each mesh
+            while (assetLoader->hasNextMesh())
             {
+                const MeshLoader& meshLoader = assetLoader->nextMesh();
+
+                ID3D11Buffer* indexBuffer = meshLoader.getIndexBuffer();
+                ID3D11Buffer* vertexBuffer = meshLoader.getVertexBuffer();
+                int numIndices = meshLoader.getTriangleCount() * 3;
+
+                UINT vertexStride = sizeof(MeshVertex);
+                UINT vertexOffset = 0;
+
+                context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+                context->IASetVertexBuffers(0, 1, &vertexBuffer, &vertexStride, &vertexOffset);
+                context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
                 vShader->bindShader(device, context);
                 pShader->bindShader(device, context);
-                context->DrawIndexed(numIndices, 0, 0);
 
-                vShader->getCBHandle(CB2)->clearData();
-                numIndices = asset_component->loadMeshData(context, vShader->getCBHandle(CB2), device);
+                context->DrawIndexed(numIndices, 0, 0);
             }
+
         }
+
     }
 
     void VisualSystem::renderDebugPoints()
@@ -270,7 +337,7 @@ namespace Graphics
         vShader->getCBHandle(CB0)->clearData();
         vShader->getCBHandle(CB1)->clearData();
 
-        Asset* cube = assetManager.getAsset(Cube);
+        Asset* cube = assetManager->getAsset(Cube);
         int numIndices = cube->getMesh(0)->loadIndexVertexData(context, device);
 
         int numPoints = VisualDebug::LoadPointData(vShader->getCBHandle(CB0));
@@ -377,60 +444,6 @@ namespace Graphics
             assert(false);
 
         return texture;
-    }
-
-    // --- Component Handling ----
-    // MeshComponent:
-    // Allows the rendering of a mesh using the object's transform.
-    // Meshes have material properties, which specify how they are to be rendered.
-    AssetComponent* VisualSystem::bindAssetComponent(Datamodel::Object* object, AssetSlot assetName)
-    {
-        // Create component
-        Asset* asset = assetManager.getAsset(assetName);
-        AssetComponent* component = new AssetComponent(object, this, asset);
-        assetComponents.push_back(component);
-
-        // Register with object
-        object->registerComponent<AssetComponent>(component);
-
-        return component;
-    }
-
-    bool VisualSystem::removeAssetComponent(AssetComponent* component)
-    {
-        auto index = std::find(assetComponents.begin(), assetComponents.end(), component);
-
-        if (index != assetComponents.end())
-        {
-            assetComponents.erase(index);
-            return true;
-        }
-        else
-            return false;
-    }
-
-    // LightComponent:
-    // Used to convert an object to a light source with shadows.
-    Light* VisualSystem::bindLightComponent(Datamodel::Object* object)
-    {
-        // Create component
-        Light* component = new Light(device);
-        lights.push_back(component);
-
-        return component;
-    }
-    
-    bool VisualSystem::removeLightComponent(Light* component)
-    {
-        auto index = std::find(lights.begin(), lights.end(), component);
-
-        if (index != lights.end())
-        {
-            lights.erase(index);
-            return true;
-        }
-        else
-            return false;
     }
 
 }

@@ -3,7 +3,10 @@
 #include <map>
 #include <string>
 
-#include "Asset.h"
+#include "Direct3D11.h"
+
+#include "rendering/components/AssetLoader.h"
+#include "rendering/components/Asset.h"
 
 namespace Engine
 {
@@ -18,28 +21,45 @@ namespace Graphics
 		AssetCount
 	};
 
+    // AssetWrapper:
+    // Stores assets and their associated loader.
+    // The loader is associated with the asset, and will
+    // generate the GPU resources needed for the rendering 
+    // pipeline
+    struct AssetWrapper
+    {
+        Asset* asset;
+        AssetLoader* loader;
+
+        AssetWrapper();
+        AssetWrapper(Asset* asset, ID3D11Device* device);
+    };
+
 	// AssetManager Class:
 	// Manages assets for the engine. Provides methods
-	// to load assets, manipulate them, and more. 
+	// to load assets, and prepare them for rendering. 
 	class AssetManager
 	{
 	private:
-		std::vector<Asset*> assets;
+        ID3D11Device* device;
+
+        std::vector<AssetWrapper> assets;
 
 	public:
-		AssetManager();
+		AssetManager(ID3D11Device* device);
 		~AssetManager();
 
 		// Initialize assets
 		void initialize();
 
-		// Get an asset by name
-		Asset* getAsset(AssetSlot asset);
+		// Get an asset data by name
+        Asset* getAsset(AssetSlot asset);
+        // Get an asset loader by name 
+        AssetLoader* getAssetLoader(AssetSlot asset);
 
 	private:
 		// Generate a cube
 		Asset* LoadCube();
-
 
 		// Load an asset from an OBJ file. Returns the index of the
 		// asset in the manager on success.
