@@ -2,7 +2,7 @@
 
 #include "math/Vector3.h"
 
-#include "rendering/Asset.h"
+#include "rendering/components/Asset.h"
 
 // Enables debug rendering for the terrain
 // #define TERRAIN_DEBUG

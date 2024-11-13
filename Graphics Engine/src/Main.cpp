@@ -30,6 +30,8 @@
 #include "rendering/VisualSystem.h"
 #include "input/InputSystem.h"
 
+#include "input/components/MovementHandler.h"
+
 #include "rendering/VisualDebug.h"
 
 #include "rendering/AssetManager.h"
@@ -120,29 +122,18 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     Object* parent_object = new Object();
 
     // visual_system.bindMeshComponent(&light)->setMesh(Mesh::GetMesh("Cube"));
-    
-    // Create a camera
-    Object& camera = parent_object->createChild();
-    camera.getTransform().setPosition(0, 0, -25);
 
-    visual_system.bindViewComponent(&camera);
-    input_system.bindMovementComponent(&camera);
+    MovementHandler movementHandler(visual_system.getCamera().getTransform());
+
     // visual_system.bindLightComponent(&camera);
     // MeshComponent* mesh = visual_system.bindMeshComponent(&camera);
     // mesh->setMesh(Mesh::GetMesh("Cube"));
     
-    {
-        Object& child = parent_object->createChild();
-        visual_system.bindAssetComponent(&child, AssetSlot::Terrain);
-    }
+    Object& child1 = parent_object->createChild();
 
-    {
-        Object& child = parent_object->createChild();
-        child.getTransform().setScale(5, 5, 5);
-        child.getTransform().setPosition(Compute::random(-2.5f, 2.5f), Compute::random(-2.5f, 2.5f), Compute::random(15, 25));
-        
-        visual_system.bindAssetComponent(&child, Fox);
-    }
+    Object& child2 = parent_object->createChild();
+    child2.getTransform().setScale(5, 5, 5);
+    child2.getTransform().setPosition(Compute::random(-2.5f, 2.5f), Compute::random(-2.5f, 2.5f), Compute::random(15, 25));
 
     /*
     {
@@ -156,17 +147,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         Object& light = parent_object->createChild();
         light.getTransform().offsetPosition(0, 5, 0);
         light.getTransform().offsetRotation(Vector3::PositiveX(), 0.05f);
-        visual_system.bindLightComponent(&light);
+        
+        Light* lObj = visual_system.createLight();
+        lObj->setTransform(&light.getTransform());
     }
 
-    {
-        Object& child = parent_object->createChild();
-        child.getTransform().setScale(100, 2.5f, 100);
-        child.getTransform().setPosition(0, -10, 0);
-
-        visual_system.bindAssetComponent(&child, Cube);
-    }
-
+    Object& child3 = parent_object->createChild();
+    child3.getTransform().setScale(100, 2.5f, 100);
+    child3.getTransform().setPosition(0, -10, 0);
     
     // Begin window messaging loop
     MSG msg = { };
@@ -203,12 +191,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         UpdateObjectTransforms(parent_object, identity);
         
         // Dispatch Input Data
+        movementHandler.update();
         input_system.update();
 
         // Update Physics System
         physics_system.update();
         
         // Update Rendering System
+        visual_system.drawAsset(AssetSlot::Terrain, child1.getLocalMatrix());
+        visual_system.drawAsset(AssetSlot::Fox, child2.getLocalMatrix());
+        visual_system.drawAsset(AssetSlot::Cube, child3.getLocalMatrix());
+
         visual_system.render();
 
         // Stall until enough time has elapsed for 60 frames / second
