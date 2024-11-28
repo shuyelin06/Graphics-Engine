@@ -185,6 +185,9 @@ namespace Graphics
         swap_chain->Present(1, 0);
     }
 
+    // PerformShadowPass:
+    // Render the scene from each light's point of view, to populate
+    // its shadow map.
     void VisualSystem::performShadowPass()
     {
         VertexShader* vShader = shaderManager.getVertexShader(VSDefault);
@@ -193,9 +196,10 @@ namespace Graphics
 
         PixelShader* pShader = shaderManager.getPixelShader(PSDefault);
 
-        // Render the scene to each light's shadow map.
         for (Light* light : lights)
         {
+            // Populate CB1 of the vertex shader, which will
+            // contain the light view and projection matrix.
             // Load light view and projection matrix
             vCB1->clearData();
             {
@@ -205,7 +209,11 @@ namespace Graphics
                 const Matrix4 projectionMatrix = light->getProjectionMatrix();
                 vCB1->loadData(&projectionMatrix, FLOAT4X4);
             }
-            light->setRenderTarget(context);
+
+            // Set the light as the render target.
+            context->ClearDepthStencilView(light->getDepthView(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+            context->OMSetRenderTargets(0, nullptr, light->getDepthView());
+            context->RSSetViewports(1, &light->getViewport());
 
             // For each asset, load its mesh
             for (const AssetRenderRequest& assetRequest : assetRequests)
@@ -215,11 +223,13 @@ namespace Graphics
                 assetLoader->reset();
 
                 vCB2->clearData();
-                // Load mesh vertex transformation matrix
-                vCB2->loadData(&mLocalToWorld, FLOAT4X4);
-                // Load mesh normal transformation matrix 
-                Matrix4 normalTransform = mLocalToWorld.inverse().transpose();
-                vCB2->loadData(&(normalTransform), FLOAT4X4);
+                {
+                    // Load mesh vertex transformation matrix
+                    vCB2->loadData(&mLocalToWorld, FLOAT4X4);
+                    // Load mesh normal transformation matrix 
+                    Matrix4 normalTransform = mLocalToWorld.inverse().transpose();
+                    vCB2->loadData(&(normalTransform), FLOAT4X4);
+                }
                 
                 // Load each mesh
                 while (assetLoader->hasNextMesh())
@@ -277,29 +287,89 @@ namespace Graphics
         {
             const Vector3& cameraPosition = camera.getTransform()->getPosition();
             pCB1->loadData(&cameraPosition, FLOAT3);
-        }
-        
-        int lightCount = lights.size();
-        pCB1->loadData(&lightCount, INT);
 
+            int lightCount = lights.size();
+            pCB1->loadData(&lightCount, INT);
+
+            for (int i = 0; i < lights.size(); i++)
+            {
+                Light* light = lights[i];
+                
+                const Vector3& position = light->getTransform()->getPosition();
+                pCB1->loadData(&position, FLOAT3);
+                pCB1->loadData(nullptr, FLOAT);
+
+                const Color& color = light->getColor();
+                pCB1->loadData(&color, FLOAT3);
+                pCB1->loadData(nullptr, FLOAT);
+                
+                const Matrix4 viewMatrix = light->getWorldToCameraMatrix();
+                pCB1->loadData(&viewMatrix, FLOAT4X4);
+
+                const Matrix4 projectionMatrix = light->getProjectionMatrix();
+                pCB1->loadData(&projectionMatrix, FLOAT4X4);
+
+                // DEBUG
+                const Matrix4 frustumMatrix = viewMatrix.inverse() * projectionMatrix.inverse();
+                VisualDebug::DrawFrustum(frustumMatrix, Color::Green());
+            }
+        }
+
+        // Load light textures and samplers.
         for (int i = 0; i < lights.size(); i++)
         {
-            lights[i]->loadLightData(pCB1);
-            lights[i]->bindShadowMap(context, i, pCB1);
+            Light* light = lights[i];
+            
+            context->PSSetShaderResources(i, 1, &light->getShaderView());
+            context->PSSetSamplers(i, 1, &light->getSampler());
         }
+
+        // TEST
+        Texture* tex = assetManager->getTexture(Test);
+        
+        D3D11_TEXTURE2D_DESC tex_desc = {};
+        tex_desc.Width = tex->width;
+        tex_desc.Height = tex->height;
+        tex_desc.MipLevels = tex_desc.ArraySize = 1;
+        tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        tex_desc.SampleDesc.Count = 1;
+        tex_desc.Usage = D3D11_USAGE_DEFAULT;
+        tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+        tex_desc.CPUAccessFlags = 0;
+
+        D3D11_SUBRESOURCE_DATA sr_data = {};
+        sr_data.pSysMem = tex->data.data();
+        sr_data.SysMemPitch = tex->width * 4; // Bytes per row
+        sr_data.SysMemSlicePitch = tex->width * tex->height * 4; // Total byte size
+
+        ID3D11Texture2D* pTexture = NULL;
+        device->CreateTexture2D(&tex_desc, &sr_data, &pTexture);
+        assert(pTexture != NULL);
+
+        ID3D11ShaderResourceView* resourceView;
+        D3D11_SHADER_RESOURCE_VIEW_DESC tex_view;
+        tex_view.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        tex_view.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+        tex_view.Texture2D.MostDetailedMip = 0;
+        tex_view.Texture2D.MipLevels = 1;
+
+        device->CreateShaderResourceView(pTexture, &tex_view, &resourceView);
+        context->PSSetShaderResources(lights.size(), 1, &resourceView);
+        // --- 
 
         for (const AssetRenderRequest& assetRequest : assetRequests)
         {
             const Matrix4& mLocalToWorld = assetRequest.mLocalToWorld;
             AssetLoader* assetLoader = assetManager->getAssetLoader(assetRequest.slot);
             assetLoader->reset();
-
-            vCB2->clearData();
-            // Load mesh vertex transformation matrix
-            vCB2->loadData(&mLocalToWorld, FLOAT4X4);
-            // Load mesh normal transformation matrix 
-            Matrix4 normalTransform = mLocalToWorld.inverse().transpose();
-            vCB2->loadData(&(normalTransform), FLOAT4X4);
+            {
+                vCB2->clearData();
+                // Load mesh vertex transformation matrix
+                vCB2->loadData(&mLocalToWorld, FLOAT4X4);
+                // Load mesh normal transformation matrix 
+                Matrix4 normalTransform = mLocalToWorld.inverse().transpose();
+                vCB2->loadData(&(normalTransform), FLOAT4X4);
+            }
 
             // Load each mesh
             while (assetLoader->hasNextMesh())
@@ -324,6 +394,56 @@ namespace Graphics
             }
 
         }
+
+        // TEST: Create a texture.
+//D3D11_TEXTURE2D_DESC tex_desc = {};
+//tex_desc.Width = 256;
+//tex_desc.Height = 256;
+//tex_desc.MipLevels = tex_desc.ArraySize = 1;
+//tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+//tex_desc.SampleDesc.Count = 1;
+//tex_desc.Usage = D3D11_USAGE_DEFAULT;
+//tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+//tex_desc.CPUAccessFlags = 0;
+
+//D3D11_SUBRESOURCE_DATA sr_data = {};
+//unsigned char tex_resource[256 * 256 * 4]; // 256 x 256, 4 channels
+
+//for (int i = 0; i < 256 * 256; i++) {
+//    if (i % 2 == 0) {
+//        tex_resource[i * 4 + 0] = 255; // R
+//        tex_resource[i * 4 + 1] = 255; // G
+//        tex_resource[i * 4 + 2] = 0; // B
+//        tex_resource[i * 4 + 3] = 255; // A
+//    }
+//    else {
+//        tex_resource[i * 4 + 0] = 0; // R
+//        tex_resource[i * 4 + 1] = 255; // G
+//        tex_resource[i * 4 + 2] = 255; // B
+//        tex_resource[i * 4 + 3] = 255; // A
+//    }
+//    
+//}
+
+//sr_data.pSysMem = tex_resource;
+//sr_data.SysMemPitch = 256 * 4; // Bytes per row
+//sr_data.SysMemSlicePitch = 256 * 256 * 4; // Total byte size
+
+//ID3D11Texture2D* pTexture = NULL;
+//device->CreateTexture2D(&tex_desc, &sr_data, &pTexture);
+//assert(pTexture != NULL);
+
+//ID3D11ShaderResourceView* resourceView;
+//D3D11_SHADER_RESOURCE_VIEW_DESC tex_view;
+//tex_view.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+//tex_view.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+//tex_view.Texture2D.MostDetailedMip = 0;
+//tex_view.Texture2D.MipLevels = 1;
+
+//device->CreateShaderResourceView(pTexture, &tex_view, &resourceView);
+
+//context->PSSetShaderResources(lights.size(), 1, &resourceView);
+
 
     }
 

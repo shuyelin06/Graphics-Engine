@@ -21,6 +21,12 @@ namespace Graphics
 		AssetCount
 	};
 
+    enum TextureSlot
+    {
+        Test = 0, 
+        TextureCount
+    };
+
     // AssetWrapper:
     // Stores assets and their associated loader.
     // The loader is associated with the asset, and will
@@ -44,6 +50,7 @@ namespace Graphics
         ID3D11Device* device;
 
         std::vector<AssetWrapper> assets;
+        std::vector<Texture*> textures;
 
 	public:
 		AssetManager(ID3D11Device* device);
@@ -56,6 +63,9 @@ namespace Graphics
         Asset* getAsset(AssetSlot asset);
         // Get an asset loader by name 
         AssetLoader* getAssetLoader(AssetSlot asset);
+        
+        // Get a texture by name
+        Texture* getTexture(TextureSlot texture);
 
 	private:
 		// Generate a cube
@@ -64,6 +74,8 @@ namespace Graphics
 		// Load an asset from an OBJ file. Returns the index of the
 		// asset in the manager on success.
 		Asset* LoadAssetFromOBJ(std::string path, std::string objFile, std::string assetName);
+
+        Texture* LoadTextureFromPNG(std::string path, std::string pngFile);
 	};
 
 }

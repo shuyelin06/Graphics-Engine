@@ -95,5 +95,24 @@ namespace Math
 	{
 		return Quaternion(axis * sinf(theta), cosf(theta));
 	}
+
+    // RotationBetweenVectors:
+    // Generate a unit quaternion representing a rotation from one vector to another.
+    // - We can find an axis of rotation as the cross product between the two vectors
+    // - We can find the angle of rotation by taking acos(dot(u,v) / ||u|| ||v||)
+    Quaternion Quaternion::RotationToVector(const Vector3& from, const Vector3& to)
+    {
+        // TODO: Does not work the best
+        const Vector3 fromUnit = from.unit();
+        const Vector3 toUnit = to.unit();
+
+        // Axis of rotation is the cross product between the two vectors
+        const Vector3 axis = -fromUnit.cross(toUnit).unit();
+        
+        // Angle of rotation can be derived from the formula dot(u,v) = cos(theta) ||u|| ||v||
+        const float theta = atanf(fromUnit.cross(toUnit).magnitude() / fromUnit.dot(toUnit)) / 2;
+
+        return RotationAroundAxis(axis, theta);
+    }
 }
 }

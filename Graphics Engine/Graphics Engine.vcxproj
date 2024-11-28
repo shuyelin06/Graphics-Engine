@@ -128,15 +128,18 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>"lib\*.lib" %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -180,11 +183,12 @@
     <ClCompile Include="src\math\Matrix4.cpp" />
     <ClCompile Include="src\math\Vector4.cpp" />
     <ClCompile Include="src\rendering\components\Asset.cpp" />
+    <ClCompile Include="src\rendering\components\AssetBuilder.cpp" />
     <ClCompile Include="src\rendering\components\AssetLoader.cpp" />
     <ClCompile Include="src\rendering\components\Camera.cpp" />
     <ClCompile Include="src\rendering\components\Light.cpp" />
-    <ClCompile Include="src\rendering\components\VisualComponent.cpp" />
     <ClCompile Include="src\rendering\AssetManager.cpp" />
+    <ClCompile Include="src\rendering\parsers\PNGParser.cpp" />
     <ClCompile Include="src\rendering\Shader.cpp" />
     <ClCompile Include="src\rendering\ShaderManager.cpp" />
     <ClCompile Include="src\rendering\Texture.cpp" />
@@ -197,6 +201,8 @@
     <ClCompile Include="src\utility\Stopwatch.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\zconf.h" />
+    <ClInclude Include="include\zlib.h" />
     <ClInclude Include="src\datamodel\Component.h" />
     <ClInclude Include="src\datamodel\Terrain.h" />
     <ClInclude Include="src\datamodel\TerrainLookupTables.h" />
@@ -219,10 +225,10 @@
     <ClInclude Include="src\math\Matrix4.h" />
     <ClInclude Include="src\math\Vector4.h" />
     <ClInclude Include="src\rendering\components\Asset.h" />
+    <ClInclude Include="src\rendering\components\AssetBuilder.h" />
     <ClInclude Include="src\rendering\components\AssetLoader.h" />
     <ClInclude Include="src\rendering\components\Camera.h" />
     <ClInclude Include="src\rendering\components\Light.h" />
-    <ClInclude Include="src\rendering\components\VisualComponent.h" />
     <ClInclude Include="src\rendering\AssetManager.h" />
     <ClInclude Include="src\rendering\Shader.h" />
     <ClInclude Include="src\rendering\ShaderManager.h" />

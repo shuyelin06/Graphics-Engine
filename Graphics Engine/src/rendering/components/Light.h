@@ -20,17 +20,17 @@ namespace Graphics
 	class Light
         : public Camera
 	{
-	private:
+	protected:
 		// Light emission color
 		Color color;
 
 		// Shadow map texture, and associated data to
 		// let us bind it to the shader and render to it.
 		ID3D11Texture2D* shadow_map;
-		D3D11_VIEWPORT viewport;
-
+		
 		// Enables rendering to the texture
-		ID3D11DepthStencilView* depth_stencil_view;
+        D3D11_VIEWPORT viewport;
+        ID3D11DepthStencilView* depth_stencil_view;
 		
 		// Enables use of / sampling of the texture in shaders
 		ID3D11ShaderResourceView* shader_resource_view;
@@ -40,14 +40,15 @@ namespace Graphics
 		Light(ID3D11Device* device);
 		~Light();
 
-		// Load light data to a constant buffer
-		void loadLightData(CBHandle* handle) const;
+        // Accessors of the Light's Data
+        Color& getColor();
 
-		// Set render target to be the texture
-		void setRenderTarget(ID3D11DeviceContext* context);
+        D3D11_VIEWPORT& getViewport();
+        ID3D11DepthStencilView*& getDepthView();
 
-		// Bind the shadow map to a texture slot
-		void bindShadowMap(ID3D11DeviceContext* context, int slot_index, CBHandle* cbHandle);
+        ID3D11ShaderResourceView*& getShaderView();
+        ID3D11SamplerState*& getSampler();
+
 	};
 }
 }

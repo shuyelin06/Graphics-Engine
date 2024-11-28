@@ -42,6 +42,9 @@ namespace Graphics
     void AssetManager::initialize()
     {
         assets.resize(AssetCount);
+        textures.resize(TextureCount);
+
+        textures[Test] = LoadTextureFromPNG("data/", "test.png");
 
         assets[Cube] = AssetWrapper(LoadCube(), device);
         // Fox by Jake Blakeley [CC-BY] via Poly Pizza
@@ -50,6 +53,8 @@ namespace Graphics
         Datamodel::Terrain terrain = Datamodel::Terrain();
         terrain.generateMesh();
         assets[Terrain] = AssetWrapper(terrain.getMesh(), device);
+
+        
     }
 
     // GetAsset:
@@ -68,6 +73,12 @@ namespace Graphics
         return assets[asset].loader;
     }
     
+    Texture* AssetManager::getTexture(TextureSlot texture)
+    {
+        assert(0 <= texture && texture <= textures.size());
+        return textures[texture];
+    }
+
 	// LoadMeshFromOBJ
 	// Implements a simple OBJ file parser to load an asset.
     // Meshes can only have one material; so an obj file with multiple materials

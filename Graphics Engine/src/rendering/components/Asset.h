@@ -44,6 +44,16 @@ namespace Graphics
 		MeshTriangle(int v0, int v1, int v2);
 	};
 
+    // Struct Texture:
+    // Specifies a 2D array of data for a mesh.
+    struct Texture
+    {
+        std::vector<uint8_t> data;
+
+        unsigned int width;
+        unsigned int height;
+    };
+
 	// Struct Material:
 	// Specifies renderable properties for a mesh
 	struct Material

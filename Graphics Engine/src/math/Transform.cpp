@@ -47,6 +47,14 @@ namespace Math
 		return rotation;
 	}
 
+    // LookAt:
+    // Updates the object's rotation so that the object faces the target vector.
+    // Assumes that the object's "view" is on the +Z axis. 
+    void Transform::lookAt(const Vector3& target) 
+    {
+        rotation = Quaternion::RotationToVector(Vector3::PositiveZ(), target);
+    }
+
 	// SetRotation:
 	void Transform::setRotation(const Quaternion& quaternion)
 	{

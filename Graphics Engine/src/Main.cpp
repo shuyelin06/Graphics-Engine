@@ -198,6 +198,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         physics_system.update();
         
         // Update Rendering System
+        child2.getTransform().lookAt(visual_system.getCamera().getTransform()->getPosition());
+        // child2.getTransform().offsetRotation(Vector3::NegativeX(), 0.05f);
         visual_system.drawAsset(AssetSlot::Terrain, child1.getLocalMatrix());
         visual_system.drawAsset(AssetSlot::Fox, child2.getLocalMatrix());
         visual_system.drawAsset(AssetSlot::Cube, child3.getLocalMatrix());
