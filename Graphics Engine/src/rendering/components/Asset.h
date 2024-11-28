@@ -48,7 +48,8 @@ namespace Graphics
     // Specifies a 2D array of data for a mesh.
     struct Texture
     {
-        std::vector<uint8_t> data;
+        ID3D11Texture2D* texture;
+        ID3D11ShaderResourceView* view;
 
         unsigned int width;
         unsigned int height;

@@ -326,35 +326,7 @@ namespace Graphics
 
         // TEST
         Texture* tex = assetManager->getTexture(Test);
-        
-        D3D11_TEXTURE2D_DESC tex_desc = {};
-        tex_desc.Width = tex->width;
-        tex_desc.Height = tex->height;
-        tex_desc.MipLevels = tex_desc.ArraySize = 1;
-        tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-        tex_desc.SampleDesc.Count = 1;
-        tex_desc.Usage = D3D11_USAGE_DEFAULT;
-        tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-        tex_desc.CPUAccessFlags = 0;
-
-        D3D11_SUBRESOURCE_DATA sr_data = {};
-        sr_data.pSysMem = tex->data.data();
-        sr_data.SysMemPitch = tex->width * 4; // Bytes per row
-        sr_data.SysMemSlicePitch = tex->width * tex->height * 4; // Total byte size
-
-        ID3D11Texture2D* pTexture = NULL;
-        device->CreateTexture2D(&tex_desc, &sr_data, &pTexture);
-        assert(pTexture != NULL);
-
-        ID3D11ShaderResourceView* resourceView;
-        D3D11_SHADER_RESOURCE_VIEW_DESC tex_view;
-        tex_view.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-        tex_view.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-        tex_view.Texture2D.MostDetailedMip = 0;
-        tex_view.Texture2D.MipLevels = 1;
-
-        device->CreateShaderResourceView(pTexture, &tex_view, &resourceView);
-        context->PSSetShaderResources(lights.size(), 1, &resourceView);
+        context->PSSetShaderResources(lights.size(), 1, &tex->view);
         // --- 
 
         for (const AssetRenderRequest& assetRequest : assetRequests)

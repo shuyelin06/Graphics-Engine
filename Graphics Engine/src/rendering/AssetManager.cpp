@@ -10,6 +10,7 @@
 
 #include <assert.h>
 
+#include "rendering/components/AssetBuilder.h"
 #include "utility/FileReader.h"
 #include "datamodel/Terrain.h"
 #include "math/Vector3.h"
@@ -44,7 +45,11 @@ namespace Graphics
         assets.resize(AssetCount);
         textures.resize(TextureCount);
 
-        textures[Test] = LoadTextureFromPNG("data/", "test.png");
+        TextureBuilder tex_builder = TextureBuilder(1,1);
+        
+        textures[Test] = tex_builder.generate(device);
+        LoadTextureFromPNG(tex_builder, "data/", "test.png");
+        textures[Test2] = tex_builder.generate(device);
 
         assets[Cube] = AssetWrapper(LoadCube(), device);
         // Fox by Jake Blakeley [CC-BY] via Poly Pizza

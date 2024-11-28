@@ -6,6 +6,7 @@
 #include "Direct3D11.h"
 
 #include "rendering/components/AssetLoader.h"
+#include "rendering/components/AssetBuilder.h"
 #include "rendering/components/Asset.h"
 
 namespace Engine
@@ -24,6 +25,7 @@ namespace Graphics
     enum TextureSlot
     {
         Test = 0, 
+        Test2 = 1,
         TextureCount
     };
 
@@ -75,7 +77,7 @@ namespace Graphics
 		// asset in the manager on success.
 		Asset* LoadAssetFromOBJ(std::string path, std::string objFile, std::string assetName);
 
-        Texture* LoadTextureFromPNG(std::string path, std::string pngFile);
+        bool LoadTextureFromPNG(TextureBuilder& builder, std::string path, std::string pngFile);
 	};
 
 }

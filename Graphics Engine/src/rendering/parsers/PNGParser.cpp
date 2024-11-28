@@ -26,14 +26,14 @@ namespace Graphics
     // http://www.libpng.org/pub/png/spec/1.2/PNG-Chunks.html
     // Returns a dynamically allocated pointer to a texture on success,
     // and NULL on fail.
-    Texture* AssetManager::LoadTextureFromPNG(std::string path, std::string png_file)
+    bool AssetManager::LoadTextureFromPNG(TextureBuilder& builder, std::string path, std::string png_file)
     {
         // Open my PNG file, and return NULL if we failed to open the file
         const std::string file_name = path + png_file;
         
         FILE* file = fopen(file_name.c_str(), "rb");
         if (file == nullptr)
-            return NULL;
+            return false;
 
         // First 8 bytes of the file must match the PNG magic number.
         {
@@ -43,7 +43,7 @@ namespace Graphics
             fread(read_data, 1, 8, file);
 
             if (memcmp(read_data, png_code, 8) != 0)
-                assert(false);
+                return false;
         }
 
         PNGChunk chunk;
@@ -58,7 +58,7 @@ namespace Graphics
             if (result != SUCCESS 
                 || memcmp(chunk.chunk_type, "IHDR", 4) != 0
                 || chunk.chunk_data.size() != 13)
-                return NULL;
+                return false;
 
             // Parse the fields of the IHDR chunk. They are (in order):
             // 1) Image (Pixel) Width: 4 Bytes
@@ -74,7 +74,7 @@ namespace Graphics
             if (!(bit_depth == 1 || bit_depth == 2 
                 || bit_depth == 4 || bit_depth == 8 
                 || bit_depth == 16)) // Bit depth can only be 1,2,4,8,16
-                return NULL;
+                return false;
 
             // 4) Color Type: 1 Byte
             color_type = chunk.chunk_data[9];
@@ -82,12 +82,12 @@ namespace Graphics
             // 5) Compression Method: 1 Byte
             compression = chunk.chunk_data[10];
             if (compression != 0) // Only compression == 0 supported
-                return NULL;
+                return false;
 
             // 6) Filter Method: 1 Byte
             filter = chunk.chunk_data[11];
             if (filter != 0) // Only filter == 0 supported
-                return NULL;
+                return false;
 
             // 7) Interlace Method
             interlace = chunk.chunk_data[12];
@@ -97,6 +97,9 @@ namespace Graphics
         assert(interlace == 0);     // No interlacing
         assert(color_type == 6);    // RGBA Channels
         assert(bit_depth == 8);     // 8 Bits per Sample
+
+        // Prepare my builder to begin loading the texture.
+        builder.reset(width, height);
 
         // We are dealing with a RGBA 8-bit image.
         std::vector<uint8_t> raw_data;
@@ -121,35 +124,23 @@ namespace Graphics
 
         // Read each scan-line, which has a width of (width * bytesPerPixel + 1), where
         // 1 accounts for the filtering method.
-        std::vector<uint8_t> reconstructed;
-
-        for (int i = 0; i < height; i++)
+        for (int y = 0; y < height; y++)
         {
-            uint8_t filter_method = decompressed[i * (width * BYTES_PER_PIXEL + 1) + 0];
+            uint8_t filter_method = decompressed[y * (width * BYTES_PER_PIXEL + 1) + 0];
             assert(filter_method == 0);
 
-            for (int j = 0; j < width; j++) 
+            for (int x = 0; x < width; x++) 
             {
-                uint8_t r = decompressed[i * (width * BYTES_PER_PIXEL + 1) + (j * BYTES_PER_PIXEL) + 1];
-                uint8_t g = decompressed[i * (width * BYTES_PER_PIXEL + 1) + (j * BYTES_PER_PIXEL) + 2];
-                uint8_t b = decompressed[i * (width * BYTES_PER_PIXEL + 1) + (j * BYTES_PER_PIXEL) + 3];
-                uint8_t a = decompressed[i * (width * BYTES_PER_PIXEL + 1) + (j * BYTES_PER_PIXEL) + 4];
+                uint8_t r = decompressed[y * (width * BYTES_PER_PIXEL + 1) + (x * BYTES_PER_PIXEL) + 1];
+                uint8_t g = decompressed[y * (width * BYTES_PER_PIXEL + 1) + (x * BYTES_PER_PIXEL) + 2];
+                uint8_t b = decompressed[y * (width * BYTES_PER_PIXEL + 1) + (x * BYTES_PER_PIXEL) + 3];
+                uint8_t a = decompressed[y * (width * BYTES_PER_PIXEL + 1) + (x * BYTES_PER_PIXEL) + 4];
 
-                reconstructed.push_back(r);
-                reconstructed.push_back(g);
-                reconstructed.push_back(b);
-                reconstructed.push_back(a);
+                builder.setColor(x,y,{r,g,b,a});
             }
         }
 
-        assert(reconstructed.size() == (width * height * BYTES_PER_PIXEL));
-
-        Texture* tex = new Texture();
-        tex->data = reconstructed;
-        tex->width = width;
-        tex->height = height;
-
-        return tex;
+        return true;
     }
 
     // Reads a PNG Chunk. A PNG Chunk Consists of:
