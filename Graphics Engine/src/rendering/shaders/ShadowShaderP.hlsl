@@ -11,8 +11,11 @@ struct LightData
     float4x4 m_projection;
 };
 
-Texture2D lightDepthMaps[10] : register(t0);
-SamplerState lightDepthSamplers[10] : register(s0);
+Texture2D mesh_texture : register(t0);
+Texture2D lightDepthMaps[10] : register(t1);
+
+SamplerState mesh_sampler : register(s0);
+SamplerState light_depth_sampler : register(s1);
 
 cbuffer CB1 : register(b1)
 {
@@ -35,7 +38,8 @@ struct VS_OUT
 // Takes clipping coordinates, and returns a color
 float4 ps_main(VS_OUT input) : SV_TARGET
 {
-    float4 color = float4(0, 0.15f, 0.25f, 1.0f);
+    // FORCE USAGE OF MESH TEXTURE?
+    float4 color = mesh_texture.Sample(mesh_sampler, float2(0.5f, 0.5f));
     
     for (int i = 0; i < light_count; i++)
     {
@@ -56,8 +60,8 @@ float4 ps_main(VS_OUT input) : SV_TARGET
                 // Now, sample the light's shadow map to see its depth at that location, i.e.
                 // how "far" it can see.
                 float2 shadowmap_coords = float2((view_position.x + 1) / 2.f, (-view_position.y + 1) / 2.f);
-                float sampledDepth = lightDepthMaps[i].Sample(lightDepthSamplers[i], shadowmap_coords).r;
-    
+                float sampledDepth = lightDepthMaps[i].Sample(light_depth_sampler, shadowmap_coords).r;
+                
                 // If sampled depth is < depth, that means the light cannot see the
                 // point, so its in shadow.
                 // To represent this,

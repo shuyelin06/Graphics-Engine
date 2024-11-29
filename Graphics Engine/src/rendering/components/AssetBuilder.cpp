@@ -187,6 +187,22 @@ namespace Graphics
 
         device->CreateShaderResourceView(texture_resource->texture, &tex_view, &(texture_resource->view));
 
+        // Generate a sampler for my texture
+        D3D11_SAMPLER_DESC sampler = {};
+        sampler.Filter = D3D11_FILTER_ANISOTROPIC;
+        sampler.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
+        sampler.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
+        sampler.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
+        sampler.BorderColor[0] = 0.f;
+        sampler.BorderColor[1] = 0.f;
+        sampler.BorderColor[2] = 0.f;
+        sampler.BorderColor[3] = 0.f;
+        sampler.ComparisonFunc = D3D11_COMPARISON_NEVER;
+        sampler.MinLOD = 0;
+        sampler.MaxLOD = 1.0f;
+
+        device->CreateSamplerState(&sampler, &(texture_resource->sampler));
+
         return texture_resource;
     }
     

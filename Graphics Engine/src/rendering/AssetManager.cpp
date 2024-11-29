@@ -36,11 +36,17 @@ namespace Graphics
     {
         // Create my textures
         textures.resize(TextureCount);
-        TextureBuilder tex_builder = TextureBuilder(device, 1, 1);
+        TextureBuilder tex_builder = TextureBuilder(device, 10, 10);
 
         textures[Test] = tex_builder.generate();
         LoadTextureFromPNG(tex_builder, "data/", "test.png");
         textures[Test2] = tex_builder.generate();
+
+        // Create my samplers
+        samplers.resize(SamplerCount);
+
+        samplers[ShadowMap] = LoadShadowMapSampler();
+        samplers[MeshTexture] = LoadMeshTextureSampler();
 
         // Create my assets 
         assets.resize(AssetCount);
@@ -69,6 +75,12 @@ namespace Graphics
     {
         assert(0 <= texture && texture <= textures.size());
         return textures[texture];
+    }
+
+    ID3D11SamplerState* AssetManager::getSampler(SamplerSlot sampler)
+    {
+        assert(0 <= sampler && sampler <= samplers.size());
+        return samplers[sampler];
     }
 
 	// LoadMeshFromOBJ
@@ -463,6 +475,54 @@ namespace Graphics
         cube->addMesh(builder.generate());
 
         return cube; 
+    }
+
+    // Load___Sampler:
+    // Create Texture Samplers!
+    ID3D11SamplerState* AssetManager::LoadShadowMapSampler()
+    {
+        ID3D11SamplerState* sampler;
+
+        D3D11_SAMPLER_DESC sampler_desc = {};
+        sampler_desc.Filter = D3D11_FILTER_ANISOTROPIC;
+        sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
+        sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
+        sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
+        sampler_desc.BorderColor[0] = 0.f;
+        sampler_desc.BorderColor[1] = 0.f;
+        sampler_desc.BorderColor[2] = 0.f;
+        sampler_desc.BorderColor[3] = 0.f;
+        sampler_desc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+        sampler_desc.MinLOD = 0;
+        sampler_desc.MaxLOD = 1.0f;
+
+        device->CreateSamplerState(&sampler_desc, &sampler);
+        assert(sampler != NULL);
+
+        return sampler;
+    }
+
+    ID3D11SamplerState* AssetManager::LoadMeshTextureSampler()
+    {
+        ID3D11SamplerState* sampler;
+
+        D3D11_SAMPLER_DESC sampler_desc = {};
+        sampler_desc.Filter = D3D11_FILTER_ANISOTROPIC;
+        sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
+        sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
+        sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
+        sampler_desc.BorderColor[0] = 0.f;
+        sampler_desc.BorderColor[1] = 0.f;
+        sampler_desc.BorderColor[2] = 0.f;
+        sampler_desc.BorderColor[3] = 0.f;
+        sampler_desc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+        sampler_desc.MinLOD = 0;
+        sampler_desc.MaxLOD = 1.0f;
+
+        device->CreateSamplerState(&sampler_desc, &sampler);
+        assert(sampler != NULL);
+
+        return sampler;
     }
 }
 }

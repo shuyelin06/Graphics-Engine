@@ -312,19 +312,27 @@ namespace Graphics
             }
         }
 
-        // Load light textures and samplers.
-        for (int i = 0; i < lights.size(); i++)
+        // Load my Textures
         {
-            Light* light = lights[i];
-            
-            context->PSSetShaderResources(i, 1, &light->getShaderView());
-            context->PSSetSamplers(i, 1, &light->getSampler());
+            Texture* tex = assetManager->getTexture(Test);
+            context->PSSetShaderResources(0, 1, &tex->view);
+
+            // Load light textures and samplers.
+            for (int i = 0; i < lights.size(); i++)
+            {
+                Light* light = lights[i];
+                context->PSSetShaderResources(i + 1, 1, &light->getShaderView());
+            }
         }
 
-        // TEST
-        Texture* tex = assetManager->getTexture(Test);
-        context->PSSetShaderResources(lights.size(), 1, &tex->view);
-        // --- 
+        // Load my Samplers
+        {
+            ID3D11SamplerState* mesh_texture_sampler = assetManager->getSampler(MeshTexture);
+            context->PSSetSamplers(0, 1, &mesh_texture_sampler);
+
+            ID3D11SamplerState* shadowmap_sampler = assetManager->getSampler(ShadowMap);
+            context->PSSetSamplers(1, 1, &shadowmap_sampler);
+        }
 
         for (const AssetRenderRequest& assetRequest : assetRequests)
         {

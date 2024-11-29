@@ -28,6 +28,13 @@ namespace Graphics
         TextureCount
     };
 
+    enum SamplerSlot 
+    {
+        ShadowMap = 0,
+        MeshTexture = 1,
+        SamplerCount
+    };
+
 	// AssetManager Class:
 	// Manages assets for the engine. Provides methods
 	// to load assets, and prepare them for rendering. 
@@ -38,6 +45,7 @@ namespace Graphics
 
         std::vector<Asset*> assets;
         std::vector<Texture*> textures;
+        std::vector<ID3D11SamplerState*> samplers;
 
 	public:
 		AssetManager(ID3D11Device* device);
@@ -50,6 +58,8 @@ namespace Graphics
         Asset* getAsset(AssetSlot asset);
         // Get a texture by name
         Texture* getTexture(TextureSlot texture);
+        // Get a sampler by name
+        ID3D11SamplerState* getSampler(SamplerSlot sampler);
 
 	private:
 		// Generate a cube
@@ -60,6 +70,10 @@ namespace Graphics
 		Asset* LoadAssetFromOBJ(MeshBuilder& builder, std::string path, std::string objFile, std::string assetName);
 
         bool LoadTextureFromPNG(TextureBuilder& builder, std::string path, std::string pngFile);
+
+        // Load Samplers
+        ID3D11SamplerState* LoadShadowMapSampler();
+        ID3D11SamplerState* LoadMeshTextureSampler();
 	};
 
 }
