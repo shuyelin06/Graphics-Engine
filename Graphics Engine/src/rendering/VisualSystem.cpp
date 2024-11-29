@@ -219,8 +219,7 @@ namespace Graphics
             for (const AssetRenderRequest& assetRequest : assetRequests)
             {
                 const Matrix4& mLocalToWorld = assetRequest.mLocalToWorld;
-                AssetLoader* assetLoader = assetManager->getAssetLoader(assetRequest.slot);
-                assetLoader->reset();
+                Asset* asset = assetManager->getAsset(assetRequest.slot);
 
                 vCB2->clearData();
                 {
@@ -232,13 +231,11 @@ namespace Graphics
                 }
                 
                 // Load each mesh
-                while (assetLoader->hasNextMesh())
+                for (Mesh* mesh : asset->getMeshes())
                 {
-                    const MeshLoader& meshLoader = assetLoader->nextMesh();
-
-                    ID3D11Buffer* indexBuffer = meshLoader.getIndexBuffer();
-                    ID3D11Buffer* vertexBuffer = meshLoader.getVertexBuffer(); 
-                    int numIndices = meshLoader.getTriangleCount() * 3;
+                    ID3D11Buffer* indexBuffer = mesh->index_buffer;
+                    ID3D11Buffer* vertexBuffer = mesh->vertex_buffer; 
+                    int numIndices = mesh->triangle_count * 3;
 
                     UINT vertexStride = sizeof(MeshVertex);
                     UINT vertexOffset = 0;
@@ -332,8 +329,8 @@ namespace Graphics
         for (const AssetRenderRequest& assetRequest : assetRequests)
         {
             const Matrix4& mLocalToWorld = assetRequest.mLocalToWorld;
-            AssetLoader* assetLoader = assetManager->getAssetLoader(assetRequest.slot);
-            assetLoader->reset();
+            Asset* asset = assetManager->getAsset(assetRequest.slot);
+
             {
                 vCB2->clearData();
                 // Load mesh vertex transformation matrix
@@ -344,13 +341,11 @@ namespace Graphics
             }
 
             // Load each mesh
-            while (assetLoader->hasNextMesh())
+            for (Mesh* mesh : asset->getMeshes())
             {
-                const MeshLoader& meshLoader = assetLoader->nextMesh();
-
-                ID3D11Buffer* indexBuffer = meshLoader.getIndexBuffer();
-                ID3D11Buffer* vertexBuffer = meshLoader.getVertexBuffer();
-                int numIndices = meshLoader.getTriangleCount() * 3;
+                ID3D11Buffer* indexBuffer = mesh->index_buffer;
+                ID3D11Buffer* vertexBuffer = mesh->vertex_buffer;
+                int numIndices = mesh->triangle_count * 3;
 
                 UINT vertexStride = sizeof(MeshVertex);
                 UINT vertexOffset = 0;
@@ -366,57 +361,6 @@ namespace Graphics
             }
 
         }
-
-        // TEST: Create a texture.
-//D3D11_TEXTURE2D_DESC tex_desc = {};
-//tex_desc.Width = 256;
-//tex_desc.Height = 256;
-//tex_desc.MipLevels = tex_desc.ArraySize = 1;
-//tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-//tex_desc.SampleDesc.Count = 1;
-//tex_desc.Usage = D3D11_USAGE_DEFAULT;
-//tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-//tex_desc.CPUAccessFlags = 0;
-
-//D3D11_SUBRESOURCE_DATA sr_data = {};
-//unsigned char tex_resource[256 * 256 * 4]; // 256 x 256, 4 channels
-
-//for (int i = 0; i < 256 * 256; i++) {
-//    if (i % 2 == 0) {
-//        tex_resource[i * 4 + 0] = 255; // R
-//        tex_resource[i * 4 + 1] = 255; // G
-//        tex_resource[i * 4 + 2] = 0; // B
-//        tex_resource[i * 4 + 3] = 255; // A
-//    }
-//    else {
-//        tex_resource[i * 4 + 0] = 0; // R
-//        tex_resource[i * 4 + 1] = 255; // G
-//        tex_resource[i * 4 + 2] = 255; // B
-//        tex_resource[i * 4 + 3] = 255; // A
-//    }
-//    
-//}
-
-//sr_data.pSysMem = tex_resource;
-//sr_data.SysMemPitch = 256 * 4; // Bytes per row
-//sr_data.SysMemSlicePitch = 256 * 256 * 4; // Total byte size
-
-//ID3D11Texture2D* pTexture = NULL;
-//device->CreateTexture2D(&tex_desc, &sr_data, &pTexture);
-//assert(pTexture != NULL);
-
-//ID3D11ShaderResourceView* resourceView;
-//D3D11_SHADER_RESOURCE_VIEW_DESC tex_view;
-//tex_view.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-//tex_view.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-//tex_view.Texture2D.MostDetailedMip = 0;
-//tex_view.Texture2D.MipLevels = 1;
-
-//device->CreateShaderResourceView(pTexture, &tex_view, &resourceView);
-
-//context->PSSetShaderResources(lights.size(), 1, &resourceView);
-
-
     }
 
     void VisualSystem::renderDebugPoints()
@@ -430,7 +374,21 @@ namespace Graphics
         vShader->getCBHandle(CB1)->clearData();
 
         Asset* cube = assetManager->getAsset(Cube);
-        int numIndices = cube->getMesh(0)->loadIndexVertexData(context, device);
+        Mesh* mesh = cube->getMesh(0);
+
+        ID3D11Buffer* indexBuffer = mesh->index_buffer;
+        ID3D11Buffer* vertexBuffer = mesh->vertex_buffer;
+        int numIndices = mesh->triangle_count * 3;
+
+        UINT vertexStride = sizeof(MeshVertex);
+        UINT vertexOffset = 0;
+
+        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        context->IASetVertexBuffers(0, 1, &vertexBuffer, &vertexStride, &vertexOffset);
+        context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+        vShader->bindShader(device, context);
+        pShader->bindShader(device, context);
 
         int numPoints = VisualDebug::LoadPointData(vShader->getCBHandle(CB0));
 

@@ -861,6 +861,7 @@ namespace Datamodel
 
 	void Terrain::generateMesh()
 	{
+    /*
 		if (mesh != nullptr)
 			delete mesh;
 
@@ -908,6 +909,7 @@ namespace Datamodel
 		}
 
 		meshData->lockMesh(true);
+        */
 	}
 
 }

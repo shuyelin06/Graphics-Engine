@@ -8,15 +8,62 @@ namespace Engine
 {
 namespace Graphics
 {
-    // AssetBuilder Class:
-    // Enables creation of assets, that can be read into
-    class AssetBuilder {
-    
-    };
+    typedef unsigned int UINT;
 
     // MeshBuilder Class:
-    // Enables creation of meshes
-    
+    // Enables creation of meshes. Meshes are represented by a vertex and index buffer.
+    // The vertex buffer stores all vertices in the mesh, and the index buffer references
+    // these vertices by index to create triangles for the mesh.
+    struct MeshVertex 
+    {
+        Vector3 position;
+        Vector2 textureCoord;
+        Vector3 normal;
+
+        MeshVertex();
+        MeshVertex(const MeshVertex& vertex);
+        MeshVertex(const Vector3& pos, const Vector2& tex, const Math::Vector3& norm);
+    };
+
+    struct MeshTriangle
+    {
+        UINT vertex0;
+        UINT vertex1;
+        UINT vertex2;
+
+        MeshTriangle();
+        MeshTriangle(UINT v0, UINT v1, UINT v2);
+    };
+
+    class MeshBuilder {
+    private:
+        // Device interface for creating GPU resources
+        ID3D11Device* device;
+
+        std::vector<MeshVertex> vertex_buffer;
+        std::vector<MeshTriangle> index_buffer;
+
+    public:
+        MeshBuilder(ID3D11Device* device);
+        ~MeshBuilder();
+
+        // Generates the Mesh for use in the rendering pipeline
+        Mesh* generate();
+
+        // Add a vertex to the builder, and returns the index corresponding to 
+        // this vertex.
+        UINT addVertex(const Vector3& pos, const Vector2& tex, const Vector3& norm);
+        
+        // Add a triangle to the builder, based on indices.
+        void addTriangle(UINT v1, UINT v2, UINT v3);
+
+        // Discard the current normals for the mesh and regenerate them
+        void regenerateNormals();
+
+        // Resets the builder, so it can be used to generate another mesh 
+        void reset();
+    };
+
     // TextureBuilder Class:
     // Provides an interface for creating Textures.
     // Only supports R8G8B8A8 textures.
@@ -31,17 +78,20 @@ namespace Graphics
     class TextureBuilder
     {
     private:
+        // Device interface for creating GPU resources
+        ID3D11Device* device;
+
         unsigned int pixel_width;
         unsigned int pixel_height;
 
         std::vector<TextureColor> data;
 
     public:
-        TextureBuilder(unsigned int _width, unsigned int _height);
+        TextureBuilder(ID3D11Device* device, unsigned int _width, unsigned int _height);
         ~TextureBuilder();
 
         // Generates the renderable texture
-        Texture* generate(ID3D11Device* device);
+        Texture* generate();
 
         // Sets the color for a particular pixel
         void setColor(unsigned int x, unsigned int y, const TextureColor& rgba);

@@ -184,7 +184,6 @@
     <ClCompile Include="src\math\Vector4.cpp" />
     <ClCompile Include="src\rendering\components\Asset.cpp" />
     <ClCompile Include="src\rendering\components\AssetBuilder.cpp" />
-    <ClCompile Include="src\rendering\components\AssetLoader.cpp" />
     <ClCompile Include="src\rendering\components\Camera.cpp" />
     <ClCompile Include="src\rendering\components\Light.cpp" />
     <ClCompile Include="src\rendering\AssetManager.cpp" />
@@ -226,7 +225,6 @@
     <ClInclude Include="src\math\Vector4.h" />
     <ClInclude Include="src\rendering\components\Asset.h" />
     <ClInclude Include="src\rendering\components\AssetBuilder.h" />
-    <ClInclude Include="src\rendering\components\AssetLoader.h" />
     <ClInclude Include="src\rendering\components\Camera.h" />
     <ClInclude Include="src\rendering\components\Light.h" />
     <ClInclude Include="src\rendering\AssetManager.h" />

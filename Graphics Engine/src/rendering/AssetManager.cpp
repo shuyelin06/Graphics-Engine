@@ -24,14 +24,6 @@ using namespace Math;
 using namespace Utility;
 namespace Graphics
 {
-    AssetWrapper::AssetWrapper(Asset* _asset, ID3D11Device* device)
-    {
-        asset = _asset;
-        loader = new AssetLoader(_asset, device);
-    }
-
-	// Constructor and Destructor
-    AssetWrapper::AssetWrapper() = default;
     AssetManager::AssetManager(ID3D11Device* _device)
     {
         device = _device;
@@ -45,19 +37,21 @@ namespace Graphics
         assets.resize(AssetCount);
         textures.resize(TextureCount);
 
-        TextureBuilder tex_builder = TextureBuilder(1,1);
+        TextureBuilder tex_builder = TextureBuilder(device, 1, 1);
+        MeshBuilder mesh_builder = MeshBuilder(device);
         
-        textures[Test] = tex_builder.generate(device);
+        textures[Test] = tex_builder.generate();
         LoadTextureFromPNG(tex_builder, "data/", "test.png");
-        textures[Test2] = tex_builder.generate(device);
+        textures[Test2] = tex_builder.generate();
 
-        assets[Cube] = AssetWrapper(LoadCube(), device);
+        assets[Cube] = LoadCube(mesh_builder);
         // Fox by Jake Blakeley [CC-BY] via Poly Pizza
-        assets[Fox] = AssetWrapper(LoadAssetFromOBJ("data/", "model.obj", "Model"), device);
+        assets[Fox] = LoadAssetFromOBJ(mesh_builder, "data/", "model.obj", "Model");
 
         Datamodel::Terrain terrain = Datamodel::Terrain();
         terrain.generateMesh();
-        assets[Terrain] = AssetWrapper(terrain.getMesh(), device);
+        assets[Terrain] = LoadAssetFromOBJ(mesh_builder, "data/", "model.obj", "Model");
+        // AssetWrapper(terrain.getMesh(), device);
 
         
     }
@@ -67,15 +61,7 @@ namespace Graphics
     Asset* AssetManager::getAsset(AssetSlot asset)
     {
         assert(0 <= asset && asset < assets.size());
-        return assets[asset].asset;
-    }
-
-    // GetAssetLoader:
-    // Return an asset's loader by name
-    AssetLoader* AssetManager::getAssetLoader(AssetSlot asset)
-    {
-        assert(0 <= asset && asset < assets.size());
-        return assets[asset].loader;
+        return assets[asset];
     }
     
     Texture* AssetManager::getTexture(TextureSlot texture)
@@ -109,17 +95,16 @@ namespace Graphics
 
     static void ParseMaterials(std::string path, std::string material_file, OBJData& data);
 
-    Asset* AssetManager::LoadAssetFromOBJ(std::string path, std::string objFile, std::string assetName)
+    Asset* AssetManager::LoadAssetFromOBJ(MeshBuilder& builder, std::string path, std::string objFile, std::string assetName)
 	{
 		// Open target file with file reader
         TextFileReader fileReader = TextFileReader(path + objFile);
 		
 		// List of (indexed) vertex positions, textures and normals
 		OBJData data;
-        data.asset = new Asset();
 
-        // Active mesh
-        Mesh* activeMesh = nullptr;
+        data.asset = new Asset();
+        builder.reset();
 
         // Maps "_/_/_" index strings to vertex indices
         // for the active mesh
@@ -171,35 +156,29 @@ namespace Graphics
                 // Use Material (usemtl): Create mesh w/ given material
                 else if (token == "usemtl")
                 {
-                    // Finish active mesh by locking it
-                    if (activeMesh != nullptr)
-                        activeMesh->lockMesh(true);
-
-                    // Retrieve material
-                    std::string materialName;
-                    fileReader.readString(&materialName, ' ');
-                    assert(data.materialMap.contains(materialName));
-                    Material* material = data.materialMap[materialName];
-
-                    // Create mesh and assign the material
-                    activeMesh = data.asset->newMesh();
-                    activeMesh->setMaterial(material);
-
-                    // Clear vertex map
-                    vertexMap.clear();
-                }
-                // Face Data (f): Register vertex data under the mesh
-                else if (token == "f")
-                {
-                    // If there is no active mesh, create one.
-                    if (activeMesh == nullptr)
+                    // Create a mesh from the builder
+                    Mesh* newMesh = builder.generate();
+                    
+                    if (newMesh != nullptr)
                     {
-                        activeMesh = data.asset->newMesh();
+                        data.asset->addMesh(newMesh);
+
+                        // Retrieve material
+                        std::string materialName;
+                        
+                        fileReader.readString(&materialName, ' ');
+                        assert(data.materialMap.contains(materialName));
+                        
+                        Material* material = data.materialMap[materialName];
+                        newMesh->material = material;
 
                         // Clear vertex map
                         vertexMap.clear();
                     }
-
+                }
+                // Face Data (f): Register vertex data under the mesh
+                else if (token == "f")
+                {
                     // Stores the indices for this face. If there are >3 vertices, we'll have to
                     // triangulate the face.
                     std::vector<int> indices;
@@ -217,9 +196,6 @@ namespace Graphics
                         // Otherwise, create a new vertex in the vertex buffer
                         // and register the combination in the vertex_map.
                         else {
-                            vertexIndex = activeMesh->vertexCount();
-                            vertexMap[vertexData] = vertexIndex;
-
                             // Parse the _/_/_ vertex combination. Note that OBJ files
                             // are 1-indexed, whereas our vectors are 0-indexed.
                             MeshVertex newVertex = MeshVertex();
@@ -245,7 +221,8 @@ namespace Graphics
                             else
                                 newVertex.normal = Vector3(0, 0, 0);
 
-                            activeMesh->addVertex(newVertex);
+                            vertexIndex = builder.addVertex(newVertex.position, newVertex.textureCoord, newVertex.normal);
+                            vertexMap[vertexData] = vertexIndex;
                         }
 
                         // Log index
@@ -262,7 +239,7 @@ namespace Graphics
                     for (int i = 2; i < indices.size(); i++)
                     {
                         MeshTriangle triangle = MeshTriangle(indices[0], indices[i - 1], indices[i]);
-                        activeMesh->addTriangle(triangle);
+                        builder.addTriangle(triangle.vertex0, triangle.vertex1, triangle.vertex2);
                     }
                 }
                 // Print if unhandled
@@ -277,8 +254,12 @@ namespace Graphics
 		}
 
         // Finish active mesh by locking it
-        if (activeMesh != nullptr)
-            activeMesh->lockMesh(true);
+        Mesh* newMesh = builder.generate();
+        
+        if (newMesh != nullptr)
+        {
+            data.asset->addMesh(newMesh);
+        }
 
         return data.asset;
 	}
@@ -314,7 +295,10 @@ namespace Graphics
 
                     // Create a new material and register it to its name.
                     // Set it as the active material to work on.
-                    activeMaterial = data.asset->newMaterial();
+                    Material* temp = new Material();
+                    data.asset->addMaterial(temp);
+                    activeMaterial = temp;
+
                     data.materialMap[matName] = activeMaterial;
                 }
                 else if (token == "Ka")
@@ -413,7 +397,7 @@ namespace Graphics
 
     // Hard-Coded Cube Creator
     // Used in debugging
-    Asset* AssetManager::LoadCube()
+    Asset* AssetManager::LoadCube(MeshBuilder& builder)
     {
         // We duplicate vertices so that the cube has sharp normals.
         const MeshVertex vertices[] =
@@ -461,21 +445,21 @@ namespace Graphics
         };
 
         Asset* cube = new Asset();
-        Mesh* mesh = cube->newMesh();
+        builder.reset();
 
         for (int i = 0; i < 24; i++)
         {
             MeshVertex vertex = vertices[i];
-            mesh->addVertex(vertex);
+            builder.addVertex(vertex.position, vertex.textureCoord, vertex.normal);
         }
 
         for (int i = 0; i < 12; i++)
         {
             MeshTriangle triangle = MeshTriangle(indices[i * 3], indices[i * 3 + 1], indices[i * 3 + 2]);
-            mesh->addTriangle(triangle);
+            builder.addTriangle(triangle.vertex0, triangle.vertex1, triangle.vertex2);
         }
 
-        mesh->lockMesh(false);
+        cube->addMesh(builder.generate());
 
         return cube; 
     }
