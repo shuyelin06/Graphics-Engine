@@ -39,6 +39,7 @@
 #include "math/Compute.h"
 #include "utility/Stopwatch.h"
 
+#include "datamodel/Object.h"
 #include "datamodel/Terrain.h"
 
 using namespace Engine;

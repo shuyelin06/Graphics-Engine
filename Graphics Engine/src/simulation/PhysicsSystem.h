@@ -4,8 +4,6 @@
 
 #include "utility/Stopwatch.h"
 
-#include "components/KinematicComponent.h"
-
 namespace Engine
 {
 namespace Simulation

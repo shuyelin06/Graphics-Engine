@@ -1,7 +1,5 @@
 #include "Object.h"
 
-#include "Component.h"
-
 #include <math.h>
 
 namespace Engine
@@ -29,10 +27,6 @@ namespace Datamodel
 	// and components.
 	Object::~Object()
 	{
-		// Deallocate components
-		for (auto& pair : components)
-			delete pair.second;
-
 		// Deallocate children
 		for (Object* child : children)
 			delete child;

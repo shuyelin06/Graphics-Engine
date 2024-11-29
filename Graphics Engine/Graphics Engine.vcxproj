@@ -162,7 +162,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\datamodel\Component.cpp" />
+    <ClCompile Include="src\datamodel\SceneGraph.cpp" />
     <ClCompile Include="src\datamodel\Terrain.cpp" />
     <ClCompile Include="src\input\components\MovementHandler.cpp" />
     <ClCompile Include="src\math\Transform.cpp" />
@@ -191,7 +191,6 @@
     <ClCompile Include="src\rendering\Shader.cpp" />
     <ClCompile Include="src\rendering\ShaderManager.cpp" />
     <ClCompile Include="src\rendering\Texture.cpp" />
-    <ClCompile Include="src\simulation\components\KinematicComponent.cpp" />
     <ClCompile Include="src\simulation\PhysicsSystem.cpp" />
     <ClCompile Include="src\rendering\parsers\PLYParser.cpp" />
     <ClCompile Include="src\rendering\VisualDebug.cpp" />
@@ -202,7 +201,7 @@
   <ItemGroup>
     <ClInclude Include="include\zconf.h" />
     <ClInclude Include="include\zlib.h" />
-    <ClInclude Include="src\datamodel\Component.h" />
+    <ClInclude Include="src\datamodel\SceneGraph.h" />
     <ClInclude Include="src\datamodel\Terrain.h" />
     <ClInclude Include="src\datamodel\TerrainLookupTables.h" />
     <ClInclude Include="src\input\components\MovementHandler.h" />
@@ -231,7 +230,6 @@
     <ClInclude Include="src\rendering\Shader.h" />
     <ClInclude Include="src\rendering\ShaderManager.h" />
     <ClInclude Include="src\rendering\Texture.h" />
-    <ClInclude Include="src\simulation\components\KinematicComponent.h" />
     <ClInclude Include="src\simulation\PhysicsSystem.h" />
     <ClInclude Include="src\rendering\Direct3D11.h" />
     <ClInclude Include="src\rendering\VisualDebug.h" />
