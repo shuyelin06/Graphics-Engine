@@ -7,28 +7,28 @@
 #include <assert.h>
 
 // Win32 Library Include
-#include <windows.h>
 #include <WindowsX.h> // Input Macros
+#include <windows.h>
 
 // Direct 3D 11 Library Includes
-#include <d3d11.h> // Direct 3D Interface
-#include <dxgi.h> // DirectX Driver Interface
+#include <d3d11.h>       // Direct 3D Interface
 #include <d3dcompiler.h> // Shader Compiler
+#include <dxgi.h>        // DirectX Driver Interface
 
-// Indicates Visual C++ to leave a command in the object file, which can be read by
-// the linker when it processes object files.
-// Tells the linker to add the "library" library to the list of library dependencies
-#pragma comment( lib, "user32" )          // link against the win32 library
-#pragma comment( lib, "d3d11.lib" )       // direct3D library
-#pragma comment( lib, "dxgi.lib" )        // directx graphics interface
-#pragma comment( lib, "d3dcompiler.lib" ) // shader compiler
+// Indicates Visual C++ to leave a command in the object file, which can be read
+// by the linker when it processes object files. Tells the linker to add the
+// "library" library to the list of library dependencies
+#pragma comment(lib, "user32")          // link against the win32 library
+#pragma comment(lib, "d3d11.lib")       // direct3D library
+#pragma comment(lib, "dxgi.lib")        // directx graphics interface
+#pragma comment(lib, "d3dcompiler.lib") // shader compiler
 
 #include <stdlib.h>
 #include <time.h>
 
-#include "simulation/PhysicsSystem.h"
-#include "rendering/VisualSystem.h"
 #include "input/InputSystem.h"
+#include "rendering/VisualSystem.h"
+#include "simulation/PhysicsSystem.h"
 
 #include "input/components/MovementHandler.h"
 
@@ -49,7 +49,8 @@ using namespace Engine::Input;
 using namespace Engine::Graphics;
 
 // Macro for creating new components
-#define NEW_COMPONENT(System, ComponentType) System.ComponentHandler<ComponentType>::createComponent()
+#define NEW_COMPONENT(System, ComponentType)                                   \
+    System.ComponentHandler<ComponentType>::createComponent()
 
 // Handles windows messages, including input.
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -65,38 +66,39 @@ static InputSystem input_system;
 #include "utility/FileReader.h"
 
 // Main Function
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
-{
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
+                    PWSTR pCmdLine, int nCmdShow) {
     /* Register a Window Class with the OS */
     // Registers information about the behavior of the application window
     const wchar_t CLASS_NAME[] = L"Application";
 
     // We fill in a WNDCLASS structure to register a window class
-    WNDCLASS wc = { };
+    WNDCLASS wc = {};
 
     // Required parameters to set prior to registering
-    wc.lpfnWndProc = WindowProc; // Function pointer to WindowProc
-    wc.hInstance = hInstance; // Handle to this application instance
+    wc.lpfnWndProc = WindowProc;   // Function pointer to WindowProc
+    wc.hInstance = hInstance;      // Handle to this application instance
     wc.lpszClassName = CLASS_NAME; // String identifying the window class
 
     // Register a window class
     RegisterClass(&wc);
 
     /* Creates a new Window Instance */
-     // Creates the window, and receive a handle uniquely identifying the window (stored in hwnd)
-    HWND hwnd = CreateWindowEx(
-        0,                              // Optional window styles.
-        CLASS_NAME,                     // Window class
-        L"Graphics Engine",    // Window text
-        WS_OVERLAPPEDWINDOW,            // Window style
+    // Creates the window, and receive a handle uniquely identifying the window
+    // (stored in hwnd)
+    HWND hwnd = CreateWindowEx(0,                   // Optional window styles.
+                               CLASS_NAME,          // Window class
+                               L"Graphics Engine",  // Window text
+                               WS_OVERLAPPEDWINDOW, // Window style
 
-        // Size and position
-        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+                               // Size and position
+                               CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+                               CW_USEDEFAULT,
 
-        NULL,       // Parent window    
-        NULL,       // Menu
-        hInstance,  // Instance handle
-        NULL        // Additional application data
+                               NULL,      // Parent window
+                               NULL,      // Menu
+                               hInstance, // Instance handle
+                               NULL       // Additional application data
     );
 
     assert(hwnd != NULL); // Check Success
@@ -129,12 +131,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     // visual_system.bindLightComponent(&camera);
     // MeshComponent* mesh = visual_system.bindMeshComponent(&camera);
     // mesh->setMesh(Mesh::GetMesh("Cube"));
-    
+
     Object& child1 = parent_object->createChild();
 
     Object& child2 = parent_object->createChild();
     child2.getTransform().setScale(5, 5, 5);
-    child2.getTransform().setPosition(Compute::random(-2.5f, 2.5f), Compute::random(-2.5f, 2.5f), Compute::random(15, 25));
+    child2.getTransform().setPosition(Compute::random(-2.5f, 2.5f),
+                                      Compute::random(-2.5f, 2.5f),
+                                      Compute::random(15, 25));
 
     /*
     {
@@ -148,7 +152,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         Object& light = parent_object->createChild();
         light.getTransform().offsetPosition(0, 5, 0);
         light.getTransform().offsetRotation(Vector3::PositiveX(), 0.05f);
-        
+
         Light* lObj = visual_system.createLight();
         lObj->setTransform(&light.getTransform());
     }
@@ -156,13 +160,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     Object& child3 = parent_object->createChild();
     child3.getTransform().setScale(100, 2.5f, 100);
     child3.getTransform().setPosition(0, -10, 0);
-    
+
     // Begin window messaging loop
-    MSG msg = { };
+    MSG msg = {};
     bool close = false;
 
     Utility::Stopwatch framerate_watch = Utility::Stopwatch();
-    
+
     VisualDebug::DrawPoint(Vector3(0, 0, 0), 1, Color::White(), 60 * 7);
     VisualDebug::DrawPoint(Vector3(1, 0, 0), 1, Color::Red(), 60 * 7);
     VisualDebug::DrawPoint(Vector3(0, 1, 0), 1, Color::Green(), 60 * 7);
@@ -183,21 +187,22 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
                 return 0;
         }
 
-        // VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(5, 0, 0), Color::Red());
-        // VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(0, 5, 0), Color::Green());
-        // VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(0, 0, 5), Color::Blue());
+        // VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(5, 0, 0),
+        // Color::Red()); VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(0, 5,
+        // 0), Color::Green()); VisualDebug::DrawLine(Vector3(0, 0, 0),
+        // Vector3(0, 0, 5), Color::Blue());
 
         // Update Object Transforms
         Matrix4 identity = Matrix4::identity();
         UpdateObjectTransforms(parent_object, identity);
-        
+
         // Dispatch Input Data
         movementHandler.update();
         input_system.update();
 
         // Update Physics System
         physics_system.update();
-        
+
         // Update Rendering System
         // child2.getTransform().lookAt(visual_system.getCamera().getTransform()->getPosition());
         // child2.getTransform().offsetRotation(Vector3::NegativeX(), 0.05f);
@@ -208,12 +213,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         visual_system.render();
 
         // Stall until enough time has elapsed for 60 frames / second
-        while (framerate_watch.Duration() < 1 / 60.f) {}
+        while (framerate_watch.Duration() < 1 / 60.f) {
+        }
     }
 
     /*
-    * 
-        // Handle mouse x camera movement 
+    *
+        // Handle mouse x camera movement
         // TODO: Integrate this with the existing input pipeline
         input_system.updateCameraView();
 
@@ -240,7 +246,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         Transform& transform = light.getTransform();
 
         light.setMesh(Mesh::GetMesh("Cube"));
-        transform.setPosition(Compute::random(-20, 20), Compute::random(-20, 20), Compute::random(-20, 20));
+        transform.setPosition(Compute::random(-20, 20), Compute::random(-20,
+    20), Compute::random(-20, 20));
     }
     */
 
@@ -251,9 +258,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 // UpdateObjectTransforms:
 // Recursively traverses a scene hierarchy and updates the Local -> World
 // matrix for every object. Does this efficiently by using the matrix
-// for each object's parent. 
-void UpdateObjectTransforms(Object* object, const Matrix4& m_parent)
-{
+// for each object's parent.
+void UpdateObjectTransforms(Object* object, const Matrix4& m_parent) {
     // Object pointer should never be a null pointer.
     if (object == nullptr)
         assert(false);
@@ -266,42 +272,32 @@ void UpdateObjectTransforms(Object* object, const Matrix4& m_parent)
         UpdateObjectTransforms(child, m_local);
 }
 
-
-
 // Defines the behavior of the window (appearance, user interaction, etc)
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-    switch (uMsg)
-    {
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
+                            LPARAM lParam) {
+    switch (uMsg) {
     // Destroys the Application on any Force Quit or Escape
-    case WM_DESTROY:
-    {
+    case WM_DESTROY: {
         ClipCursor(NULL);
         PostQuitMessage(0);
     }
-    return 0;
+        return 0;
 
-    
     // Key Down
-    case WM_KEYDOWN:
-    {
+    case WM_KEYDOWN: {
         // Escape will always quit the application, just in case
-        if (wParam == VK_ESCAPE)
-        {
+        if (wParam == VK_ESCAPE) {
             ClipCursor(NULL);
             PostQuitMessage(0);
             return 0;
         }
         input_system.logWin32Input(uMsg, wParam);
-    }
-    break;
+    } break;
 
     // Key Up
     case WM_KEYUP:
         input_system.logWin32Input(uMsg, wParam);
-    break;
-
-
+        break;
     }
 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);

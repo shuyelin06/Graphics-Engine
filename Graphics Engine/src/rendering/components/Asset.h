@@ -6,135 +6,127 @@
 #include <vector>
 
 #include "math/Color.h"
-#include "math/Vector3.h"
 #include "math/Vector2.h"
+#include "math/Vector3.h"
 
-namespace Engine
-{
+namespace Engine {
 using namespace Math;
-namespace Graphics
-{
-    typedef unsigned int UINT;
+namespace Graphics {
+typedef unsigned int UINT;
 
-    // Struct Texture:
-    // Specifies a 2D array of data for a mesh.
-    struct Texture
-    {
-        ID3D11Texture2D* texture;
+// Struct Texture:
+// Specifies a 2D array of data for a mesh.
+struct Texture {
+    ID3D11Texture2D* texture;
 
-        ID3D11ShaderResourceView* view;
-        ID3D11SamplerState* sampler;
+    ID3D11ShaderResourceView* view;
+    ID3D11SamplerState* sampler;
 
-        UINT width;
-        UINT height;
-    };
-    
-	// Struct Material:
-	// Specifies renderable properties for a mesh
-	struct Material
-	{
-		Color ka; // Ambient Color
-		Color kd; // Diffuse Color
-		Color ks; // Specular Color
+    UINT width;
+    UINT height;
+};
 
-		std::string texture; // Texture
+// Struct Material:
+// Specifies renderable properties for a mesh
+struct Material {
+    Color ka; // Ambient Color
+    Color kd; // Diffuse Color
+    Color ks; // Specular Color
 
-		Material();
-	};
+    std::string texture; // Texture
 
-    // Struct Mesh:
-    // Specifies a mesh, which is a collection of vertices
-    // which from triangles. Each vertex has a
-    // 1) Position
-    // 2) Texture Coordinate
-    // 3) Normal
-    struct Mesh
-    {
-        ID3D11Buffer* index_buffer;
-        ID3D11Buffer* vertex_buffer;
+    Material();
+};
 
-        Material* material;
-        UINT triangle_count;
-    };
+// Struct Mesh:
+// Specifies a mesh, which is a collection of vertices
+// which from triangles. Each vertex has a
+// 1) Position
+// 2) Texture Coordinate
+// 3) Normal
+struct Mesh {
+    ID3D11Buffer* index_buffer;
+    ID3D11Buffer* vertex_buffer;
 
-	//// Mesh Class
-	//// Stores information regarding vertices
-	//// and their index groupings to form a mesh.
-	//class Mesh
-	//{
-	//private:
-	//	// Mesh renderable properties
-	//	std::vector<MeshVertex> vertexBuffer;
-	//	std::vector<MeshTriangle> indexBuffer;
+    Material* material;
+    UINT triangle_count;
+};
 
-	//	Material* material;
+//// Mesh Class
+//// Stores information regarding vertices
+//// and their index groupings to form a mesh.
+// class Mesh
+//{
+// private:
+//	// Mesh renderable properties
+//	std::vector<MeshVertex> vertexBuffer;
+//	std::vector<MeshTriangle> indexBuffer;
 
-	//	// Direct3D Resources
-	//	ID3D11Buffer* indexBufferResource;
-	//	ID3D11Buffer* vertexBufferResource;
+//	Material* material;
 
-	//	// Determines if the mesh can be edited or not
-	//	bool lock;
+//	// Direct3D Resources
+//	ID3D11Buffer* indexBufferResource;
+//	ID3D11Buffer* vertexBufferResource;
 
-	//	// Determines if the mesh is static, i.e. if
-	//	// it can change. If it is static, we can reuse resources.
-	//	bool staticMesh;
+//	// Determines if the mesh can be edited or not
+//	bool lock;
 
-	//public:
-	//	// Mesh Constructor
-	//	Mesh();
+//	// Determines if the mesh is static, i.e. if
+//	// it can change. If it is static, we can reuse resources.
+//	bool staticMesh;
 
-	//	// Mesh Initializers 
-	//	bool setMaterial(Material* material);
-	//	bool addVertex(MeshVertex& vertex);
-	//	bool addTriangle(MeshTriangle& triangle);
+// public:
+//	// Mesh Constructor
+//	Mesh();
 
-	//	// Finalize mesh and lock it from further editing
-	//	void lockMesh(bool regenerateNormals);
+//	// Mesh Initializers
+//	bool setMaterial(Material* material);
+//	bool addVertex(MeshVertex& vertex);
+//	bool addTriangle(MeshTriangle& triangle);
 
-	//	// Mesh Accessors
-	//	const std::vector<MeshVertex>& getVertexBuffer() const;
-	//	const std::vector<MeshTriangle>& getIndexBuffer() const;
+//	// Finalize mesh and lock it from further editing
+//	void lockMesh(bool regenerateNormals);
 
-	//	int vertexCount() const;
-	//	int triangleCount() const;
+//	// Mesh Accessors
+//	const std::vector<MeshVertex>& getVertexBuffer() const;
+//	const std::vector<MeshTriangle>& getIndexBuffer() const;
 
- //       bool isStatic() const;
+//	int vertexCount() const;
+//	int triangleCount() const;
 
-	//	// Pipeline Management
-	//	// Loads the index and vertex buffers into the pipeline
-	//	// and returns the number of indices to render
-	//	int loadIndexVertexData(ID3D11DeviceContext* context, ID3D11Device* device);
-	//};
+//       bool isStatic() const;
 
-	// Asset Class
-	// Represents a renderable entity. Assets are composed of multiple
-	// meshes, each of which can has a material. Together, these meshes
-	// compose one renderable entity.
-	class Asset
-	{
-	private:
-		std::vector<Mesh*> meshes;
-		std::vector<Material*> materials;
-	
-	public:
-		Asset();
-		~Asset();
+//	// Pipeline Management
+//	// Loads the index and vertex buffers into the pipeline
+//	// and returns the number of indices to render
+//	int loadIndexVertexData(ID3D11DeviceContext* context, ID3D11Device*
+//device);
+//};
 
-		// Resource creation
-        void addMesh(Mesh* mesh);
-        void addMaterial(Material* material);
-	
-		// Resource accessing
-		std::vector<Mesh*>& getMeshes();
-		std::vector<Material*>& getMaterials();
+// Asset Class
+// Represents a renderable entity. Assets are composed of multiple
+// meshes, each of which can has a material. Together, these meshes
+// compose one renderable entity.
+class Asset {
+  private:
+    std::vector<Mesh*> meshes;
+    std::vector<Material*> materials;
 
-		Mesh* getMesh(int mesh_index);
-		Material* getMaterial(int material_index);
-	};
+  public:
+    Asset();
+    ~Asset();
 
-	
+    // Resource creation
+    void addMesh(Mesh* mesh);
+    void addMaterial(Material* material);
 
-	
-}
-}
+    // Resource accessing
+    std::vector<Mesh*>& getMeshes();
+    std::vector<Material*>& getMaterials();
+
+    Mesh* getMesh(int mesh_index);
+    Material* getMaterial(int material_index);
+};
+
+} // namespace Graphics
+} // namespace Engine

@@ -2,49 +2,47 @@
 
 #include "Vector3.h"
 
-namespace Engine
-{
-namespace Math
-{
-	// Quaternion Class:
-	// Represents a quaternion, which can be used to represent rotations
-	// in 3D space
-	// Quaternions are given in the form
-	// xi + yj + zk + r = q
-	// Where i,j,k are imaginary components. 
-	// If we express quaternions in the form 
-	// (sin(theta) * axis, cos(theta)), we can use them
-	// to represent a rotation around the axis in space.
-	class Quaternion
-	{
-	public:
-		// Imaginary Component
-		Vector3 im;
-		
-		// Real component
-		float r;
+namespace Engine {
+namespace Math {
+// Quaternion Class:
+// Represents a quaternion, which can be used to represent rotations
+// in 3D space
+// Quaternions are given in the form
+// xi + yj + zk + r = q
+// Where i,j,k are imaginary components.
+// If we express quaternions in the form
+// (sin(theta) * axis, cos(theta)), we can use them
+// to represent a rotation around the axis in space.
+class Quaternion {
+  public:
+    // Imaginary Component
+    Vector3 im;
 
-	public:
-		Quaternion();
-		Quaternion(const Vector3& im, float real);
+    // Real component
+    float r;
 
-		float norm() const;
-		Quaternion conjugate() const;
+  public:
+    Quaternion();
+    Quaternion(const Vector3& im, float real);
 
-		// Quaternion Operations
-		Quaternion operator+(const Quaternion&) const; // Addition
-		Quaternion& operator+=(const Quaternion&);	   // Compound (In-Place) Addition
-		Quaternion operator*(const Quaternion&) const; // Product
-		Quaternion& operator*=(const Quaternion&);     // Compound (In-Place) Product
+    float norm() const;
+    Quaternion conjugate() const;
 
-		// Identity Quaternion
-		static Quaternion Identity();
+    // Quaternion Operations
+    Quaternion operator+(const Quaternion&) const; // Addition
+    Quaternion& operator+=(const Quaternion&); // Compound (In-Place) Addition
+    Quaternion operator*(const Quaternion&) const; // Product
+    Quaternion& operator*=(const Quaternion&); // Compound (In-Place) Product
 
-		// Generate a unit quaternion representing a rotation around a given axis
-		static Quaternion RotationAroundAxis(const Vector3& axis, float theta);
+    // Identity Quaternion
+    static Quaternion Identity();
 
-        // Generate a unit quaternion representing a rotation from one vector to another
-        static Quaternion RotationToVector(const Vector3& from, const Vector3& to);
-	};
-}
-}
+    // Generate a unit quaternion representing a rotation around a given axis
+    static Quaternion RotationAroundAxis(const Vector3& axis, float theta);
+
+    // Generate a unit quaternion representing a rotation from one vector to
+    // another
+    static Quaternion RotationToVector(const Vector3& from, const Vector3& to);
+};
+} // namespace Math
+} // namespace Engine

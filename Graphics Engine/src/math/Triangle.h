@@ -2,25 +2,22 @@
 
 #include "Vector3.h"
 
-namespace Engine
-{
-namespace Math
-{
-	class Triangle
-	{
-	private:
-		Vector3 vertices[3];
+namespace Engine {
+namespace Math {
+class Triangle {
+  private:
+    Vector3 vertices[3];
 
-	public:
-		Triangle();
-		Triangle(const Vector3& v0, const Vector3& v1, const Vector3& v2);
-		~Triangle();
+  public:
+    Triangle();
+    Triangle(const Vector3& v0, const Vector3& v1, const Vector3& v2);
+    ~Triangle();
 
-		const Vector3& vertex(char vertex) const;
-		Vector3& vertex(char vertex);
+    const Vector3& vertex(char vertex) const;
+    Vector3& vertex(char vertex);
 
-		Vector3 center() const;
-		Vector3 normal() const;
-	};
-}
-}
+    Vector3 center() const;
+    Vector3 normal() const;
+};
+} // namespace Math
+} // namespace Engine

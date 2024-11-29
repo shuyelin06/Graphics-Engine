@@ -1,5 +1,9 @@
 ---
-BasedOnStyle:   LLVM
-IndentWidth:    4
----
-Language:       Cpp
+# We'll use defaults from the LLVM style, but with 4 columns indentation.
+Language: Cpp
+
+BasedOnStyle: LLVM
+IndentWidth: 4
+
+DerivePointerAlignment: false
+PointerAlignment: Left
