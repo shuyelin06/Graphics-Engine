@@ -13,9 +13,6 @@ using namespace Math;
 
 namespace Datamodel
 {
-	// Forward Declaration of Component
-	class Component;
-
 	// Object Class
 	// Stores data regarding a generic object in our engine.
 	// Every object has a parent and children. Together, their parent / child

@@ -1,5 +1,10 @@
 #pragma once
 
+#include <vector>
+
+#include "Object.h"
+#include "Terrain.h"
+
 namespace Engine
 {
 namespace Datamodel
@@ -11,7 +16,16 @@ namespace Datamodel
     // The reference coordinate system of all nodes without a parent is the world coordinate system.
     class SceneGraph
     {
-        
+    private:
+        std::vector<Object*> objects;
+        Terrain* terrain;
+
+    public:
+        SceneGraph();
+        ~SceneGraph();
+
+        // Create objects in the scene graph
+        Object* newObject();
     };
 }
 }
