@@ -8,8 +8,6 @@ namespace Engine
 {
 namespace Graphics
 {
-    typedef unsigned int UINT;
-
     // MeshBuilder Class:
     // Enables creation of meshes. Meshes are represented by a vertex and index buffer.
     // The vertex buffer stores all vertices in the mesh, and the index buffer references
@@ -31,7 +29,6 @@ namespace Graphics
         UINT vertex1;
         UINT vertex2;
 
-        MeshTriangle();
         MeshTriangle(UINT v0, UINT v1, UINT v2);
     };
 
@@ -87,14 +84,14 @@ namespace Graphics
         std::vector<TextureColor> data;
 
     public:
-        TextureBuilder(ID3D11Device* device, unsigned int _width, unsigned int _height);
+        TextureBuilder(ID3D11Device* device, UINT _width, UINT _height);
         ~TextureBuilder();
 
         // Generates the renderable texture
         Texture* generate();
 
         // Sets the color for a particular pixel
-        void setColor(unsigned int x, unsigned int y, const TextureColor& rgba);
+        void setColor(UINT x, UINT y, const TextureColor& rgba);
 
         // Clears the texture with an rgba color
         void clear(const TextureColor& rgba);

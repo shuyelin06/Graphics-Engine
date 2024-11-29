@@ -20,7 +20,6 @@ namespace Graphics
         normal = norm;
     }
 
-    MeshTriangle::MeshTriangle() = default;
     MeshTriangle::MeshTriangle(UINT v0, UINT v1, UINT v2)
     {
         vertex0 = v0;
@@ -138,7 +137,7 @@ namespace Graphics
         index_buffer.clear();
     }
 
-    TextureBuilder::TextureBuilder(ID3D11Device* _device, unsigned int _width, unsigned int _height)
+    TextureBuilder::TextureBuilder(ID3D11Device* _device, UINT _width, UINT _height)
     {
         device = _device;
 
@@ -194,7 +193,7 @@ namespace Graphics
 
     // SetColor:
     // Sets a pixel of the texture to some color value
-    void TextureBuilder::setColor(unsigned int x, unsigned int y, const TextureColor& rgba)
+    void TextureBuilder::setColor(UINT x, UINT y, const TextureColor& rgba)
     {
         assert(0 <= x && x < pixel_width);
         assert(0 <= y && y < pixel_height);

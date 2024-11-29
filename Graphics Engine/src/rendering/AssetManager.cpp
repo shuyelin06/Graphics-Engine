@@ -34,26 +34,27 @@ namespace Graphics
     // Loads assets into the asset manager.
     void AssetManager::initialize()
     {
-        assets.resize(AssetCount);
+        // Create my textures
         textures.resize(TextureCount);
-
         TextureBuilder tex_builder = TextureBuilder(device, 1, 1);
-        MeshBuilder mesh_builder = MeshBuilder(device);
-        
+
         textures[Test] = tex_builder.generate();
         LoadTextureFromPNG(tex_builder, "data/", "test.png");
         textures[Test2] = tex_builder.generate();
+
+        // Create my assets 
+        assets.resize(AssetCount);
+
+        MeshBuilder mesh_builder = MeshBuilder(device);
 
         assets[Cube] = LoadCube(mesh_builder);
         // Fox by Jake Blakeley [CC-BY] via Poly Pizza
         assets[Fox] = LoadAssetFromOBJ(mesh_builder, "data/", "model.obj", "Model");
 
-        Datamodel::Terrain terrain = Datamodel::Terrain();
-        terrain.generateMesh();
+        //Datamodel::Terrain terrain = Datamodel::Terrain();
+        //terrain.generateMesh();
         assets[Terrain] = LoadAssetFromOBJ(mesh_builder, "data/", "model.obj", "Model");
         // AssetWrapper(terrain.getMesh(), device);
-
-        
     }
 
     // GetAsset:
