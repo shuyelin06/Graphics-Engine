@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "datamodel/SceneGraph.h"
 #include "input/InputSystem.h"
 #include "rendering/VisualSystem.h"
 #include "simulation/PhysicsSystem.h"
@@ -39,9 +40,6 @@
 #include "math/Compute.h"
 #include "utility/Stopwatch.h"
 
-#include "datamodel/Object.h"
-#include "datamodel/Terrain.h"
-
 using namespace Engine;
 using namespace Engine::Simulation;
 using namespace Engine::Datamodel;
@@ -54,10 +52,6 @@ using namespace Engine::Graphics;
 
 // Handles windows messages, including input.
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-
-// Updates all object transforms and caches their matrices prior to any
-// physics or render calls.
-void UpdateObjectTransforms(Object* object, const Matrix4& m_parent);
 
 // Static reference to the input system for use in the window message callback
 static InputSystem input_system;
@@ -120,36 +114,25 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     PhysicsSystem physics_system = PhysicsSystem();
     physics_system.initialize();
 
-    // Create Object Hierarchy
-    // TODO:
-    Object* parent_object = new Object();
+    // Create SceneGraph
+    SceneGraph scene_graph = SceneGraph();
 
-    // visual_system.bindMeshComponent(&light)->setMesh(Mesh::GetMesh("Cube"));
-
+    // Bind Camera
     MovementHandler movementHandler(visual_system.getCamera().getTransform());
 
-    // visual_system.bindLightComponent(&camera);
-    // MeshComponent* mesh = visual_system.bindMeshComponent(&camera);
-    // mesh->setMesh(Mesh::GetMesh("Cube"));
-
-    Object& child1 = parent_object->createChild();
-
-    Object& child2 = parent_object->createChild();
+    // Create Object Hierarchy
+    Object& parent_object = scene_graph.createObject();
+        
+    Object& child1 = parent_object.createChild();
+        
+    Object& child2 = parent_object.createChild();
     child2.getTransform().setScale(5, 5, 5);
     child2.getTransform().setPosition(Compute::random(-2.5f, 2.5f),
-                                      Compute::random(-2.5f, 2.5f),
-                                      Compute::random(15, 25));
-
-    /*
-    {
-        Object& light = parent_object->createChild();
-        light.getTransform().offsetRotation(Vector3::PositiveX(), 0.015f);
-        visual_system.bindLightComponent(&light);
-    }
-    */
+                                        Compute::random(-2.5f, 2.5f),
+                                        Compute::random(15, 25));
 
     {
-        Object& light = parent_object->createChild();
+        Object& light = parent_object.createChild();
         light.getTransform().offsetPosition(0, 5, 0);
         light.getTransform().offsetRotation(Vector3::PositiveX(), 0.05f);
 
@@ -157,7 +140,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         lObj->setTransform(&light.getTransform());
     }
 
-    Object& child3 = parent_object->createChild();
+    Object& child3 = parent_object.createChild();
     child3.getTransform().setScale(100, 2.5f, 100);
     child3.getTransform().setPosition(0, -10, 0);
 
@@ -193,8 +176,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         // Vector3(0, 0, 5), Color::Blue());
 
         // Update Object Transforms
-        Matrix4 identity = Matrix4::identity();
-        UpdateObjectTransforms(parent_object, identity);
+        scene_graph.updateObjectTransforms();
 
         // Dispatch Input Data
         movementHandler.update();
@@ -217,59 +199,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         }
     }
 
-    /*
-    *
-        // Handle mouse x camera movement
-        // TODO: Integrate this with the existing input pipeline
-        input_system.updateCameraView();
-
-
-    // Set screen center
-    {
-        RECT window_rect;
-        GetWindowRect(hwnd, &window_rect);
-
-        int center_x = (window_rect.right - window_rect.left) / 2;
-        int center_y = (window_rect.bottom - window_rect.top) / 2;
-        input_system.setScreenCenter(center_x, center_y);
-    }
-
-
-
-
-    // Create Lights
-    const int NUM_LIGHTS = 5;
-
-    for (int i = 0; i < NUM_LIGHTS; i++)
-    {
-        Light& light = scene.createLight();
-        Transform& transform = light.getTransform();
-
-        light.setMesh(Mesh::GetMesh("Cube"));
-        transform.setPosition(Compute::random(-20, 20), Compute::random(-20,
-    20), Compute::random(-20, 20));
-    }
-    */
-
     // Finish
     return 0;
-}
-
-// UpdateObjectTransforms:
-// Recursively traverses a scene hierarchy and updates the Local -> World
-// matrix for every object. Does this efficiently by using the matrix
-// for each object's parent.
-void UpdateObjectTransforms(Object* object, const Matrix4& m_parent) {
-    // Object pointer should never be a null pointer.
-    if (object == nullptr)
-        assert(false);
-
-    // Update the object local matrix, and save it for the recursive call
-    // on its (potential) children.
-    Matrix4 m_local = object->updateLocalMatrix(m_parent);
-
-    for (Object* child : object->getChildren())
-        UpdateObjectTransforms(child, m_local);
 }
 
 // Defines the behavior of the window (appearance, user interaction, etc)

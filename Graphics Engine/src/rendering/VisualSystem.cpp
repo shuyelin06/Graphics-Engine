@@ -296,7 +296,7 @@ void VisualSystem::performRenderPass() {
 
     // Load my Textures
     {
-        Texture* tex = assetManager->getTexture(Test);
+        Texture* tex = assetManager->getTexture(Perlin);
         context->PSSetShaderResources(0, 1, &tex->view);
 
         // Load light textures and samplers.

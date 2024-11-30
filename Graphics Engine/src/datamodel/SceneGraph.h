@@ -23,8 +23,20 @@ class SceneGraph {
     SceneGraph();
     ~SceneGraph();
 
-    // Create objects in the scene graph
-    Object* newObject();
+    // Object handling
+    const std::vector<Object*>& getObjects();
+
+    Object& createObject();
+
+    // Terrain handling
+    const Terrain* getTerrain() const;
+    Terrain* getTerrain();
+
+    // Update and cache object transforms in the SceneGraph
+    void updateObjectTransforms();
+
+  private:
+    void updateObjectTransforms(Object* object, const Matrix4& m_parent);
 };
 
 } // namespace Datamodel

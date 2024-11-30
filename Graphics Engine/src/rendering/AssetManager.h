@@ -18,7 +18,12 @@ enum AssetSlot {
     AssetCount
 };
 
-enum TextureSlot { Test = 0, Test2 = 1, TextureCount };
+enum TextureSlot { 
+    Test = 0, 
+    Test2 = 1,
+    Perlin = 2,
+    TextureCount 
+};
 
 enum SamplerSlot { ShadowMap = 0, MeshTexture = 1, SamplerCount };
 

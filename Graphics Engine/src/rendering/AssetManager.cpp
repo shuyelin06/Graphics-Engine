@@ -16,6 +16,8 @@
 #include "rendering/components/AssetBuilder.h"
 #include "utility/FileReader.h"
 
+#include "math/PerlinNoise.h"
+
 using namespace std;
 
 namespace Engine {
@@ -33,6 +35,21 @@ void AssetManager::initialize() {
     TextureBuilder tex_builder = TextureBuilder(device, 10, 10);
 
     textures[Test] = tex_builder.generate();
+
+    // Noise
+    tex_builder.reset(1000, 1000);
+    for (int i = 1; i <= 1000; i++) {
+        for (int j = 1; j <= 1000; j++) {
+            float val = PerlinNoise::octaveNoise2D(i * 4.f / 1087.f,
+                                                   j * 4.f / 1087.f, 1, 1.f);
+            assert(0 <= val && val <= 1);
+            unsigned char convert = (int)(255 * val);
+            tex_builder.setColor(i - 1, j - 1,
+                                 {convert, convert, convert, 255});
+        }
+    }
+    textures[Perlin] = tex_builder.generate();
+
     LoadTextureFromPNG(tex_builder, "data/", "test.png");
     textures[Test2] = tex_builder.generate();
 

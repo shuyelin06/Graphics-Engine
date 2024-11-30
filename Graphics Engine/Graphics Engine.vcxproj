@@ -165,6 +165,7 @@
     <ClCompile Include="src\datamodel\SceneGraph.cpp" />
     <ClCompile Include="src\datamodel\Terrain.cpp" />
     <ClCompile Include="src\input\components\MovementHandler.cpp" />
+    <ClCompile Include="src\math\PerlinNoise.cpp" />
     <ClCompile Include="src\math\Transform.cpp" />
     <ClCompile Include="src\input\callbacks\InputPoller.cpp" />
     <ClCompile Include="src\input\InputCallback.cpp" />
@@ -205,6 +206,7 @@
     <ClInclude Include="src\datamodel\Terrain.h" />
     <ClInclude Include="src\datamodel\TerrainLookupTables.h" />
     <ClInclude Include="src\input\components\MovementHandler.h" />
+    <ClInclude Include="src\math\PerlinNoise.h" />
     <ClInclude Include="src\math\Transform.h" />
     <ClInclude Include="src\input\callbacks\InputPoller.h" />
     <ClInclude Include="src\input\InputCallback.h" />

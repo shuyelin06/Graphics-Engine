@@ -120,6 +120,9 @@
     <ClCompile Include="src\datamodel\SceneGraph.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\math\PerlinNoise.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\math\Vector3.h">
@@ -231,6 +234,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\datamodel\SceneGraph.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\PerlinNoise.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
