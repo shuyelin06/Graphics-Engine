@@ -161,6 +161,27 @@ Vector3& Vector3::operator/=(const float f) {
     return *this;
 }
 
+// * Operator (Hamming Product) 
+// Takes the component wise product of the two vectors.
+Vector3 Vector3::operator*(const Vector3& v) const
+{
+    Vector3 result;
+    result.x = x * v.x;
+    result.y = y * v.y;
+    result.z = z * v.z;
+    return result;
+}
+
+// *= Operator (Hamming)
+// Takes the compound component wise product of the two vectors.
+Vector3& Vector3::operator*=(const Vector3& v)
+{
+    x = x * v.x;
+    y = y * v.y;
+    z = z * v.z;
+    return *this;
+}
+
 // Static Vector Operations:
 // Statically create vectors
 Vector3 Vector3::PositiveX() { return Vector3(1, 0, 0); }

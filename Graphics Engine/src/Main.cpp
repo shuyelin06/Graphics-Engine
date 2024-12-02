@@ -119,6 +119,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     // Bind Camera
     MovementHandler movementHandler(visual_system.getCamera().getTransform());
+    // Bind Light to Camera
+    Light* light = visual_system.createLight();
+    light->setTransform(visual_system.getCamera().getTransform());
 
     // Create Object Hierarchy
     Object& parent_object = scene_graph.createObject();
@@ -188,7 +191,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         // Update Rendering System
         // child2.getTransform().lookAt(visual_system.getCamera().getTransform()->getPosition());
         // child2.getTransform().offsetRotation(Vector3::NegativeX(), 0.05f);
-        visual_system.drawAsset(AssetSlot::Terrain, child1.getLocalMatrix());
+        visual_system.drawAsset(AssetSlot::TerrainAsset, child1.getLocalMatrix());
         visual_system.drawAsset(AssetSlot::Fox, child2.getLocalMatrix());
         visual_system.drawAsset(AssetSlot::Cube, child3.getLocalMatrix());
 

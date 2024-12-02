@@ -40,6 +40,9 @@ class Vector3 {
     Vector3 operator/(const float) const; // Scalar Division
     Vector3& operator/=(const float);     // Compound (In-Place) Scalar Division
 
+    Vector3 operator*(const Vector3&) const; // Hamming (Component-Wise) Product
+    Vector3& operator*=(const Vector3&);    // Compound Hamming (Component-Wise) Product
+
     // Static Vector Operations
     static Vector3 PositiveX();
     static Vector3 PositiveY();

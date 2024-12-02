@@ -188,6 +188,7 @@
     <ClCompile Include="src\rendering\components\Camera.cpp" />
     <ClCompile Include="src\rendering\components\Light.cpp" />
     <ClCompile Include="src\rendering\AssetManager.cpp" />
+    <ClCompile Include="src\rendering\MarchingCubes.cpp" />
     <ClCompile Include="src\rendering\parsers\PNGParser.cpp" />
     <ClCompile Include="src\rendering\Shader.cpp" />
     <ClCompile Include="src\rendering\ShaderManager.cpp" />
@@ -204,7 +205,7 @@
     <ClInclude Include="include\zlib.h" />
     <ClInclude Include="src\datamodel\SceneGraph.h" />
     <ClInclude Include="src\datamodel\Terrain.h" />
-    <ClInclude Include="src\datamodel\TerrainLookupTables.h" />
+    <ClInclude Include="src\rendering\MarchingCubeTables.h" />
     <ClInclude Include="src\input\components\MovementHandler.h" />
     <ClInclude Include="src\math\PerlinNoise.h" />
     <ClInclude Include="src\math\Transform.h" />

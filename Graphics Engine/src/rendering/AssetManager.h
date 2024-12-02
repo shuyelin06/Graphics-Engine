@@ -7,14 +7,17 @@
 
 #include "rendering/components/Asset.h"
 #include "rendering/components/AssetBuilder.h"
+#include "datamodel/Terrain.h"
 
 namespace Engine {
 namespace Graphics {
+using namespace Datamodel;
+
 // Assets
 enum AssetSlot {
     Cube = 0,
     Fox = 1,
-    Terrain = 2, // Temp
+    TerrainAsset = 2, // Temp
     AssetCount
 };
 
@@ -55,6 +58,9 @@ class AssetManager {
   private:
     // Generate a cube
     Asset* LoadCube(MeshBuilder& builder);
+
+    // Generate terrain given terrain chunk data
+    Asset* GenerateTerrainAsset(MeshBuilder& builder, Terrain& terrain); 
 
     // Load an asset from an OBJ file. Returns the index of the
     // asset in the manager on success.

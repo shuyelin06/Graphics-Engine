@@ -14,8 +14,8 @@ class MovementHandler {
     // Center of the screen
     int center_x, center_y;
 
-    Quaternion xRotation;
-    Quaternion yRotation;
+    Quaternion xRotation; // Left-Right Rotation (Z-Axis)
+    Quaternion yRotation; // Up-Down Rotation (Y-Axis)
 
     float sensitivity;
 

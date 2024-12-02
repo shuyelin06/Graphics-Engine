@@ -36,18 +36,18 @@ void AssetManager::initialize() {
 
     textures[Test] = tex_builder.generate();
 
-    // Noise
-    tex_builder.reset(1000, 1000);
-    for (int i = 1; i <= 1000; i++) {
-        for (int j = 1; j <= 1000; j++) {
-            float val = PerlinNoise::octaveNoise2D(i * 4.f / 1087.f,
-                                                   j * 4.f / 1087.f, 1, 1.f);
-            assert(0 <= val && val <= 1);
-            unsigned char convert = (int)(255 * val);
-            tex_builder.setColor(i - 1, j - 1,
-                                 {convert, convert, convert, 255});
-        }
-    }
+    //// Noise
+    //tex_builder.reset(1000, 1000);
+    //for (int i = 1; i <= 1000; i++) {
+    //    for (int j = 1; j <= 1000; j++) {
+    //        float val =
+    //            PerlinNoise::noise2D(i * 4.f / 1087.f, j * 4.f / 1087.f);
+    //        assert(0 <= val && val <= 1);
+    //        unsigned char convert = (int)(255 * val);
+    //        tex_builder.setColor(i - 1, j - 1,
+    //                             {convert, convert, convert, 255});
+    //    }
+    //}
     textures[Perlin] = tex_builder.generate();
 
     LoadTextureFromPNG(tex_builder, "data/", "test.png");
@@ -68,11 +68,8 @@ void AssetManager::initialize() {
     // Fox by Jake Blakeley [CC-BY] via Poly Pizza
     assets[Fox] = LoadAssetFromOBJ(mesh_builder, "data/", "model.obj", "Model");
 
-    // Datamodel::Terrain terrain = Datamodel::Terrain();
-    // terrain.generateMesh();
-    assets[Terrain] =
-        LoadAssetFromOBJ(mesh_builder, "data/", "model.obj", "Model");
-    // AssetWrapper(terrain.getMesh(), device);
+    Datamodel::Terrain* terrain = new Datamodel::Terrain();
+    assets[TerrainAsset] = GenerateTerrainAsset(mesh_builder, *terrain);
 }
 
 // GetAsset:

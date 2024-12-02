@@ -2,20 +2,21 @@
 
 #include "math/Vector3.h"
 
-#include "rendering/components/Asset.h"
-
 // Enables debug rendering for the terrain
 // #define TERRAIN_DEBUG
 
-#define CHUNK_X_SIZE 25
-#define CHUNK_Y_SIZE 10
-#define CHUNK_Z_SIZE 25
-#define CHUNK_VOXEL_SIZE 75
+constexpr int CHUNK_X_SAMPLES = 31;
+constexpr int CHUNK_Y_SAMPLES = 31;
+constexpr int CHUNK_Z_SAMPLES = 17;
+
+constexpr float TERRAIN_SIZE = 75.f;
+constexpr float TERRAIN_HEIGHT = 15.f;
 
 namespace Engine {
 using namespace Math;
-using namespace Graphics;
 namespace Datamodel {
+
+typedef unsigned int UINT;
 
 // Terrain Class:
 // Represents a chunk of terrain that can be sampled and rendered.
@@ -29,17 +30,13 @@ class Terrain {
   private:
     // Stores a scalar field's values at vertices of each voxel within the
     // chunk.
-    float terrainData[CHUNK_X_SIZE][CHUNK_Y_SIZE][CHUNK_Z_SIZE];
-
-    // Terrain mesh
-    Asset* mesh;
+    float terrainData[CHUNK_X_SAMPLES][CHUNK_Y_SAMPLES][CHUNK_Z_SAMPLES];
 
   public:
     Terrain();
     ~Terrain();
 
-    Asset* getMesh();
-    void generateMesh();
+    float sample(UINT x, UINT y, UINT z) const;
 };
 
 } // namespace Datamodel
