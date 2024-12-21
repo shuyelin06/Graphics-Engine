@@ -24,7 +24,11 @@ namespace Engine {
 using namespace Math;
 using namespace Utility;
 namespace Graphics {
-AssetManager::AssetManager(ID3D11Device* _device) { device = _device; }
+AssetManager::AssetManager(ID3D11Device* _device,
+                           ID3D11DeviceContext* _context) {
+    device = _device;
+    context = _context;
+}
 AssetManager::~AssetManager() = default;
 
 // Initialize:

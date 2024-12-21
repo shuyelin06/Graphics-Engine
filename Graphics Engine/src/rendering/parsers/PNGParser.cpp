@@ -10,6 +10,182 @@
 
 namespace Engine {
 namespace Graphics {
+static uint8_t PNG_MAGIC_BYTE[] = {0x89, 0x50, 0x4E, 0x47,
+                                   0x0D, 0x0A, 0x1A, 0x0A};
+
+// Flips the endianness of n bytes.
+// Assumes that buffer is well-defined with enough memory allocated.
+void flip(void* buffer, size_t n_bytes) {
+    // Now, flip the endianness. For every ith byte, we want to swap it with the
+    // (n - i)th byte.
+    if (n_bytes != 1) {
+        uint8_t* casted_buffer = reinterpret_cast<uint8_t*>(buffer);
+
+        for (uint32_t i = 0; i < n_bytes / 2; i++) {
+            uint8_t first = casted_buffer[i];
+            uint8_t second = casted_buffer[n_bytes - 1 - i];
+            casted_buffer[i] = second;
+            casted_buffer[n_bytes - 1 - i] = first;
+        }
+    }
+}
+
+// Generates the 32-bit CRC for the data from a PNG file.
+// A CRC serves as bit hash for an arbitrary stream of bits.
+// For understanding, this function will use booleans to represent individual
+// bits.
+// More info: https://www.geeksforgeeks.org/modulo-2-binary-division/#
+// https://stackoverflow.com/questions/2587766/how-is-a-crc32-checksum-calculated
+static uint32_t checksum32(uint8_t* _data, size_t size) {
+    // PNG uses the following polynomial for the checksum:
+    // x^32+x^26+x^23+x^22+x^16+x^12+x^11+x^10+x^8+x^7+x^5+x^4+x^2+x+1
+    // Where the presence of the x^i power indicates if that bit is flipped (1).
+    // This translates to: 1 0000 0100 1100 0001 0001 1101 1011 0111
+    // We often will omit the highest term, x^32, to get a 32 bit number
+    // (hex): 0x04C11DB7
+    bool crc_code[32] = {0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1,
+                         0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1};
+
+    // We now parse our data into a boolean array. Each byte will be reversed as
+    // it is written into the array, as the specification requires that bits be
+    // processed from least significant to most significant. The last 32 bits
+    // will be our remainder, set initially to 0's.
+    bool* data = new bool[size * 8 + 32];
+
+    for (int i = 0; i < size; i++) {
+        // We reverse each bit written to the boolean array
+        for (int bit = 0; bit < 8; bit++) {
+            const uint8_t mask = (1 << bit);
+            data[i * 8 + bit] = (_data[i] & mask) == mask;
+        }
+    }
+    // Initialize remainder (last 32 bits) to all 0s
+    for (int bit = 0; bit < 32; bit++) {
+        data[size * 8 + bit] = false;
+    }
+    // XOR the first 4 bytes with 0xFFFFFFFF
+    for (int bit = 0; bit < 32; bit++) {
+        data[bit] = !data[bit];
+    }
+
+    // We will now calculate our hash. This is essentially long division,
+    // where our crc is a divisor and we want to divide the data. However,
+    // our "division" operation is XOR.
+    // We use our polynomial, and anytime the most significant bit is a 1, we
+    // divide by our polynomial.
+    for (int i = 0; i < size * 8; i++) {
+        // If current bit is flipped, XOR by our crc on the next 32 bits.
+        if (data[i]) {
+            data[i] = false;
+            for (int j = 0; j < 32; j++) {
+                if (crc_code[j])
+                    data[i + j + 1] = !data[i + j + 1];
+            }
+        }
+    }
+
+    // Our result is the last 32 bits. We transform this to a uint32_t integer,
+    // and XOR it with 0xFFFFFFFF by the specifications.
+    uint32_t hash = 0;
+
+    for (int i = 0; i < 32; i++) {
+        hash |= data[size * 8 + i] << i;
+    }
+
+    hash ^= 0xFFFFFFFF;
+
+    return hash;
+}
+
+// --- PNG File Writing ---
+static void writePNGChunk(FILE* file, uint8_t type[4], uint8_t* data,
+                          size_t data_size);
+
+// Given a ID3D11Texture2D, writes its contents to a png file for exporting /
+// reading externally.
+bool AssetManager::WriteTextureToPNG(ID3D11Texture2D* texture,
+                                     std::string file_name) {
+    // Get description of the texture
+    D3D11_TEXTURE2D_DESC tex_desc;
+    texture->GetDesc(&tex_desc);
+
+    // We will copy the contents of this texture to a "staging texture",
+    // which we can actually use to read the data from on the CPU side.
+    // To create it, we will copy the current texture description and modify the
+    // usage and binding
+    D3D11_TEXTURE2D_DESC staging_desc = tex_desc;
+    staging_desc.Usage = D3D11_USAGE_STAGING; // Allows copying from GPU -> CPU
+    staging_desc.BindFlags = 0; // Will not be bound to any pipeline stage
+    staging_desc.MiscFlags = 0;
+
+    // For now, this will only work for DXGI_FORMAT_R8G8B8A8_UNORM.
+    assert(staging_desc.Format == DXGI_FORMAT_R8G8B8A8_UNORM);
+
+    ID3D11Texture2D* staging_tex; // Create an empty staging texture
+    device->CreateTexture2D(&staging_desc, nullptr, &staging_tex);
+    assert(staging_tex != NULL);
+
+    // We now copy our current texture to the staging texture
+    context->CopyResource(staging_tex, texture);
+
+    // Our resource is copied! We now map the resource so that we can access its
+    // contents on the CPU side.
+    D3D11_MAPPED_SUBRESOURCE mapped;
+    context->Map(staging_tex, 0, D3D11_MAP_READ, 0, &mapped);
+
+    // Extract my data
+    const int samples_per_row = mapped.RowPitch / 4;
+    const int samples_per_column = mapped.DepthPitch / mapped.RowPitch;
+
+    uint8_t* pixel_data = static_cast<uint8_t*>(mapped.pData);
+
+    // We can access our texture contents with mapped.pData. We will now start
+    // to generate our PNG file.
+    const std::string path = "data/" + file_name;
+    FILE* file = fopen(path.c_str(), "wb");
+
+    // Write the PNG magic byte
+    fwrite(PNG_MAGIC_BYTE, sizeof(PNG_MAGIC_BYTE), 1, file);
+
+    //
+
+    // We unmap our resource and release it to free the memory.
+    context->Unmap(staging_tex, 0);
+    staging_tex->Release();
+
+    return false;
+}
+
+// Reads a PNG Chunk. A PNG Chunk Consists of:
+// 1) A 4-byte UINT giving the number of bytes in the data field
+// 2) A 4-byte character sequence defining the chunk type
+// 3) The bytes of data of the chunk (COMPRESSED?)
+// 4) UNUSED: A 4-byte CRC calculated on fields (2) and (3), to check for data
+// corruption. Returns 1 on success, 0 on failure.
+void writePNGChunk(FILE* file, uint8_t type[4], uint8_t* data,
+                   uint32_t data_size) {
+    // Write the data length
+    fwrite(&data_size, sizeof(data_size), 1, file);
+
+    // Write the chunk type
+    fwrite(type, sizeof(uint8_t), 4, file);
+
+    // Write the chunk data, compressed with zlib
+    // Decompress with zlib
+    uint8_t* compressed_data = new uint8_t[data_size];
+    uLong raw_size = data_size;
+    uLong compressed_size = data_size;
+    compress((Bytef*)compressed_data, &compressed_size, data, data_size);
+
+    // Write the compressed size
+    fwrite(compressed_data, compressed_size, 1, file);
+
+    // Generate and write the CRC
+    uint32_t crc = 0; // ???
+    fwrite(&crc, sizeof(uint32_t), 1, file);
+}
+
+// --- PNG File Reading ---
 // Stores PNG Chunk data prior to being processed
 struct PNGChunk {
     uint8_t chunk_type[4];
@@ -17,7 +193,6 @@ struct PNGChunk {
 };
 
 static uint8_t readPNGChunk(FILE* file, PNGChunk& chunk);
-static void flip(void* buffer, size_t n_bytes); // Flips Endianness
 
 // Simple PNG File Parser based from https://pyokagan.name/blog/2019-10-14-png/
 // http://www.libpng.org/pub/png/spec/1.2/PNG-Chunks.html
@@ -34,12 +209,10 @@ bool AssetManager::LoadTextureFromPNG(TextureBuilder& builder, std::string path,
 
     // First 8 bytes of the file must match the PNG magic number.
     {
-        uint8_t png_code[] = {0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A};
-
         uint8_t read_data[8];
         fread(read_data, 1, 8, file);
 
-        if (memcmp(read_data, png_code, 8) != 0)
+        if (memcmp(read_data, PNG_MAGIC_BYTE, sizeof(PNG_MAGIC_BYTE)) != 0)
             return false;
     }
 
@@ -146,8 +319,8 @@ bool AssetManager::LoadTextureFromPNG(TextureBuilder& builder, std::string path,
 // 1) A 4-byte UINT giving the number of bytes in the data field
 // 2) A 4-byte character sequence defining the chunk type
 // 3) The bytes of data of the chunk
-// 4) UNUSED: A 4-byte CRC calculated on fields (2) and (3), to check for data
-// corruption. Returns 1 on success, 0 on failure.
+// 4) A 4-byte CRC calculated on fields (2) and (3), to check for data 
+//    corruption. Returns 1 on success, 0 on failure.
 uint8_t readPNGChunk(FILE* file, PNGChunk& chunk) {
     size_t bytes_read = 0;
 
@@ -160,22 +333,15 @@ uint8_t readPNGChunk(FILE* file, PNGChunk& chunk) {
 
     flip(&length, sizeof(length));
 
-    // Read the 4-byte chunk type. Each of them is 1-byte, so we don't need
-    // to flip the endian-ness.
-    bytes_read = fread(&(chunk.chunk_type), 1, 4, file);
-    if (bytes_read != 4) // Fail if 4 bytes were not read
+    // Read the 4-byte chunk type and chunk data together. We do this so that
+    // we can compute the CRC on the data as an integrity check. 
+    chunk.chunk_data.resize(4 + length);
+    bytes_read = fread(&(chunk.chunk_data[0]), 1, 4 + length, file);
+
+    if (bytes_read != 4 + length)
         return FAILURE;
 
-    // If there is data to read, read the chunk's data.
-    if (length > 0) {
-        chunk.chunk_data.resize(length);
-        bytes_read = fread(&(chunk.chunk_data[0]), 1, length, file);
-        if (bytes_read != length)
-            return FAILURE;
-    }
-
     // Read the 4-byte Cyclic Redundancy Code.
-    // TODO: Unused
     uint32_t crc;
 
     bytes_read = fread(&crc, 1, 4, file);
@@ -184,25 +350,21 @@ uint8_t readPNGChunk(FILE* file, PNGChunk& chunk) {
 
     flip(&crc, sizeof(crc));
 
+    // Compute our own CRC, and check if they match.
+    uint32_t computed_crc = checksum32(&(chunk.chunk_data[0]), 4 + length);
+
+    assert(crc == computed_crc);
+    if (crc != computed_crc)
+        return FAILURE;
+
+    // If they do, parse out our chunk type and data.
+    chunk.chunk_type[0] = chunk.chunk_data[0];
+    chunk.chunk_type[1] = chunk.chunk_data[1];
+    chunk.chunk_type[2] = chunk.chunk_data[2];
+    chunk.chunk_type[3] = chunk.chunk_data[3];
+    chunk.chunk_data.erase(chunk.chunk_data.begin(), chunk.chunk_data.begin() + 4);
+
     return SUCCESS;
-}
-
-// Flips N bytes them from big endian (PNG default
-// endianness) to little endian.
-// Assumes that buffer is well-defined with enough memory allocated.
-void flip(void* buffer, size_t n_bytes) {
-    // Now, flip the endianness. For every ith byte, we want to swap it with the
-    // (n - i)th byte.
-    if (n_bytes != 1) {
-        uint8_t* casted_buffer = reinterpret_cast<uint8_t*>(buffer);
-
-        for (uint32_t i = 0; i < n_bytes / 2; i++) {
-            uint8_t first = casted_buffer[i];
-            uint8_t second = casted_buffer[n_bytes - 1 - i];
-            casted_buffer[i] = second;
-            casted_buffer[n_bytes - 1 - i] = first;
-        }
-    }
 }
 
 } // namespace Graphics

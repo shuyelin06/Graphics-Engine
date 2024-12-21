@@ -129,7 +129,7 @@ void VisualSystem::initialize() {
                                        &depth_stencil);
     }
 
-    assetManager = new AssetManager(device);
+    assetManager = new AssetManager(device, context);
     assetManager->initialize();
     shaderManager.initialize(device);
 }

@@ -36,13 +36,14 @@ enum SamplerSlot { ShadowMap = 0, MeshTexture = 1, SamplerCount };
 class AssetManager {
   private:
     ID3D11Device* device;
+    ID3D11DeviceContext* context;
 
     std::vector<Asset*> assets;
     std::vector<Texture*> textures;
     std::vector<ID3D11SamplerState*> samplers;
 
   public:
-    AssetManager(ID3D11Device* device);
+    AssetManager(ID3D11Device* device, ID3D11DeviceContext* context);
     ~AssetManager();
 
     // Initialize assets
@@ -62,8 +63,7 @@ class AssetManager {
     // Generate terrain given terrain chunk data
     Asset* GenerateTerrainAsset(MeshBuilder& builder, Terrain& terrain); 
 
-    // Load an asset from an OBJ file. Returns the index of the
-    // asset in the manager on success.
+    // Load assets from files. 
     Asset* LoadAssetFromOBJ(MeshBuilder& builder, std::string path,
                             std::string objFile, std::string assetName);
 
@@ -73,6 +73,9 @@ class AssetManager {
     // Load Samplers
     ID3D11SamplerState* LoadShadowMapSampler();
     ID3D11SamplerState* LoadMeshTextureSampler();
+
+    // Write assets to files
+    bool WriteTextureToPNG(ID3D11Texture2D* texture, std::string file_name);
 };
 
 } // namespace Graphics
