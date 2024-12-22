@@ -39,15 +39,17 @@ enum PSSlot {
 // bind shaders, and validate shader inputs.
 class ShaderManager {
   private:
+    ID3D11Device* device;
+
     std::vector<VertexShader*> vertexShaders;
     std::vector<PixelShader*> pixelShaders;
 
   public:
-    ShaderManager();
+    ShaderManager(ID3D11Device* _device);
     ~ShaderManager();
 
     // Load and configure all of the shaders usable by the engine
-    void initialize(ID3D11Device* device);
+    void initialize();
 
     // Access a shader by its respective enumerator slot.
     VertexShader* getVertexShader(VSSlot slot);

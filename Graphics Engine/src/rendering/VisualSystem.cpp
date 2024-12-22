@@ -9,10 +9,6 @@
 
 #define RGB(rgb) ((rgb) / 255.f)
 
-// TODO: Debug drawing w/ instancing
-// device_context->DrawIndexedInstanced(num_indices, VisualDebug::points.size(),
-// 0, 0, 1);
-
 namespace Engine {
 
 namespace Graphics {
@@ -31,12 +27,12 @@ VisualSystem::VisualSystem(HWND _window) {
     camera = Camera();
     lights = std::vector<Light*>();
 
-    // Managers
-    shaderManager = ShaderManager();
-    assetManager = nullptr;
-
     device = NULL;
     context = NULL;
+
+    shaderManager = NULL;
+    assetManager = NULL;
+
     swap_chain = NULL;
     render_target_view = NULL;
     depth_stencil = NULL;
@@ -49,89 +45,76 @@ const Camera& VisualSystem::getCamera() const { return camera; }
 Camera& VisualSystem::getCamera() { return camera; }
 
 // Initialize:
-// Initializes Direct3D11 for use in rendering
+// Initializes the Visual Engine by creating the necessary Direct3D11
+// components.
 void VisualSystem::initialize() {
+    HRESULT result;
+
     // Get window width and height
     RECT rect;
     GetWindowRect(window, &rect);
 
-    int width = rect.right - rect.left;
-    int height = rect.bottom - rect.top;
+    const int width = rect.right - rect.left;
+    const int height = rect.bottom - rect.top;
 
-    /* Initialize Swap Chain */
-    // Populate a Swap Chain Structure, responsible for swapping between
-    // textures (for rendering)
+    // Create swap chain, device, and context.
+    // The swap chain is responsible for swapping between textures
+    // for rendering.
     DXGI_SWAP_CHAIN_DESC swap_chain_descriptor = {0};
-    swap_chain_descriptor.BufferDesc.RefreshRate.Numerator =
-        0; // Synchronize Output Frame Rate
+
+    swap_chain_descriptor.BufferDesc.RefreshRate.Numerator = 0;
     swap_chain_descriptor.BufferDesc.RefreshRate.Denominator = 1;
     swap_chain_descriptor.BufferDesc.Width = width;
     swap_chain_descriptor.BufferDesc.Height = height;
-    swap_chain_descriptor.BufferDesc.Format =
-        DXGI_FORMAT_B8G8R8A8_UNORM; // Color Output Format
+    swap_chain_descriptor.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
     swap_chain_descriptor.SampleDesc.Count = 1;
     swap_chain_descriptor.SampleDesc.Quality = 0;
     swap_chain_descriptor.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    swap_chain_descriptor.BufferCount =
-        1; // Number of back buffers to add to the swap chain
+    swap_chain_descriptor.BufferCount = 1; // # Back Buffers
     swap_chain_descriptor.OutputWindow = window;
     swap_chain_descriptor.Windowed = true; // Displaying to a Window
 
-    // Create swap chain, and save pointer data
-    D3D_FEATURE_LEVEL feature_level;
-
-    HRESULT result = D3D11CreateDeviceAndSwapChain(
+    D3D_FEATURE_LEVEL feature_level; // Stores the GPU functionality
+    result = D3D11CreateDeviceAndSwapChain(
         NULL, D3D_DRIVER_TYPE_HARDWARE, NULL,
         D3D11_CREATE_DEVICE_SINGLETHREADED, // Flags
         NULL, 0, D3D11_SDK_VERSION, &swap_chain_descriptor, &swap_chain,
         &device, &feature_level, &context);
 
-    // Check for success
     assert(S_OK == result && swap_chain && device && context);
 
-    /* Create Render Target (Output Images) */
-    // Obtain Frame Buffer
+    // Create my render target with the swap chain's frame buffer. This
+    // will store my output image.
     ID3D11Texture2D* framebuffer;
 
-    // Create Render Target with Frame Buffer
-    {
-        result = swap_chain->GetBuffer(0, // Get Buffer 0
-                                       __uuidof(ID3D11Texture2D),
-                                       (void**)&framebuffer);
+    result = swap_chain->GetBuffer(0, __uuidof(ID3D11Texture2D),
+                                   (void**)&framebuffer);
+    assert(SUCCEEDED(result));
 
-        // Check for success
-        assert(SUCCEEDED(result));
+    result =
+        device->CreateRenderTargetView(framebuffer, 0, &render_target_view);
+    assert(SUCCEEDED(result));
 
-        // Create Render Target with Frame Buffer
-        result =
-            device->CreateRenderTargetView(framebuffer, 0, &render_target_view);
-        // Check Success
-        assert(SUCCEEDED(result));
-    }
+    framebuffer->Release(); // Free frame buffer (no longer needed)
 
-    // Release frame buffer (no longer needed)
-    framebuffer->Release();
-
-    // Create 2D texture to be used as a depth stencil
+    // Create my depth stencil for z-testing, and a view so I can use it.
     ID3D11Texture2D* depth_texture =
         CreateTexture2D(D3D11_BIND_DEPTH_STENCIL, width, height);
 
-    // Create a depth stencil from the 2D texture
-    {
-        // Create description for the depth stencil
-        D3D11_DEPTH_STENCIL_VIEW_DESC desc_stencil = {};
-        desc_stencil.Format =
+    D3D11_DEPTH_STENCIL_VIEW_DESC desc_stencil = {};
+    desc_stencil.Format =
             DXGI_FORMAT_D24_UNORM_S8_UINT; // Same format as texture
-        desc_stencil.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
+    desc_stencil.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
 
-        // Create depth stencil
-        device->CreateDepthStencilView(depth_texture, &desc_stencil,
-                                       &depth_stencil);
-    }
+    device->CreateDepthStencilView(depth_texture, &desc_stencil,
+                                    &depth_stencil);
 
+    // Create my asset and shader managers
     assetManager = new AssetManager(device, context);
     assetManager->initialize();
-    shaderManager.initialize(device);
+    
+    shaderManager = new ShaderManager(device);
+    shaderManager->initialize();
 }
 
 // CreateLight:
@@ -174,11 +157,11 @@ void VisualSystem::render() {
 // Render the scene from each light's point of view, to populate
 // its shadow map.
 void VisualSystem::performShadowPass() {
-    VertexShader* vShader = shaderManager.getVertexShader(VSDefault);
+    VertexShader* vShader = shaderManager->getVertexShader(VSDefault);
     CBHandle* vCB1 = vShader->getCBHandle(CB1);
     CBHandle* vCB2 = vShader->getCBHandle(CB2);
 
-    PixelShader* pShader = shaderManager.getPixelShader(PSDefault);
+    PixelShader* pShader = shaderManager->getPixelShader(PSDefault);
 
     for (Light* light : lights) {
         // Populate CB1 of the vertex shader, which will
@@ -237,11 +220,11 @@ void VisualSystem::performShadowPass() {
 }
 
 void VisualSystem::performRenderPass() {
-    VertexShader* vShader = shaderManager.getVertexShader(VSShadow);
+    VertexShader* vShader = shaderManager->getVertexShader(VSShadow);
     CBHandle* vCB1 = vShader->getCBHandle(CB1);
     CBHandle* vCB2 = vShader->getCBHandle(CB2);
 
-    PixelShader* pShader = shaderManager.getPixelShader(PSShadow);
+    PixelShader* pShader = shaderManager->getPixelShader(PSShadow);
     CBHandle* pCB1 = pShader->getCBHandle(CB1);
 
     context->OMSetRenderTargets(1, &render_target_view, depth_stencil);
@@ -354,10 +337,10 @@ void VisualSystem::performRenderPass() {
 }
 
 void VisualSystem::renderDebugPoints() {
-    VertexShader* vShader = shaderManager.getVertexShader(VSDebugPoint);
+    VertexShader* vShader = shaderManager->getVertexShader(VSDebugPoint);
     CBHandle* vCB1 = vShader->getCBHandle(CB1);
 
-    PixelShader* pShader = shaderManager.getPixelShader(PSDebugPoint);
+    PixelShader* pShader = shaderManager->getPixelShader(PSDebugPoint);
 
     vShader->getCBHandle(CB0)->clearData();
     vShader->getCBHandle(CB1)->clearData();
@@ -402,10 +385,10 @@ void VisualSystem::renderDebugPoints() {
 }
 
 void VisualSystem::renderDebugLines() {
-    VertexShader* vShader = shaderManager.getVertexShader(VSDebugLine);
+    VertexShader* vShader = shaderManager->getVertexShader(VSDebugLine);
     CBHandle* vCB1 = vShader->getCBHandle(CB1);
 
-    PixelShader* pShader = shaderManager.getPixelShader(PSDebugLine);
+    PixelShader* pShader = shaderManager->getPixelShader(PSDebugLine);
 
     vShader->getCBHandle(CB1)->clearData();
 

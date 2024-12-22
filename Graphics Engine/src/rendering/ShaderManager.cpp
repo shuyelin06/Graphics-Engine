@@ -4,12 +4,12 @@
 
 namespace Engine {
 namespace Graphics {
-ShaderManager::ShaderManager() = default;
+ShaderManager::ShaderManager(ID3D11Device* _device) { device = _device; }
 ShaderManager::~ShaderManager() = default;
 
 // Initialize:
 // Creates and configures all of the shaders usable by the engine.
-void ShaderManager::initialize(ID3D11Device* device) {
+void ShaderManager::initialize() {
     vertexShaders.resize(VSSlot::VSCount);
     pixelShaders.resize(PSSlot::PSCount);
 

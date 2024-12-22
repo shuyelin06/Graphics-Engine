@@ -35,7 +35,7 @@ class CBHandle {
     friend class PixelShader;
 
   private:
-    std::vector<char> data;
+    std::vector<uint8_t> data;
     ID3D11Buffer* resource;
 
   public:

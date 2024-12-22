@@ -33,19 +33,20 @@ class VisualSystem {
   private:
     // Window
     HWND window;
-    IDXGISwapChain* swap_chain;
-
+    
     // Direct 3D 11 Interfaces
     ID3D11Device* device;
     ID3D11DeviceContext* context;
 
-    // Managers
-    ShaderManager shaderManager;
-    AssetManager* assetManager;
-
-    // Main Render Target
+    // Main Render Targets
+    IDXGISwapChain* swap_chain;
+    
     ID3D11RenderTargetView* render_target_view;
     ID3D11DepthStencilView* depth_stencil;
+    
+    // Managers
+    ShaderManager* shaderManager;
+    AssetManager* assetManager;
 
     // Main Camera:
     // The scene is rendered from this camera
