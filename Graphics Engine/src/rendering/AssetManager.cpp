@@ -53,9 +53,11 @@ void AssetManager::initialize() {
     //    }
     //}
     textures[Perlin] = tex_builder.generate();
+    //WriteTextureToPNG(textures[Perlin]->texture, "perlin.png");
 
     LoadTextureFromPNG(tex_builder, "data/", "test.png");
     textures[Test2] = tex_builder.generate();
+    
 
     // Create my samplers
     samplers.resize(SamplerCount);

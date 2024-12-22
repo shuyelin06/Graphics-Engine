@@ -99,7 +99,7 @@ static uint32_t checksum32(uint8_t* _data, size_t size) {
 
 // --- PNG File Writing ---
 static void writePNGChunk(FILE* file, uint8_t type[4], uint8_t* data,
-                          size_t data_size);
+                          uint32_t data_size);
 
 // Given a ID3D11Texture2D, writes its contents to a png file for exporting /
 // reading externally.
@@ -117,6 +117,7 @@ bool AssetManager::WriteTextureToPNG(ID3D11Texture2D* texture,
     staging_desc.Usage = D3D11_USAGE_STAGING; // Allows copying from GPU -> CPU
     staging_desc.BindFlags = 0; // Will not be bound to any pipeline stage
     staging_desc.MiscFlags = 0;
+    staging_desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE; // CPU access flags
 
     // For now, this will only work for DXGI_FORMAT_R8G8B8A8_UNORM.
     assert(staging_desc.Format == DXGI_FORMAT_R8G8B8A8_UNORM);
@@ -147,7 +148,69 @@ bool AssetManager::WriteTextureToPNG(ID3D11Texture2D* texture,
     // Write the PNG magic byte
     fwrite(PNG_MAGIC_BYTE, sizeof(PNG_MAGIC_BYTE), 1, file);
 
-    //
+    // Write the IHDR Chunk.
+    const uint32_t width = samples_per_row;
+    const uint32_t height = samples_per_column;
+
+    {
+        uint8_t IHDR_data[13];
+        uint8_t IHDR_type[4] = {
+            'I',
+            'H',
+            'D',
+            'R'
+        };
+
+        const uint8_t bit_depth = 8;
+        const uint8_t color_type = 6;
+        const uint8_t interlace = 0;
+        const uint8_t compression = 0;
+
+        uint32_t width_flipped = width;
+        flip(&width_flipped, 4);
+        memcpy(IHDR_data, &width_flipped, 4);
+
+        uint32_t height_flipped = height;
+        flip(&height_flipped, 4);
+        memcpy(IHDR_data + 4, &height_flipped, 4);
+
+        IHDR_data[8] = 8; // Bit depth
+        IHDR_data[9] = 6; // Color type
+        IHDR_data[10] = 0; // Compression
+        IHDR_data[11] = 0; // Filter
+        IHDR_data[12] = 0; // Interlace
+
+        writePNGChunk(file, IHDR_type, IHDR_data, 13);
+    }
+
+    // Write the IDAT Chunk
+    {
+        uint8_t IDAT_type[4] = {'I', 'D', 'A', 'T'};
+        uint8_t* IDAT_data = new uint8_t[4 * width * height];
+        
+        memcpy(IDAT_data, pixel_data, 4 * width * height);
+
+        // Compress with zlib
+        uint8_t* compressed_data = new uint8_t[4 * width * height];
+        uLong raw_size = 4 * width * height;
+        uLong compressed_size = 4 * width * height;
+        compress((Bytef*)compressed_data, &compressed_size, IDAT_data,
+                 4 * width * height);
+        
+        writePNGChunk(file, IDAT_type, compressed_data, compressed_size);
+        
+        delete[] IDAT_data;
+        delete[] compressed_data;
+    }
+    
+    // IEND Chunk
+    {
+        uint8_t IEND_type[4] = {'I', 'E', 'N', 'D'};
+
+        writePNGChunk(file, IEND_type, NULL, 0);
+    }
+    
+    fclose(file);
 
     // We unmap our resource and release it to free the memory.
     context->Unmap(staging_tex, 0);
@@ -165,23 +228,32 @@ bool AssetManager::WriteTextureToPNG(ID3D11Texture2D* texture,
 void writePNGChunk(FILE* file, uint8_t type[4], uint8_t* data,
                    uint32_t data_size) {
     // Write the data length
-    fwrite(&data_size, sizeof(data_size), 1, file);
+    uint32_t length = data_size;
+    flip(&length, 4);
+    fwrite(&length, sizeof(data_size), 1, file);
 
     // Write the chunk type
     fwrite(type, sizeof(uint8_t), 4, file);
 
-    // Write the chunk data, compressed with zlib
-    // Decompress with zlib
-    uint8_t* compressed_data = new uint8_t[data_size];
-    uLong raw_size = data_size;
-    uLong compressed_size = data_size;
-    compress((Bytef*)compressed_data, &compressed_size, data, data_size);
-
-    // Write the compressed size
-    fwrite(compressed_data, compressed_size, 1, file);
+    // Write the chunk data
+    if (data_size > 0) {
+        fwrite(data, sizeof(uint8_t), data_size, file);
+    }
 
     // Generate and write the CRC
-    uint32_t crc = 0; // ???
+    std::vector<uint8_t> type_and_data;
+    type_and_data.resize(4 + data_size);
+
+    type_and_data[0] = type[0];
+    type_and_data[1] = type[1];
+    type_and_data[2] = type[2];
+    type_and_data[3] = type[3];
+
+    if (data_size > 0) {
+        memcpy(&type_and_data[0] + 4, data, data_size);
+    }
+
+    uint32_t crc = checksum32(&type_and_data[0], data_size + 4);
     fwrite(&crc, sizeof(uint32_t), 1, file);
 }
 
