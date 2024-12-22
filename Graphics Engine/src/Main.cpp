@@ -74,7 +74,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     RegisterClass(&wc);
 
     // Create a window instance from this class. HWND will contain a handle
-    // to the window created. 
+    // to the window created.
     HWND hwnd = CreateWindowEx(0,                   // Optional window styles.
                                CLASS_NAME,          // Window class
                                L"Graphics Engine",  // Window text
@@ -114,9 +114,18 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     // Bind Camera
     MovementHandler movementHandler(visual_system.getCamera().getTransform());
-    // Bind Light to Camera
+    // Bind Lights to Camera
     Light* light = visual_system.createLight();
     light->setTransform(visual_system.getCamera().getTransform());
+
+    {
+        Transform transform = Transform();
+        transform.offsetPosition(0, 5, 0);
+        transform.offsetRotation(Vector3::PositiveX(), 0.05f);
+
+        Light* lObj = visual_system.createLight();
+        lObj->setTransform(&transform);
+    }
 
     // Create Object Hierarchy
     Object& parent_object = scene_graph.createObject();
@@ -124,21 +133,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     Object& child1 = parent_object.createChild();
 
     Object& child2 = parent_object.createChild();
+    child2.setAsset(AssetSlot::Fox);
     child2.getTransform().setScale(5, 5, 5);
     child2.getTransform().setPosition(Compute::random(-2.5f, 2.5f),
                                       Compute::random(-2.5f, 2.5f),
                                       Compute::random(15, 25));
-
-    {
-        Object& light = parent_object.createChild();
-        light.getTransform().offsetPosition(0, 5, 0);
-        light.getTransform().offsetRotation(Vector3::PositiveX(), 0.05f);
-
-        Light* lObj = visual_system.createLight();
-        lObj->setTransform(&light.getTransform());
-    }
-
+    
     Object& child3 = parent_object.createChild();
+    child3.setAsset(AssetSlot::Cube);
     child3.getTransform().setScale(100, 2.5f, 100);
     child3.getTransform().setPosition(0, -10, 0);
 
@@ -152,6 +154,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     VisualDebug::DrawPoint(Vector3(1, 0, 0), 1, Color::Red(), 60 * 7);
     VisualDebug::DrawPoint(Vector3(0, 1, 0), 1, Color::Green(), 60 * 7);
     VisualDebug::DrawPoint(Vector3(0, 0, 1), 1, Color::Blue(), 60 * 7);
+
+    VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(5, 0, 0),
+                          Color::Red());                      // X Red
+    VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(0, 5, 0), // Y Green
+                          Color::Green());
+    VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(0, 0, 5), // Z Blue
+                          Color::Blue());
 
     // Main loop: runs once per frame
     while (!close) {
@@ -168,15 +177,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                 return 0;
         }
 
-        VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(5, 0, 0), Color::Red()); // X Red 
-        VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(0, 5, 0), // Y Green
-                              Color::Green());
-        VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(0, 0, 5), // Z Blue
-                              Color::Blue());
-
-        // Update Object Transforms
-        scene_graph.updateObjectTransforms();
-
         // Dispatch Input Data
         movementHandler.update();
         input_system.update();
@@ -184,14 +184,20 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         // Update Physics System
         physics_system.update();
 
-        // Update Rendering System
+        // TODO: THIS CODE IS WRONG
         // child2.getTransform().lookAt(visual_system.getCamera().getTransform()->getPosition());
         // child2.getTransform().offsetRotation(Vector3::NegativeX(), 0.05f);
+        
+        // Update Rendering System
         visual_system.drawAsset(AssetSlot::TerrainAsset,
                                 child1.getLocalMatrix());
-        visual_system.drawAsset(AssetSlot::Fox, child2.getLocalMatrix());
-        visual_system.drawAsset(AssetSlot::Cube, child3.getLocalMatrix());
 
+        std::vector<AssetRenderRequest> requests;
+        scene_graph.updateAndRenderObjects(requests);
+        for (const AssetRenderRequest& request : requests) {
+            visual_system.drawAsset(request.slot, request.mLocalToWorld);
+        }
+        
         visual_system.render();
 
         // Stall until enough time has elapsed for 60 frames / second

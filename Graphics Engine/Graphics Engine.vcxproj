@@ -190,6 +190,7 @@
     <ClCompile Include="src\rendering\AssetManager.cpp" />
     <ClCompile Include="src\rendering\MarchingCubes.cpp" />
     <ClCompile Include="src\rendering\parsers\PNGParser.cpp" />
+    <ClCompile Include="src\rendering\RenderRequest.cpp" />
     <ClCompile Include="src\rendering\Shader.cpp" />
     <ClCompile Include="src\rendering\ShaderManager.cpp" />
     <ClCompile Include="src\rendering\Texture.cpp" />
@@ -205,6 +206,7 @@
     <ClInclude Include="include\zlib.h" />
     <ClInclude Include="src\datamodel\SceneGraph.h" />
     <ClInclude Include="src\datamodel\Terrain.h" />
+    <ClInclude Include="src\rendering\AssetIDs.h" />
     <ClInclude Include="src\rendering\MarchingCubeTables.h" />
     <ClInclude Include="src\input\components\MovementHandler.h" />
     <ClInclude Include="src\math\PerlinNoise.h" />
@@ -230,6 +232,7 @@
     <ClInclude Include="src\rendering\components\Camera.h" />
     <ClInclude Include="src\rendering\components\Light.h" />
     <ClInclude Include="src\rendering\AssetManager.h" />
+    <ClInclude Include="src\rendering\RenderRequest.h" />
     <ClInclude Include="src\rendering\Shader.h" />
     <ClInclude Include="src\rendering\ShaderManager.h" />
     <ClInclude Include="src\rendering\Texture.h" />

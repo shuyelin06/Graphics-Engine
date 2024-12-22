@@ -16,14 +16,14 @@
 namespace Engine {
 namespace Datamodel {
 
-Terrain::Terrain() {
+Terrain::Terrain(int x_offset, int z_offset) {
     // Initialize terrain data. Terrain will be from (0,0,0) to (2,2,z).
     // We sample between these values with Perlin noise, with the 
     for (int i = 0; i < CHUNK_X_SAMPLES; i++) {
         for (int j = 0; j < CHUNK_Z_SAMPLES; j++) {
             // Calculate the corresponding (x,z) coordinate in the noise function
-            float x = i * TERRAIN_SIZE / CHUNK_X_SAMPLES;
-            float z = j * TERRAIN_SIZE / CHUNK_Z_SAMPLES;
+            float x = i * TERRAIN_SIZE / CHUNK_X_SAMPLES + x_offset * TERRAIN_SIZE;
+            float z = j * TERRAIN_SIZE / CHUNK_Z_SAMPLES + z_offset * TERRAIN_SIZE;
 
             // Take perlin noise. It specifies at what y coordinate the surface should be.
             float noise = PerlinNoise::noise2D(x,z);

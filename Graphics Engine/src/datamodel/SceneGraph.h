@@ -5,6 +5,11 @@
 #include "Object.h"
 #include "Terrain.h"
 
+#include "rendering/RenderRequest.h"
+
+constexpr int CHUNK_X_LIMIT = 5;
+constexpr int CHUNK_Z_LIMIT = 5;
+
 namespace Engine {
 namespace Datamodel {
 
@@ -17,7 +22,7 @@ namespace Datamodel {
 class SceneGraph {
   private:
     std::vector<Object*> objects;
-    Terrain* terrain;
+    Terrain* terrain_chunks[CHUNK_X_LIMIT][CHUNK_Z_LIMIT];
 
   public:
     SceneGraph();
@@ -29,14 +34,16 @@ class SceneGraph {
     Object& createObject();
 
     // Terrain handling
-    const Terrain* getTerrain() const;
-    Terrain* getTerrain();
+    const Terrain* getTerrain(int x, int z) const;
+    Terrain* getTerrain(int x, int z);
 
-    // Update and cache object transforms in the SceneGraph
-    void updateObjectTransforms();
+    // Update object transforms and submit render requests
+    // for each
+    void updateAndRenderObjects(std::vector<AssetRenderRequest>& requests);
 
   private:
-    void updateObjectTransforms(Object* object, const Matrix4& m_parent);
+    void updateAndRenderObjects(Object* object, const Matrix4& m_parent,
+                                std::vector<AssetRenderRequest>& requests);
 };
 
 } // namespace Datamodel

@@ -15,6 +15,9 @@ Object::Object() {
     parent = nullptr;
     children = std::vector<Object*>(0);
 
+    // Objects start with no asset 
+    asset = NoAsset;
+
     // Default transform
     transform = Transform();
 }
@@ -72,6 +75,18 @@ const Matrix4& Object::updateLocalMatrix(const Math::Matrix4& m_parent) {
     m_local = m_parent_transform * m_local_transform;
 
     return m_local;
+}
+
+// GetAsset:
+// Returns the asset associated with this object.
+AssetSlot Object::getAsset() const {
+    return asset;
+}
+
+// SetAsset:
+// Updates the asset associated with this object.
+void Object::setAsset(AssetSlot _asset) {
+    asset = _asset;
 }
 
 } // namespace Datamodel

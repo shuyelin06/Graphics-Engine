@@ -12,12 +12,6 @@
 namespace Engine {
 
 namespace Graphics {
-AssetRenderRequest::AssetRenderRequest(AssetSlot _slot,
-                                       const Matrix4& _mLocalToWorld) {
-    slot = _slot;
-    mLocalToWorld = _mLocalToWorld;
-}
-
 // Constructor
 // Saves the handle to the application window and initializes the
 // system's data structures

@@ -5,6 +5,7 @@
 
 #include "Direct3D11.h"
 
+#include "rendering/AssetIDs.h"
 #include "rendering/components/Asset.h"
 #include "rendering/components/AssetBuilder.h"
 #include "datamodel/Terrain.h"
@@ -13,21 +14,9 @@ namespace Engine {
 namespace Graphics {
 using namespace Datamodel;
 
-// Assets
-enum AssetSlot {
-    Cube = 0,
-    Fox = 1,
-    TerrainAsset = 2, // Temp
-    AssetCount
-};
+// enum AssetSlot from AssetIDs.h
 
-enum TextureSlot { 
-    Test = 0, 
-    Test2 = 1,
-    Perlin = 2,
-    TextureCount 
-};
-
+enum TextureSlot { Test = 0, Test2 = 1, Perlin = 2, TextureCount };
 enum SamplerSlot { ShadowMap = 0, MeshTexture = 1, SamplerCount };
 
 // AssetManager Class:

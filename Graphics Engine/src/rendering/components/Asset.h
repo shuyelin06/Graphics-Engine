@@ -52,57 +52,6 @@ struct Mesh {
     UINT triangle_count;
 };
 
-//// Mesh Class
-//// Stores information regarding vertices
-//// and their index groupings to form a mesh.
-// class Mesh
-//{
-// private:
-//	// Mesh renderable properties
-//	std::vector<MeshVertex> vertexBuffer;
-//	std::vector<MeshTriangle> indexBuffer;
-
-//	Material* material;
-
-//	// Direct3D Resources
-//	ID3D11Buffer* indexBufferResource;
-//	ID3D11Buffer* vertexBufferResource;
-
-//	// Determines if the mesh can be edited or not
-//	bool lock;
-
-//	// Determines if the mesh is static, i.e. if
-//	// it can change. If it is static, we can reuse resources.
-//	bool staticMesh;
-
-// public:
-//	// Mesh Constructor
-//	Mesh();
-
-//	// Mesh Initializers
-//	bool setMaterial(Material* material);
-//	bool addVertex(MeshVertex& vertex);
-//	bool addTriangle(MeshTriangle& triangle);
-
-//	// Finalize mesh and lock it from further editing
-//	void lockMesh(bool regenerateNormals);
-
-//	// Mesh Accessors
-//	const std::vector<MeshVertex>& getVertexBuffer() const;
-//	const std::vector<MeshTriangle>& getIndexBuffer() const;
-
-//	int vertexCount() const;
-//	int triangleCount() const;
-
-//       bool isStatic() const;
-
-//	// Pipeline Management
-//	// Loads the index and vertex buffers into the pipeline
-//	// and returns the number of indices to render
-//	int loadIndexVertexData(ID3D11DeviceContext* context, ID3D11Device*
-//device);
-//};
-
 // Asset Class
 // Represents a renderable entity. Assets are composed of multiple
 // meshes, each of which can has a material. Together, these meshes

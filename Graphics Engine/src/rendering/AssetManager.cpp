@@ -74,7 +74,7 @@ void AssetManager::initialize() {
     // Fox by Jake Blakeley [CC-BY] via Poly Pizza
     assets[Fox] = LoadAssetFromOBJ(mesh_builder, "data/", "model.obj", "Model");
 
-    Datamodel::Terrain* terrain = new Datamodel::Terrain();
+    Datamodel::Terrain* terrain = new Datamodel::Terrain(0,0);
     assets[TerrainAsset] = GenerateTerrainAsset(mesh_builder, *terrain);
 }
 

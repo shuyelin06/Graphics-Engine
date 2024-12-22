@@ -33,7 +33,7 @@ class Terrain {
     float terrainData[CHUNK_X_SAMPLES][CHUNK_Z_SAMPLES][CHUNK_Y_SAMPLES];
 
   public:
-    Terrain();
+    Terrain(int x_offset, int z_offset);
     ~Terrain();
 
     float sample(UINT x, UINT y, UINT z) const;

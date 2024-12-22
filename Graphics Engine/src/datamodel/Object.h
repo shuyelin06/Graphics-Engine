@@ -7,8 +7,11 @@
 #include "math/Transform.h"
 #include "math/Vector3.h"
 
+#include "rendering/AssetIDs.h"
+
 namespace Engine {
 using namespace Math;
+using namespace Graphics;
 
 namespace Datamodel {
 // Object Class
@@ -28,6 +31,9 @@ class Object {
 
     // (Cached) Local --> World Matrix
     Matrix4 m_local;
+    
+    // Renderable Asset Associated with the Object
+    AssetSlot asset;
 
   public:
     // Constructor & Destructor
@@ -45,6 +51,12 @@ class Object {
 
     const Matrix4& getLocalMatrix() const;
     const Matrix4& updateLocalMatrix(const Matrix4& m_parent);
+
+    // Renderable Methods
+    AssetSlot getAsset() const;
+
+    void setAsset(AssetSlot asset);
+
 };
 } // namespace Datamodel
 } // namespace Engine
