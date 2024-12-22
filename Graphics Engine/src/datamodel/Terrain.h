@@ -6,8 +6,8 @@
 // #define TERRAIN_DEBUG
 
 constexpr int CHUNK_X_SAMPLES = 31;
-constexpr int CHUNK_Y_SAMPLES = 31;
-constexpr int CHUNK_Z_SAMPLES = 17;
+constexpr int CHUNK_Y_SAMPLES = 17;
+constexpr int CHUNK_Z_SAMPLES = 31;
 
 constexpr float TERRAIN_SIZE = 75.f;
 constexpr float TERRAIN_HEIGHT = 15.f;
@@ -30,7 +30,7 @@ class Terrain {
   private:
     // Stores a scalar field's values at vertices of each voxel within the
     // chunk.
-    float terrainData[CHUNK_X_SAMPLES][CHUNK_Y_SAMPLES][CHUNK_Z_SAMPLES];
+    float terrainData[CHUNK_X_SAMPLES][CHUNK_Z_SAMPLES][CHUNK_Y_SAMPLES];
 
   public:
     Terrain();

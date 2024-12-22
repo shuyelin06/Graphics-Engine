@@ -20,19 +20,19 @@ Terrain::Terrain() {
     // Initialize terrain data. Terrain will be from (0,0,0) to (2,2,z).
     // We sample between these values with Perlin noise, with the 
     for (int i = 0; i < CHUNK_X_SAMPLES; i++) {
-        for (int j = 0; j < CHUNK_Y_SAMPLES; j++) {
-            // Calculate the corresponding (x,y) coordinate in the noise function
+        for (int j = 0; j < CHUNK_Z_SAMPLES; j++) {
+            // Calculate the corresponding (x,z) coordinate in the noise function
             float x = i * TERRAIN_SIZE / CHUNK_X_SAMPLES;
-            float y = j * TERRAIN_SIZE / CHUNK_Y_SAMPLES;
+            float z = j * TERRAIN_SIZE / CHUNK_Z_SAMPLES;
 
-            // Take perlin noise. It specifies at what z coordinate should the surface be.
-            float noise = PerlinNoise::noise2D(x,y);
-            int coord = (int) (noise * CHUNK_Z_SAMPLES);
+            // Take perlin noise. It specifies at what y coordinate the surface should be.
+            float noise = PerlinNoise::noise2D(x,z);
+            int coord = (int) (noise * CHUNK_Y_SAMPLES);
             
             for (int k = 0; k < coord; k++)
-                terrainData[i][j][k] = -1;
-            for (int k = coord; k < CHUNK_Z_SAMPLES; k++)
                 terrainData[i][j][k] = 1;
+            for (int k = coord; k < CHUNK_Y_SAMPLES; k++)
+                terrainData[i][j][k] = -1;
         }
     }
 
@@ -57,7 +57,7 @@ Terrain::~Terrain() = default;
 
 float Terrain::sample(UINT x, UINT y, UINT z) const
 {
-    return terrainData[x][y][z];
+    return terrainData[x][z][y];
 }
 
 } // namespace Datamodel

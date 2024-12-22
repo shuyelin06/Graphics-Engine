@@ -72,8 +72,8 @@ Asset* AssetManager::GenerateTerrainAsset(MeshBuilder& builder,
 
                 // Scale and transform to voxel location
                 const float x_scale = TERRAIN_SIZE / CHUNK_X_SAMPLES;
-                const float y_scale = TERRAIN_SIZE / CHUNK_Y_SAMPLES;
-                const float z_scale = TERRAIN_HEIGHT / CHUNK_Z_SAMPLES;
+                const float z_scale = TERRAIN_SIZE / CHUNK_Z_SAMPLES;
+                const float y_scale = TERRAIN_HEIGHT / CHUNK_Y_SAMPLES;
 
                 Vector3 offset = Vector3(i, j, k);
                 Vector3 scale = Vector3(x_scale, y_scale, z_scale);
@@ -624,7 +624,7 @@ Vector3 MarchingCube::generateVertexOnEdge(char edgeID) {
     // based on the sampled values
     float offset_percent = (-baseValue) / (offsetValue - baseValue);
 
-    assert(offset_percent != 0);
+    //assert(offset_percent != 0);
 
     // Determine surface coordinate
     if ((baseValue < 0 && offsetValue < 0) ||
