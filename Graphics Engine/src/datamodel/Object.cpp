@@ -56,17 +56,17 @@ Transform& Object::getTransform() { return transform; }
 // GetLocalToWorldMatrix:
 // Returns the Object's Local -> World matrix. This can be used
 // to transform points in the object's local space into world space.
-const Math::Matrix4& Object::getLocalMatrix() const { return m_local; }
+const Matrix4& Object::getLocalMatrix() const { return m_local; }
 
 // UpdateLocalToWorldMatrix:
 // Update the Local -> World matrix for the object, given the
 // parent's Local -> World matrix.
 // This method is called in an update pre-pass every frame, and lets us
 // cache the matrix to save computation.
-const Math::Matrix4& Object::updateLocalMatrix(const Math::Matrix4& m_parent) {
+const Matrix4& Object::updateLocalMatrix(const Math::Matrix4& m_parent) {
     // Generate local transform
-    Matrix4 m_local_transform = transform.transformMatrix();
-    Matrix4 m_parent_transform = m_parent;
+    const Matrix4 m_local_transform = transform.transformMatrix();
+    const Matrix4 m_parent_transform = m_parent;
 
     // Update local matrix.
     m_local = m_parent_transform * m_local_transform;

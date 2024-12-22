@@ -62,24 +62,19 @@ static InputSystem input_system;
 // Main Function
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                     PWSTR pCmdLine, int nCmdShow) {
-    /* Register a Window Class with the OS */
-    // Registers information about the behavior of the application window
-    const wchar_t CLASS_NAME[] = L"Application";
+    // Create a Window Class with the OS
+    const wchar_t CLASS_NAME[] = L"Main";
 
-    // We fill in a WNDCLASS structure to register a window class
     WNDCLASS wc = {};
 
-    // Required parameters to set prior to registering
     wc.lpfnWndProc = WindowProc;   // Function pointer to WindowProc
     wc.hInstance = hInstance;      // Handle to this application instance
     wc.lpszClassName = CLASS_NAME; // String identifying the window class
 
-    // Register a window class
     RegisterClass(&wc);
 
-    /* Creates a new Window Instance */
-    // Creates the window, and receive a handle uniquely identifying the window
-    // (stored in hwnd)
+    // Create a window instance from this class. HWND will contain a handle
+    // to the window created. 
     HWND hwnd = CreateWindowEx(0,                   // Optional window styles.
                                CLASS_NAME,          // Window class
                                L"Graphics Engine",  // Window text
@@ -125,14 +120,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     // Create Object Hierarchy
     Object& parent_object = scene_graph.createObject();
-        
+
     Object& child1 = parent_object.createChild();
-        
+
     Object& child2 = parent_object.createChild();
     child2.getTransform().setScale(5, 5, 5);
     child2.getTransform().setPosition(Compute::random(-2.5f, 2.5f),
-                                        Compute::random(-2.5f, 2.5f),
-                                        Compute::random(15, 25));
+                                      Compute::random(-2.5f, 2.5f),
+                                      Compute::random(15, 25));
 
     {
         Object& light = parent_object.createChild();
@@ -173,10 +168,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                 return 0;
         }
 
-        // VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(5, 0, 0),
-        // Color::Red()); VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(0, 5,
-        // 0), Color::Green()); VisualDebug::DrawLine(Vector3(0, 0, 0),
-        // Vector3(0, 0, 5), Color::Blue());
+        VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(5, 0, 0), Color::Red()); // X Red 
+        VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(0, 5, 0), // Y Green
+                              Color::Green());
+        VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(0, 0, 5), // Z Blue
+                              Color::Blue());
 
         // Update Object Transforms
         scene_graph.updateObjectTransforms();
@@ -191,7 +187,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         // Update Rendering System
         // child2.getTransform().lookAt(visual_system.getCamera().getTransform()->getPosition());
         // child2.getTransform().offsetRotation(Vector3::NegativeX(), 0.05f);
-        visual_system.drawAsset(AssetSlot::TerrainAsset, child1.getLocalMatrix());
+        visual_system.drawAsset(AssetSlot::TerrainAsset,
+                                child1.getLocalMatrix());
         visual_system.drawAsset(AssetSlot::Fox, child2.getLocalMatrix());
         visual_system.drawAsset(AssetSlot::Cube, child3.getLocalMatrix());
 

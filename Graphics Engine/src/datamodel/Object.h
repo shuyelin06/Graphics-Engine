@@ -24,10 +24,10 @@ class Object {
     std::vector<Object*> children;
 
     // Transform of the object
-    Math::Transform transform;
+    Transform transform;
 
     // (Cached) Local --> World Matrix
-    Math::Matrix4 m_local;
+    Matrix4 m_local;
 
   public:
     // Constructor & Destructor
@@ -41,10 +41,10 @@ class Object {
     Object& createChild();
 
     // Transform Methods
-    Math::Transform& getTransform();
+    Transform& getTransform();
 
-    const Math::Matrix4& getLocalMatrix() const;
-    const Math::Matrix4& updateLocalMatrix(const Math::Matrix4& m_parent);
+    const Matrix4& getLocalMatrix() const;
+    const Matrix4& updateLocalMatrix(const Matrix4& m_parent);
 };
 } // namespace Datamodel
 } // namespace Engine

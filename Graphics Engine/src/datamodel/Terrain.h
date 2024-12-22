@@ -6,7 +6,7 @@
 // #define TERRAIN_DEBUG
 
 constexpr int CHUNK_X_SAMPLES = 31;
-constexpr int CHUNK_Y_SAMPLES = 17;
+constexpr int CHUNK_Y_SAMPLES = 51;
 constexpr int CHUNK_Z_SAMPLES = 31;
 
 constexpr float TERRAIN_SIZE = 75.f;
