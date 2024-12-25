@@ -4,11 +4,9 @@
 
 #include "Object.h"
 #include "Terrain.h"
+#include "datamodel/TerrainConfig.h"
 
 #include "rendering/RenderRequest.h"
-
-constexpr int CHUNK_X_LIMIT = 5;
-constexpr int CHUNK_Z_LIMIT = 5;
 
 namespace Engine {
 namespace Datamodel {
@@ -37,6 +35,10 @@ class SceneGraph {
     const Terrain* getTerrain(int x, int z) const;
     Terrain* getTerrain(int x, int z);
 
+    // Update terrain (if needed) and submit render requests for each.
+    // Later, the scene graph can do some culling optimizations for us. 
+    void updateAndRenderTerrain(std::vector<TerrainRenderRequest>& requests);
+    
     // Update object transforms and submit render requests
     // for each
     void updateAndRenderObjects(std::vector<AssetRenderRequest>& requests);

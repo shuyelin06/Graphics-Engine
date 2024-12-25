@@ -97,16 +97,16 @@ void VisualSystem::initialize() {
 
     D3D11_DEPTH_STENCIL_VIEW_DESC desc_stencil = {};
     desc_stencil.Format =
-            DXGI_FORMAT_D24_UNORM_S8_UINT; // Same format as texture
+        DXGI_FORMAT_D24_UNORM_S8_UINT; // Same format as texture
     desc_stencil.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
 
     device->CreateDepthStencilView(depth_texture, &desc_stencil,
-                                    &depth_stencil);
+                                   &depth_stencil);
 
     // Create my asset and shader managers
     assetManager = new AssetManager(device, context);
     assetManager->initialize();
-    
+
     shaderManager = new ShaderManager(device);
     shaderManager->initialize();
 }
@@ -119,22 +119,23 @@ Light* VisualSystem::createLight() {
     return newLight;
 }
 
-// DrawAsset:
-// Generates an asset render request
-void VisualSystem::drawAsset(AssetSlot asset, const Matrix4& mLocalToWorld) {
-    assetRequests.push_back(AssetRenderRequest(asset, mLocalToWorld));
+// DrawRequests:
+// Methods that let other components of the application submit requests
+// for rendering
+void VisualSystem::drawAsset(const AssetRenderRequest& request) {
+    assetRequests.push_back(request);
+}
+
+void VisualSystem::drawTerrain(const TerrainRenderRequest& request) {
+    terrainRequests.push_back(request);
 }
 
 // Render:
 // Renders the entire scene to the screen.
 void VisualSystem::render() {
-    // Clear the the screen color
-    float color[4] = {RGB(158.f), RGB(218.f), RGB(255.f), 1.0f};
-    context->ClearRenderTargetView(render_target_view, color);
-
+    renderPrepare();
     performShadowPass();
     performRenderPass();
-    assetRequests.clear();
 
 #if defined(_DEBUG)
     // Debug Functionality
@@ -145,6 +146,39 @@ void VisualSystem::render() {
 
     // Present what we rendered to
     swap_chain->Present(1, 0);
+
+    renderCommands.clear();
+}
+
+// RenderPrepare:
+// Prepares the engine for rendering, by processing all render requests and clearing the screen.
+void VisualSystem::renderPrepare() {
+    // Clear the the screen color
+    float color[4] = {RGB(158.f), RGB(218.f), RGB(255.f), 1.0f};
+    context->ClearRenderTargetView(render_target_view, color);
+
+    // Parse all asset render requests, by querying the asset manager for the assets.
+    for (const AssetRenderRequest& request : assetRequests) {
+        RenderCommand command;
+        command.asset = assetManager->getAsset(request.slot);
+        command.m_localToWorld = request.mLocalToWorld;
+        renderCommands.push_back(command);
+    }
+
+    assetRequests.clear();
+
+    // Parse all terrain render requests. This may involve generating the terrain data.
+    for (const TerrainRenderRequest& request : terrainRequests) {
+        RenderCommand command;
+        command.asset = assetManager->getTerrain(request.x_offset, request.z_offset, request.data);
+        command.m_localToWorld =
+            Matrix4(1, 0, 0, request.x_offset*TERRAIN_SIZE, 0, 1, 0, 0, 0, 0,
+                    1, request.z_offset * TERRAIN_SIZE, 0, 0, 0, 1);
+        renderCommands.push_back(command);
+    }
+
+    terrainRequests.clear();
+    
 }
 
 // PerformShadowPass:
@@ -177,10 +211,10 @@ void VisualSystem::performShadowPass() {
         context->RSSetViewports(1, &light->getViewport());
 
         // For each asset, load its mesh
-        for (const AssetRenderRequest& assetRequest : assetRequests) {
-            const Matrix4& mLocalToWorld = assetRequest.mLocalToWorld;
-            Asset* asset = assetManager->getAsset(assetRequest.slot);
-
+        for (const RenderCommand& command : renderCommands) {
+            Asset* asset = command.asset;
+            const Matrix4& mLocalToWorld = command.m_localToWorld;
+            
             vCB2->clearData();
             {
                 // Load mesh vertex transformation matrix
@@ -294,9 +328,9 @@ void VisualSystem::performRenderPass() {
         context->PSSetSamplers(1, 1, &shadowmap_sampler);
     }
 
-    for (const AssetRenderRequest& assetRequest : assetRequests) {
-        const Matrix4& mLocalToWorld = assetRequest.mLocalToWorld;
-        Asset* asset = assetManager->getAsset(assetRequest.slot);
+    for (const RenderCommand& command : renderCommands) {
+        Asset* asset = command.asset;
+        const Matrix4& mLocalToWorld = command.m_localToWorld;
 
         {
             vCB2->clearData();

@@ -134,6 +134,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ForcedIncludeFiles>Config.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -204,8 +205,10 @@
   <ItemGroup>
     <ClInclude Include="include\zconf.h" />
     <ClInclude Include="include\zlib.h" />
+    <ClInclude Include="src\Config.h" />
     <ClInclude Include="src\datamodel\SceneGraph.h" />
     <ClInclude Include="src\datamodel\Terrain.h" />
+    <ClInclude Include="src\datamodel\TerrainConfig.h" />
     <ClInclude Include="src\rendering\AssetIDs.h" />
     <ClInclude Include="src\rendering\MarchingCubeTables.h" />
     <ClInclude Include="src\input\components\MovementHandler.h" />

@@ -188,15 +188,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         // child2.getTransform().lookAt(visual_system.getCamera().getTransform()->getPosition());
         // child2.getTransform().offsetRotation(Vector3::NegativeX(), 0.05f);
         
-        // Update Rendering System
-        visual_system.drawAsset(AssetSlot::TerrainAsset,
-                                child1.getLocalMatrix());
+        // Submit Object Render Requests
+        std::vector<AssetRenderRequest> asset_requests;
+        scene_graph.updateAndRenderObjects(asset_requests);
+        for (const AssetRenderRequest& request : asset_requests)
+            visual_system.drawAsset(request);
 
-        std::vector<AssetRenderRequest> requests;
-        scene_graph.updateAndRenderObjects(requests);
-        for (const AssetRenderRequest& request : requests) {
-            visual_system.drawAsset(request.slot, request.mLocalToWorld);
-        }
+        // Submit Terrain Render Requests
+        std::vector<TerrainRenderRequest> terrain_requests;
+        scene_graph.updateAndRenderTerrain(terrain_requests);
+        for (const TerrainRenderRequest& request : terrain_requests) 
+            visual_system.drawTerrain(request);
         
         visual_system.render();
 

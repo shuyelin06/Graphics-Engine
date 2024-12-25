@@ -5,10 +5,11 @@
 
 #include "Direct3D11.h"
 
+#include "datamodel/SceneGraph.h"
+
 #include "rendering/AssetIDs.h"
 #include "rendering/components/Asset.h"
 #include "rendering/components/AssetBuilder.h"
-#include "datamodel/Terrain.h"
 
 namespace Engine {
 namespace Graphics {
@@ -31,6 +32,8 @@ class AssetManager {
     std::vector<Texture*> textures;
     std::vector<ID3D11SamplerState*> samplers;
 
+    Asset* terrain_meshes[CHUNK_X_LIMIT][CHUNK_Z_LIMIT];
+
   public:
     AssetManager(ID3D11Device* device, ID3D11DeviceContext* context);
     ~AssetManager();
@@ -45,14 +48,18 @@ class AssetManager {
     // Get a sampler by name
     ID3D11SamplerState* getSampler(SamplerSlot sampler);
 
+    // Get a terrain mesh by its positional ID. Caches the generated terrain so
+    // we don't have to generate it again.
+    Asset* getTerrain(int x, int z, TerrainData data);
+
   private:
     // Generate a cube
     Asset* LoadCube(MeshBuilder& builder);
 
     // Generate terrain given terrain chunk data
-    Asset* GenerateTerrainAsset(MeshBuilder& builder, Terrain& terrain); 
+    Asset* GenerateTerrainAsset(MeshBuilder& builder, TerrainData data);
 
-    // Load assets from files. 
+    // Load assets from files.
     Asset* LoadAssetFromOBJ(MeshBuilder& builder, std::string path,
                             std::string objFile, std::string assetName);
 

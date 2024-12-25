@@ -28,6 +28,12 @@ AssetManager::AssetManager(ID3D11Device* _device,
                            ID3D11DeviceContext* _context) {
     device = _device;
     context = _context;
+
+    for (int i = 0; i < CHUNK_X_LIMIT; i++) {
+        for (int j = 0; j < CHUNK_Z_LIMIT; j++) {
+            terrain_meshes[i][j] = nullptr;
+        }
+    }
 }
 AssetManager::~AssetManager() = default;
 
@@ -41,23 +47,22 @@ void AssetManager::initialize() {
     textures[Test] = tex_builder.generate();
 
     //// Noise
-    //tex_builder.reset(1000, 1000);
-    //for (int i = 1; i <= 1000; i++) {
-    //    for (int j = 1; j <= 1000; j++) {
-    //        float val =
-    //            PerlinNoise::noise2D(i * 4.f / 1087.f, j * 4.f / 1087.f);
-    //        assert(0 <= val && val <= 1);
-    //        unsigned char convert = (int)(255 * val);
-    //        tex_builder.setColor(i - 1, j - 1,
-    //                             {convert, convert, convert, 255});
-    //    }
-    //}
+    // tex_builder.reset(1000, 1000);
+    // for (int i = 1; i <= 1000; i++) {
+    //     for (int j = 1; j <= 1000; j++) {
+    //         float val =
+    //             PerlinNoise::noise2D(i * 4.f / 1087.f, j * 4.f / 1087.f);
+    //         assert(0 <= val && val <= 1);
+    //         unsigned char convert = (int)(255 * val);
+    //         tex_builder.setColor(i - 1, j - 1,
+    //                              {convert, convert, convert, 255});
+    //     }
+    // }
     textures[Perlin] = tex_builder.generate();
-    //WriteTextureToPNG(textures[Perlin]->texture, "perlin.png");
+    // WriteTextureToPNG(textures[Perlin]->texture, "perlin.png");
 
     LoadTextureFromPNG(tex_builder, "data/", "test.png");
     textures[Test2] = tex_builder.generate();
-    
 
     // Create my samplers
     samplers.resize(SamplerCount);
@@ -74,8 +79,9 @@ void AssetManager::initialize() {
     // Fox by Jake Blakeley [CC-BY] via Poly Pizza
     assets[Fox] = LoadAssetFromOBJ(mesh_builder, "data/", "model.obj", "Model");
 
-    Datamodel::Terrain* terrain = new Datamodel::Terrain(0,0);
-    assets[TerrainAsset] = GenerateTerrainAsset(mesh_builder, *terrain);
+    Datamodel::Terrain* terrain = new Datamodel::Terrain(0, 0);
+    assets[TerrainAsset] =
+        GenerateTerrainAsset(mesh_builder, terrain->getRawData());
 }
 
 // GetAsset:
@@ -93,6 +99,17 @@ Texture* AssetManager::getTexture(TextureSlot texture) {
 ID3D11SamplerState* AssetManager::getSampler(SamplerSlot sampler) {
     assert(0 <= sampler && sampler <= samplers.size());
     return samplers[sampler];
+}
+
+// GetTerrain:
+// Generates terrain given data.
+Asset* AssetManager::getTerrain(int x, int z, TerrainData data) {
+    if (terrain_meshes[x][z] == nullptr) {
+        MeshBuilder builder = MeshBuilder(device);
+        terrain_meshes[x][z] = GenerateTerrainAsset(builder, data);
+    }
+
+    return terrain_meshes[x][z];
 }
 
 // LoadMeshFromOBJ

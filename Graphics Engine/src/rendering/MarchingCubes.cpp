@@ -3,6 +3,7 @@
 #include <assert.h>
 
 #include "MarchingCubeTables.h"
+#include "datamodel/TerrainConfig.h"
 #include "math/Compute.h"
 #include "math/Matrix3.h"
 #include "math/Triangle.h"
@@ -48,21 +49,21 @@ class MarchingCube {
 // For a given terrain chunk, we will generate the mesh for it using Marching
 // Cubes.
 Asset* AssetManager::GenerateTerrainAsset(MeshBuilder& builder,
-                                          Terrain& chunk) {
+                                          TerrainData data) {
     builder.reset();
-    
+
     Asset* newAsset = new Asset();
 
-    for (int i = 0; i < CHUNK_X_SAMPLES - 1; i++) {
-        for (int j = 0; j < CHUNK_Y_SAMPLES - 1; j++) {
-            for (int k = 0; k < CHUNK_Z_SAMPLES - 1; k++) {
+    for (int i = 0; i < TERRAIN_CHUNK_X_SAMPLES - 1; i++) {
+        for (int j = 0; j < TERRAIN_CHUNK_Y_SAMPLES - 1; j++) {
+            for (int k = 0; k < TERRAIN_CHUNK_Z_SAMPLES - 1; k++) {
                 // Load data into a marching cube
                 MarchingCube marchingCube = MarchingCube(
-                    chunk.sample(i, j, k), chunk.sample(i + 1, j, k),
-                    chunk.sample(i + 1, j + 1, k), chunk.sample(i, j + 1, k),
-                    chunk.sample(i, j, k + 1), chunk.sample(i + 1, j, k + 1),
-                    chunk.sample(i + 1, j + 1, k + 1),
-                    chunk.sample(i, j + 1, k + 1));
+                    data.sample(i, j, k), data.sample(i + 1, j, k),
+                    data.sample(i + 1, j + 1, k), data.sample(i, j + 1, k),
+                    data.sample(i, j, k + 1), data.sample(i + 1, j, k + 1),
+                    data.sample(i + 1, j + 1, k + 1),
+                    data.sample(i, j + 1, k + 1));
 
                 // Generate triangulation for this cube
                 marchingCube.generateSurface();
@@ -71,9 +72,9 @@ Asset* AssetManager::GenerateTerrainAsset(MeshBuilder& builder,
                     marchingCube.getTriangles();
 
                 // Scale and transform to voxel location
-                const float x_scale = TERRAIN_SIZE / CHUNK_X_SAMPLES;
-                const float z_scale = TERRAIN_SIZE / CHUNK_Z_SAMPLES;
-                const float y_scale = TERRAIN_HEIGHT / CHUNK_Y_SAMPLES;
+                const float x_scale = TERRAIN_SIZE / (TERRAIN_CHUNK_X_SAMPLES - 1);
+                const float z_scale = TERRAIN_SIZE / (TERRAIN_CHUNK_Z_SAMPLES - 1);
+                const float y_scale = TERRAIN_HEIGHT / TERRAIN_CHUNK_Y_SAMPLES;
 
                 Vector3 offset = Vector3(i, j, k);
                 Vector3 scale = Vector3(x_scale, y_scale, z_scale);
@@ -624,7 +625,7 @@ Vector3 MarchingCube::generateVertexOnEdge(char edgeID) {
     // based on the sampled values
     float offset_percent = (-baseValue) / (offsetValue - baseValue);
 
-    //assert(offset_percent != 0);
+    // assert(offset_percent != 0);
 
     // Determine surface coordinate
     if ((baseValue < 0 && offsetValue < 0) ||

@@ -8,7 +8,7 @@ namespace Datamodel {
 SceneGraph::SceneGraph() : objects() {
     for (int i = 0; i < CHUNK_X_LIMIT; i++) {
         for (int j = 0; j < CHUNK_Z_LIMIT; j++) {
-            terrain_chunks[i][j] = new Terrain(i,j);
+            terrain_chunks[i][j] = new Terrain(i, j);
         }
     }
 }
@@ -42,8 +42,24 @@ const Terrain* SceneGraph::getTerrain(int x, int z) const {
 }
 Terrain* SceneGraph::getTerrain(int x, int z) { return terrain_chunks[x][z]; }
 
-// UpdateObjectTransforms:
-// Update and cache object transforms in the SceneGraph
+// UpdateAndRenderTerrain:
+// Update and submit render requests for the terrain chunks.
+void SceneGraph::updateAndRenderTerrain(
+    std::vector<TerrainRenderRequest>& requests) {
+    for (int i = 0; i < CHUNK_X_LIMIT; i++) {
+        for (int j = 0; j < CHUNK_Z_LIMIT; j++) {
+            TerrainData terrain_data =
+                TerrainData(terrain_chunks[i][j]->getRawData());
+            TerrainRenderRequest request =
+                TerrainRenderRequest(i, j, terrain_data);
+            requests.push_back(request);
+        }
+    }
+}
+
+// UpdateAndRenderObjects:
+// Update and cache object transforms in the SceneGraph, and submit
+// render requests for each.
 void SceneGraph::updateAndRenderObjects(
     std::vector<AssetRenderRequest>& requests) {
     Matrix4 identity = Matrix4::identity();

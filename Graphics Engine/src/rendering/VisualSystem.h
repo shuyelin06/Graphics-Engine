@@ -8,8 +8,8 @@
 #include "Direct3D11.h"
 
 #include "AssetManager.h"
-#include "ShaderManager.h"
 #include "RenderRequest.h"
+#include "ShaderManager.h"
 
 #include "rendering/components/Camera.h"
 #include "rendering/components/Light.h"
@@ -18,6 +18,11 @@
 
 namespace Engine {
 namespace Graphics {
+
+struct RenderCommand {
+    Asset* asset;
+    Matrix4 m_localToWorld;
+};
 
 // VisualSystem Class:
 // Provides an interface for the application's graphics.
@@ -51,6 +56,12 @@ class VisualSystem {
     // Render Requests:
     // Vectors of render requests submitted to the visual system.
     std::vector<AssetRenderRequest> assetRequests;
+    std::vector<TerrainRenderRequest> terrainRequests;
+
+    // Render Commands:
+    // Vectors of rendering information that the visual system actually uses
+    // for rendering. It takes all render requests, and processes them into these commands.
+    std::vector<RenderCommand> renderCommands;
 
   public:
     VisualSystem(HWND _window);
@@ -65,18 +76,20 @@ class VisualSystem {
     // Create objects in the visual system
     Light* createLight();
 
-    // Submit render requests to the visual system
-    void drawAsset(AssetSlot asset, const Matrix4& mLocalToWorld);
+    // Submit render requests to the visual system. These requests
+    // are processed into render commands, which the system will use for rendering.
+    void drawAsset(const AssetRenderRequest& renderRequest);
+    void drawTerrain(const TerrainRenderRequest& renderRequest);
 
     // Renders an entire scene
     void render();
 
-  private:
-    // Rendering helper methods
-    void performShadowPass();
-    void performRenderPass();
-    void renderDebugPoints();
-    void renderDebugLines();
+  private:                    // Rendering Helper Methods
+    void renderPrepare();     // Prepare for Rendering
+    void performShadowPass(); // Shadow Pass
+    void performRenderPass(); // Render Pass
+    void renderDebugPoints(); // DEBUG
+    void renderDebugLines();  // DEBU
 
   public:
     // --- Data / Resource Queries ---

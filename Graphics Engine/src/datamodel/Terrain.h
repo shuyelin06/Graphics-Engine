@@ -1,16 +1,7 @@
 #pragma once
 
+#include "datamodel/TerrainConfig.h"
 #include "math/Vector3.h"
-
-// Enables debug rendering for the terrain
-// #define TERRAIN_DEBUG
-
-constexpr int CHUNK_X_SAMPLES = 31;
-constexpr int CHUNK_Y_SAMPLES = 51;
-constexpr int CHUNK_Z_SAMPLES = 31;
-
-constexpr float TERRAIN_SIZE = 75.f;
-constexpr float TERRAIN_HEIGHT = 15.f;
 
 namespace Engine {
 using namespace Math;
@@ -30,13 +21,16 @@ class Terrain {
   private:
     // Stores a scalar field's values at vertices of each voxel within the
     // chunk.
-    float terrainData[CHUNK_X_SAMPLES][CHUNK_Z_SAMPLES][CHUNK_Y_SAMPLES];
+    float terrainData[TERRAIN_CHUNK_X_SAMPLES][TERRAIN_CHUNK_Z_SAMPLES]
+                     [TERRAIN_CHUNK_Y_SAMPLES];
 
   public:
     Terrain(int x_offset, int z_offset);
     ~Terrain();
 
     float sample(UINT x, UINT y, UINT z) const;
+    float (*getRawData())[TERRAIN_CHUNK_X_SAMPLES][TERRAIN_CHUNK_Z_SAMPLES]
+                         [TERRAIN_CHUNK_Y_SAMPLES];
 };
 
 } // namespace Datamodel

@@ -251,5 +251,11 @@
     <ClInclude Include="src\rendering\RenderRequest.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Config.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\datamodel\TerrainConfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
