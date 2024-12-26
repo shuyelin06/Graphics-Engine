@@ -178,7 +178,7 @@ void VisualSystem::renderPrepare() {
             request.x_offset * TERRAIN_SIZE - CHUNK_X_LIMIT / 2 * TERRAIN_SIZE;
         const float z_offset =
             request.z_offset * TERRAIN_SIZE - CHUNK_Z_LIMIT / 2 * TERRAIN_SIZE;
-        const float y_offset = -TERRAIN_HEIGHT / 2;
+        const float y_offset = -TERRAIN_HEIGHT * 0.75f;
 
         RenderCommand command;
         command.asset = assetManager->getTerrain(

@@ -87,9 +87,6 @@
     <ClCompile Include="src\math\Color.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\Texture.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\math\Quaternion.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -206,9 +203,6 @@
     <ClInclude Include="src\rendering\MarchingCubeTables.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\Texture.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\math\Quaternion.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -249,9 +243,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\RenderRequest.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Config.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\datamodel\TerrainConfig.h">

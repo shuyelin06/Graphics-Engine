@@ -24,7 +24,13 @@ class Vector2 {
 
     ~Vector2();
 
+    Vector2 unit() const;
+    float magnitude() const;
+
     float dot(const Vector2& vector) const;
+
+    // Returns some vector orthogonal to this vector
+    Vector2 orthogonal() const;
 };
 } // namespace Math
 } // namespace Engine

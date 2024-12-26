@@ -19,6 +19,10 @@ namespace Datamodel {
 // system.
 class SceneGraph {
   private:
+    // Center of the scene graph. Culling / loading is performed based on this
+    // center
+    Vector3* center; 
+
     std::vector<Object*> objects;
     Terrain* terrain_chunks[CHUNK_X_LIMIT][CHUNK_Z_LIMIT];
 

@@ -62,6 +62,9 @@ static InputSystem input_system;
 // Main Function
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                     PWSTR pCmdLine, int nCmdShow) {
+    Vector3 result = Compute::SphericalToEuler(sqrtf(26), 1.3734f, 5.3559f);
+    Vector3 original = Compute::EulerToSpherical(result.x, result.y, result.z);
+
     // Create a Window Class with the OS
     const wchar_t CLASS_NAME[] = L"Main";
 
@@ -137,9 +140,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     Object& child2 = parent_object.createChild();
     child2.setAsset(AssetSlot::Fox);
     child2.getTransform().setScale(5, 5, 5);
-    child2.getTransform().setPosition(Compute::random(-2.5f, 2.5f),
-                                      Compute::random(-2.5f, 2.5f),
-                                      Compute::random(15, 25));
+    child2.getTransform().setPosition(Compute::Random(-2.5f, 2.5f),
+                                      Compute::Random(-2.5f, 2.5f),
+                                      Compute::Random(15, 25));
 
     // Begin window messaging loop
     MSG msg = {};
@@ -182,7 +185,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         physics_system.update();
 
         // TODO: THIS CODE IS WRONG
-        // child2.getTransform().lookAt(visual_system.getCamera().getTransform()->getPosition());
+        child2.getTransform().lookAt(visual_system.getCamera().getTransform()->getPosition());
+
         // child2.getTransform().offsetRotation(Vector3::NegativeX(), 0.05f);
         
         // Submit Object Render Requests

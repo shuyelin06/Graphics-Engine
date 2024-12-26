@@ -2,6 +2,8 @@
 
 #include <math.h>
 
+#include "Compute.h"
+
 using namespace std;
 
 namespace Engine {
@@ -39,9 +41,24 @@ const Quaternion& Transform::getRotation() const { return rotation; }
 
 // LookAt:
 // Updates the object's rotation so that the object faces the target vector.
-// Assumes that the object's "view" is on the +Z axis.
+// Assumes that the object's "view" is on the +Z axis, and target is in the object's
+// local space.
+// TODO: Small bug causes rapid swapping of the rotation at specific directions.
 void Transform::lookAt(const Vector3& target) {
-    rotation = Quaternion::RotationToVector(Vector3::PositiveZ(), target);
+    // First, find the directional vector from this transform to the target
+    const Vector3 direction = (target - position_local).unit();
+
+    // Now, convert to spherical coordinates
+    const Vector3 spherical_coords = Compute::EulerToSpherical(direction);
+    const float theta = spherical_coords.y;
+    const float phi = spherical_coords.z;
+
+    // We can now determine our rotation quaternion from this. To convert spherical
+    // to euler, we rotate about y by theta, then z by phi.
+    const Quaternion y_rotate = Quaternion::RotationAroundAxis(Vector3::PositiveY(), theta);
+    const Quaternion z_rotate = Quaternion::RotationAroundAxis(Vector3::PositiveZ(), phi);
+
+    rotation = z_rotate * y_rotate;
 }
 
 // SetRotation:
@@ -143,8 +160,22 @@ Matrix4 Transform::scaleMatrix(void) const {
 // RotationMatrix:
 // Returns the rotation matrix for the transform
 Matrix4 Transform::rotationMatrix(void) const {
-    const Vector3 qv = rotation.im;
-    const float qw = rotation.r;
+    return GenerateRotationMatrix(rotation);
+}
+
+// TranslationMatrix:
+// Returns the translation matrix for the transform
+Matrix4 Transform::translationMatrix(void) const {
+    return GenerateTranslationMatrix(position_local.x, position_local.y,
+                                     position_local.z);
+}
+
+Matrix4 Transform::GenerateTranslationMatrix(float x, float y, float z) {
+    return Matrix4(1, 0, 0, x, 0, 1, 0, y, 0, 0, 1, z, 0, 0, 0, 1);
+}
+Matrix4 Transform::GenerateRotationMatrix(const Quaternion& q) {
+    const Vector3 qv = q.im;
+    const float qw = q.r;
 
     // Create quaternion matrix
     const Matrix4 rotation_matrix = Matrix4(
@@ -157,14 +188,9 @@ Matrix4 Transform::rotationMatrix(void) const {
     return rotation_matrix;
 }
 
-// TranslationMatrix:
-// Returns the translation matrix for the transform
-Matrix4 Transform::translationMatrix(void) const {
-    return GenerateTranslationMatrix(position_local.x, position_local.y, position_local.z);
-}
-
-Matrix4 Transform::GenerateTranslationMatrix(float x, float y, float z) {
-    return Matrix4(1, 0, 0, x, 0, 1, 0, y, 0, 0, 1, z, 0, 0, 0, 1);
+Matrix4 Transform::GenerateRotationMatrix(const Vector3& axis, float theta) {
+    const Quaternion rotation = Quaternion::RotationAroundAxis(axis, theta);
+    return GenerateRotationMatrix(rotation);
 }
 
 } // namespace Math

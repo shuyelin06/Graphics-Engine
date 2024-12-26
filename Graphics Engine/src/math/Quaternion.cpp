@@ -54,6 +54,9 @@ Quaternion& Quaternion::operator+=(const Quaternion& qhat) {
 // Multiplication
 // Takes the product of two quaternions, and returns
 // the result of this product as a new quaternion
+// When working with unit quaternions, this is equivalent to
+// combining two rotations, where the rightmost quaternion (rotation)
+// is applied first. 
 Quaternion Quaternion::operator*(const Quaternion& qhat) const {
     Quaternion new_qhat;
     new_qhat.im = im.cross(qhat.im) + qhat.im * r + im * qhat.r;
@@ -80,7 +83,8 @@ Quaternion Quaternion::Identity() { return Quaternion(Vector3(0, 0, 0), 1); }
 // RotationAroundAxis:
 // Generate a unit quaternion representing a rotation around a given axis
 Quaternion Quaternion::RotationAroundAxis(const Vector3& axis, float theta) {
-    return Quaternion(axis * sinf(theta), cosf(theta));
+    const float radians = theta / 2;
+    return Quaternion(axis * sinf(radians), cosf(radians));
 }
 
 // RotationBetweenVectors:

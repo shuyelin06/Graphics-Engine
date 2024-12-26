@@ -134,7 +134,8 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <ForcedIncludeFiles>Config.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -194,7 +195,6 @@
     <ClCompile Include="src\rendering\RenderRequest.cpp" />
     <ClCompile Include="src\rendering\Shader.cpp" />
     <ClCompile Include="src\rendering\ShaderManager.cpp" />
-    <ClCompile Include="src\rendering\Texture.cpp" />
     <ClCompile Include="src\simulation\PhysicsSystem.cpp" />
     <ClCompile Include="src\rendering\parsers\PLYParser.cpp" />
     <ClCompile Include="src\rendering\VisualDebug.cpp" />
@@ -205,7 +205,6 @@
   <ItemGroup>
     <ClInclude Include="include\zconf.h" />
     <ClInclude Include="include\zlib.h" />
-    <ClInclude Include="src\Config.h" />
     <ClInclude Include="src\datamodel\SceneGraph.h" />
     <ClInclude Include="src\datamodel\Terrain.h" />
     <ClInclude Include="src\datamodel\TerrainConfig.h" />
@@ -238,7 +237,6 @@
     <ClInclude Include="src\rendering\RenderRequest.h" />
     <ClInclude Include="src\rendering\Shader.h" />
     <ClInclude Include="src\rendering\ShaderManager.h" />
-    <ClInclude Include="src\rendering\Texture.h" />
     <ClInclude Include="src\simulation\PhysicsSystem.h" />
     <ClInclude Include="src\rendering\Direct3D11.h" />
     <ClInclude Include="src\rendering\VisualDebug.h" />
