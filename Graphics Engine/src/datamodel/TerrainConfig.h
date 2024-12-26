@@ -10,4 +10,3 @@ constexpr float TERRAIN_HEIGHT = 100.f;
 
 constexpr int CHUNK_X_LIMIT = 3;
 constexpr int CHUNK_Z_LIMIT = 3;
-

@@ -2,10 +2,6 @@
 
 #include <assert.h>
 
-#include "rendering/VisualSystem.h"
-
-#include "rendering/VisualDebug.h"
-
 constexpr UINT SHADOWMAP_WIDTH = 128;
 constexpr UINT SHADOWMAP_HEIGHT = 128;
 
