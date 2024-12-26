@@ -25,7 +25,8 @@ class Transform {
     void offsetPosition(float x, float y, float z);
 
     const Quaternion& getRotation() const;
-    void lookAt(const Vector3& target); // Sets Rotation to Target
+    void setViewDirection(const Vector3& direction); // Set +Z in a Direction
+    void lookAt(const Vector3& target);              // Sets Rotation to Target
     void setRotation(const Quaternion& quaterion);
     void setRotation(const Vector3& axis, float theta);
     void offsetRotation(const Vector3& axis, float theta);
@@ -35,12 +36,12 @@ class Transform {
     void offsetScale(float x, float y, float z);
 
     // Get directional vectors based on the rotation
-    Vector3 forwardVector(void) const;
-    Vector3 backwardVector(void) const;
-    Vector3 rightVector(void) const;
-    Vector3 leftVector(void) const;
-    Vector3 upVector(void) const;
-    Vector3 downVector(void) const;
+    Vector3 forward(void) const;
+    Vector3 backward(void) const;
+    Vector3 right(void) const;
+    Vector3 left(void) const;
+    Vector3 up(void) const;
+    Vector3 down(void) const;
 
     // Generates transformation matrices based off transform
     Matrix4 transformMatrix(void) const;

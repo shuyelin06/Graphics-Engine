@@ -26,17 +26,17 @@ void MovementHandler::update() {
     // Use this to form a movement vector indicating the direction
     // to move in.
     if (InputPoller::IsSymbolActive('w'))
-        movementVector += transform->forwardVector();
+        movementVector += transform->forward();
     if (InputPoller::IsSymbolActive('s'))
-        movementVector += transform->backwardVector();
+        movementVector += transform->backward();
     if (InputPoller::IsSymbolActive('a'))
-        movementVector += transform->leftVector();
+        movementVector += transform->left();
     if (InputPoller::IsSymbolActive('d'))
-        movementVector += transform->rightVector();
+        movementVector += transform->right();
     if (InputPoller::IsSymbolActive('q'))
-        movementVector += transform->downVector();
+        movementVector += transform->down();
     if (InputPoller::IsSymbolActive('e'))
-        movementVector += transform->upVector();
+        movementVector += transform->up();
 
     // If any movement input is active, offset the object
     // position.

@@ -22,7 +22,7 @@ class Vector4 {
     void normalize();
 
     float magnitude();
-    Vector3 xyz(); // Drops the w term
+    Vector3 xyz() const; // Drops the w term
 
     Vector4 operator*(Matrix4&) const; // Row-Major Multiplication
     Vector4 operator+(const Vector4&) const;

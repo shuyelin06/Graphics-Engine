@@ -358,19 +358,19 @@ bool AssetManager::LoadTextureFromPNG(TextureBuilder& builder, std::string path,
     std::vector<uint8_t> decompressed;
     decompressed.resize(height * (1 + width * BYTES_PER_PIXEL));
 
-    uLong decompressed_size = decompressed.size();
-    uLong raw_size = raw_data.size();
+    uLong decompressed_size = (uLong) decompressed.size();
+    uLong raw_size = (uLong) raw_data.size();
     uncompress((Bytef*)&decompressed[0], &decompressed_size,
                (Bytef*)&raw_data[0], raw_size);
 
     // Read each scan-line, which has a width of (width * bytesPerPixel + 1),
     // where 1 accounts for the filtering method.
-    for (int y = 0; y < height; y++) {
+    for (uint32_t y = 0; y < height; y++) {
         uint8_t filter_method =
             decompressed[y * (width * BYTES_PER_PIXEL + 1) + 0];
         assert(filter_method == 0);
 
-        for (int x = 0; x < width; x++) {
+        for (uint32_t x = 0; x < width; x++) {
             uint8_t r = decompressed[y * (width * BYTES_PER_PIXEL + 1) +
                                      (x * BYTES_PER_PIXEL) + 1];
             uint8_t g = decompressed[y * (width * BYTES_PER_PIXEL + 1) +

@@ -53,7 +53,7 @@ float Vector4::magnitude() { return sqrtf(x * x + y * y + z * z + w * w); }
 
 // ToVector3:
 // Drops the w component of the vector
-Vector3 Vector4::xyz() { return Vector3(x, y, z); }
+Vector3 Vector4::xyz() const { return Vector3(x, y, z); }
 
 /* --- Operands --- */
 // Multiply:

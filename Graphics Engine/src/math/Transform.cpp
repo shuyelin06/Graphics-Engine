@@ -39,26 +39,33 @@ void Transform::offsetPosition(float x, float y, float z) {
 // Returns an object's rotation
 const Quaternion& Transform::getRotation() const { return rotation; }
 
-// LookAt:
-// Updates the object's rotation so that the object faces the target vector.
+// Set Viewng Direction: 
+// Updates the object's rotation so that the object is facing the direction.
 // Assumes that the object's "view" is on the +Z axis, and target is in the object's
 // local space.
-// TODO: Small bug causes rapid swapping of the rotation at specific directions.
-void Transform::lookAt(const Vector3& target) {
-    // First, find the directional vector from this transform to the target
-    const Vector3 direction = (target - position_local).unit();
+// TODO: Small bug causes rapid swapping of the rotation at specific directions
+void Transform::setViewDirection(const Vector3& direc) {
+    const Vector3 direction = direc.unit();
 
     // Now, convert to spherical coordinates
     const Vector3 spherical_coords = Compute::EulerToSpherical(direction);
     const float theta = spherical_coords.y;
     const float phi = spherical_coords.z;
 
-    // We can now determine our rotation quaternion from this. To convert spherical
-    // to euler, we rotate about y by theta, then z by phi.
-    const Quaternion y_rotate = Quaternion::RotationAroundAxis(Vector3::PositiveY(), theta);
-    const Quaternion z_rotate = Quaternion::RotationAroundAxis(Vector3::PositiveZ(), phi);
+    // We can now determine our rotation quaternion from this. To convert
+    // spherical to euler, we rotate about y by theta, then z by phi.
+    const Quaternion y_rotate =
+        Quaternion::RotationAroundAxis(Vector3::PositiveY(), theta);
+    const Quaternion z_rotate =
+        Quaternion::RotationAroundAxis(Vector3::PositiveZ(), phi);
 
     rotation = z_rotate * y_rotate;
+}
+
+// LookAt:
+// Sets the viewing direction so that the +Z axis is facing the target point
+void Transform::lookAt(const Vector3& target) {
+    setViewDirection(target - position_local);
 }
 
 // SetRotation:
@@ -99,33 +106,33 @@ void Transform::offsetScale(float x, float y, float z) {
 // ForwardVector:
 // Returns the (local) forward vector for the transform. This is
 // equivalent to the rotated Z-axis.
-Vector3 Transform::forwardVector(void) const {
-    Vector4 result = rotationMatrix() * Vector4::PositiveZW();
+Vector3 Transform::forward(void) const {
+    const Vector4 result = rotationMatrix() * Vector4::PositiveZW();
     return result.xyz();
 }
 
 // BackwardVector:
 // Returns the (local) backward vector for the transform.
 // This is equivalent to the rotated negative Z-axis
-Vector3 Transform::backwardVector(void) const { return -forwardVector(); }
+Vector3 Transform::backward(void) const { return -forward(); }
 
 // RightVector:
 // Returns the (local) right vector for the transform.
 // This is equivalent to the rotated X-axis
-Vector3 Transform::rightVector(void) const {
-    Vector4 result = rotationMatrix() * Vector4::PositiveXW();
+Vector3 Transform::right(void) const {
+    const Vector4 result = rotationMatrix() * Vector4::PositiveXW();
     return result.xyz();
 }
 
 // LeftVector
 // Returns the (local) left vector for the transform.
 // This is equivalent to the rotated negative X-axis.
-Vector3 Transform::leftVector(void) const { return -rightVector(); }
+Vector3 Transform::left(void) const { return -right(); }
 
 // UpVector:
 // Returns the (local) up vector for the transform.
 // This is equivalent to the rotated Y-axis.
-Vector3 Transform::upVector(void) const {
+Vector3 Transform::up(void) const {
     Vector4 result = rotationMatrix() * Vector4::PositiveYW();
     return result.xyz();
 }
@@ -133,7 +140,7 @@ Vector3 Transform::upVector(void) const {
 // DownVector:
 // Returns the (local) up vector for the transform.
 // This is equivalent to the rotated negative Y-axis.
-Vector3 Transform::downVector(void) const { return -upVector(); }
+Vector3 Transform::down(void) const { return -up(); }
 
 // TransformMatrix:
 // Returns the 4x4 matrix representing the scale, rotation,
