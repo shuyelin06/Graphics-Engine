@@ -29,15 +29,14 @@ Terrain::Terrain(int x_offset, int z_offset) {
                       z_offset * TERRAIN_SIZE;
 
             // Take perlin noise. It specifies at what y coordinate the surface
-            // should be.
-            constexpr float roughness = 0.01f;
-            float noise = PerlinNoise::octaveNoise2D(x * roughness, z * roughness, 4, 6);
-            int coord = (int)(noise * TERRAIN_CHUNK_Y_SAMPLES);
+            // should be
+            float noise = PerlinNoise::octaveNoise2D(
+                x * TERRAIN_ROUGHNESS, z * TERRAIN_ROUGHNESS, 4, 6);
+            
+            float surface_y_coord = (noise * TERRAIN_CHUNK_Y_SAMPLES);
 
-            for (int k = 0; k < coord; k++)
-                terrainData[i][j][k] = 1;
-            for (int k = coord; k < TERRAIN_CHUNK_Y_SAMPLES; k++)
-                terrainData[i][j][k] = -1;
+            for (int k = 0; k < TERRAIN_CHUNK_Y_SAMPLES; k++)
+                terrainData[i][j][k] = surface_y_coord - k;
         }
     }
 }

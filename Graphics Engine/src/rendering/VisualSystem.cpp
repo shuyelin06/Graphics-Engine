@@ -151,13 +151,15 @@ void VisualSystem::render() {
 }
 
 // RenderPrepare:
-// Prepares the engine for rendering, by processing all render requests and clearing the screen.
+// Prepares the engine for rendering, by processing all render requests and
+// clearing the screen.
 void VisualSystem::renderPrepare() {
     // Clear the the screen color
     float color[4] = {RGB(158.f), RGB(218.f), RGB(255.f), 1.0f};
     context->ClearRenderTargetView(render_target_view, color);
 
-    // Parse all asset render requests, by querying the asset manager for the assets.
+    // Parse all asset render requests, by querying the asset manager for the
+    // assets.
     for (const AssetRenderRequest& request : assetRequests) {
         RenderCommand command;
         command.asset = assetManager->getAsset(request.slot);
@@ -167,18 +169,26 @@ void VisualSystem::renderPrepare() {
 
     assetRequests.clear();
 
-    // Parse all terrain render requests. This may involve generating the terrain data.
+    // Parse all terrain render requests. This may involve generating the
+    // terrain data.
     for (const TerrainRenderRequest& request : terrainRequests) {
+        // Offset the terrain chunks so that they are adjacent to one another,
+        // and are centered around the origin.
+        const float x_offset =
+            request.x_offset * TERRAIN_SIZE - CHUNK_X_LIMIT / 2 * TERRAIN_SIZE;
+        const float z_offset =
+            request.z_offset * TERRAIN_SIZE - CHUNK_Z_LIMIT / 2 * TERRAIN_SIZE;
+        const float y_offset = -TERRAIN_HEIGHT / 2;
+
         RenderCommand command;
-        command.asset = assetManager->getTerrain(request.x_offset, request.z_offset, request.data);
-        command.m_localToWorld =
-            Matrix4(1, 0, 0, request.x_offset*TERRAIN_SIZE, 0, 1, 0, 0, 0, 0,
-                    1, request.z_offset * TERRAIN_SIZE, 0, 0, 0, 1);
+        command.asset = assetManager->getTerrain(
+            request.x_offset, request.z_offset, request.data);
+        command.m_localToWorld = Transform::GenerateTranslationMatrix(x_offset, y_offset, z_offset);
+
         renderCommands.push_back(command);
     }
 
     terrainRequests.clear();
-    
 }
 
 // PerformShadowPass:
@@ -214,7 +224,7 @@ void VisualSystem::performShadowPass() {
         for (const RenderCommand& command : renderCommands) {
             Asset* asset = command.asset;
             const Matrix4& mLocalToWorld = command.m_localToWorld;
-            
+
             vCB2->clearData();
             {
                 // Load mesh vertex transformation matrix

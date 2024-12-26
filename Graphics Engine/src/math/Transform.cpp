@@ -160,8 +160,12 @@ Matrix4 Transform::rotationMatrix(void) const {
 // TranslationMatrix:
 // Returns the translation matrix for the transform
 Matrix4 Transform::translationMatrix(void) const {
-    return Matrix4(1, 0, 0, position_local.x, 0, 1, 0, position_local.y, 0, 0,
-                   1, position_local.z, 0, 0, 0, 1);
+    return GenerateTranslationMatrix(position_local.x, position_local.y, position_local.z);
 }
+
+Matrix4 Transform::GenerateTranslationMatrix(float x, float y, float z) {
+    return Matrix4(1, 0, 0, x, 0, 1, 0, y, 0, 0, 1, z, 0, 0, 0, 1);
+}
+
 } // namespace Math
 } // namespace Engine

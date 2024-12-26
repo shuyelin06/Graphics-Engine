@@ -48,6 +48,8 @@ class Transform {
     Matrix4 scaleMatrix(void) const;
     Matrix4 rotationMatrix(void) const;
     Matrix4 translationMatrix(void) const;
+
+    static Matrix4 GenerateTranslationMatrix(float x, float y, float z);
 };
 } // namespace Math
 } // namespace Engine

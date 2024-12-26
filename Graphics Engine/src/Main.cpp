@@ -114,6 +114,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     // Bind Camera
     MovementHandler movementHandler(visual_system.getCamera().getTransform());
+    visual_system.getCamera().getTransform()->setPosition(0,10,0);
+
     // Bind Lights to Camera
     Light* light = visual_system.createLight();
     light->setTransform(visual_system.getCamera().getTransform());
@@ -138,11 +140,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     child2.getTransform().setPosition(Compute::random(-2.5f, 2.5f),
                                       Compute::random(-2.5f, 2.5f),
                                       Compute::random(15, 25));
-    
-    Object& child3 = parent_object.createChild();
-    child3.setAsset(AssetSlot::Cube);
-    child3.getTransform().setScale(100, 2.5f, 100);
-    child3.getTransform().setPosition(0, -10, 0);
 
     // Begin window messaging loop
     MSG msg = {};
