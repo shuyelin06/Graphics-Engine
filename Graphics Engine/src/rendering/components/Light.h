@@ -10,6 +10,14 @@
 
 namespace Engine {
 namespace Graphics {
+
+enum ShadowMapQuality {
+    QUALITY_0 = 64, 
+    QUALITY_1 = 128,
+    QUALITY_2 = 256,
+    QUALITY_3 = 512
+};
+
 // LightComponent Class:
 // Represents a directional light. Lights create shadows, and we create them
 // using a shadow mapping technique.
@@ -33,7 +41,7 @@ class Light : public Camera {
     ID3D11SamplerState* sampler_state;
 
   public:
-    Light(ID3D11Device* device);
+    Light(ID3D11Device* device, ShadowMapQuality quality);
     ~Light();
 
     // Accessors of the Light's Data

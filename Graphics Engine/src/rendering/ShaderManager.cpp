@@ -44,6 +44,7 @@ void ShaderManager::initialize() {
     vertexShaders[VSShadow]->enableCB(CB2);
     pixelShaders[PSShadow] = createPixelShader(
         device, shaderFolder + L"ShadowShaderP.hlsl", "ps_main");
+    pixelShaders[PSShadow]->enableCB(CB0); // Global Illumination
     pixelShaders[PSShadow]->enableCB(CB1);
 }
 

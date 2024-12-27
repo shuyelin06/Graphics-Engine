@@ -52,6 +52,7 @@ class VisualSystem {
     // Dynamic Lights:
     // Lights that are transformable in the scene
     std::vector<Light*> lights;
+    Light* sun_light; // Always index 0 of lights
 
     // Render Requests:
     // Vectors of render requests submitted to the visual system.
@@ -75,6 +76,7 @@ class VisualSystem {
 
     // Create objects in the visual system
     Light* createLight();
+    Light* createLight(ShadowMapQuality quality);
 
     // Submit render requests to the visual system. These requests
     // are processed into render commands, which the system will use for rendering.

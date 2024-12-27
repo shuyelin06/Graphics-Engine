@@ -109,12 +109,19 @@ void VisualSystem::initialize() {
 
     shaderManager = new ShaderManager(device);
     shaderManager->initialize();
+
+    // Create my global light (the sun). 
+    // It will always be at index 0 of the lights vector.
+    sun_light = createLight(QUALITY_3);
 }
 
 // CreateLight:
 // Creates and returns a light in the visual system
 Light* VisualSystem::createLight() {
-    Light* newLight = new Light(device);
+    return createLight(QUALITY_1);
+}
+Light* VisualSystem::createLight(ShadowMapQuality quality) {
+    Light* newLight = new Light(device, quality);
     lights.push_back(newLight);
     return newLight;
 }
@@ -183,12 +190,23 @@ void VisualSystem::renderPrepare() {
         RenderCommand command;
         command.asset = assetManager->getTerrain(
             request.x_offset, request.z_offset, request.data);
-        command.m_localToWorld = Transform::GenerateTranslationMatrix(x_offset, y_offset, z_offset);
+        command.m_localToWorld =
+            Transform::GenerateTranslationMatrix(x_offset, y_offset, z_offset);
 
         renderCommands.push_back(command);
     }
 
     terrainRequests.clear();
+
+    // Set sun position to be 
+    Light* sun_light = lights[0];
+
+    sun_light->getTransform()->setViewDirection(Vector3(0, -0.25f, 0.75f));
+    sun_light->setZFar(500);
+    sun_light->setFOV(7.5f);
+
+    Vector3 position = sun_light->getTransform()->backward() * 75;
+    sun_light->getTransform()->setPosition(position.x, position.y, position.z);
 }
 
 // PerformShadowPass:
@@ -263,6 +281,7 @@ void VisualSystem::performRenderPass() {
     CBHandle* vCB2 = vShader->getCBHandle(CB2);
 
     PixelShader* pShader = shaderManager->getPixelShader(PSShadow);
+    CBHandle* pCB0 = pShader->getCBHandle(CB0);
     CBHandle* pCB1 = pShader->getCBHandle(CB1);
 
     context->OMSetRenderTargets(1, &render_target_view, depth_stencil);

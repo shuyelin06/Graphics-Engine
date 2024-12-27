@@ -2,16 +2,13 @@
 
 #include <assert.h>
 
-constexpr UINT SHADOWMAP_WIDTH = 128;
-constexpr UINT SHADOWMAP_HEIGHT = 128;
-
 namespace Engine {
 namespace Graphics {
 // Constructor:
 // Initializes a texture resource for use in the shadow mapping. The
 // device is needed to intialize
-Light::Light(ID3D11Device* device) : Camera() {
-    color = Color(0.5f, 0.25f, 1.0f);
+Light::Light(ID3D11Device* device, ShadowMapQuality quality) : Camera() {
+    color = Color(1.0f, 1.0f, 1.0f);
 
     // Create the shadowmap texture, a 2D texture storing depth information
     // for some light. This texture can be used in the pixel shader to see if a
@@ -22,8 +19,8 @@ Light::Light(ID3D11Device* device) : Camera() {
     shadow_map = NULL;
 
     D3D11_TEXTURE2D_DESC tex_desc = {};
-    tex_desc.Width = SHADOWMAP_WIDTH;
-    tex_desc.Height = SHADOWMAP_HEIGHT;
+    tex_desc.Width = quality;
+    tex_desc.Height = quality;
     tex_desc.MipLevels = tex_desc.ArraySize = 1;
     tex_desc.Format = DXGI_FORMAT_R24G8_TYPELESS; // 24 Bits for R Channel, 8
                                                   // Bits for G Channel
@@ -56,8 +53,8 @@ Light::Light(ID3D11Device* device) : Camera() {
     // Create viewport to match the texture size, so that we can render to the
     // texture.
     viewport = {};
-    viewport.Width = SHADOWMAP_WIDTH;
-    viewport.Height = SHADOWMAP_HEIGHT;
+    viewport.Width = quality;
+    viewport.Height = quality;
     viewport.MinDepth = 0.0f;
     viewport.MaxDepth = 1.0f;
     viewport.TopLeftX = 0;

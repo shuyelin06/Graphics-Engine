@@ -120,12 +120,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     visual_system.getCamera().getTransform()->setPosition(0,10,0);
 
     // Bind Lights to Camera
-    Light* light = visual_system.createLight();
-    light->setTransform(visual_system.getCamera().getTransform());
+    //Light* light = visual_system.createLight();
+    //light->setTransform(visual_system.getCamera().getTransform());
 
     {
         Transform transform = Transform();
-        transform.offsetPosition(0, 5, 0);
+        transform.offsetPosition(0, 5, -10);
         transform.offsetRotation(Vector3::PositiveX(), 0.05f);
 
         Light* lObj = visual_system.createLight();
@@ -185,10 +185,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         physics_system.update();
 
         // TODO: THIS CODE IS WRONG
-        child2.getTransform().lookAt(visual_system.getCamera().getTransform()->getPosition());
+        //child2.getTransform().lookAt(visual_system.getCamera().getTransform()->getPosition());
 
-        // child2.getTransform().offsetRotation(Vector3::NegativeX(), 0.05f);
-        
         // Submit Object Render Requests
         std::vector<AssetRenderRequest> asset_requests;
         scene_graph.updateAndRenderObjects(asset_requests);
