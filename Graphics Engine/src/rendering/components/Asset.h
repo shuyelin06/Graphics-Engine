@@ -48,6 +48,10 @@ struct Mesh {
     ID3D11Buffer* index_buffer;
     ID3D11Buffer* vertex_buffer;
 
+    // Buffer containing only vertex information, for use in the shadowmap
+    // pass.
+    ID3D11Buffer* shadowmap_buffer; 
+    
     Material* material;
     UINT triangle_count;
 };

@@ -60,6 +60,42 @@ Mesh* MeshBuilder::generate() {
 
     mesh->triangle_count = index_buffer.size();
 
+    // Create resource for shadowmap buffer
+    std::vector<float> vertex_information;
+    vertex_information.reserve(index_buffer.size() * 3);
+
+    for (int i = 0; i < index_buffer.size(); i++) {
+        vertex_information.push_back(
+            vertex_buffer[index_buffer[i].vertex0].position.x);
+        vertex_information.push_back(
+            vertex_buffer[index_buffer[i].vertex0].position.y);
+        vertex_information.push_back(
+            vertex_buffer[index_buffer[i].vertex0].position.z);
+
+        vertex_information.push_back(
+            vertex_buffer[index_buffer[i].vertex1].position.x);
+        vertex_information.push_back(
+            vertex_buffer[index_buffer[i].vertex1].position.y);
+        vertex_information.push_back(
+            vertex_buffer[index_buffer[i].vertex1].position.z);
+
+        vertex_information.push_back(
+            vertex_buffer[index_buffer[i].vertex2].position.x);
+        vertex_information.push_back(
+            vertex_buffer[index_buffer[i].vertex2].position.y);
+        vertex_information.push_back(
+            vertex_buffer[index_buffer[i].vertex2].position.z);
+    }
+
+    buff_desc.ByteWidth = sizeof(float) * vertex_information.size();
+    buff_desc.Usage = D3D11_USAGE_DEFAULT;
+    buff_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+    sr_data.pSysMem = (void*) vertex_information.data();
+
+    device->CreateBuffer(&buff_desc, &sr_data, &(mesh->shadowmap_buffer));
+    assert(mesh->shadowmap_buffer != nullptr);
+
     return mesh;
 }
 

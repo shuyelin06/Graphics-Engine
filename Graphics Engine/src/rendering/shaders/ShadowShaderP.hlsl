@@ -1,3 +1,5 @@
+#include "ToneMap.hlsli"
+
 SamplerState mesh_sampler : register(s0);
 SamplerState shadowmap_sampler : register(s1);
 
@@ -36,28 +38,7 @@ struct VS_OUT
     float3 normal : NORMAL;
 };
 
-// Luminance:
-// A function that computes luminance, a scalar measuring how bright an RGB color is 
-// (based on human perception).
-float luminance(float3 rgb)
-{
-    return dot(rgb, float3(0.2126f, 0.7152f, 0.0722f));
-}
-
-float tone_map(float luminance)
-{
-    // Tone mapping done based on Reinhard's Extended TMO function.
-    float max_radiance = light_count; // Should be set to the max luminance (# of lights)
-    
-    float numerator = 1 + luminance / pow(max_radiance, 2);    
-    float denominator = 1 + luminance;
-        
-    return luminance * numerator / denominator;
-}
-
-
 // Lighting: https://lavalle.pl/vr/node197.html
-// Tone Mapping: https://64.github.io/tonemapping/
 
 // Pixel Shader Entry Point
 // Takes clipping coordinates, and returns a color
@@ -128,6 +109,7 @@ float4 ps_main(VS_OUT input) : SV_TARGET
                 // --- Attenuation Factor ---
                 // If not the sun, factor in attenuation (distance to light)
                 float attenuationContribution = 1;
+
                 if (i != 0)
                     attenuationContribution = 1 / (1 + 0.1 * light_distance);
                 
@@ -135,19 +117,16 @@ float4 ps_main(VS_OUT input) : SV_TARGET
                 
                 float3 combined_color = (mesh_color * light_color);
                 float totalContribution = inShadow * attenuationContribution * (diffuseContribution + specularContribution);
-                                color += float4(totalContribution * combined_color, 0.0f);
+                color += float4(totalContribution * combined_color, 0.0f);
 
-                }
+            }
         }
     }
     
-    // Tone Mapping:
+    // Tone Mapping (ToneMap.hlsli):
     // Each color channel can have an intensity in the range [0, infty). We need to "tone map" it,
     // by passing it into a function that will map this to the [0, 255] RGB range.
-    float curLuminance = luminance(color.rgb);
-    float newLuminance = tone_map(curLuminance);
+    color = tone_map(color, light_count);
     
-    color = color * newLuminance / curLuminance;
-        
     return color;
 }

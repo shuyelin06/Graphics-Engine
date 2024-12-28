@@ -83,7 +83,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)\bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)\bin\intermediates\$(Platform)\$(Configuration)\</IntDir>
-    <IncludePath>C:\Users\shuye\Documents\GitHub\Graphics-Engine\Graphics Engine\src;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\shuye\Documents\GitHub\Graphics-Engine\Graphics Engine\src;C:\Users\shuye\Documents\GitHub\Graphics-Engine\Graphics Engine\src\rendering\shaders\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)\bin\$(Platform)\$(Configuration)\</OutDir>
@@ -243,6 +243,9 @@
     <ClInclude Include="src\rendering\VisualSystem.h" />
     <ClInclude Include="src\utility\FileReader.h" />
     <ClInclude Include="src\utility\Stopwatch.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="src\rendering\shaders\include\ToneMap.hlsli" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

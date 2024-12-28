@@ -1,36 +1,47 @@
-// VS Constant Buffer 1:
-// Stores the transformation matrices needed to
-// transform the 
-cbuffer TRANSFORM_MATRICES : register(b0)
+// Vertex CB0:
+// Stores the light view and projection matrices,
+// so that we can transform a world point into the light's view
+cbuffer LIGHT_TRANSFORM : register(b0)
 {
-    float4x4 m_modelToLight;
+    float4x4 m_view;
+    float4x4 m_projection;
 }
 
-// Vertex Shader Input
+// Vertex CB1:
+// Contains the LocalToWorld matrix for the vertices of the 
+// input.
+cbuffer MESH_TRANSFORM : register(b1)
+{
+    float4x4 m_world;
+}
+
+// Vertex / Pixel Input.
+// For writing to a depth map, we just need to properly transform
+// the vertex from local space --> the light's view space.
+// The GPU will automatically write to the depth buffer.
 struct VS_IN
 {
-    // Position of vertex in space
-    float3 position : POSITION;
+    float3 position_local : POSITION;
 };
 
-// Pixel Shader Input
-// (Vertex Shader Output)
-struct PS_IN
+struct VS_OUT
 {
-    // (Light)View-position (depth buffer position) of pixel
-    float4 position_clip : SV_POSITION;   
+    float4 position_clip : SV_POSITION;
 };
 
 // Vertex Shader:
 // Transforms vertices into the light's view
-PS_IN vs_main(VS_IN input)
+VS_OUT vs_main(VS_IN input)
 {
-    // Generate output
-    PS_IN output = (PS_IN) 0;
+    // Zero the Memory
+    VS_OUT output = (VS_OUT) 0;
     
-    // Create 4D position vector with w = 1 value
-    float4 vertex_pos = float4(input.position, 1);
-    output.position_clip = mul(vertex_pos, m_modelToLight);
+    float4 position = float4(input.position_local, 1.0f);
+    position = mul(m_world, position); // Local -> World
+    position = mul(m_view, position); // World -> Light View
+    position = mul(m_projection, position); // Light View -> Clipping
+    
+    output.position_clip = position;
     
     return output;
 }
@@ -38,4 +49,7 @@ PS_IN vs_main(VS_IN input)
 // Pixel Shader
 // Does nothing; the vertex shader output is automatically
 // written to the depth map. 
-void ps_main(PS_IN input) { }
+float4 ps_main(VS_OUT input) : SV_TARGET
+{
+    return float4(1, 1, 1, 1);
+}

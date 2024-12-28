@@ -205,7 +205,7 @@ void VisualSystem::renderPrepare() {
     sun_light->setZFar(500);
     sun_light->setFOV(7.5f);
 
-    Vector3 position = sun_light->getTransform()->backward() * 75;
+    Vector3 position = sun_light->getTransform()->backward() * 10; // 75 OG
     sun_light->getTransform()->setPosition(position.x, position.y, position.z);
 }
 
@@ -213,23 +213,21 @@ void VisualSystem::renderPrepare() {
 // Render the scene from each light's point of view, to populate
 // its shadow map.
 void VisualSystem::performShadowPass() {
-    VertexShader* vShader = shaderManager->getVertexShader(VSDefault);
+    VertexShader* vShader = shaderManager->getVertexShader(VSShadowMap);
+    CBHandle* vCB0 = vShader->getCBHandle(CB0);
     CBHandle* vCB1 = vShader->getCBHandle(CB1);
-    CBHandle* vCB2 = vShader->getCBHandle(CB2);
 
-    PixelShader* pShader = shaderManager->getPixelShader(PSDefault);
+    PixelShader* pShader = shaderManager->getPixelShader(PSShadowMap);
 
     for (Light* light : lights) {
-        // Populate CB1 of the vertex shader, which will
-        // contain the light view and projection matrix.
         // Load light view and projection matrix
-        vCB1->clearData();
+        vCB0->clearData();
         {
             const Matrix4 viewMatrix = light->getWorldToCameraMatrix();
-            vCB1->loadData(&viewMatrix, FLOAT4X4);
+            vCB0->loadData(&viewMatrix, FLOAT4X4);
 
             const Matrix4 projectionMatrix = light->getProjectionMatrix();
-            vCB1->loadData(&projectionMatrix, FLOAT4X4);
+            vCB0->loadData(&projectionMatrix, FLOAT4X4);
         }
 
         // Set the light as the render target.
@@ -243,33 +241,29 @@ void VisualSystem::performShadowPass() {
             Asset* asset = command.asset;
             const Matrix4& mLocalToWorld = command.m_localToWorld;
 
-            vCB2->clearData();
+            vCB1->clearData();
             {
                 // Load mesh vertex transformation matrix
-                vCB2->loadData(&mLocalToWorld, FLOAT4X4);
-                // Load mesh normal transformation matrix
-                Matrix4 normalTransform = mLocalToWorld.inverse().transpose();
-                vCB2->loadData(&(normalTransform), FLOAT4X4);
+                vCB1->loadData(&mLocalToWorld, FLOAT4X4);
             }
 
             // Load each mesh
             for (Mesh* mesh : asset->getMeshes()) {
-                ID3D11Buffer* indexBuffer = mesh->index_buffer;
-                ID3D11Buffer* vertexBuffer = mesh->vertex_buffer;
-                int numIndices = mesh->triangle_count * 3;
+                ID3D11Buffer* shadowmap_buffer = mesh->shadowmap_buffer;
+                int num_vertices = mesh->triangle_count * 3;
 
-                UINT vertexStride = sizeof(MeshVertex);
+                UINT vertexStride = sizeof(float) * 3;
                 UINT vertexOffset = 0;
 
                 context->IASetPrimitiveTopology(
                     D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-                context->IASetVertexBuffers(0, 1, &vertexBuffer, &vertexStride,
+                context->IASetVertexBuffers(0, 1, &shadowmap_buffer,
+                                            &vertexStride,
                                             &vertexOffset);
-                context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
                 vShader->bindShader(device, context);
                 pShader->bindShader(device, context);
-                context->DrawIndexed(numIndices, 0, 0);
+                context->Draw(num_vertices, 0);
             }
         }
     }

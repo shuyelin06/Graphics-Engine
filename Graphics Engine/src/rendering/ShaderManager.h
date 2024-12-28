@@ -19,18 +19,20 @@ enum InputLayoutPin {
 // shaders. We use indices so that these
 // shaders can be accessed efficiently
 enum VSSlot {
-    VSDebugPoint = 0,
-    VSDebugLine = 1,
-    VSDefault = 2,
-    VSShadow = 3,
+    VSShadowMap = 0,
+    VSDebugPoint = 1,
+    VSDebugLine = 2,
+    VSDefault = 3,
+    VSShadow = 4,
     VSCount
 };
 
 enum PSSlot {
-    PSDebugPoint = 0,
-    PSDebugLine = 1,
-    PSDefault = 2,
-    PSShadow = 3,
+    PSShadowMap = 0,
+    PSDebugPoint = 1,
+    PSDebugLine = 2,
+    PSDefault = 3,
+    PSShadow = 4,
     PSCount
 };
 
@@ -57,11 +59,9 @@ class ShaderManager {
 
   private:
     // Helper functions for compiling and building vertex and pixel shaders
-    VertexShader* createVertexShader(ID3D11Device* device, int layout,
-                                     const std::wstring filename,
-                                     const char* entrypoint);
-    PixelShader* createPixelShader(ID3D11Device* device,
-                                   const std::wstring filename,
+    VertexShader* createVertexShader(const std::string filename,
+                                     const char* entrypoint, int layout);
+    PixelShader* createPixelShader(const std::string filename,
                                    const char* entrypoint);
 };
 } // namespace Graphics

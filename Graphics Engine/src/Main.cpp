@@ -123,14 +123,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     //Light* light = visual_system.createLight();
     //light->setTransform(visual_system.getCamera().getTransform());
 
-    {
+    /*{
         Transform transform = Transform();
         transform.offsetPosition(0, 5, -10);
         transform.offsetRotation(Vector3::PositiveX(), 0.05f);
 
         Light* lObj = visual_system.createLight();
         lObj->setTransform(&transform);
-    }
+    }*/
 
     // Create Object Hierarchy
     Object& parent_object = scene_graph.createObject();
@@ -185,7 +185,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         physics_system.update();
 
         // TODO: THIS CODE IS WRONG
-        //child2.getTransform().lookAt(visual_system.getCamera().getTransform()->getPosition());
+        child2.getTransform().lookAt(visual_system.getCamera().getTransform()->getPosition());
 
         // Submit Object Render Requests
         std::vector<AssetRenderRequest> asset_requests;
