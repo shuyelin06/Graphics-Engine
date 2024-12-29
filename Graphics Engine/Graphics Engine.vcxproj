@@ -201,6 +201,7 @@
     <ClCompile Include="src\rendering\VisualSystem.cpp" />
     <ClCompile Include="src\utility\FileReader.cpp" />
     <ClCompile Include="src\utility\Stopwatch.cpp" />
+    <ClCompile Include="src\rendering\_VertexStreamIDs_.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\zconf.h" />

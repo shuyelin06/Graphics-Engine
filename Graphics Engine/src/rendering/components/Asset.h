@@ -1,6 +1,7 @@
 #pragma once
 
 #include "rendering/Direct3D11.h"
+#include "rendering/_VertexStreamIDs_.h"
 
 #include <string>
 #include <vector>
@@ -38,22 +39,21 @@ struct Material {
     Material();
 };
 
-// Struct Mesh:
-// Specifies a mesh, which is a collection of vertices
-// which from triangles. Each vertex has a
-// 1) Position
-// 2) Texture Coordinate
-// 3) Normal
-struct Mesh {
-    ID3D11Buffer* index_buffer;
-    ID3D11Buffer* vertex_buffer;
 
-    // Buffer containing only vertex information, for use in the shadowmap
-    // pass.
-    ID3D11Buffer* shadowmap_buffer; 
-    
-    Material* material;
+
+// Struct Mesh:
+// Specifies a mesh, which is a collection of vertices that form triangles. 
+// Vertices are stored in separate vertex streams, so that they have an easier time being
+// passed as input into shaders. 
+struct Mesh {
+    // Index buffer pointing to indices in the vertex stream, to create vertices.
+    ID3D11Buffer* index_buffer;
     UINT triangle_count;
+
+    // My different vertex streams
+    ID3D11Buffer* vertex_streams[STREAM_COUNT];
+
+    Material* material;   
 };
 
 // Asset Class

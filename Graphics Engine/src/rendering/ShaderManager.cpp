@@ -66,37 +66,54 @@ void ShaderManager::initialize() {
     pixelShaders.resize(PSSlot::PSCount);
 
     // ShadowMap Shader:
-    // A very simple shader that takes vertex triangle data, as well as matrix transforms and writes them to a
-    // light's shadow map (depth buffer).
+    // A very simple shader that takes vertex triangle data, as well as matrix
+    // transforms and writes them to a light's shadow map (depth buffer).
+    VertexDataStream shadow_map_input[] = {POSITION};
     vertexShaders[VSShadowMap] =
-        createVertexShader("ShadowMap.hlsl", "vs_main", XYZ);
+        createVertexShader("ShadowMap.hlsl", "vs_main", shadow_map_input, 1);
     vertexShaders[VSShadowMap]->enableCB(CB0);
     vertexShaders[VSShadowMap]->enableCB(CB1);
+
     pixelShaders[PSShadowMap] = createPixelShader("ShadowMap.hlsl", "ps_main");
 
+    // DebugPoint:
+    // Uses instancing to draw colored points in the scene. Only available if
+    // the debug flag is flipped.
+    VertexDataStream debug_point_input[2] = {POSITION, INSTANCE_ID};
     vertexShaders[VSDebugPoint] = createVertexShader(
-        "DebugPointRenderer.hlsl", "vs_main", XYZ | INSTANCE_ID);
+        "DebugPointRenderer.hlsl", "vs_main", debug_point_input, 2);
     vertexShaders[VSDebugPoint]->enableCB(CB0);
     vertexShaders[VSDebugPoint]->enableCB(CB1);
+
     pixelShaders[PSDebugPoint] =
         createPixelShader("DebugPointRenderer.hlsl", "ps_main");
 
-    vertexShaders[VSDebugLine] =
-        createVertexShader("DebugLineRenderer.hlsl", "vs_main", XYZ | RGB);
+    // DebugLine:
+    // Uses instancing to draw colored lines in the scene. Only available if the
+    // debug flag is flipped.
+    VertexDataStream debug_line_input[1] = {DEBUG_LINE};
+    vertexShaders[VSDebugLine] = createVertexShader(
+        "DebugLineRenderer.hlsl", "vs_main", debug_line_input, 1);
     vertexShaders[VSDebugLine]->enableCB(CB1);
+
     pixelShaders[PSDebugLine] =
         createPixelShader("DebugLineRenderer.hlsl", "ps_main");
 
-    vertexShaders[VSDefault] =
+    /*vertexShaders[VSDefault] =
         createVertexShader("VertexShader.hlsl", "vs_main", XYZ | TEX | NORMAL);
     vertexShaders[VSDefault]->enableCB(CB1);
     vertexShaders[VSDefault]->enableCB(CB2);
-    pixelShaders[PSDefault] = createPixelShader("PixelShader.hlsl", "ps_main");
+    pixelShaders[PSDefault] = createPixelShader("PixelShader.hlsl",
+    "ps_main");*/
 
+    // Shadow:
+    // Draws a mesh with dynamic lights enabled
+    VertexDataStream shadow_input[3] = {POSITION, TEXTURE, NORMAL};
     vertexShaders[VSShadow] =
-        createVertexShader("ShadowShaderV.hlsl", "vs_main", XYZ | TEX | NORMAL);
+        createVertexShader("ShadowShaderV.hlsl", "vs_main", shadow_input, 3);
     vertexShaders[VSShadow]->enableCB(CB1);
     vertexShaders[VSShadow]->enableCB(CB2);
+
     pixelShaders[PSShadow] = createPixelShader("ShadowShaderP.hlsl", "ps_main");
     pixelShaders[PSShadow]->enableCB(CB0); // Global Illumination
     pixelShaders[PSShadow]->enableCB(CB1);
@@ -167,89 +184,90 @@ static ID3DBlob* CompileShaderBlob(ShaderType type, const std::string file,
 
 VertexShader* ShaderManager::createVertexShader(const std::string filename,
                                                 const char* entrypoint,
-                                                int layout) {
+                                                VertexDataStream* input_data,
+                                                UINT input_data_size) {
     // Obtain shader blob
     ID3DBlob* shader_blob =
         CompileShaderBlob(Vertex, shader_folder + filename, entrypoint);
 
-    // Create input layout for vertex shader
+    // Create input layout for vertex shader. We do this by parsing the streams
+    // that the shader will use into the corresponding input data format.
     ID3D11InputLayout* inputLayout = NULL;
 
-    /*
-    D3D11_INPUT_ELEMENT_DESC inputDesc[10];
+    std::vector<D3D11_INPUT_ELEMENT_DESC> input_desc;
 
-    int inputDescSize = 0;
-    int floatOffset = 0;
+    for (int i = 0; i < input_data_size; i++) {
+        const VertexDataStream stream = input_data[i];
+        D3D11_INPUT_ELEMENT_DESC desc;
 
-    if (XYZ)
-    {
-        inputDesc[inputDescSize] =
-        {
+        switch (stream) {
+        // Position Stream:
+        // A buffer of (x,y,z) floats for 3D position
+        case POSITION:
+            desc = {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,
+                    POSITION,   0, D3D11_INPUT_PER_VERTEX_DATA,
+                    0};
+            break;
 
-        };
-        inputDescSize += 1;
-        floatOffset += 3
-    }
-    */
+        // Texture Stream:
+        // A buffer of (u,v) floats as texture coordinates
+        case TEXTURE:
+            desc = {"TEXTURE", 0, DXGI_FORMAT_R32G32_FLOAT,
+                    TEXTURE,   0, D3D11_INPUT_PER_VERTEX_DATA,
+                    0};
+            break;
 
-    switch (layout) {
-    case (XYZ): {
-        D3D11_INPUT_ELEMENT_DESC input_desc[] = {
-            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
-             D3D11_INPUT_PER_VERTEX_DATA, 0}};
-        int input_desc_size = 1;
+        // Normal Stream:
+        // A buffer of (x,y,z) normal directions
+        case NORMAL:
+            desc = {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT,
+                    NORMAL,   0, D3D11_INPUT_PER_VERTEX_DATA,
+                    0};
+            break;
 
-        device->CreateInputLayout(input_desc, input_desc_size,
-                                  shader_blob->GetBufferPointer(),
-                                  shader_blob->GetBufferSize(), &inputLayout);
-    } break;
+        // Color Stream:
+        // A buffer of RGB colors
+        case COLOR:
+            desc = {"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT,
+                    COLOR,   0, D3D11_INPUT_PER_VERTEX_DATA,
+                    0};
+            break;
 
-    case (XYZ | RGB): {
-        D3D11_INPUT_ELEMENT_DESC input_desc[] = {
-            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
-             D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, sizeof(float) * 3,
-             D3D11_INPUT_PER_VERTEX_DATA, 0}};
-        int input_desc_size = 2;
+        // Instance ID Stream:
+        // A buffer of instance IDs, which can be used in instance rendering
+        case INSTANCE_ID:
+            desc = {"SV_InstanceID",
+                    0,
+                    DXGI_FORMAT_R32_UINT,
+                    INSTANCE_ID,
+                    0,
+                    D3D11_INPUT_PER_VERTEX_DATA,
+                    0};
+            break;
 
-        device->CreateInputLayout(input_desc, input_desc_size,
-                                  shader_blob->GetBufferPointer(),
-                                  shader_blob->GetBufferSize(), &inputLayout);
-    } break;
+        // Debug Line:
+        // A buffer of positions and colors, used for rendering lines
+        case DEBUG_LINE: {
+            desc = {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,
+                    DEBUG_LINE, 0, D3D11_INPUT_PER_VERTEX_DATA,
+                    0};
+            input_desc.push_back(desc);
+            desc = {"COLOR",
+                    0,
+                    DXGI_FORMAT_R32G32B32_FLOAT,
+                    DEBUG_LINE,
+                    D3D11_APPEND_ALIGNED_ELEMENT,
+                    D3D11_INPUT_PER_VERTEX_DATA,
+                    0};
+        }
+        }
 
-    case (XYZ | INSTANCE_ID): {
-        D3D11_INPUT_ELEMENT_DESC input_desc[] = {
-            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
-             D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"TEXTURE", 0, DXGI_FORMAT_R32G32_FLOAT, 0, sizeof(float) * 3,
-             D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, sizeof(float) * 5,
-             D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"SV_InstanceID", 0, DXGI_FORMAT_R32_UINT, 0, sizeof(float) * 8,
-             D3D11_INPUT_PER_VERTEX_DATA, 0}};
-        int input_desc_size = 4;
-
-        device->CreateInputLayout(input_desc, input_desc_size,
-                                  shader_blob->GetBufferPointer(),
-                                  shader_blob->GetBufferSize(), &inputLayout);
-    } break;
-
-    case (XYZ | TEX | NORMAL): {
-        D3D11_INPUT_ELEMENT_DESC input_desc[] = {
-            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
-             D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"TEXTURE", 0, DXGI_FORMAT_R32G32_FLOAT, 0, sizeof(float) * 3,
-             D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, sizeof(float) * 5,
-             D3D11_INPUT_PER_VERTEX_DATA, 0}};
-        int input_desc_size = 3;
-
-        device->CreateInputLayout(input_desc, input_desc_size,
-                                  shader_blob->GetBufferPointer(),
-                                  shader_blob->GetBufferSize(), &inputLayout);
-    } break;
+        input_desc.push_back(desc);
     }
 
+    device->CreateInputLayout(input_desc.data(), input_desc.size(),
+                              shader_blob->GetBufferPointer(),
+                              shader_blob->GetBufferSize(), &inputLayout);
     assert(inputLayout != NULL);
 
     // Create vertex shader

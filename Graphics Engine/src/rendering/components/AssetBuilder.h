@@ -56,6 +56,13 @@ class MeshBuilder {
 
     // Resets the builder, so it can be used to generate another mesh
     void reset();
+
+  private: 
+    ID3D11Buffer* createVertexStream(void (*data_parser)(const MeshVertex&, uint8_t *output), UINT element_size);
+
+    static void ExtractVertexPosition(const MeshVertex& vertex, uint8_t*output);
+    static void ExtractVertexTexture(const MeshVertex& vertex, uint8_t* output);
+    static void ExtractVertexNormal(const MeshVertex& vertex, uint8_t* output);
 };
 
 // TextureBuilder Class:

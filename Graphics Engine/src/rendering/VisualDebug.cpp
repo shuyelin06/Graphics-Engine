@@ -1,5 +1,6 @@
 #include "VisualDebug.h"
 
+#include "_VertexStreamIDs_.h"
 #include <assert.h>
 
 namespace Engine {
@@ -159,7 +160,7 @@ int VisualDebug::LoadLineData(ID3D11DeviceContext* context,
     UINT vertexOffset = 0;
 
     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-    context->IASetVertexBuffers(0, 1, &lineVertexBuffer, &vertexStride,
+    context->IASetVertexBuffers(DEBUG_LINE, 1, &lineVertexBuffer, &vertexStride,
                                 &vertexOffset);
 
     return lines.size() * 2;

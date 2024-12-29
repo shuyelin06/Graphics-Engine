@@ -27,76 +27,103 @@ MeshBuilder::MeshBuilder(ID3D11Device* _device) { device = _device; }
 MeshBuilder::~MeshBuilder() = default;
 
 // Generate:
-// Generates the index and vertex buffer resources for the
-// mesh.
+// Generates the index and vertex buffer resources for the mesh.
 Mesh* MeshBuilder::generate() {
     if (index_buffer.size() == 0 || vertex_buffer.size() == 0)
         return nullptr;
 
-    // My mesh to be returned
     Mesh* mesh = new Mesh();
+    mesh->triangle_count = index_buffer.size();
 
-    // Create resource for vertex buffer
+    // Create index buffer
     D3D11_BUFFER_DESC buff_desc = {};
     D3D11_SUBRESOURCE_DATA sr_data = {0};
 
-    buff_desc.ByteWidth = sizeof(MeshVertex) * vertex_buffer.size();
-    buff_desc.Usage = D3D11_USAGE_DEFAULT;
-    buff_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
-    sr_data.pSysMem = (void*)vertex_buffer.data();
-
-    device->CreateBuffer(&buff_desc, &sr_data, &(mesh->vertex_buffer));
-    assert(mesh->vertex_buffer != nullptr);
-
-    // Create resource for index buffer
     buff_desc.ByteWidth = sizeof(MeshTriangle) * index_buffer.size();
     buff_desc.Usage = D3D11_USAGE_DEFAULT;
     buff_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+
     sr_data.pSysMem = (void*)index_buffer.data();
 
     device->CreateBuffer(&buff_desc, &sr_data, &(mesh->index_buffer));
     assert(mesh->index_buffer != nullptr);
 
-    mesh->triangle_count = index_buffer.size();
+    // Create each of my vertex streams
+    mesh->vertex_streams[POSITION] =
+        createVertexStream(ExtractVertexPosition, sizeof(float) * 3);
+    mesh->vertex_streams[TEXTURE] =
+        createVertexStream(ExtractVertexTexture, sizeof(float) * 2);
+    mesh->vertex_streams[NORMAL] =
+        createVertexStream(ExtractVertexNormal, sizeof(float) * 3);
 
-    // Create resource for shadowmap buffer
-    std::vector<float> vertex_information;
-    vertex_information.reserve(index_buffer.size() * 3);
+    return mesh;
+}
 
-    for (int i = 0; i < index_buffer.size(); i++) {
-        vertex_information.push_back(
-            vertex_buffer[index_buffer[i].vertex0].position.x);
-        vertex_information.push_back(
-            vertex_buffer[index_buffer[i].vertex0].position.y);
-        vertex_information.push_back(
-            vertex_buffer[index_buffer[i].vertex0].position.z);
+// CreateVertexStream:
+// Creates a vertex stream for some data extracted from the MeshVertex.
+// Builds this by using a function that, given the MeshVertex, writes
+// element_size bytes of data to output (assumed to be the same size). This
+// function could extract position, normals, or a combination of data.
+ID3D11Buffer* MeshBuilder::createVertexStream(
+    void (*data_parser)(const MeshVertex& vertex, uint8_t* output),
+    UINT element_size) {
+    const UINT NUM_VERTICES = vertex_buffer.size();
 
-        vertex_information.push_back(
-            vertex_buffer[index_buffer[i].vertex1].position.x);
-        vertex_information.push_back(
-            vertex_buffer[index_buffer[i].vertex1].position.y);
-        vertex_information.push_back(
-            vertex_buffer[index_buffer[i].vertex1].position.z);
+    // Will store my per-vertex data
+    uint8_t* data_element = new uint8_t[element_size];
 
-        vertex_information.push_back(
-            vertex_buffer[index_buffer[i].vertex2].position.x);
-        vertex_information.push_back(
-            vertex_buffer[index_buffer[i].vertex2].position.y);
-        vertex_information.push_back(
-            vertex_buffer[index_buffer[i].vertex2].position.z);
+    // Iterate through each vertex, and extract the data from it.
+    // Write this data to a vector which we will use to generate our vertex
+    // stream.
+    std::vector<uint8_t> stream_data;
+    stream_data.reserve(NUM_VERTICES * element_size);
+
+    for (int i = 0; i < vertex_buffer.size(); i++) {
+        // Pull my vertex data
+        (*data_parser)(vertex_buffer[i], data_element);
+
+        // Add my vertex data to the stream
+        for (int j = 0; j < element_size; j++)
+            stream_data.push_back(data_element[j]);
     }
 
-    buff_desc.ByteWidth = sizeof(float) * vertex_information.size();
+    // Generate a buffer for this data stream
+    ID3D11Buffer* buffer_handle = NULL;
+
+    D3D11_BUFFER_DESC buff_desc = {};
+    D3D11_SUBRESOURCE_DATA sr_data = {0};
+
+    buff_desc.ByteWidth = NUM_VERTICES * element_size;
     buff_desc.Usage = D3D11_USAGE_DEFAULT;
     buff_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
-    sr_data.pSysMem = (void*) vertex_information.data();
+    sr_data.pSysMem = (void*)stream_data.data();
 
-    device->CreateBuffer(&buff_desc, &sr_data, &(mesh->shadowmap_buffer));
-    assert(mesh->shadowmap_buffer != nullptr);
+    device->CreateBuffer(&buff_desc, &sr_data, &buffer_handle);
+    assert(buffer_handle != nullptr);
 
-    return mesh;
+    delete[] data_element;
+
+    return buffer_handle;
+}
+
+// Extraction Methods:
+// Builds a corresponding vertex stream by extracting data from vertex and
+// writing it to the output data array. Vertex position is 3 floats (x,y,z), 4
+// bytes each.
+void MeshBuilder::ExtractVertexPosition(const MeshVertex& vertex,
+                                        uint8_t* output) {
+    memcpy(output, &vertex.position, 3 * sizeof(float));
+}
+
+void MeshBuilder::ExtractVertexTexture(const MeshVertex& vertex,
+                                       uint8_t* output) {
+    memcpy(output, &vertex.textureCoord, 2 * sizeof(float));
+}
+
+void MeshBuilder::ExtractVertexNormal(const MeshVertex& vertex,
+                                      uint8_t* output) {
+    memcpy(output, &vertex.normal, 3 * sizeof(float));
 }
 
 // AddVertex:

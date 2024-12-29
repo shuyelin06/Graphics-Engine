@@ -1,19 +1,12 @@
 #pragma once
 
 #include "Direct3D11.h"
+#include "_VertexStreamIDs_.h"
 
 #include "Shader.h"
 
 namespace Engine {
 namespace Graphics {
-// Input layout configurations for the vertex shader
-enum InputLayoutPin {
-    XYZ = 1,             // Position
-    RGB = 1 << 1,        // Color
-    TEX = 1 << 2,        // Texture Coordinate
-    NORMAL = 1 << 3,     // Normal Vector
-    INSTANCE_ID = 1 << 4 // Instance ID
-};
 
 // Index references to available vertex and pixel
 // shaders. We use indices so that these
@@ -60,7 +53,9 @@ class ShaderManager {
   private:
     // Helper functions for compiling and building vertex and pixel shaders
     VertexShader* createVertexShader(const std::string filename,
-                                     const char* entrypoint, int layout);
+                                     const char* entrypoint,
+                                     VertexDataStream input_data[],
+                                     UINT input_data_size);
     PixelShader* createPixelShader(const std::string filename,
                                    const char* entrypoint);
 };

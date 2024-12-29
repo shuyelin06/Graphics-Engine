@@ -110,16 +110,14 @@ void VisualSystem::initialize() {
     shaderManager = new ShaderManager(device);
     shaderManager->initialize();
 
-    // Create my global light (the sun). 
+    // Create my global light (the sun).
     // It will always be at index 0 of the lights vector.
     sun_light = createLight(QUALITY_3);
 }
 
 // CreateLight:
 // Creates and returns a light in the visual system
-Light* VisualSystem::createLight() {
-    return createLight(QUALITY_1);
-}
+Light* VisualSystem::createLight() { return createLight(QUALITY_1); }
 Light* VisualSystem::createLight(ShadowMapQuality quality) {
     Light* newLight = new Light(device, quality);
     lights.push_back(newLight);
@@ -198,7 +196,7 @@ void VisualSystem::renderPrepare() {
 
     terrainRequests.clear();
 
-    // Set sun position to be 
+    // Set sun position to be
     Light* sun_light = lights[0];
 
     sun_light->getTransform()->setViewDirection(Vector3(0, -0.25f, 0.75f));
@@ -249,21 +247,24 @@ void VisualSystem::performShadowPass() {
 
             // Load each mesh
             for (Mesh* mesh : asset->getMeshes()) {
-                ID3D11Buffer* shadowmap_buffer = mesh->shadowmap_buffer;
-                int num_vertices = mesh->triangle_count * 3;
+                ID3D11Buffer* index_buffer = mesh->index_buffer;
+                ID3D11Buffer* position_stream = mesh->vertex_streams[POSITION];
+                UINT num_indices = mesh->triangle_count * 3;
 
                 UINT vertexStride = sizeof(float) * 3;
                 UINT vertexOffset = 0;
 
                 context->IASetPrimitiveTopology(
                     D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-                context->IASetVertexBuffers(0, 1, &shadowmap_buffer,
-                                            &vertexStride,
-                                            &vertexOffset);
+                context->IASetVertexBuffers(POSITION, 1, &position_stream,
+                                            &vertexStride, &vertexOffset);
+                context->IASetIndexBuffer(index_buffer, DXGI_FORMAT_R32_UINT,
+                                          0);
 
                 vShader->bindShader(device, context);
                 pShader->bindShader(device, context);
-                context->Draw(num_vertices, 0);
+
+                context->DrawIndexed(num_indices, 0, 0);
             }
         }
     }
@@ -366,22 +367,24 @@ void VisualSystem::performRenderPass() {
 
         // Load each mesh
         for (Mesh* mesh : asset->getMeshes()) {
-            ID3D11Buffer* indexBuffer = mesh->index_buffer;
-            ID3D11Buffer* vertexBuffer = mesh->vertex_buffer;
-            int numIndices = mesh->triangle_count * 3;
-
-            UINT vertexStride = sizeof(MeshVertex);
-            UINT vertexOffset = 0;
-
             context->IASetPrimitiveTopology(
                 D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-            context->IASetVertexBuffers(0, 1, &vertexBuffer, &vertexStride,
-                                        &vertexOffset);
-            context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+            ID3D11Buffer* buffers[3] = {mesh->vertex_streams[POSITION],
+                                        mesh->vertex_streams[TEXTURE],
+                                        mesh->vertex_streams[NORMAL]};
+            UINT strides[3] = {sizeof(float) * 3, sizeof(float) * 2,
+                               sizeof(float) * 3};
+            UINT offsets[3] = {0, 0, 0};
+
+            context->IASetVertexBuffers(0, 3, buffers, strides, offsets);
+            context->IASetIndexBuffer(mesh->index_buffer, DXGI_FORMAT_R32_UINT,
+                                      0);
 
             vShader->bindShader(device, context);
             pShader->bindShader(device, context);
 
+            UINT numIndices = mesh->triangle_count * 3;
             context->DrawIndexed(numIndices, 0, 0);
         }
     }
@@ -400,14 +403,14 @@ void VisualSystem::renderDebugPoints() {
     Mesh* mesh = cube->getMesh(0);
 
     ID3D11Buffer* indexBuffer = mesh->index_buffer;
-    ID3D11Buffer* vertexBuffer = mesh->vertex_buffer;
+    ID3D11Buffer* vertexBuffer = mesh->vertex_streams[POSITION];
     int numIndices = mesh->triangle_count * 3;
 
-    UINT vertexStride = sizeof(MeshVertex);
+    UINT vertexStride = sizeof(float) * 3;
     UINT vertexOffset = 0;
 
     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    context->IASetVertexBuffers(0, 1, &vertexBuffer, &vertexStride,
+    context->IASetVertexBuffers(POSITION, 1, &vertexBuffer, &vertexStride,
                                 &vertexOffset);
     context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
