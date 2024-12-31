@@ -19,7 +19,16 @@
 namespace Engine {
 namespace Graphics {
 
-struct RenderCommand {
+// Render Information
+struct ShadowCaster {
+    Mesh* mesh;
+    Matrix4 m_localToWorld;
+};
+struct RenderableTerrain {
+    Mesh* mesh;
+    Vector3 terrain_offset;
+};
+struct RenderableAsset {
     Asset* asset;
     Matrix4 m_localToWorld;
 };
@@ -59,10 +68,14 @@ class VisualSystem {
     std::vector<AssetRenderRequest> assetRequests;
     std::vector<TerrainRenderRequest> terrainRequests;
 
-    // Render Commands:
+    // Render Information:
     // Vectors of rendering information that the visual system actually uses
-    // for rendering. It takes all render requests, and processes them into these commands.
-    std::vector<RenderCommand> renderCommands;
+    // for rendering. It takes all render requests, and processes them into
+    // this information.
+    std::vector<ShadowCaster> shadow_casters;
+
+    std::vector<RenderableTerrain> renderable_terrain;
+    std::vector<RenderableAsset> renderable_assets;
 
   public:
     VisualSystem(HWND _window);
@@ -79,19 +92,25 @@ class VisualSystem {
     Light* createLight(ShadowMapQuality quality);
 
     // Submit render requests to the visual system. These requests
-    // are processed into render commands, which the system will use for rendering.
+    // are processed into render commands, which the system will use for
+    // rendering.
     void drawAsset(const AssetRenderRequest& renderRequest);
     void drawTerrain(const TerrainRenderRequest& renderRequest);
 
     // Renders an entire scene
     void render();
 
-  private:                    // Rendering Helper Methods
-    void renderPrepare();     // Prepare for Rendering
-    void performShadowPass(); // Shadow Pass
-    void performRenderPass(); // Render Pass
+  private:
+    void renderPrepare(); // Prepare for Rendering
+
+    void performShadowPass();  // Shadow Pass
+    void performTerrainPass(); // Render Terrain
+    void performRenderPass();  // Render Pass
+
+    void renderFinish(); // Finish Rendering
+
     void renderDebugPoints(); // DEBUG
-    void renderDebugLines();  // DEBU
+    void renderDebugLines();  // DEBUG
 
   public:
     // --- Data / Resource Queries ---

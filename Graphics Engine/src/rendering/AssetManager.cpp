@@ -64,6 +64,9 @@ void AssetManager::initialize() {
     LoadTextureFromPNG(tex_builder, "data/", "test.png");
     textures[Test2] = tex_builder.generate();
 
+    LoadTextureFromPNG(tex_builder, "data/", "grass.png");
+    textures[TerrainGrass] = tex_builder.generate();
+
     // Create my samplers
     samplers.resize(SamplerCount);
 
@@ -78,10 +81,6 @@ void AssetManager::initialize() {
     assets[Cube] = LoadCube(mesh_builder);
     // Fox by Jake Blakeley [CC-BY] via Poly Pizza
     assets[Fox] = LoadAssetFromOBJ(mesh_builder, "data/", "model.obj", "Model");
-
-    Datamodel::Terrain* terrain = new Datamodel::Terrain(0, 0);
-    assets[TerrainAsset] =
-        GenerateTerrainAsset(mesh_builder, terrain->getRawData());
 }
 
 // GetAsset:
@@ -103,10 +102,10 @@ ID3D11SamplerState* AssetManager::getSampler(SamplerSlot sampler) {
 
 // GetTerrain:
 // Generates terrain given data.
-Asset* AssetManager::getTerrain(int x, int z, TerrainData data) {
+Mesh* AssetManager::getTerrainMesh(int x, int z, TerrainData data) {
     if (terrain_meshes[x][z] == nullptr) {
         MeshBuilder builder = MeshBuilder(device);
-        terrain_meshes[x][z] = GenerateTerrainAsset(builder, data);
+        terrain_meshes[x][z] = GenerateTerrainMesh(builder, data);
     }
 
     return terrain_meshes[x][z];
@@ -512,16 +511,16 @@ ID3D11SamplerState* AssetManager::LoadMeshTextureSampler() {
 
     D3D11_SAMPLER_DESC sampler_desc = {};
     sampler_desc.Filter = D3D11_FILTER_ANISOTROPIC;
-    sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
-    sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
-    sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
-    sampler_desc.BorderColor[0] = 0.f;
+    sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+    sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+    sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+    /*sampler_desc.BorderColor[0] = 0.f;
     sampler_desc.BorderColor[1] = 0.f;
     sampler_desc.BorderColor[2] = 0.f;
     sampler_desc.BorderColor[3] = 0.f;
     sampler_desc.ComparisonFunc = D3D11_COMPARISON_NEVER;
     sampler_desc.MinLOD = 0;
-    sampler_desc.MaxLOD = 1.0f;
+    sampler_desc.MaxLOD = 1.0f;*/
 
     device->CreateSamplerState(&sampler_desc, &sampler);
     assert(sampler != NULL);

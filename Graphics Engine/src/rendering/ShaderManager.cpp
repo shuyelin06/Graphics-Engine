@@ -76,6 +76,18 @@ void ShaderManager::initialize() {
 
     pixelShaders[PSShadowMap] = createPixelShader("ShadowMap.hlsl", "ps_main");
 
+    // Terrain Shader:
+    // Handles rendering of the scene's terrain. Done in a separate shader than
+    // the meshes as terrain is procedurally textured with a tri-planar mapping.
+    VertexDataStream terrain_input[] = {POSITION, NORMAL};
+    vertexShaders[VSTerrain] = createVertexShader("VSTerrain.hlsl", "vsterrain_main", terrain_input, 2);
+    vertexShaders[VSTerrain]->enableCB(CB0);
+    vertexShaders[VSTerrain]->enableCB(CB1);
+
+    pixelShaders[PSTerrain] = createPixelShader("PSTerrain.hlsl", "psterrain_main");
+    pixelShaders[PSTerrain]->enableCB(CB0); // Global Illumination
+    pixelShaders[PSTerrain]->enableCB(CB1);
+
     // DebugPoint:
     // Uses instancing to draw colored points in the scene. Only available if
     // the debug flag is flipped.

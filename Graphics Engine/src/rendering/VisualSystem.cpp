@@ -139,7 +139,10 @@ void VisualSystem::drawTerrain(const TerrainRenderRequest& request) {
 // Renders the entire scene to the screen.
 void VisualSystem::render() {
     renderPrepare();
+
     performShadowPass();
+
+    performTerrainPass();
     performRenderPass();
 
 #if defined(_DEBUG)
@@ -149,10 +152,7 @@ void VisualSystem::render() {
     VisualDebug::Clear();
 #endif
 
-    // Present what we rendered to
-    swap_chain->Present(1, 0);
-
-    renderCommands.clear();
+    renderFinish();
 }
 
 // RenderPrepare:
@@ -166,10 +166,20 @@ void VisualSystem::renderPrepare() {
     // Parse all asset render requests, by querying the asset manager for the
     // assets.
     for (const AssetRenderRequest& request : assetRequests) {
-        RenderCommand command;
-        command.asset = assetManager->getAsset(request.slot);
-        command.m_localToWorld = request.mLocalToWorld;
-        renderCommands.push_back(command);
+        Asset* asset = assetManager->getAsset(request.slot);
+
+        for (Mesh* mesh : asset->getMeshes()) {
+            ShadowCaster shadowCaster;
+            shadowCaster.mesh = mesh;
+            shadowCaster.m_localToWorld = request.mLocalToWorld;
+
+            shadow_casters.push_back(shadowCaster);
+        }
+
+        RenderableAsset renderableAsset;
+        renderableAsset.asset = asset;
+        renderableAsset.m_localToWorld = request.mLocalToWorld;
+        renderable_assets.push_back(renderableAsset);
     }
 
     assetRequests.clear();
@@ -185,13 +195,20 @@ void VisualSystem::renderPrepare() {
             request.z_offset * TERRAIN_SIZE - CHUNK_Z_LIMIT / 2 * TERRAIN_SIZE;
         const float y_offset = -TERRAIN_HEIGHT * 0.75f;
 
-        RenderCommand command;
-        command.asset = assetManager->getTerrain(
+        Mesh* mesh = assetManager->getTerrainMesh(
             request.x_offset, request.z_offset, request.data);
-        command.m_localToWorld =
-            Transform::GenerateTranslationMatrix(x_offset, y_offset, z_offset);
 
-        renderCommands.push_back(command);
+        ShadowCaster shadowCaster;
+        shadowCaster.mesh = mesh;
+        shadowCaster.m_localToWorld =
+            Transform::GenerateTranslationMatrix(x_offset, y_offset, z_offset);
+        shadow_casters.push_back(shadowCaster);
+
+        RenderableTerrain renderableTerrain;
+        renderableTerrain.mesh = mesh;
+        renderableTerrain.terrain_offset =
+            Vector3(x_offset, y_offset, z_offset);
+        renderable_terrain.push_back(renderableTerrain);
     }
 
     terrainRequests.clear();
@@ -203,7 +220,7 @@ void VisualSystem::renderPrepare() {
     sun_light->setZFar(500);
     sun_light->setFOV(7.5f);
 
-    Vector3 position = sun_light->getTransform()->backward() * 10; // 75 OG
+    Vector3 position = sun_light->getTransform()->backward() * 55; // 75 OG
     sun_light->getTransform()->setPosition(position.x, position.y, position.z);
 }
 
@@ -220,13 +237,11 @@ void VisualSystem::performShadowPass() {
     for (Light* light : lights) {
         // Load light view and projection matrix
         vCB0->clearData();
-        {
-            const Matrix4 viewMatrix = light->getWorldToCameraMatrix();
-            vCB0->loadData(&viewMatrix, FLOAT4X4);
 
-            const Matrix4 projectionMatrix = light->getProjectionMatrix();
-            vCB0->loadData(&projectionMatrix, FLOAT4X4);
-        }
+        const Matrix4 viewMatrix = light->getWorldToCameraMatrix();
+        vCB0->loadData(&viewMatrix, FLOAT4X4);
+        const Matrix4 projectionMatrix = light->getProjectionMatrix();
+        vCB0->loadData(&projectionMatrix, FLOAT4X4);
 
         // Set the light as the render target.
         context->ClearDepthStencilView(light->getDepthView(), D3D11_CLEAR_DEPTH,
@@ -235,38 +250,134 @@ void VisualSystem::performShadowPass() {
         context->RSSetViewports(1, &light->getViewport());
 
         // For each asset, load its mesh
-        for (const RenderCommand& command : renderCommands) {
-            Asset* asset = command.asset;
-            const Matrix4& mLocalToWorld = command.m_localToWorld;
+        for (const ShadowCaster& caster : shadow_casters) {
+            Mesh* mesh = caster.mesh;
+            const Matrix4& mLocalToWorld = caster.m_localToWorld;
 
             vCB1->clearData();
-            {
-                // Load mesh vertex transformation matrix
-                vCB1->loadData(&mLocalToWorld, FLOAT4X4);
-            }
+            vCB1->loadData(&mLocalToWorld, FLOAT4X4);
 
-            // Load each mesh
-            for (Mesh* mesh : asset->getMeshes()) {
-                ID3D11Buffer* index_buffer = mesh->index_buffer;
-                ID3D11Buffer* position_stream = mesh->vertex_streams[POSITION];
-                UINT num_indices = mesh->triangle_count * 3;
+            ID3D11Buffer* index_buffer = mesh->index_buffer;
+            ID3D11Buffer* position_stream = mesh->vertex_streams[POSITION];
+            UINT num_indices = mesh->triangle_count * 3;
 
-                UINT vertexStride = sizeof(float) * 3;
-                UINT vertexOffset = 0;
+            UINT vertexStride = sizeof(float) * 3;
+            UINT vertexOffset = 0;
 
-                context->IASetPrimitiveTopology(
-                    D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-                context->IASetVertexBuffers(POSITION, 1, &position_stream,
-                                            &vertexStride, &vertexOffset);
-                context->IASetIndexBuffer(index_buffer, DXGI_FORMAT_R32_UINT,
-                                          0);
+            context->IASetPrimitiveTopology(
+                D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            context->IASetVertexBuffers(POSITION, 1, &position_stream,
+                                        &vertexStride, &vertexOffset);
+            context->IASetIndexBuffer(index_buffer, DXGI_FORMAT_R32_UINT, 0);
 
-                vShader->bindShader(device, context);
-                pShader->bindShader(device, context);
+            vShader->bindShader(device, context);
+            pShader->bindShader(device, context);
 
-                context->DrawIndexed(num_indices, 0, 0);
-            }
+            context->DrawIndexed(num_indices, 0, 0);
         }
+    }
+}
+
+void VisualSystem::performTerrainPass() {
+    VertexShader* vShader = shaderManager->getVertexShader(VSTerrain);
+    CBHandle* vCB0 = vShader->getCBHandle(CB0);
+    CBHandle* vCB1 = vShader->getCBHandle(CB1);
+
+    PixelShader* pShader = shaderManager->getPixelShader(PSTerrain);
+    CBHandle* pCB0 = pShader->getCBHandle(CB0);
+    CBHandle* pCB1 = pShader->getCBHandle(CB1);
+
+    context->OMSetRenderTargets(1, &render_target_view, depth_stencil);
+    context->ClearDepthStencilView(depth_stencil, D3D11_CLEAR_DEPTH, 1.0f, 0);
+    D3D11_VIEWPORT viewport = getViewport();
+    context->RSSetViewports(1, &viewport);
+
+    // Vertex Constant Buffer 0:
+    // Stores the camera view and projection matrices
+    vCB0->clearData();
+
+    const Matrix4 viewMatrix = camera.getWorldToCameraMatrix();
+    vCB0->loadData(&viewMatrix, FLOAT4X4);
+    const Matrix4 projectionMatrix = camera.getProjectionMatrix();
+    vCB0->loadData(&projectionMatrix, FLOAT4X4);
+
+    // Pixel Constant Buffer 1:
+    // Stores camera position, and the scene's light instances.
+    pCB1->clearData();
+    {
+        const Vector3& cameraPosition = camera.getTransform()->getPosition();
+        pCB1->loadData(&cameraPosition, FLOAT3);
+
+        int lightCount = lights.size();
+        pCB1->loadData(&lightCount, INT);
+
+        for (int i = 0; i < lights.size(); i++) {
+            Light* light = lights[i];
+
+            const Vector3& position = light->getTransform()->getPosition();
+            pCB1->loadData(&position, FLOAT3);
+            pCB1->loadData(nullptr, FLOAT);
+
+            const Color& color = light->getColor();
+            pCB1->loadData(&color, FLOAT3);
+            pCB1->loadData(nullptr, FLOAT);
+
+            const Matrix4 viewMatrix = light->getWorldToCameraMatrix();
+            pCB1->loadData(&viewMatrix, FLOAT4X4);
+
+            const Matrix4 projectionMatrix = light->getProjectionMatrix();
+            pCB1->loadData(&projectionMatrix, FLOAT4X4);
+        }
+    }
+
+    // Load my Textures
+    {
+        Texture* tex = assetManager->getTexture(TerrainGrass);
+        context->PSSetShaderResources(0, 1, &tex->view);
+
+        // Load light textures and samplers.
+        for (int i = 0; i < lights.size(); i++) {
+            Light* light = lights[i];
+            context->PSSetShaderResources(i + 1, 1, &light->getShaderView());
+        }
+    }
+
+    // Load my Samplers
+    {
+        ID3D11SamplerState* mesh_texture_sampler =
+            assetManager->getSampler(MeshTexture);
+        context->PSSetSamplers(0, 1, &mesh_texture_sampler);
+
+        ID3D11SamplerState* shadowmap_sampler =
+            assetManager->getSampler(ShadowMap);
+        context->PSSetSamplers(1, 1, &shadowmap_sampler);
+    }
+
+    for (const RenderableTerrain& terrain : renderable_terrain) {
+        Mesh* mesh = terrain.mesh;
+        const Vector3& offset = terrain.terrain_offset;
+
+        vCB1->clearData();
+        vCB1->loadData(&offset, FLOAT3);
+        vCB1->loadData(nullptr, FLOAT);
+
+        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        UINT buffer_stride = sizeof(float) * 3;
+        UINT buffer_offset = 0;
+
+        context->IASetVertexBuffers(POSITION, 1, &mesh->vertex_streams[POSITION],
+                                    &buffer_stride, &buffer_offset);
+        context->IASetVertexBuffers(NORMAL, 1, &mesh->vertex_streams[NORMAL],
+                                    &buffer_stride, &buffer_offset);
+
+        context->IASetIndexBuffer(mesh->index_buffer, DXGI_FORMAT_R32_UINT, 0);
+
+        vShader->bindShader(device, context);
+        pShader->bindShader(device, context);
+
+        UINT numIndices = mesh->triangle_count * 3;
+        context->DrawIndexed(numIndices, 0, 0);
     }
 }
 
@@ -352,7 +463,7 @@ void VisualSystem::performRenderPass() {
         context->PSSetSamplers(1, 1, &shadowmap_sampler);
     }
 
-    for (const RenderCommand& command : renderCommands) {
+    for (const RenderableAsset& command : renderable_assets) {
         Asset* asset = command.asset;
         const Matrix4& mLocalToWorld = command.m_localToWorld;
 
@@ -388,6 +499,15 @@ void VisualSystem::performRenderPass() {
             context->DrawIndexed(numIndices, 0, 0);
         }
     }
+}
+
+void VisualSystem::renderFinish() {
+    // Present what we rendered to
+    swap_chain->Present(1, 0);
+
+    shadow_casters.clear();
+    renderable_terrain.clear();
+    renderable_assets.clear();
 }
 
 void VisualSystem::renderDebugPoints() {

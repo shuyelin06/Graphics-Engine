@@ -45,7 +45,10 @@ struct VS_OUT
 float4 ps_main(VS_OUT input) : SV_TARGET
 {
     float4 color = float4(0, 0, 0, 1);
-        
+       
+    // Ambient lighting
+    color.rgb += float3(0.1f, 0.1f, 0.1f);
+    
     // FORCE USAGE OF MESH TEXTURE?
     float3 mesh_color = mesh_texture.Sample(mesh_sampler, float2(0.5f, 0.5f)).rgb;
     
@@ -117,7 +120,7 @@ float4 ps_main(VS_OUT input) : SV_TARGET
                 
                 float3 combined_color = (mesh_color * light_color);
                 float totalContribution = inShadow * attenuationContribution * (diffuseContribution + specularContribution);
-                color += float4(totalContribution * combined_color, 0.0f);
+                color.rgb += float3(totalContribution * combined_color);
 
             }
         }

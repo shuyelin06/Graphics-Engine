@@ -117,7 +117,8 @@ bool AssetManager::WriteTextureToPNG(ID3D11Texture2D* texture,
     staging_desc.Usage = D3D11_USAGE_STAGING; // Allows copying from GPU -> CPU
     staging_desc.BindFlags = 0; // Will not be bound to any pipeline stage
     staging_desc.MiscFlags = 0;
-    staging_desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE; // CPU access flags
+    staging_desc.CPUAccessFlags =
+        D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE; // CPU access flags
 
     // For now, this will only work for DXGI_FORMAT_R8G8B8A8_UNORM.
     assert(staging_desc.Format == DXGI_FORMAT_R8G8B8A8_UNORM);
@@ -154,12 +155,7 @@ bool AssetManager::WriteTextureToPNG(ID3D11Texture2D* texture,
 
     {
         uint8_t IHDR_data[13];
-        uint8_t IHDR_type[4] = {
-            'I',
-            'H',
-            'D',
-            'R'
-        };
+        uint8_t IHDR_type[4] = {'I', 'H', 'D', 'R'};
 
         const uint8_t bit_depth = 8;
         const uint8_t color_type = 6;
@@ -174,8 +170,8 @@ bool AssetManager::WriteTextureToPNG(ID3D11Texture2D* texture,
         flip(&height_flipped, 4);
         memcpy(IHDR_data + 4, &height_flipped, 4);
 
-        IHDR_data[8] = 8; // Bit depth
-        IHDR_data[9] = 6; // Color type
+        IHDR_data[8] = 8;  // Bit depth
+        IHDR_data[9] = 6;  // Color type
         IHDR_data[10] = 0; // Compression
         IHDR_data[11] = 0; // Filter
         IHDR_data[12] = 0; // Interlace
@@ -187,7 +183,7 @@ bool AssetManager::WriteTextureToPNG(ID3D11Texture2D* texture,
     {
         uint8_t IDAT_type[4] = {'I', 'D', 'A', 'T'};
         uint8_t* IDAT_data = new uint8_t[4 * width * height];
-        
+
         memcpy(IDAT_data, pixel_data, 4 * width * height);
 
         // Compress with zlib
@@ -196,20 +192,20 @@ bool AssetManager::WriteTextureToPNG(ID3D11Texture2D* texture,
         uLong compressed_size = 4 * width * height;
         compress((Bytef*)compressed_data, &compressed_size, IDAT_data,
                  4 * width * height);
-        
+
         writePNGChunk(file, IDAT_type, compressed_data, compressed_size);
-        
+
         delete[] IDAT_data;
         delete[] compressed_data;
     }
-    
+
     // IEND Chunk
     {
         uint8_t IEND_type[4] = {'I', 'E', 'N', 'D'};
 
         writePNGChunk(file, IEND_type, NULL, 0);
     }
-    
+
     fclose(file);
 
     // We unmap our resource and release it to free the memory.
@@ -358,8 +354,8 @@ bool AssetManager::LoadTextureFromPNG(TextureBuilder& builder, std::string path,
     std::vector<uint8_t> decompressed;
     decompressed.resize(height * (1 + width * BYTES_PER_PIXEL));
 
-    uLong decompressed_size = (uLong) decompressed.size();
-    uLong raw_size = (uLong) raw_data.size();
+    uLong decompressed_size = (uLong)decompressed.size();
+    uLong raw_size = (uLong)raw_data.size();
     uncompress((Bytef*)&decompressed[0], &decompressed_size,
                (Bytef*)&raw_data[0], raw_size);
 
@@ -368,7 +364,45 @@ bool AssetManager::LoadTextureFromPNG(TextureBuilder& builder, std::string path,
     for (uint32_t y = 0; y < height; y++) {
         uint8_t filter_method =
             decompressed[y * (width * BYTES_PER_PIXEL + 1) + 0];
-        assert(filter_method == 0);
+
+        // Filter Method 0: No filtering
+        // Filter Method 1: Recon(x) = Filter(x) + Recon(a)
+        if (filter_method == 1) {
+            uint8_t prev_r = 0;
+            uint8_t prev_g = 0;
+            uint8_t prev_a = 0;
+            uint8_t prev_b = 0;
+
+            for (uint32_t x = 0; x < width; x++) {
+                uint8_t r = decompressed[y * (width * BYTES_PER_PIXEL + 1) +
+                                         (x * BYTES_PER_PIXEL) + 1];
+                uint8_t g = decompressed[y * (width * BYTES_PER_PIXEL + 1) +
+                                         (x * BYTES_PER_PIXEL) + 2];
+                uint8_t b = decompressed[y * (width * BYTES_PER_PIXEL + 1) +
+                                         (x * BYTES_PER_PIXEL) + 3];
+                uint8_t a = decompressed[y * (width * BYTES_PER_PIXEL + 1) +
+                                         (x * BYTES_PER_PIXEL) + 4];
+
+                decompressed[y * (width * BYTES_PER_PIXEL + 1) +
+                             (x * BYTES_PER_PIXEL) + 1] = r + prev_r;
+                prev_r = decompressed[y * (width * BYTES_PER_PIXEL + 1) +
+                                      (x * BYTES_PER_PIXEL) + 1];
+                decompressed[y * (width * BYTES_PER_PIXEL + 1) +
+                             (x * BYTES_PER_PIXEL) + 2] = g + prev_g;
+                prev_g = decompressed[y * (width * BYTES_PER_PIXEL + 1) +
+                                      (x * BYTES_PER_PIXEL) + 2];
+                decompressed[y * (width * BYTES_PER_PIXEL + 1) +
+                             (x * BYTES_PER_PIXEL) + 3] = b + prev_b;
+                prev_b = decompressed[y * (width * BYTES_PER_PIXEL + 1) +
+                                      (x * BYTES_PER_PIXEL) + 3];
+                decompressed[y * (width * BYTES_PER_PIXEL + 1) +
+                             (x * BYTES_PER_PIXEL) + 4] = a + prev_a;
+                prev_a = decompressed[y * (width * BYTES_PER_PIXEL + 1) +
+                                      (x * BYTES_PER_PIXEL) + 4];
+            }
+        }
+
+        assert(filter_method == 0 || filter_method == 1);
 
         for (uint32_t x = 0; x < width; x++) {
             uint8_t r = decompressed[y * (width * BYTES_PER_PIXEL + 1) +
@@ -391,7 +425,7 @@ bool AssetManager::LoadTextureFromPNG(TextureBuilder& builder, std::string path,
 // 1) A 4-byte UINT giving the number of bytes in the data field
 // 2) A 4-byte character sequence defining the chunk type
 // 3) The bytes of data of the chunk
-// 4) A 4-byte CRC calculated on fields (2) and (3), to check for data 
+// 4) A 4-byte CRC calculated on fields (2) and (3), to check for data
 //    corruption. Returns 1 on success, 0 on failure.
 uint8_t readPNGChunk(FILE* file, PNGChunk& chunk) {
     size_t bytes_read = 0;
@@ -406,7 +440,7 @@ uint8_t readPNGChunk(FILE* file, PNGChunk& chunk) {
     flip(&length, sizeof(length));
 
     // Read the 4-byte chunk type and chunk data together. We do this so that
-    // we can compute the CRC on the data as an integrity check. 
+    // we can compute the CRC on the data as an integrity check.
     chunk.chunk_data.resize(4 + length);
     bytes_read = fread(&(chunk.chunk_data[0]), 1, 4 + length, file);
 
@@ -434,7 +468,8 @@ uint8_t readPNGChunk(FILE* file, PNGChunk& chunk) {
     chunk.chunk_type[1] = chunk.chunk_data[1];
     chunk.chunk_type[2] = chunk.chunk_data[2];
     chunk.chunk_type[3] = chunk.chunk_data[3];
-    chunk.chunk_data.erase(chunk.chunk_data.begin(), chunk.chunk_data.begin() + 4);
+    chunk.chunk_data.erase(chunk.chunk_data.begin(),
+                           chunk.chunk_data.begin() + 4);
 
     return SUCCESS;
 }

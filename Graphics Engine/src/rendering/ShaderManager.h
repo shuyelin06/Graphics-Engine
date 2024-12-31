@@ -17,6 +17,7 @@ enum VSSlot {
     VSDebugLine = 2,
     VSDefault = 3,
     VSShadow = 4,
+    VSTerrain = 5,
     VSCount
 };
 
@@ -26,6 +27,7 @@ enum PSSlot {
     PSDebugLine = 2,
     PSDefault = 3,
     PSShadow = 4,
+    PSTerrain = 5,
     PSCount
 };
 

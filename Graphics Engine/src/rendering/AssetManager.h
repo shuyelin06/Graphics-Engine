@@ -17,7 +17,7 @@ using namespace Datamodel;
 
 // enum AssetSlot from AssetIDs.h
 
-enum TextureSlot { Test = 0, Test2 = 1, Perlin = 2, TextureCount };
+enum TextureSlot { Test = 0, Test2 = 1, Perlin = 2, TerrainGrass = 3, TextureCount };
 enum SamplerSlot { ShadowMap = 0, MeshTexture = 1, SamplerCount };
 
 // AssetManager Class:
@@ -32,7 +32,7 @@ class AssetManager {
     std::vector<Texture*> textures;
     std::vector<ID3D11SamplerState*> samplers;
 
-    Asset* terrain_meshes[CHUNK_X_LIMIT][CHUNK_Z_LIMIT];
+    Mesh* terrain_meshes[CHUNK_X_LIMIT][CHUNK_Z_LIMIT];
 
   public:
     AssetManager(ID3D11Device* device, ID3D11DeviceContext* context);
@@ -50,14 +50,14 @@ class AssetManager {
 
     // Get a terrain mesh by its positional ID. Caches the generated terrain so
     // we don't have to generate it again.
-    Asset* getTerrain(int x, int z, TerrainData data);
+    Mesh* getTerrainMesh(int x, int z, TerrainData data);
 
   private:
     // Generate a cube
     Asset* LoadCube(MeshBuilder& builder);
 
     // Generate terrain given terrain chunk data
-    Asset* GenerateTerrainAsset(MeshBuilder& builder, TerrainData data);
+    Mesh* GenerateTerrainMesh(MeshBuilder& builder, TerrainData data);
 
     // Load assets from files.
     Asset* LoadAssetFromOBJ(MeshBuilder& builder, std::string path,

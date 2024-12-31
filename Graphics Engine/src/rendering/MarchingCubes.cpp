@@ -48,11 +48,9 @@ class MarchingCube {
 // GenerateTerrainAsset:
 // For a given terrain chunk, we will generate the mesh for it using Marching
 // Cubes.
-Asset* AssetManager::GenerateTerrainAsset(MeshBuilder& builder,
+Mesh* AssetManager::GenerateTerrainMesh(MeshBuilder& builder,
                                           TerrainData data) {
     builder.reset();
-
-    Asset* newAsset = new Asset();
 
     for (int i = 0; i < TERRAIN_CHUNK_X_SAMPLES - 1; i++) {
         for (int j = 0; j < TERRAIN_CHUNK_Y_SAMPLES - 1; j++) {
@@ -100,9 +98,8 @@ Asset* AssetManager::GenerateTerrainAsset(MeshBuilder& builder,
     }
 
     builder.regenerateNormals();
-    newAsset->addMesh(builder.generate());
 
-    return newAsset;
+    return builder.generate();
 }
 
 // -------------------------------------------------------------
