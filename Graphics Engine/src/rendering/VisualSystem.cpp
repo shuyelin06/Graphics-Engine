@@ -114,6 +114,7 @@ void VisualSystem::initialize() {
     // It will always be at index 0 of the lights vector.
     sun_light = createLight(QUALITY_4);
 
+#if !defined(NDEBUG)
     // Initialize IMGUI
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -125,14 +126,17 @@ void VisualSystem::initialize() {
 
     ImGui_ImplWin32_Init(window);
     ImGui_ImplDX11_Init(device, context);
+#endif
 }
 
 // Shutdown:
 // Closes the visual system.
 void VisualSystem::shutdown() {
+#if !defined(NDEBUG)
     ImGui_ImplDX11_Shutdown();
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
+#endif
 }
 
 // CreateLight:
@@ -179,11 +183,13 @@ void VisualSystem::render() {
 // Prepares the engine for rendering, by processing all render requests and
 // clearing the screen.
 void VisualSystem::renderPrepare() {
+#if !defined(NDEBUG)
     // Start the Dear ImGui frame
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
     ImGui::ShowDemoWindow(); // Show demo window! :)
+#endif
 
     // Clear the the screen color
     float color[4] = {RGB(158.f), RGB(218.f), RGB(255.f), 1.0f};
@@ -536,9 +542,11 @@ void VisualSystem::performRenderPass() {
 }
 
 void VisualSystem::renderFinish() {
+#if !defined(NDEBUG)
     // Finish the ImGui Frame
     ImGui::Render();
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+#endif
 
     // Present what we rendered to
     swap_chain->Present(1, 0);
