@@ -6,9 +6,15 @@
 
 #include <assert.h>
 
+// If shaders are unmodified, keep this define off. Keeping this define off
+// will have the manager cache compiled blob data into an intermediate file,
+// to avoid recompilation in future runs.
+// #define RECOMPILE_SHADERS
+
 namespace Engine {
 namespace Graphics {
 
+static const std::string cache_folder = "bin/";
 static const std::string shader_folder = "src/rendering/shaders/";
 
 // ShaderIncludeHandler Class:
@@ -80,11 +86,13 @@ void ShaderManager::initialize() {
     // Handles rendering of the scene's terrain. Done in a separate shader than
     // the meshes as terrain is procedurally textured with a tri-planar mapping.
     VertexDataStream terrain_input[] = {POSITION, NORMAL};
-    vertexShaders[VSTerrain] = createVertexShader("VSTerrain.hlsl", "vsterrain_main", terrain_input, 2);
+    vertexShaders[VSTerrain] = createVertexShader(
+        "VSTerrain.hlsl", "vsterrain_main", terrain_input, 2);
     vertexShaders[VSTerrain]->enableCB(CB0);
     vertexShaders[VSTerrain]->enableCB(CB1);
 
-    pixelShaders[PSTerrain] = createPixelShader("PSTerrain.hlsl", "psterrain_main");
+    pixelShaders[PSTerrain] =
+        createPixelShader("PSTerrain.hlsl", "psterrain_main");
     pixelShaders[PSTerrain]->enableCB(CB0); // Global Illumination
     pixelShaders[PSTerrain]->enableCB(CB1);
 
@@ -153,8 +161,25 @@ PixelShader* ShaderManager::getPixelShader(PSSlot slot) {
 enum ShaderType { Vertex, Pixel };
 static ID3DBlob* CompileShaderBlob(ShaderType type, const std::string file,
                                    const char* entry) {
+    ID3DBlob* compiled_blob = NULL;
+
+#if !defined(RECOMPILE_SHADERS)
+    const std::string temp_blob_file = cache_folder + file + "--" + entry;
+
+    if (std::filesystem::exists(temp_blob_file)) {
+        const std::wstring temp_blob_file_w =
+            std::wstring(temp_blob_file.begin(), temp_blob_file.end());
+        D3DReadFileToBlob(temp_blob_file_w.c_str(), &compiled_blob);
+
+        if (compiled_blob != NULL)
+            return compiled_blob;
+    }
+#endif
+
+    // Check if the blob has already been compiled before.
     // Initialize compiler settings
-    const std::wstring file_name = std::wstring(file.begin(), file.end());
+    const std::string path = shader_folder + file;
+    const std::wstring file_name = std::wstring(path.begin(), path.end());
     ID3DInclude* include_settings = new ShaderIncludeHandler();
     const char* compiler_target = "";
     const UINT flags = 0 | D3DCOMPILE_DEBUG | D3DCOMPILE_ENABLE_STRICTNESS;
@@ -171,7 +196,6 @@ static ID3DBlob* CompileShaderBlob(ShaderType type, const std::string file,
 
     // Compile blob
     ID3DBlob* error_blob = NULL;
-    ID3DBlob* compiled_blob = NULL;
 
     HRESULT result = D3DCompileFromFile(
         file_name.c_str(), nullptr, include_settings, entry, compiler_target,
@@ -191,6 +215,14 @@ static ID3DBlob* CompileShaderBlob(ShaderType type, const std::string file,
         assert(false);
     }
 
+#if !defined(RECOMPILE_SHADERS)
+    const std::wstring temp_blob_file_w =
+        std::wstring(temp_blob_file.begin(), temp_blob_file.end());
+
+    D3DWriteBlobToFile(compiled_blob, temp_blob_file_w.c_str(), true);
+#endif
+
+    // If 
     return compiled_blob;
 }
 
@@ -199,8 +231,7 @@ VertexShader* ShaderManager::createVertexShader(const std::string filename,
                                                 VertexDataStream* input_data,
                                                 UINT input_data_size) {
     // Obtain shader blob
-    ID3DBlob* shader_blob =
-        CompileShaderBlob(Vertex, shader_folder + filename, entrypoint);
+    ID3DBlob* shader_blob = CompileShaderBlob(Vertex, filename, entrypoint);
 
     // Create input layout for vertex shader. We do this by parsing the streams
     // that the shader will use into the corresponding input data format.
@@ -300,8 +331,7 @@ VertexShader* ShaderManager::createVertexShader(const std::string filename,
 PixelShader* ShaderManager::createPixelShader(const std::string filename,
                                               const char* entrypoint) {
     // Obtain shader blob
-    ID3DBlob* shader_blob =
-        CompileShaderBlob(Pixel, shader_folder + filename, entrypoint);
+    ID3DBlob* shader_blob = CompileShaderBlob(Pixel, filename, entrypoint);
 
     // Create pixel shader
     ID3D11PixelShader* pixelShader = NULL;
