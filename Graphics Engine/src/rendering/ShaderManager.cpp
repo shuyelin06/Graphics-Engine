@@ -37,7 +37,7 @@ class ShaderIncludeHandler : public ID3DInclude {
             assert(file != NULL);
 
             // Read file size
-            uint32_t file_size = std::filesystem::file_size(path);
+            UINT file_size = (UINT) std::filesystem::file_size(path);
             uint8_t* read_data = new uint8_t[file_size];
             fread(read_data, 1, file_size, file);
 
@@ -168,15 +168,14 @@ static ID3DBlob* CompileShaderBlob(ShaderType type, const std::string file,
         std::wstring(cached_blob_path.begin(), cached_blob_path.end());
 
     if (std::filesystem::exists(cached_blob_path)) {
-        // If the blob was last modified after the shader, then it is the most up-to-date
-        // blob for the shader and we don't need to recompile.
+        // If the blob was last modified after the shader, then it is the most
+        // up-to-date blob for the shader and we don't need to recompile.
         auto blob_last_modified =
             std::filesystem::last_write_time(cached_blob_path);
         auto shader_last_modified =
             std::filesystem::last_write_time(shader_path);
 
-        if (blob_last_modified >= shader_last_modified)
-        {
+        if (blob_last_modified >= shader_last_modified) {
             D3DReadFileToBlob(cached_blob_path_w.c_str(), &compiled_blob);
 
             if (compiled_blob != NULL)
@@ -205,8 +204,7 @@ static ID3DBlob* CompileShaderBlob(ShaderType type, const std::string file,
 
     HRESULT result = D3DCompileFromFile(
         shader_path_w.c_str(), nullptr, include_settings, entry,
-        compiler_target,
-        flags, 0, &compiled_blob, &error_blob);
+        compiler_target, flags, 0, &compiled_blob, &error_blob);
 
     // Error handling
     if (FAILED(result)) {
@@ -241,7 +239,7 @@ VertexShader* ShaderManager::createVertexShader(const std::string filename,
 
     std::vector<D3D11_INPUT_ELEMENT_DESC> input_desc;
 
-    for (int i = 0; i < input_data_size; i++) {
+    for (UINT i = 0; i < input_data_size; i++) {
         const VertexDataStream stream = input_data[i];
         D3D11_INPUT_ELEMENT_DESC desc;
 
@@ -310,7 +308,7 @@ VertexShader* ShaderManager::createVertexShader(const std::string filename,
         input_desc.push_back(desc);
     }
 
-    device->CreateInputLayout(input_desc.data(), input_desc.size(),
+    device->CreateInputLayout(input_desc.data(), (UINT) input_desc.size(),
                               shader_blob->GetBufferPointer(),
                               shader_blob->GetBufferSize(), &inputLayout);
     assert(inputLayout != NULL);
