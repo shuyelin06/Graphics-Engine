@@ -23,19 +23,21 @@ class MarchingCube {
     // Data is given in order of the vertex id mapping shown above
     float vertexData[8];
 
-    // Triangulation
-    std::vector<Triangle> triangles;
+    // Output fields
+    Triangle* output_triangulation;
+    int* output_num_triangles;
 
   public:
-    MarchingCube(float a1, float a2, float a3, float a4, float a5, float a6,
-                 float a7, float a8);
+    MarchingCube();
     ~MarchingCube();
 
-    void generateSurface();
-    const std::vector<Triangle>& getTriangles() const;
+    void updateData(float a1, float a2, float a3, float a4, float a5, float a6,
+                    float a7, float a8);
+    void generateSurface(Triangle* triangle_output, int* num_triangles);
 
   private:
     void createTriangles(const char* edgeList, char numberTriangles);
+
     Vector3 generateVertexOnEdge(char edgeID);
 
     bool testFaceAmbiguity(char faceID);
@@ -49,14 +51,18 @@ class MarchingCube {
 // For a given terrain chunk, we will generate the mesh for it using Marching
 // Cubes.
 Mesh* AssetManager::GenerateTerrainMesh(MeshBuilder& builder,
-                                          TerrainData data) {
+                                        TerrainData data) {
     builder.reset();
+
+    MarchingCube marchingCube;
+    Triangle triangulation[10];
+    int num_triangles;
 
     for (int i = 0; i < TERRAIN_CHUNK_X_SAMPLES - 1; i++) {
         for (int j = 0; j < TERRAIN_CHUNK_Y_SAMPLES - 1; j++) {
             for (int k = 0; k < TERRAIN_CHUNK_Z_SAMPLES - 1; k++) {
                 // Load data into a marching cube
-                MarchingCube marchingCube = MarchingCube(
+                marchingCube.updateData(
                     data.sample(i, j, k), data.sample(i + 1, j, k),
                     data.sample(i + 1, j + 1, k), data.sample(i, j + 1, k),
                     data.sample(i, j, k + 1), data.sample(i + 1, j, k + 1),
@@ -64,20 +70,22 @@ Mesh* AssetManager::GenerateTerrainMesh(MeshBuilder& builder,
                     data.sample(i, j + 1, k + 1));
 
                 // Generate triangulation for this cube
-                marchingCube.generateSurface();
-
-                const std::vector<Triangle>& triangulation =
-                    marchingCube.getTriangles();
+                marchingCube.generateSurface(triangulation, &num_triangles);
 
                 // Scale and transform to voxel location
-                const float x_scale = TERRAIN_SIZE / (TERRAIN_CHUNK_X_SAMPLES - 1);
-                const float z_scale = TERRAIN_SIZE / (TERRAIN_CHUNK_Z_SAMPLES - 1);
+                const float x_scale =
+                    TERRAIN_SIZE / (TERRAIN_CHUNK_X_SAMPLES - 1);
+                const float z_scale =
+                    TERRAIN_SIZE / (TERRAIN_CHUNK_Z_SAMPLES - 1);
                 const float y_scale = TERRAIN_HEIGHT / TERRAIN_CHUNK_Y_SAMPLES;
 
                 Vector3 offset = Vector3(i, j, k);
                 Vector3 scale = Vector3(x_scale, y_scale, z_scale);
 
-                for (const Triangle& triangle : triangulation) {
+                for (int tri_index = 0; tri_index < num_triangles;
+                     tri_index++) {
+                    const Triangle& triangle = triangulation[tri_index];
+
                     MeshVertex meshVertex;
 
                     // Flip orientation of triangle
@@ -128,8 +136,11 @@ Mesh* AssetManager::GenerateTerrainMesh(MeshBuilder& builder,
  * 3) Face IDs
  */
 
-MarchingCube::MarchingCube(float a1, float a2, float a3, float a4, float a5,
-                           float a6, float a7, float a8) {
+MarchingCube::MarchingCube() = default;
+MarchingCube::~MarchingCube() = default;
+
+void MarchingCube::updateData(float a1, float a2, float a3, float a4, float a5,
+                              float a6, float a7, float a8) {
     vertexData[0] = a1;
     vertexData[1] = a2;
     vertexData[2] = a3;
@@ -138,19 +149,19 @@ MarchingCube::MarchingCube(float a1, float a2, float a3, float a4, float a5,
     vertexData[5] = a6;
     vertexData[6] = a7;
     vertexData[7] = a8;
-
-    triangles = std::vector<Triangle>();
-}
-MarchingCube::~MarchingCube() = default;
-
-const std::vector<Triangle>& MarchingCube::getTriangles() const {
-    return triangles;
 }
 
 // Generates a surface for the marching cube. Assumes that data is loaded into
 // vertexData. This uses the Marching Cube algorithm, and assumes the surface
 // exists at the value 0.
-void MarchingCube::generateSurface() {
+void MarchingCube::generateSurface(Triangle* triangle_output,
+                                   int* num_triangles) {
+    assert(triangle_output != nullptr && num_triangles != nullptr);
+
+    output_triangulation = triangle_output;
+    output_num_triangles = num_triangles;
+    (*output_num_triangles) = 0;
+
     const unsigned char vertexMask = computeVertexMask();
 
     const char caseID = CaseTable[vertexMask][0];
@@ -496,8 +507,8 @@ void MarchingCube::generateSurface() {
 // triangulation for our marching cube.
 void MarchingCube::createTriangles(const char* edgeList, char numberTriangles) {
     Vector3 vertices[3];
-    triangles.clear();
-    triangles.reserve(numberTriangles);
+
+    (*output_num_triangles) = numberTriangles;
 
     for (int i = 0; i < numberTriangles; i++) {
         for (int t = 0; t < 3; t++) {
@@ -525,10 +536,9 @@ void MarchingCube::createTriangles(const char* edgeList, char numberTriangles) {
                 assert(false);
         }
 
-        triangles.push_back(Triangle(vertices[0], vertices[1], vertices[2]));
+        output_triangulation[i] =
+            Triangle(vertices[0], vertices[1], vertices[2]);
     }
-
-    assert(triangles.size() == numberTriangles);
 }
 
 // Determines the coordinate of the terrain at some edgeID.
