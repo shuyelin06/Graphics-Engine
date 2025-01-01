@@ -6,11 +6,6 @@
 
 #include <assert.h>
 
-// If shaders are unmodified, keep this define off. Keeping this define off
-// will have the manager cache compiled blob data into an intermediate file,
-// to avoid recompilation in future runs.
-// #define RECOMPILE_SHADERS
-
 namespace Engine {
 namespace Graphics {
 
@@ -163,23 +158,34 @@ static ID3DBlob* CompileShaderBlob(ShaderType type, const std::string file,
                                    const char* entry) {
     ID3DBlob* compiled_blob = NULL;
 
-#if !defined(RECOMPILE_SHADERS)
-    const std::string temp_blob_file = cache_folder + file + "--" + entry;
+    // Generate path to shader file
+    const std::string shader_path = shader_folder + file;
+    const std::wstring shader_path_w =
+        std::wstring(shader_path.begin(), shader_path.end());
 
-    if (std::filesystem::exists(temp_blob_file)) {
-        const std::wstring temp_blob_file_w =
-            std::wstring(temp_blob_file.begin(), temp_blob_file.end());
-        D3DReadFileToBlob(temp_blob_file_w.c_str(), &compiled_blob);
+    const std::string cached_blob_path = cache_folder + file + "--" + entry;
+    const std::wstring cached_blob_path_w =
+        std::wstring(cached_blob_path.begin(), cached_blob_path.end());
 
-        if (compiled_blob != NULL)
-            return compiled_blob;
+    if (std::filesystem::exists(cached_blob_path)) {
+        // If the blob was last modified after the shader, then it is the most up-to-date
+        // blob for the shader and we don't need to recompile.
+        auto blob_last_modified =
+            std::filesystem::last_write_time(cached_blob_path);
+        auto shader_last_modified =
+            std::filesystem::last_write_time(shader_path);
+
+        if (blob_last_modified >= shader_last_modified)
+        {
+            D3DReadFileToBlob(cached_blob_path_w.c_str(), &compiled_blob);
+
+            if (compiled_blob != NULL)
+                return compiled_blob;
+        }
     }
-#endif
 
     // Check if the blob has already been compiled before.
     // Initialize compiler settings
-    const std::string path = shader_folder + file;
-    const std::wstring file_name = std::wstring(path.begin(), path.end());
     ID3DInclude* include_settings = new ShaderIncludeHandler();
     const char* compiler_target = "";
     const UINT flags = 0 | D3DCOMPILE_DEBUG | D3DCOMPILE_ENABLE_STRICTNESS;
@@ -198,7 +204,8 @@ static ID3DBlob* CompileShaderBlob(ShaderType type, const std::string file,
     ID3DBlob* error_blob = NULL;
 
     HRESULT result = D3DCompileFromFile(
-        file_name.c_str(), nullptr, include_settings, entry, compiler_target,
+        shader_path_w.c_str(), nullptr, include_settings, entry,
+        compiler_target,
         flags, 0, &compiled_blob, &error_blob);
 
     // Error handling
@@ -215,14 +222,9 @@ static ID3DBlob* CompileShaderBlob(ShaderType type, const std::string file,
         assert(false);
     }
 
-#if !defined(RECOMPILE_SHADERS)
-    const std::wstring temp_blob_file_w =
-        std::wstring(temp_blob_file.begin(), temp_blob_file.end());
+    // Cache blob so that we don't have to recompile in the future
+    D3DWriteBlobToFile(compiled_blob, cached_blob_path_w.c_str(), true);
 
-    D3DWriteBlobToFile(compiled_blob, temp_blob_file_w.c_str(), true);
-#endif
-
-    // If 
     return compiled_blob;
 }
 

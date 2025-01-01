@@ -56,10 +56,11 @@ class ShaderManager {
     // Helper functions for compiling and building vertex and pixel shaders
     VertexShader* createVertexShader(const std::string filename,
                                      const char* entrypoint,
-                                     VertexDataStream input_data[],
+                                     VertexDataStream* input_data,
                                      UINT input_data_size);
     PixelShader* createPixelShader(const std::string filename,
                                    const char* entrypoint);
 };
+
 } // namespace Graphics
 } // namespace Engine
