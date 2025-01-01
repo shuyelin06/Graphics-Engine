@@ -1,3 +1,4 @@
+#include "Lighting.hlsli"
 #include "ToneMap.hlsli"
 
 SamplerState mesh_sampler : register(s0);
@@ -10,10 +11,10 @@ Texture2D terrain_texture : register(t0);
 struct LightData
 {
     float3 position;
-    float padding1;
+    uint shadowmap_width;
     
     float3 color;
-    float padding2;
+    uint shadowmap_height;
     
     float4x4 m_view;
     float4x4 m_projection;
@@ -38,8 +39,6 @@ struct PS_IN
     float3 normal : NORMAL;
 };
 
-// Lighting: https://lavalle.pl/vr/node197.html
-
 // Pixel Shader Entry Point
 // Takes clipping coordinates, and returns a color
 float4 psterrain_main(PS_IN input) : SV_TARGET
@@ -47,9 +46,18 @@ float4 psterrain_main(PS_IN input) : SV_TARGET
     float4 color = float4(0, 0, 0, 1);
        
     // Texture coordinate is the xz coordinate, scaled to some value
-    float scale = 0.01;
-    float2 tex_coord = input.world_position.xz * scale;
-    float3 mesh_color = terrain_texture.Sample(mesh_sampler, tex_coord).rgb;
+    float scale = 0.1;
+    
+    float3 xz_color = terrain_texture.Sample(mesh_sampler, input.world_position.xz * scale).rgb;
+    float xz_contribution = abs(dot(float3(0, 1, 0), input.normal));
+    
+    float3 xy_color = terrain_texture.Sample(mesh_sampler, input.world_position.xy * scale).rgb;
+    float xy_contribution = abs(dot(float3(0, 0, 1), input.normal));
+    
+    float3 yz_color = terrain_texture.Sample(mesh_sampler, input.world_position.yz * scale).rgb;
+    float yz_contribution = abs(dot(float3(1, 0, 0), input.normal));
+    
+    float3 mesh_color = xz_color * xz_contribution + xy_color * xy_contribution + yz_color * yz_contribution;
     
     // Ambient Lighting
     float ambient = 0.35f;
@@ -57,27 +65,41 @@ float4 psterrain_main(PS_IN input) : SV_TARGET
     
     for (int i = 0; i < light_count; i++)
     {
-        // Check if the point is in shadow or not. 
-        // Convert the point to the light projection space, to see how far it is
-        // from the light.
-        float4 view_position = float4(input.world_position, 1);
-        view_position = mul(light_instances[i].m_view, view_position);
-        view_position = mul(light_instances[i].m_projection, view_position);
-        view_position = view_position / view_position.w; // Manual W-Divide 
+        // Find the point's coordinates in the light view
+        float4 lightview_coords = toLightView(input.world_position, light_instances[i].m_view, light_instances[i].m_projection);
         
-        float depth = view_position.z;
-    
-        if (-1 <= view_position.x && view_position.x <= 1)
+        if (-1 <= lightview_coords.x && lightview_coords.x <= 1)
         {
-            if (-1 <= view_position.y && view_position.y <= 1)
-            {
-                // Sample the light shadow map to see how far the light can see at that location. 
-                float2 shadowmap_coords = float2((view_position.x + 1) / 2.f, (-view_position.y + 1) / 2.f);
-                float sampledDepth = lightDepthMaps[i].Sample(shadowmap_sampler, shadowmap_coords).r;
-                
+            if (-1 <= lightview_coords.y && lightview_coords.y <= 1)
+            {   
+                // Check if the point's depth exceeds that of the light's view
                 // If sampled depth is < depth, the light cannot see the point, so it provides
                 // no contribution to the color at that point (point is in shadow). 
-                float inShadow = step(depth, sampledDepth + 0.01f); // Small offset 0.01 to avoid precision errors
+                // We add a small offset 0.01 in the step() function to avoid precision errors
+                float cur_depth = lightview_coords.z;
+                 
+                float2 shadowmap_coords = float2((lightview_coords.x + 1) / 2.f, (-lightview_coords.y + 1) / 2.f);
+                float offset_x = 1.0f / float(light_instances[i].shadowmap_width);
+                float offset_y = 1.0f / float(light_instances[i].shadowmap_height);
+                
+                // Normal Shadow Map
+                // lightDepthMaps[i].Sample(shadowmap_sampler, shadowmap_coords).r;
+                // Attempt at PCF
+                float shadow_factor = 0.0f;
+                
+                for (int x = -1; x <= 1; x++)
+                {
+                    for (int y = -1; y <= 1; y++)
+                    {
+                        float2 sample_coords = shadowmap_coords + float2(x * offset_x, y * offset_y);
+                        float sampled_depth = lightDepthMaps[i].Sample(shadowmap_sampler, sample_coords).r;
+                        float inShadow = step(cur_depth, sampled_depth + 0.01f);
+                        
+                        shadow_factor += inShadow;
+                    }
+                }
+
+                shadow_factor = shadow_factor / 9.0f; // Doesn't work very well
     
                 // --- Calculate vectors necessary for lighting ---
                 // 1) Normal at Point 
@@ -122,7 +144,7 @@ float4 psterrain_main(PS_IN input) : SV_TARGET
                 float3 light_color = light_instances[i].color;
                 
                 float3 combined_color = (mesh_color * light_color);
-                float totalContribution = inShadow * attenuationContribution * (diffuseContribution + specularContribution);
+                float totalContribution = shadow_factor * attenuationContribution * (diffuseContribution + specularContribution);
                 color.rgb += float3(totalContribution * combined_color);
 
             }

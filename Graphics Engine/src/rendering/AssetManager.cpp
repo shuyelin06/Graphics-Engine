@@ -514,13 +514,6 @@ ID3D11SamplerState* AssetManager::LoadMeshTextureSampler() {
     sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
     sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
     sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-    /*sampler_desc.BorderColor[0] = 0.f;
-    sampler_desc.BorderColor[1] = 0.f;
-    sampler_desc.BorderColor[2] = 0.f;
-    sampler_desc.BorderColor[3] = 0.f;
-    sampler_desc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-    sampler_desc.MinLOD = 0;
-    sampler_desc.MaxLOD = 1.0f;*/
 
     device->CreateSamplerState(&sampler_desc, &sampler);
     assert(sampler != NULL);

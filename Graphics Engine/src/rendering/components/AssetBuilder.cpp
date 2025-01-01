@@ -236,15 +236,6 @@ Texture* TextureBuilder::generate() {
     device->CreateShaderResourceView(texture_resource->texture, &tex_view,
                                      &(texture_resource->view));
 
-    // Generate a sampler for my texture
-    D3D11_SAMPLER_DESC sampler = {};
-    sampler.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
-    sampler.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-    sampler.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-    sampler.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-
-    device->CreateSamplerState(&sampler, &(texture_resource->sampler));
-
     return texture_resource;
 }
 

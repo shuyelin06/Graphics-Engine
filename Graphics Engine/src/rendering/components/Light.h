@@ -15,7 +15,8 @@ enum ShadowMapQuality {
     QUALITY_0 = 64, 
     QUALITY_1 = 128,
     QUALITY_2 = 256,
-    QUALITY_3 = 512
+    QUALITY_3 = 512,
+    QUALITY_4 = 1024
 };
 
 // LightComponent Class:
@@ -31,6 +32,8 @@ class Light : public Camera {
     // Shadow map texture, and associated data to
     // let us bind it to the shader and render to it.
     ID3D11Texture2D* shadow_map;
+    UINT shadowmap_width;
+    UINT shadowmap_height;
 
     // Enables rendering to the texture
     D3D11_VIEWPORT viewport;
@@ -52,6 +55,9 @@ class Light : public Camera {
 
     ID3D11ShaderResourceView*& getShaderView();
     ID3D11SamplerState*& getSampler();
+
+    UINT getWidth();
+    UINT getHeight();
 };
 } // namespace Graphics
 } // namespace Engine

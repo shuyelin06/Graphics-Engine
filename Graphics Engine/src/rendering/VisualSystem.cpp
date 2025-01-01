@@ -112,7 +112,7 @@ void VisualSystem::initialize() {
 
     // Create my global light (the sun).
     // It will always be at index 0 of the lights vector.
-    sun_light = createLight(QUALITY_3);
+    sun_light = createLight(QUALITY_4);
 }
 
 // CreateLight:
@@ -314,13 +314,17 @@ void VisualSystem::performTerrainPass() {
         for (int i = 0; i < lights.size(); i++) {
             Light* light = lights[i];
 
-            const Vector3& position = light->getTransform()->getPosition();
+           const Vector3& position = light->getTransform()->getPosition();
             pCB1->loadData(&position, FLOAT3);
-            pCB1->loadData(nullptr, FLOAT);
+
+            const UINT width = light->getWidth();
+            pCB1->loadData(&width, INT);
 
             const Color& color = light->getColor();
             pCB1->loadData(&color, FLOAT3);
-            pCB1->loadData(nullptr, FLOAT);
+
+            const UINT height = light->getHeight();
+            pCB1->loadData(&height, INT);
 
             const Matrix4 viewMatrix = light->getWorldToCameraMatrix();
             pCB1->loadData(&viewMatrix, FLOAT4X4);
@@ -421,11 +425,15 @@ void VisualSystem::performRenderPass() {
 
             const Vector3& position = light->getTransform()->getPosition();
             pCB1->loadData(&position, FLOAT3);
-            pCB1->loadData(nullptr, FLOAT);
+
+            const UINT width = light->getWidth();
+            pCB1->loadData(&width, INT);
 
             const Color& color = light->getColor();
             pCB1->loadData(&color, FLOAT3);
-            pCB1->loadData(nullptr, FLOAT);
+
+            const UINT height = light->getHeight();
+            pCB1->loadData(&height, INT);
 
             const Matrix4 viewMatrix = light->getWorldToCameraMatrix();
             pCB1->loadData(&viewMatrix, FLOAT4X4);

@@ -19,9 +19,7 @@ typedef unsigned int UINT;
 // Specifies a 2D array of data for a mesh.
 struct Texture {
     ID3D11Texture2D* texture;
-
     ID3D11ShaderResourceView* view;
-    ID3D11SamplerState* sampler;
 
     UINT width;
     UINT height;

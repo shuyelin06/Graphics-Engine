@@ -252,7 +252,4 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
-  <ItemGroup>
-    <None Include="src\rendering\shaders\include\ToneMap.hlsli" />
-  </ItemGroup>
 </Project>

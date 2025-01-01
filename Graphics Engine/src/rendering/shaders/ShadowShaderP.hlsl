@@ -21,6 +21,8 @@ struct LightData
 
 Texture2D lightDepthMaps[10] : register(t1);
 
+Texture2DArray testing : register(t12);
+
 cbuffer CB1 : register(b1)
 {
     float3 view_world_position;

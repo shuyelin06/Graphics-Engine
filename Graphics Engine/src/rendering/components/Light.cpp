@@ -33,6 +33,9 @@ Light::Light(ID3D11Device* device, ShadowMapQuality quality) : Camera() {
     device->CreateTexture2D(&tex_desc, NULL, &shadow_map);
     assert(shadow_map != NULL);
 
+    shadowmap_width = quality;
+    shadowmap_height = quality;
+
     // Initialize a depth stencil view, to allow the texture to be used
     // as a depth buffer. This way, we can render the scene to automatically
     // store
@@ -113,6 +116,9 @@ ID3D11ShaderResourceView*& Light::getShaderView() {
 }
 
 ID3D11SamplerState*& Light::getSampler() { return sampler_state; }
+
+UINT Light::getWidth() { return shadowmap_width; }
+UINT Light::getHeight() { return shadowmap_height; }
 
 } // namespace Graphics
 } // namespace Engine
