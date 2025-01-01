@@ -22,6 +22,10 @@ class MovementHandler {
     // Target transform
     Transform* transform;
 
+    // Previous Mouse Position
+    int prev_x;
+    int prev_y;
+
   public:
     MovementHandler(Transform* transform);
     ~MovementHandler();

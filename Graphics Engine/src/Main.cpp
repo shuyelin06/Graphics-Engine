@@ -206,6 +206,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         }
     }
 
+    // Shutdown all systems
+    visual_system.shutdown();
+
     // Finish
     return 0;
 }
@@ -213,6 +216,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 // Defines the behavior of the window (appearance, user interaction, etc)
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
                             LPARAM lParam) {
+    // ImGui Input
+    extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(
+        HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+    if (ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam))
+        return true;
+
     switch (uMsg) {
     // Destroys the Application on any Force Quit or Escape
     case WM_DESTROY: {

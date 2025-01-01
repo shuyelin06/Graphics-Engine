@@ -13,8 +13,8 @@ MovementHandler::MovementHandler(Transform* _transform) {
     xRotation = Quaternion(Vector3(), 1.f);
     yRotation = Quaternion(Vector3(), 1.f);
 
-    center_x = 600;
-    center_y = 600;
+    prev_x = center_x = 600;
+    prev_y = center_y = 600;
 }
 MovementHandler::~MovementHandler() = default;
 
@@ -53,8 +53,8 @@ void MovementHandler::update() {
     POINT new_pos;
     GetCursorPos(&new_pos);
 
-    int x_delta = new_pos.x - center_x;
-    int y_delta = new_pos.y - center_y;
+    int x_delta = new_pos.x - prev_x;
+    int y_delta = new_pos.y - prev_y;
 
     // Convert to Angular Displacement
     // Roll = Rotation Around X (Up/Down)
@@ -66,8 +66,11 @@ void MovementHandler::update() {
 
     transform->setRotation(xRotation * yRotation);
 
+    prev_x = new_pos.x;
+    prev_y = new_pos.y;
+
     // Reset mouse to center of application
-    SetCursorPos(center_x, center_y);
+    // SetCursorPos(center_x, center_y);
 }
 } // namespace Input
 } // namespace Engine

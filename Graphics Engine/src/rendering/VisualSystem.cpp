@@ -113,6 +113,26 @@ void VisualSystem::initialize() {
     // Create my global light (the sun).
     // It will always be at index 0 of the lights vector.
     sun_light = createLight(QUALITY_4);
+
+    // Initialize IMGUI
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |=
+        ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+    io.ConfigFlags |=
+        ImGuiConfigFlags_NavEnableGamepad;            // Enable Gamepad Controls
+
+    ImGui_ImplWin32_Init(window);
+    ImGui_ImplDX11_Init(device, context);
+}
+
+// Shutdown:
+// Closes the visual system.
+void VisualSystem::shutdown() {
+    ImGui_ImplDX11_Shutdown();
+    ImGui_ImplWin32_Shutdown();
+    ImGui::DestroyContext();
 }
 
 // CreateLight:
@@ -159,6 +179,12 @@ void VisualSystem::render() {
 // Prepares the engine for rendering, by processing all render requests and
 // clearing the screen.
 void VisualSystem::renderPrepare() {
+    // Start the Dear ImGui frame
+    ImGui_ImplDX11_NewFrame();
+    ImGui_ImplWin32_NewFrame();
+    ImGui::NewFrame();
+    ImGui::ShowDemoWindow(); // Show demo window! :)
+
     // Clear the the screen color
     float color[4] = {RGB(158.f), RGB(218.f), RGB(255.f), 1.0f};
     context->ClearRenderTargetView(render_target_view, color);
@@ -510,6 +536,10 @@ void VisualSystem::performRenderPass() {
 }
 
 void VisualSystem::renderFinish() {
+    // Finish the ImGui Frame
+    ImGui::Render();
+    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
     // Present what we rendered to
     swap_chain->Present(1, 0);
 

@@ -16,6 +16,11 @@
 
 #include "datamodel/Terrain.h"
 
+// imgui Includes
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_win32.h"
+#include "imgui/imgui_impl_dx11.h"
+
 namespace Engine {
 namespace Graphics {
 
@@ -86,6 +91,8 @@ class VisualSystem {
 
     // Initialize Visual System
     void initialize();
+    // Shutdown Visual System
+    void shutdown();
 
     // Create objects in the visual system
     Light* createLight();
