@@ -98,7 +98,8 @@ void InputSystem::update() {
 // input format usable by the rest of the engine
 static char ConvertWin32Keycode(WPARAM wParam);
 
-void InputSystem::logWin32Input(UINT uMsg, WPARAM wParam) {
+bool InputSystem::handleWin32Input(HWND hwnd, UINT uMsg, WPARAM wParam,
+                                   LPARAM lParam) {
     // Attempt to find a suitable data format "INVALID"
     InputData data;
     data.input_type = INVALID;
@@ -127,8 +128,13 @@ void InputSystem::logWin32Input(UINT uMsg, WPARAM wParam) {
 
     // If a suitable input conversion was performed, add to
     // accumulated input data for later dispatch
-    if (data.input_type != INVALID)
+    if (data.input_type != INVALID) {
         inputData.push_back(data);
+        return true;
+    }
+    else 
+        return false;
+        
 }
 
 // Static helper which will convert a Win32 keycode into a

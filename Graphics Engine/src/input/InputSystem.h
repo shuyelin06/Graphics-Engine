@@ -34,9 +34,9 @@ class InputSystem {
     // against the callback chain.
     void update();
 
-    // Convert raw Win32 input into a format suitable
-    // for the input engine
-    void logWin32Input(UINT uMsg, WPARAM wParam);
+    // Handles raw Win32 input. If the input is parsed, returns true. Otherwise,
+    // returns false.
+    bool handleWin32Input(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 };
 } // namespace Input
 } // namespace Engine

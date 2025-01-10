@@ -216,36 +216,24 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 // Defines the behavior of the window (appearance, user interaction, etc)
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
                             LPARAM lParam) {
+    // Escape will always quit the application, just in case
+    if (uMsg == WM_DESTROY || 
+        (uMsg == WM_KEYDOWN && wParam == VK_ESCAPE)) {
+        ClipCursor(NULL);
+        PostQuitMessage(0);
+        return 0;
+    }
+
     // ImGui Input
     extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(
         HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
     if (ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam))
         return true;
 
-    switch (uMsg) {
-    // Destroys the Application on any Force Quit or Escape
-    case WM_DESTROY: {
-        ClipCursor(NULL);
-        PostQuitMessage(0);
-    }
-        return 0;
+    // Input System Input
+    if (input_system.handleWin32Input(hwnd, uMsg, wParam, lParam))
+        return true;
 
-    // Key Down
-    case WM_KEYDOWN: {
-        // Escape will always quit the application, just in case
-        if (wParam == VK_ESCAPE) {
-            ClipCursor(NULL);
-            PostQuitMessage(0);
-            return 0;
-        }
-        input_system.logWin32Input(uMsg, wParam);
-    } break;
-
-    // Key Up
-    case WM_KEYUP:
-        input_system.logWin32Input(uMsg, wParam);
-        break;
-    }
-
+    // Default Window Behavior
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
