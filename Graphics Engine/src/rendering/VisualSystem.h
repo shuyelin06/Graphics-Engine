@@ -16,10 +16,12 @@
 
 #include "datamodel/Terrain.h"
 
+#if defined(_DEBUG)
 // imgui Includes
 #include "imgui/imgui.h"
-#include "imgui/imgui_impl_win32.h"
 #include "imgui/imgui_impl_dx11.h"
+#include "imgui/imgui_impl_win32.h"
+#endif
 
 namespace Engine {
 namespace Graphics {
@@ -118,6 +120,26 @@ class VisualSystem {
 
     void renderDebugPoints(); // DEBUG
     void renderDebugLines();  // DEBUG
+
+#if defined(_DEBUG) // ImGui
+  private:
+    enum QueryType {
+        Disjoint = 0, 
+        FrameBegin = 1, 
+        FrameEnd = 2, 
+        QueryCount = 3
+    };
+
+    // Double buffered so we can query every frame
+    // without forcing synchronization
+    ID3D11Query* queries[2][QueryCount]; 
+    bool queryFlag; 
+
+    void imGuiInitialize();
+
+    void imGuiPrepare();
+    void imGuiFinish();
+#endif
 
   public:
     // --- Data / Resource Queries ---

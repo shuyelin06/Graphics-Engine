@@ -114,18 +114,8 @@ void VisualSystem::initialize() {
     // It will always be at index 0 of the lights vector.
     sun_light = createLight(QUALITY_4);
 
-#if !defined(NDEBUG)
-    // Initialize IMGUI
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |=
-        ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-    io.ConfigFlags |=
-        ImGuiConfigFlags_NavEnableGamepad;            // Enable Gamepad Controls
-
-    ImGui_ImplWin32_Init(window);
-    ImGui_ImplDX11_Init(device, context);
+#if defined(_DEBUG)
+    imGuiInitialize();
 #endif
 }
 
@@ -162,6 +152,19 @@ void VisualSystem::drawTerrain(const TerrainRenderRequest& request) {
 // Render:
 // Renders the entire scene to the screen.
 void VisualSystem::render() {
+#if defined(_DEBUG)
+    // Start the Dear ImGui frame
+    ImGui_ImplDX11_NewFrame();
+    ImGui_ImplWin32_NewFrame();
+    ImGui::NewFrame();
+
+    // Begin GPU Queries
+    context->Begin(queries[queryFlag][Disjoint]);
+    context->End(queries[queryFlag][FrameBegin]);
+
+    // ImGui::ShowDemoWindow(); // Show demo window! :)
+#endif
+
     renderPrepare();
 
     performShadowPass();
@@ -176,6 +179,30 @@ void VisualSystem::render() {
     VisualDebug::Clear();
 #endif
 
+#if defined(_DEBUG)
+    context->End(queries[queryFlag][FrameEnd]);
+    context->End(queries[queryFlag][Disjoint]);
+
+    // Process my Queries
+    queryFlag = !queryFlag;
+
+    D3D11_QUERY_DATA_TIMESTAMP_DISJOINT tsDisjoint;
+    context->GetData(queries[queryFlag][Disjoint], &tsDisjoint, sizeof(tsDisjoint), 0);
+
+    UINT64 timestamps[QueryCount];
+    for (int i = 1; i < QueryCount; i++) {
+        context->GetData(queries[queryFlag][i], &timestamps[i], sizeof(timestamps[i]), 0);        
+    }
+
+    float frameTime = float(timestamps[FrameEnd] - timestamps[FrameBegin]) / float(tsDisjoint.Frequency) * 1000.0f;
+
+    ImGui::Text("GPU Frametime: %f", frameTime);
+
+    // Finish the ImGui Frame
+    ImGui::Render();
+    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+#endif
+
     renderFinish();
 }
 
@@ -183,14 +210,6 @@ void VisualSystem::render() {
 // Prepares the engine for rendering, by processing all render requests and
 // clearing the screen.
 void VisualSystem::renderPrepare() {
-#if !defined(NDEBUG)
-    // Start the Dear ImGui frame
-    ImGui_ImplDX11_NewFrame();
-    ImGui_ImplWin32_NewFrame();
-    ImGui::NewFrame();
-    ImGui::ShowDemoWindow(); // Show demo window! :)
-#endif
-
     // Clear the the screen color
     float color[4] = {RGB(158.f), RGB(218.f), RGB(255.f), 1.0f};
     context->ClearRenderTargetView(render_target_view, color);
@@ -346,7 +365,7 @@ void VisualSystem::performTerrainPass() {
         for (int i = 0; i < lights.size(); i++) {
             Light* light = lights[i];
 
-           const Vector3& position = light->getTransform()->getPosition();
+            const Vector3& position = light->getTransform()->getPosition();
             pCB1->loadData(&position, FLOAT3);
 
             const UINT width = light->getWidth();
@@ -402,7 +421,8 @@ void VisualSystem::performTerrainPass() {
         UINT buffer_stride = sizeof(float) * 3;
         UINT buffer_offset = 0;
 
-        context->IASetVertexBuffers(POSITION, 1, &mesh->vertex_streams[POSITION],
+        context->IASetVertexBuffers(POSITION, 1,
+                                    &mesh->vertex_streams[POSITION],
                                     &buffer_stride, &buffer_offset);
         context->IASetVertexBuffers(NORMAL, 1, &mesh->vertex_streams[NORMAL],
                                     &buffer_stride, &buffer_offset);
@@ -542,12 +562,6 @@ void VisualSystem::performRenderPass() {
 }
 
 void VisualSystem::renderFinish() {
-#if !defined(NDEBUG)
-    // Finish the ImGui Frame
-    ImGui::Render();
-    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-#endif
-
     // Present what we rendered to
     swap_chain->Present(1, 0);
 
@@ -633,6 +647,40 @@ void VisualSystem::renderDebugLines() {
     }
 }
 
+#if defined(_DEBUG)
+
+void VisualSystem::imGuiInitialize() {
+    // Initialize ImGui
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |=
+        ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+    io.ConfigFlags |=
+        ImGuiConfigFlags_NavEnableGamepad; // Enable Gamepad Controls
+
+    ImGui_ImplWin32_Init(window);
+    ImGui_ImplDX11_Init(device, context);
+
+    // Create D3D Queries for GPU Timing
+    D3D11_QUERY_DESC query_desc = {};
+
+    query_desc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
+    device->CreateQuery(&query_desc, &queries[0][Disjoint]);
+    device->CreateQuery(&query_desc, &queries[1][Disjoint]);
+
+    query_desc.Query = D3D11_QUERY_TIMESTAMP;
+
+    for (int i = 1; i < QueryCount; i++) 
+    {
+        device->CreateQuery(&query_desc, &queries[0][i]);
+        device->CreateQuery(&query_desc, &queries[1][i]);
+    }
+
+    queryFlag = 0;
+}
+
+#endif
 // GetViewport:
 // Returns the current viewport
 D3D11_VIEWPORT VisualSystem::getViewport() const {
