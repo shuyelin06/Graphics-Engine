@@ -21,6 +21,9 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_dx11.h"
 #include "imgui/imgui_impl_win32.h"
+
+#include "util/GPUTimer.h"
+#include "util/CPUTimer.h"
 #endif
 
 namespace Engine {
@@ -123,28 +126,23 @@ class VisualSystem {
 
 #if defined(_DEBUG) // ImGui
   private:
-    enum QueryType {
-        Disjoint = 0, 
-        FrameBegin = 1, 
-        FrameEnd = 2, 
-        QueryCount = 3
-    };
-
-    // Double buffered so we can query every frame
-    // without forcing synchronization
-    ID3D11Query* queries[2][QueryCount]; 
-    bool queryFlag; 
+    // Frametime Tracking (CPU + GPU)
+    GPUTimer gpu_timer;
+    CPUTimer cpu_timer;
 
     void imGuiInitialize();
 
     void imGuiPrepare();
     void imGuiFinish();
+
+    void imGuiShutdown();
 #endif
 
   public:
     // --- Data / Resource Queries ---
     // Get current viewport
-    D3D11_VIEWPORT getViewport() const;
+    D3D11_VIEWPORT
+    getViewport() const;
 
     // Create Texture
     ID3D11Texture2D* CreateTexture2D(D3D11_BIND_FLAG bind_flag, int width,

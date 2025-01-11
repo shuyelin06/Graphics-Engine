@@ -205,6 +205,8 @@
     <ClCompile Include="src\rendering\RenderRequest.cpp" />
     <ClCompile Include="src\rendering\Shader.cpp" />
     <ClCompile Include="src\rendering\ShaderManager.cpp" />
+    <ClCompile Include="src\rendering\util\CPUTimer.cpp" />
+    <ClCompile Include="src\rendering\util\GPUTimer.cpp" />
     <ClCompile Include="src\simulation\PhysicsSystem.cpp" />
     <ClCompile Include="src\rendering\parsers\PLYParser.cpp" />
     <ClCompile Include="src\rendering\VisualDebug.cpp" />
@@ -257,6 +259,8 @@
     <ClInclude Include="src\rendering\RenderRequest.h" />
     <ClInclude Include="src\rendering\Shader.h" />
     <ClInclude Include="src\rendering\ShaderManager.h" />
+    <ClInclude Include="src\rendering\util\CPUTimer.h" />
+    <ClInclude Include="src\rendering\util\GPUTimer.h" />
     <ClInclude Include="src\simulation\PhysicsSystem.h" />
     <ClInclude Include="src\rendering\Direct3D11.h" />
     <ClInclude Include="src\rendering\VisualDebug.h" />

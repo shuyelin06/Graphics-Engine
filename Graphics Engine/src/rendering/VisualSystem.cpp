@@ -122,10 +122,8 @@ void VisualSystem::initialize() {
 // Shutdown:
 // Closes the visual system.
 void VisualSystem::shutdown() {
-#if !defined(NDEBUG)
-    ImGui_ImplDX11_Shutdown();
-    ImGui_ImplWin32_Shutdown();
-    ImGui::DestroyContext();
+#if defined(_DEBUG)
+    imGuiShutdown();
 #endif
 }
 
@@ -153,16 +151,9 @@ void VisualSystem::drawTerrain(const TerrainRenderRequest& request) {
 // Renders the entire scene to the screen.
 void VisualSystem::render() {
 #if defined(_DEBUG)
-    // Start the Dear ImGui frame
-    ImGui_ImplDX11_NewFrame();
-    ImGui_ImplWin32_NewFrame();
-    ImGui::NewFrame();
-
-    // Begin GPU Queries
-    context->Begin(queries[queryFlag][Disjoint]);
-    context->End(queries[queryFlag][FrameBegin]);
-
-    // ImGui::ShowDemoWindow(); // Show demo window! :)
+    imGuiPrepare();
+    gpu_timer.beginTimer("GPU Frametime");
+    cpu_timer.beginTimer("CPU Frametime");
 #endif
 
     renderPrepare();
@@ -180,27 +171,9 @@ void VisualSystem::render() {
 #endif
 
 #if defined(_DEBUG)
-    context->End(queries[queryFlag][FrameEnd]);
-    context->End(queries[queryFlag][Disjoint]);
-
-    // Process my Queries
-    queryFlag = !queryFlag;
-
-    D3D11_QUERY_DATA_TIMESTAMP_DISJOINT tsDisjoint;
-    context->GetData(queries[queryFlag][Disjoint], &tsDisjoint, sizeof(tsDisjoint), 0);
-
-    UINT64 timestamps[QueryCount];
-    for (int i = 1; i < QueryCount; i++) {
-        context->GetData(queries[queryFlag][i], &timestamps[i], sizeof(timestamps[i]), 0);        
-    }
-
-    float frameTime = float(timestamps[FrameEnd] - timestamps[FrameBegin]) / float(tsDisjoint.Frequency) * 1000.0f;
-
-    ImGui::Text("GPU Frametime: %f", frameTime);
-
-    // Finish the ImGui Frame
-    ImGui::Render();
-    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+    gpu_timer.endTimer("GPU Frametime");
+    cpu_timer.endTimer("CPU Frametime");
+    imGuiFinish();
 #endif
 
     renderFinish();
@@ -210,6 +183,10 @@ void VisualSystem::render() {
 // Prepares the engine for rendering, by processing all render requests and
 // clearing the screen.
 void VisualSystem::renderPrepare() {
+#if defined(_DEBUG)
+    cpu_timer.beginTimer("Render Prepare");
+#endif
+
     // Clear the the screen color
     float color[4] = {RGB(158.f), RGB(218.f), RGB(255.f), 1.0f};
     context->ClearRenderTargetView(render_target_view, color);
@@ -273,12 +250,21 @@ void VisualSystem::renderPrepare() {
 
     Vector3 position = sun_light->getTransform()->backward() * 55; // 75 OG
     sun_light->getTransform()->setPosition(position.x, position.y, position.z);
+
+#if defined(_DEBUG)
+    cpu_timer.endTimer("Render Prepare");
+#endif
 }
 
 // PerformShadowPass:
 // Render the scene from each light's point of view, to populate
 // its shadow map.
 void VisualSystem::performShadowPass() {
+#if defined(_DEBUG)
+    gpu_timer.beginTimer("Shadow Pass");
+    cpu_timer.beginTimer("Shadow Pass");
+#endif
+
     VertexShader* vShader = shaderManager->getVertexShader(VSShadowMap);
     CBHandle* vCB0 = vShader->getCBHandle(CB0);
     CBHandle* vCB1 = vShader->getCBHandle(CB1);
@@ -327,9 +313,19 @@ void VisualSystem::performShadowPass() {
             context->DrawIndexed(num_indices, 0, 0);
         }
     }
+
+#if defined(_DEBUG)
+    gpu_timer.endTimer("Shadow Pass");
+    cpu_timer.endTimer("Shadow Pass");
+#endif
 }
 
 void VisualSystem::performTerrainPass() {
+#if defined(_DEBUG)
+    gpu_timer.beginTimer("Terrain Pass");
+    cpu_timer.beginTimer("Terrain Pass");
+#endif
+
     VertexShader* vShader = shaderManager->getVertexShader(VSTerrain);
     CBHandle* vCB0 = vShader->getCBHandle(CB0);
     CBHandle* vCB1 = vShader->getCBHandle(CB1);
@@ -435,9 +431,19 @@ void VisualSystem::performTerrainPass() {
         UINT numIndices = mesh->triangle_count * 3;
         context->DrawIndexed(numIndices, 0, 0);
     }
+
+#if defined(_DEBUG)
+    gpu_timer.endTimer("Terrain Pass");
+    cpu_timer.endTimer("Terrain Pass");
+#endif
 }
 
 void VisualSystem::performRenderPass() {
+#if defined(_DEBUG)
+    gpu_timer.beginTimer("Render Pass");
+    cpu_timer.beginTimer("Render Pass");
+#endif
+
     VertexShader* vShader = shaderManager->getVertexShader(VSShadow);
     CBHandle* vCB1 = vShader->getCBHandle(CB1);
     CBHandle* vCB2 = vShader->getCBHandle(CB2);
@@ -559,6 +565,11 @@ void VisualSystem::performRenderPass() {
             context->DrawIndexed(numIndices, 0, 0);
         }
     }
+
+#if defined(_DEBUG)
+    gpu_timer.endTimer("Render Pass");
+    cpu_timer.endTimer("Render Pass");
+#endif
 }
 
 void VisualSystem::renderFinish() {
@@ -648,7 +659,8 @@ void VisualSystem::renderDebugLines() {
 }
 
 #if defined(_DEBUG)
-
+// ImGui Initialize:
+// Initializes the ImGui menu and associated data.
 void VisualSystem::imGuiInitialize() {
     // Initialize ImGui
     IMGUI_CHECKVERSION();
@@ -662,22 +674,62 @@ void VisualSystem::imGuiInitialize() {
     ImGui_ImplWin32_Init(window);
     ImGui_ImplDX11_Init(device, context);
 
-    // Create D3D Queries for GPU Timing
-    D3D11_QUERY_DESC query_desc = {};
+    // Create GPU + CPU Timers
+    gpu_timer.initialize(device, context);
 
-    query_desc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
-    device->CreateQuery(&query_desc, &queries[0][Disjoint]);
-    device->CreateQuery(&query_desc, &queries[1][Disjoint]);
+    gpu_timer.createTimer("GPU Frametime");
+    gpu_timer.createTimer("Shadow Pass");
+    gpu_timer.createTimer("Terrain Pass");
+    gpu_timer.createTimer("Render Pass");
 
-    query_desc.Query = D3D11_QUERY_TIMESTAMP;
+    cpu_timer.initialize();
 
-    for (int i = 1; i < QueryCount; i++) 
-    {
-        device->CreateQuery(&query_desc, &queries[0][i]);
-        device->CreateQuery(&query_desc, &queries[1][i]);
+    cpu_timer.createTimer("CPU Frametime");
+    cpu_timer.createTimer("Render Prepare");
+    cpu_timer.createTimer("Shadow Pass");
+    cpu_timer.createTimer("Terrain Pass");
+    cpu_timer.createTimer("Render Pass");
+}
+
+// ImGuiPrepare:
+// Creates a new frame for the ImGui system and begin tracking GPU time
+// for the current frame
+void VisualSystem::imGuiPrepare() {
+    // Start the Dear ImGui frame
+    ImGui_ImplDX11_NewFrame();
+    ImGui_ImplWin32_NewFrame();
+    ImGui::NewFrame();
+
+    // Begin timestamping
+    gpu_timer.beginFrame();
+
+    // ImGui::ShowDemoWindow(); // Show demo window! :)
+}
+
+// ImGuiFinish:
+// Finish and present the ImGui window
+void VisualSystem::imGuiFinish() {
+    // Finish and Display GPU + CPU Times
+    gpu_timer.endFrame();
+
+    if (ImGui::CollapsingHeader("Info")) {
+        ImGui::SeparatorText("CPU Times:");
+        cpu_timer.displayTimes();
+        ImGui::SeparatorText("GPU Times:");
+        gpu_timer.displayTimes();
     }
 
-    queryFlag = 0;
+    // Finish the ImGui Frame
+    ImGui::Render();
+    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+}
+
+// ImGuiShutDown:
+// Shut down the ImGui system
+void VisualSystem::imGuiShutdown() {
+    ImGui_ImplDX11_Shutdown();
+    ImGui_ImplWin32_Shutdown();
+    ImGui::DestroyContext();
 }
 
 #endif
