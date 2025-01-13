@@ -23,8 +23,7 @@ class MovementHandler {
     Transform* transform;
 
     // Previous Mouse Position
-    int prev_x;
-    int prev_y;
+    float prev_x, prev_y;
 
   public:
     MovementHandler(Transform* transform);

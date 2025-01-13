@@ -1,9 +1,11 @@
 #pragma once
 
 #include <Windows.h>
+#include <list>
 #include <vector>
 
-#include "InputData.h"
+#include "EventHandler.h"
+#include "InputState.h"
 
 namespace Engine {
 namespace Input {
@@ -13,22 +15,17 @@ namespace Input {
 // user input
 class InputSystem {
   private:
-    // Accumulated input data that has yet to
-    // be processed
-    std::vector<InputData> inputData;
+    // Event callback chains
+    std::vector<EventHandle> callback_chains[EventCount];
 
-    // Function callback chain
-    std::vector<bool (*)(InputData)> callbackChain;
-
-    // Screen center x and y
-    int center_x;
-    int center_y;
+    // Window X,Y (Pixel) Screen Dimensions
+    int window_width, window_height;
 
   public:
     InputSystem();
 
     // Initialize the input system
-    void initialize();
+    void initialize(HWND hwnd);
 
     // Dispatch accumulated input data and evaluate it
     // against the callback chain.
@@ -36,7 +33,15 @@ class InputSystem {
 
     // Handles raw Win32 input. If the input is parsed, returns true. Otherwise,
     // returns false.
-    bool handleWin32Input(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+    bool dispatchWin32Input(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+  private:
+    bool dispatchEvent(InputEvent event, const EventData& data);
+
+#if defined(_DEBUG)
+  private:
+    void imGuiDisplay();
+#endif
 };
 } // namespace Input
 } // namespace Engine

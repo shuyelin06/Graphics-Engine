@@ -1,20 +1,20 @@
 #include "MovementHandler.h"
 
+#include "input/InputState.h"
 #include "input/InputSystem.h"
-#include "input/callbacks/InputPoller.h"
 
 namespace Engine {
 namespace Input {
 MovementHandler::MovementHandler(Transform* _transform) {
     transform = _transform;
 
-    sensitivity = 1;
+    sensitivity = 5.0f;
 
     xRotation = Quaternion(Vector3(), 1.f);
     yRotation = Quaternion(Vector3(), 1.f);
 
-    prev_x = center_x = 600;
-    prev_y = center_y = 600;
+    prev_x = center_x = 0;
+    prev_y = center_y = 0;
 }
 MovementHandler::~MovementHandler() = default;
 
@@ -25,17 +25,17 @@ void MovementHandler::update() {
     // Poll the input system for the status of the WASDQE keys.
     // Use this to form a movement vector indicating the direction
     // to move in.
-    if (InputPoller::IsSymbolActive('w'))
+    if (InputState::IsSymbolActive(KEY_W))
         movementVector += transform->forward();
-    if (InputPoller::IsSymbolActive('s'))
+    if (InputState::IsSymbolActive(KEY_S))
         movementVector += transform->backward();
-    if (InputPoller::IsSymbolActive('a'))
+    if (InputState::IsSymbolActive(KEY_A))
         movementVector += transform->left();
-    if (InputPoller::IsSymbolActive('d'))
+    if (InputState::IsSymbolActive(KEY_D))
         movementVector += transform->right();
-    if (InputPoller::IsSymbolActive('q'))
+    if (InputState::IsSymbolActive(KEY_Q))
         movementVector += transform->down();
-    if (InputPoller::IsSymbolActive('e'))
+    if (InputState::IsSymbolActive(KEY_E))
         movementVector += transform->up();
 
     // If any movement input is active, offset the object
@@ -50,24 +50,26 @@ void MovementHandler::update() {
     }
 
     // Then, handle camera rotation movement.
-    POINT new_pos;
-    GetCursorPos(&new_pos);
+    const float new_pos_x = InputState::DeviceXCoordinate();
+    const float new_pos_y = InputState::DeviceYCoordinate();
 
-    int x_delta = new_pos.x - prev_x;
-    int y_delta = new_pos.y - prev_y;
+    if (InputState::IsSymbolActive(DEVICE_ALT_INTERACT)) {
+        const float x_delta = new_pos_x - prev_x;
+        const float y_delta = prev_y - new_pos_y;
 
-    // Convert to Angular Displacement
-    // Roll = Rotation Around X (Up/Down)
-    // Pitch = Rotation Around Y (Left/Right)
-    xRotation *=
-        Quaternion::RotationAroundAxis(Vector3::PositiveY(), x_delta / 100.f);
-    yRotation *=
-        Quaternion::RotationAroundAxis(Vector3::PositiveX(), y_delta / 100.f);
+        // Convert to Angular Displacement
+        // Roll = Rotation Around X (Up/Down)
+        // Pitch = Rotation Around Y (Left/Right)
+        xRotation *= Quaternion::RotationAroundAxis(Vector3::PositiveY(),
+                                                    x_delta * sensitivity);
+        yRotation *= Quaternion::RotationAroundAxis(Vector3::PositiveX(),
+                                                    y_delta * sensitivity);
 
-    transform->setRotation(xRotation * yRotation);
+        transform->setRotation(xRotation * yRotation);
+    }
 
-    prev_x = new_pos.x;
-    prev_y = new_pos.y;
+    prev_x = new_pos_x;
+    prev_y = new_pos_y;
 
     // Reset mouse to center of application
     // SetCursorPos(center_x, center_y);

@@ -116,6 +116,7 @@ void VisualSystem::initialize() {
 
 #if defined(_DEBUG)
     imGuiInitialize();
+    imGuiPrepare(); // Pre-Prepare a Frame
 #endif
 }
 
@@ -151,7 +152,6 @@ void VisualSystem::drawTerrain(const TerrainRenderRequest& request) {
 // Renders the entire scene to the screen.
 void VisualSystem::render() {
 #if defined(_DEBUG)
-    imGuiPrepare();
     gpu_timer.beginTimer("GPU Frametime");
     cpu_timer.beginTimer("CPU Frametime");
 #endif
@@ -177,6 +177,11 @@ void VisualSystem::render() {
 #endif
 
     renderFinish();
+
+#if defined(_DEBUG)
+    // Prepare for the next frame
+    imGuiPrepare();
+#endif
 }
 
 // RenderPrepare:

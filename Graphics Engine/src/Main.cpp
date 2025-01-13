@@ -46,10 +46,6 @@ using namespace Engine::Datamodel;
 using namespace Engine::Input;
 using namespace Engine::Graphics;
 
-// Macro for creating new components
-#define NEW_COMPONENT(System, ComponentType)                                   \
-    System.ComponentHandler<ComponentType>::createComponent()
-
 // Handles windows messages, including input.
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
@@ -102,7 +98,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     // Create Input System
     input_system = InputSystem();
-    input_system.initialize();
+    input_system.initialize(hwnd);
 
     // Create Visual System
     VisualSystem visual_system = VisualSystem(hwnd);
@@ -231,7 +227,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
         return true;
 
     // Input System Input
-    if (input_system.handleWin32Input(hwnd, uMsg, wParam, lParam))
+    if (input_system.dispatchWin32Input(hwnd, uMsg, wParam, lParam))
         return true;
 
     // Default Window Behavior

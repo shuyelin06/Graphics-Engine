@@ -172,8 +172,8 @@
     <ClCompile Include="src\input\InputFrame.cpp" />
     <ClCompile Include="src\math\PerlinNoise.cpp" />
     <ClCompile Include="src\math\Transform.cpp" />
-    <ClCompile Include="src\input\callbacks\InputPoller.cpp" />
-    <ClCompile Include="src\input\InputCallback.cpp" />
+    <ClCompile Include="src\input\InputState.cpp" />
+    <ClCompile Include="src\input\EventHandler.cpp" />
     <ClCompile Include="src\math\BoundingBox.cpp" />
     <ClCompile Include="src\math\Color.cpp" />
     <ClCompile Include="src\math\Compute.cpp" />
@@ -222,7 +222,9 @@
     <ClInclude Include="src\datamodel\Terrain.h" />
     <ClInclude Include="src\datamodel\TerrainConfig.h" />
     <ClInclude Include="src\input\InputFrame.h" />
+    <ClInclude Include="src\input\SymbolData.h" />
     <ClInclude Include="src\rendering\AssetIDs.h" />
+    <ClInclude Include="src\rendering\ImGui.h" />
     <ClInclude Include="src\rendering\imgui\imconfig.h" />
     <ClInclude Include="src\rendering\imgui\imgui.h" />
     <ClInclude Include="src\rendering\imgui\imgui_impl_dx11.h" />
@@ -235,9 +237,9 @@
     <ClInclude Include="src\input\components\MovementHandler.h" />
     <ClInclude Include="src\math\PerlinNoise.h" />
     <ClInclude Include="src\math\Transform.h" />
-    <ClInclude Include="src\input\callbacks\InputPoller.h" />
-    <ClInclude Include="src\input\InputCallback.h" />
-    <ClInclude Include="src\input\InputData.h" />
+    <ClInclude Include="src\input\InputState.h" />
+    <ClInclude Include="src\input\EventHandler.h" />
+    <ClInclude Include="src\input\EventData.h" />
     <ClInclude Include="src\math\BoundingBox.h" />
     <ClInclude Include="src\math\Color.h" />
     <ClInclude Include="src\math\Compute.h" />
