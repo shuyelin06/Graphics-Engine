@@ -13,6 +13,7 @@
 #include "datamodel/Terrain.h"
 #include "math/Vector2.h"
 #include "math/Vector3.h"
+#include "rendering/util/PNGFile.h"
 #include "utility/FileReader.h"
 
 #include "math/PerlinNoise.h"
@@ -39,9 +40,13 @@ AssetManager::~AssetManager() = default;
 // Initialize:
 // Loads assets into the asset manager.
 void AssetManager::initialize() {
+    // Prepare my builders
+    TextureBuilder::device = device;
+    MeshBuilder::device = device;
+
     // Create my textures
     textures.resize(TextureCount);
-    TextureBuilder tex_builder = TextureBuilder(device, 10, 10);
+    TextureBuilder tex_builder = TextureBuilder(10, 10);
 
     textures[Test] = tex_builder.generate();
 
@@ -58,7 +63,7 @@ void AssetManager::initialize() {
     //     }
     // }
     textures[Perlin] = tex_builder.generate();
-    // WriteTextureToPNG(textures[Perlin]->texture, "perlin.png");
+    // WriteTextureToPNG(textures[Perlin]->texture, "data/", "perlin.png");
 
     LoadTextureFromPNG(tex_builder, "data/", "test.png");
     textures[Test2] = tex_builder.generate();
@@ -75,11 +80,11 @@ void AssetManager::initialize() {
     // Create my assets
     assets.resize(AssetCount);
 
-    MeshBuilder mesh_builder = MeshBuilder(device);
+    MeshBuilder mesh_builder = MeshBuilder();
 
     assets[Cube] = LoadCube(mesh_builder);
     // Fox by Jake Blakeley [CC-BY] via Poly Pizza
-    assets[Fox] = LoadAssetFromOBJ(mesh_builder, "data/", "model.obj", "Model");
+    assets[Fox] = LoadAssetFromOBJ(mesh_builder, "data/", "model.obj");
 }
 
 // GetAsset:
@@ -103,15 +108,31 @@ ID3D11SamplerState* AssetManager::getSampler(SamplerSlot sampler) {
 // Generates terrain given data.
 Mesh* AssetManager::getTerrainMesh(int x, int z, TerrainData data) {
     if (terrain_meshes[x][z] == nullptr) {
-        MeshBuilder builder = MeshBuilder(device);
+        MeshBuilder builder = MeshBuilder();
         terrain_meshes[x][z] = GenerateTerrainMesh(builder, data);
     }
 
     return terrain_meshes[x][z];
 }
 
-// LoadMeshFromOBJ
-// Implements a simple OBJ file parser to load an asset.
+// LoadTextureFromPNG:
+// Uses the PNGFile interface to load a texture from a PNG file
+bool AssetManager::LoadTextureFromPNG(TextureBuilder& builder, std::string path,
+                                      std::string file) {
+    PNGFile png_file = PNGFile(path + file);
+    return png_file.readTextureFromFile(builder);
+}
+
+// WriteTextureToPNG:
+// Uses the PNGFile interface to write a texture to a PNG file
+bool AssetManager::WriteTextureToPNG(ID3D11Texture2D* texture, std::string path,
+                                     std::string file) {
+    PNGFile png_file = PNGFile(path + file);
+    return png_file.writeTextureToFile(device, context, texture);
+}
+
+// LoadMeshFromOBJ:
+// Uses a simple OBJ file parser to load an asset.
 // Meshes can only have one material; so an obj file with multiple materials
 // will generate multiple meshes.
 struct OBJData {
@@ -136,8 +157,7 @@ static void ParseMaterials(std::string path, std::string material_file,
                            OBJData& data);
 
 Asset* AssetManager::LoadAssetFromOBJ(MeshBuilder& builder, std::string path,
-                                      std::string objFile,
-                                      std::string assetName) {
+                                      std::string objFile) {
     // Open target file with file reader
     TextFileReader fileReader = TextFileReader(path + objFile);
 

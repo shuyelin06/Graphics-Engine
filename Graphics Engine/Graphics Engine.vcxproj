@@ -189,7 +189,7 @@
     <ClCompile Include="src\math\Matrix4.cpp" />
     <ClCompile Include="src\math\Vector4.cpp" />
     <ClCompile Include="src\rendering\core\Asset.cpp" />
-    <ClCompile Include="src\rendering\core\AssetBuilder.cpp" />
+    <ClCompile Include="src\rendering\core\MeshBuilder.cpp" />
     <ClCompile Include="src\rendering\core\Camera.cpp" />
     <ClCompile Include="src\rendering\core\Light.cpp" />
     <ClCompile Include="src\rendering\AssetManager.cpp" />
@@ -203,7 +203,8 @@
     <ClCompile Include="src\rendering\imgui\imgui_tables.cpp" />
     <ClCompile Include="src\rendering\imgui\imgui_widgets.cpp" />
     <ClCompile Include="src\rendering\MarchingCubes.cpp" />
-    <ClCompile Include="src\rendering\parsers\PNGParser.cpp" />
+    <ClCompile Include="src\rendering\util\OBJFile.cpp" />
+    <ClCompile Include="src\rendering\util\PNGFile.cpp" />
     <ClCompile Include="src\rendering\RenderRequest.cpp" />
     <ClCompile Include="src\rendering\Shader.cpp" />
     <ClCompile Include="src\rendering\ShaderManager.cpp" />
@@ -211,7 +212,7 @@
     <ClCompile Include="src\rendering\util\GPUTimer.cpp" />
     <ClCompile Include="src\rendering\util\TextureAtlas.cpp" />
     <ClCompile Include="src\simulation\PhysicsSystem.cpp" />
-    <ClCompile Include="src\rendering\parsers\PLYParser.cpp" />
+    <ClCompile Include="src\rendering\util\_DEP_PLYParser.cpp" />
     <ClCompile Include="src\rendering\VisualDebug.cpp" />
     <ClCompile Include="src\rendering\VisualSystem.cpp" />
     <ClCompile Include="src\utility\FileReader.cpp" />
@@ -259,7 +260,7 @@
     <ClInclude Include="src\math\Matrix4.h" />
     <ClInclude Include="src\math\Vector4.h" />
     <ClInclude Include="src\rendering\core\Asset.h" />
-    <ClInclude Include="src\rendering\core\AssetBuilder.h" />
+    <ClInclude Include="src\rendering\core\MeshBuilder.h" />
     <ClInclude Include="src\rendering\core\Camera.h" />
     <ClInclude Include="src\rendering\core\Light.h" />
     <ClInclude Include="src\rendering\AssetManager.h" />
@@ -268,6 +269,8 @@
     <ClInclude Include="src\rendering\ShaderManager.h" />
     <ClInclude Include="src\rendering\util\CPUTimer.h" />
     <ClInclude Include="src\rendering\util\GPUTimer.h" />
+    <ClInclude Include="src\rendering\util\OBJFile.h" />
+    <ClInclude Include="src\rendering\util\PNGFile.h" />
     <ClInclude Include="src\rendering\util\TextureAtlas.h" />
     <ClInclude Include="src\simulation\PhysicsSystem.h" />
     <ClInclude Include="src\rendering\Direct3D11.h" />

@@ -2,6 +2,8 @@
 
 #include <assert.h>
 
+#include "rendering/core/TextureBuilder.h"
+
 namespace Engine {
 namespace Graphics {
 TextureAtlas::TextureAtlas(UINT _width, UINT _height) : textures() {
@@ -19,7 +21,6 @@ TextureAtlas::~TextureAtlas() = default;
 // Generates the GPU texture resource
 void TextureAtlas::initialize(ID3D11Device* device, DXGI_FORMAT format,
                               UINT bind_flags) {
-    
     D3D11_TEXTURE2D_DESC tex_desc = {};
     tex_desc.Width = width;
     tex_desc.Height = height;

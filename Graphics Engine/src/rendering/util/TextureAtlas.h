@@ -2,8 +2,9 @@
 
 #include <vector>
 
-#include "math/Vector2.h"
 #include "rendering/Direct3D11.h"
+#include "rendering/core/Texture.h"
+#include "math/Vector2.h"
 
 namespace Engine
 {

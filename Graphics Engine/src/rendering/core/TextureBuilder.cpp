@@ -5,10 +5,10 @@
 namespace Engine {
 namespace Graphics {
 
-TextureBuilder::TextureBuilder(ID3D11Device* _device, UINT _width,
-                               UINT _height) {
-    device = _device;
+ID3D11Device* TextureBuilder::device = nullptr;
 
+TextureBuilder::TextureBuilder(UINT _width,
+                               UINT _height) {
     pixel_width = _width;
     pixel_height = _height;
 

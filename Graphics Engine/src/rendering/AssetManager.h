@@ -5,12 +5,13 @@
 
 #include "Direct3D11.h"
 
-#include "utility/IndexMap.h"
 #include "datamodel/SceneGraph.h"
+#include "utility/IndexMap.h"
 
 #include "rendering/AssetIDs.h"
 #include "rendering/core/Asset.h"
-#include "rendering/core/AssetBuilder.h"
+#include "rendering/core/MeshBuilder.h"
+#include "rendering/core/TextureBuilder.h"
 
 namespace Engine {
 namespace Graphics {
@@ -19,7 +20,13 @@ using namespace Datamodel;
 
 // enum AssetSlot from AssetIDs.h
 
-enum TextureSlot { Test = 0, Test2 = 1, Perlin = 2, TerrainGrass = 3, TextureCount };
+enum TextureSlot {
+    Test = 0,
+    Test2 = 1,
+    Perlin = 2,
+    TerrainGrass = 3,
+    TextureCount
+};
 enum SamplerSlot { ShadowMap = 0, MeshTexture = 1, SamplerCount };
 
 // AssetManager Class:
@@ -63,17 +70,16 @@ class AssetManager {
 
     // Load assets from files.
     Asset* LoadAssetFromOBJ(MeshBuilder& builder, std::string path,
-                            std::string objFile, std::string assetName);
+                            std::string objFile);
 
     bool LoadTextureFromPNG(TextureBuilder& builder, std::string path,
-                            std::string pngFile);
+                            std::string png_file);
+    bool WriteTextureToPNG(ID3D11Texture2D* texture, std::string path,
+                           std::string file);
 
     // Load Samplers
     ID3D11SamplerState* LoadShadowMapSampler();
     ID3D11SamplerState* LoadMeshTextureSampler();
-
-    // Write assets to files
-    bool WriteTextureToPNG(ID3D11Texture2D* texture, std::string file_name);
 };
 
 } // namespace Graphics

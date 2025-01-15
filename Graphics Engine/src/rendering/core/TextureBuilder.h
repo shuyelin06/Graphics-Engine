@@ -18,16 +18,19 @@ struct TextureColor {
 
 class TextureBuilder {
   private:
-    // Device interface for creating GPU resources
-    ID3D11Device* device;
+    // Device interface for creating GPU resources.
+    // Set by AssetManager
+    friend class AssetManager;
+    static ID3D11Device* device;
 
+    // Data for the texture
     unsigned int pixel_width;
     unsigned int pixel_height;
 
     std::vector<TextureColor> data;
 
   public:
-    TextureBuilder(ID3D11Device* device, UINT _width, UINT _height);
+    TextureBuilder(UINT _width, UINT _height);
     ~TextureBuilder();
 
     // Generates the renderable texture

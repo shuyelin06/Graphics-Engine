@@ -19,7 +19,11 @@ struct Texture {
 
     UINT width;
     UINT height;
+
+#if defined(_DEBUG)
+    void displayImGui();
+#endif
 };
 
-}
+} // namespace Graphics
 } // namespace Engine
