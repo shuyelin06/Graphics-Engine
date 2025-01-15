@@ -46,10 +46,11 @@ void VisualSystem::initialize() {
 
     // Get window width and height
     RECT rect;
-    GetWindowRect(window, &rect);
 
-    const int width = rect.right - rect.left;
-    const int height = rect.bottom - rect.top;
+    GetClientRect(window, &rect);
+    
+    const UINT width = rect.right - rect.left;
+    const UINT height = rect.bottom - rect.top;
 
     // Create swap chain, device, and context.
     // The swap chain is responsible for swapping between textures

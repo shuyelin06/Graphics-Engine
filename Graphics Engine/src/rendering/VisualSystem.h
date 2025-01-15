@@ -11,8 +11,8 @@
 #include "RenderRequest.h"
 #include "ShaderManager.h"
 
-#include "rendering/components/Camera.h"
-#include "rendering/components/Light.h"
+#include "rendering/core/Camera.h"
+#include "rendering/core/Light.h"
 
 #include "datamodel/Terrain.h"
 

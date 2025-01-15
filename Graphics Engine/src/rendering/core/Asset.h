@@ -1,0 +1,74 @@
+#pragma once
+
+#include "rendering/Direct3D11.h"
+#include "rendering/_VertexStreamIDs_.h"
+
+#include <string>
+#include <vector>
+
+#include "math/Color.h"
+#include "math/Vector2.h"
+#include "math/Vector3.h"
+#include "Texture.h"
+
+namespace Engine {
+using namespace Math;
+namespace Graphics {
+typedef unsigned int UINT;
+
+// Struct Material:
+// Specifies renderable properties for a mesh
+struct Material {
+    Color ka; // Ambient Color
+    Color kd; // Diffuse Color
+    Color ks; // Specular Color
+
+    std::string texture; // Texture
+
+    Material();
+};
+
+
+
+// Struct Mesh:
+// Specifies a mesh, which is a collection of vertices that form triangles. 
+// Vertices are stored in separate vertex streams, so that they have an easier time being
+// passed as input into shaders. 
+struct Mesh {
+    // Index buffer pointing to indices in the vertex stream, to create vertices.
+    ID3D11Buffer* index_buffer;
+    UINT triangle_count;
+
+    // My different vertex streams
+    ID3D11Buffer* vertex_streams[STREAM_COUNT];
+
+    Material* material;   
+};
+
+// Asset Class
+// Represents a renderable entity. Assets are composed of multiple
+// meshes, each of which can has a material. Together, these meshes
+// compose one renderable entity.
+class Asset {
+  private:
+    std::vector<Mesh*> meshes;
+    std::vector<Material*> materials;
+
+  public:
+    Asset();
+    ~Asset();
+
+    // Resource creation
+    void addMesh(Mesh* mesh);
+    void addMaterial(Material* material);
+
+    // Resource accessing
+    std::vector<Mesh*>& getMeshes();
+    std::vector<Material*>& getMaterials();
+
+    Mesh* getMesh(int mesh_index);
+    Material* getMaterial(int material_index);
+};
+
+} // namespace Graphics
+} // namespace Engine

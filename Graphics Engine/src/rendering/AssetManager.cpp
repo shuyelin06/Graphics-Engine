@@ -13,7 +13,6 @@
 #include "datamodel/Terrain.h"
 #include "math/Vector2.h"
 #include "math/Vector3.h"
-#include "rendering/components/AssetBuilder.h"
 #include "utility/FileReader.h"
 
 #include "math/PerlinNoise.h"

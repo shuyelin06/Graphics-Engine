@@ -77,11 +77,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     HWND hwnd = CreateWindowEx(0,                   // Optional window styles.
                                CLASS_NAME,          // Window class
                                L"Graphics Engine",  // Window text
-                               WS_OVERLAPPEDWINDOW, // Window style
+                               WS_BORDER,          // Window style
 
                                // Size and position
-                               CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-                               CW_USEDEFAULT,
+                               CW_USEDEFAULT, CW_USEDEFAULT, 
+                               960,
+                               640,
 
                                NULL,      // Parent window
                                NULL,      // Menu
