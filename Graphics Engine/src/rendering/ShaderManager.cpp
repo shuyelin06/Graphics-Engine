@@ -10,7 +10,7 @@ namespace Engine {
 namespace Graphics {
 
 static const std::string cache_folder = "bin/";
-static const std::string shader_folder = "src/rendering/shaders/";
+static const std::string shader_folder = "shaders/";
 
 // ShaderIncludeHandler Class:
 // Allows shaders to use the #include directive, by searching for the contents
