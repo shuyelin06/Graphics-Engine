@@ -28,6 +28,10 @@ float Compute::Random(float low, float high) {
     float rand_num = (float)(rand()) / RAND_MAX;
     return rand_num * (high - low) + low;
 }
+int Compute::Random(int low, int high) {
+    float rand = Compute::Random(0.0f, 1.0f);
+    return low + (int) (rand * (high - low));
+}
 
 // Spherical to Euler Coordinate-System Conversions
 Vector3 Compute::SphericalToEuler(const Vector3& spherical) {

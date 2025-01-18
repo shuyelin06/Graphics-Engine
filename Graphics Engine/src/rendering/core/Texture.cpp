@@ -7,6 +7,12 @@
 namespace Engine {
 namespace Graphics {
 
+Texture::~Texture() {
+    if (texture != nullptr)
+        texture->Release();
+    if (view != nullptr)
+        view->Release();
+}
 #if defined(_DEBUG)
 void Texture::displayImGui() {
     ImGui::Image((ImTextureID) (intptr_t) view,

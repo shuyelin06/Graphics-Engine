@@ -18,6 +18,7 @@ class Compute {
 
     // Generates a random value within a range [low, high]
     static float Random(float low, float high);
+    static int Random(int low, int high);
 
     // Conversions between Euler and Spherical Coordinates
     // Euler Space: (x,y,z) based on the X,Y,Z standard basis axes

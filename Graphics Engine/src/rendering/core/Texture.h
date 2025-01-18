@@ -20,6 +20,7 @@ struct Texture {
     UINT width;
     UINT height;
 
+    ~Texture();
 #if defined(_DEBUG)
     void displayImGui();
 #endif

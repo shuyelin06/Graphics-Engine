@@ -119,6 +119,9 @@ void VisualSystem::initialize() {
     imGuiInitialize();
     imGuiPrepare(); // Pre-Prepare a Frame
 #endif
+
+    atlas = new TextureAtlas(512, 512);
+    atlas_texture = atlas->getAllocationView();
 }
 
 // Shutdown:
@@ -170,6 +173,20 @@ void VisualSystem::render() {
     renderDebugLines();
     VisualDebug::Clear();
 #endif
+
+    // TEMP
+    if (ImGui::Button("Add Allocation")) {
+        int x_size = Compute::Random(16, 64);
+        int y_size = Compute::Random(16, 64);
+
+        atlas->allocateTexture(x_size, y_size);
+        delete atlas_texture;
+
+        atlas_texture = atlas->getAllocationView();
+    }
+
+    ImGui::Image((ImTextureID)(intptr_t)atlas_texture->view,
+                 ImVec2(atlas_texture->width, atlas_texture->height));
 
 #if defined(_DEBUG)
     gpu_timer.endTimer("GPU Frametime");

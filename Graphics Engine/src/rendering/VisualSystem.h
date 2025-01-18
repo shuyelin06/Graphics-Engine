@@ -24,6 +24,10 @@
 #include "util/CPUTimer.h"
 #endif
 
+// TESTING
+#include "util/TextureAtlas.h"
+#include "math/Compute.h"
+
 namespace Engine {
 namespace Graphics {
 
@@ -84,6 +88,9 @@ class VisualSystem {
 
     std::vector<RenderableTerrain> renderable_terrain;
     std::vector<RenderableAsset> renderable_assets;
+
+    TextureAtlas* atlas;
+    Texture* atlas_texture;
 
   public:
     VisualSystem(HWND _window);
