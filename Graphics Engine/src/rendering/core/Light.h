@@ -58,6 +58,8 @@ class Light : public Camera {
 
     UINT getWidth();
     UINT getHeight();
+
+    const Matrix4 getProjectionMatrix(void) const;
 };
 } // namespace Graphics
 } // namespace Engine

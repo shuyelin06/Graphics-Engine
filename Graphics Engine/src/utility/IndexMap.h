@@ -33,7 +33,7 @@ template <typename T> class IndexMap {
         if (string_map.contains(id))
             return -1;
         else {
-            int index = elements.size();
+            UINT index = static_cast<UINT>(elements.size());
             elements.push_back(element);
             string_map[id] = index;
 
@@ -41,13 +41,13 @@ template <typename T> class IndexMap {
         }
     }
     
-    // GetElement:
+    // Get:
     // Get elements in the container by index or string identifier
-    T getElement(const UINT index) {
+    T get(const UINT index) {
         assert(0 <= index && index < elements.size());
         return elements[index];
     }
-    T getElement(const std::string& id) {
+    T get(const std::string& id) {
         assert(string_map.contains(id));
 
         UINT index = string_map[id];

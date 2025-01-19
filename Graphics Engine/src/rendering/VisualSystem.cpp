@@ -48,7 +48,7 @@ void VisualSystem::initialize() {
     RECT rect;
 
     GetClientRect(window, &rect);
-    
+
     const UINT width = rect.right - rect.left;
     const UINT height = rect.bottom - rect.top;
 
@@ -184,9 +184,7 @@ void VisualSystem::render() {
 
         atlas_texture = atlas->getAllocationView();
     }
-
-    ImGui::Image((ImTextureID)(intptr_t)atlas_texture->view,
-                 ImVec2(atlas_texture->width, atlas_texture->height));
+    atlas_texture->displayImGui();
 
 #if defined(_DEBUG)
     gpu_timer.endTimer("GPU Frametime");
@@ -271,7 +269,9 @@ void VisualSystem::renderPrepare() {
     sun_light->setZFar(500);
     sun_light->setFOV(7.5f);
 
-    Vector3 position = sun_light->getTransform()->backward() * 55; // 75 OG
+    // Vector3 position = camera.getTransform()->getPosition() +
+    // sun_light->getTransform()->backward() * 125; // 75 OG
+    Vector3 position = sun_light->getTransform()->backward() * 125; // 75 OG
     sun_light->getTransform()->setPosition(position.x, position.y, position.z);
 
 #if defined(_DEBUG)
@@ -288,11 +288,11 @@ void VisualSystem::performShadowPass() {
     cpu_timer.beginTimer("Shadow Pass");
 #endif
 
-    VertexShader* vShader = shaderManager->getVertexShader(VSShadowMap);
+    VertexShader* vShader = shaderManager->getVertexShader("ShadowMap");
     CBHandle* vCB0 = vShader->getCBHandle(CB0);
     CBHandle* vCB1 = vShader->getCBHandle(CB1);
 
-    PixelShader* pShader = shaderManager->getPixelShader(PSShadowMap);
+    PixelShader* pShader = shaderManager->getPixelShader("ShadowMap");
 
     for (Light* light : lights) {
         // Load light view and projection matrix
@@ -349,11 +349,11 @@ void VisualSystem::performTerrainPass() {
     cpu_timer.beginTimer("Terrain Pass");
 #endif
 
-    VertexShader* vShader = shaderManager->getVertexShader(VSTerrain);
+    VertexShader* vShader = shaderManager->getVertexShader("Terrain");
     CBHandle* vCB0 = vShader->getCBHandle(CB0);
     CBHandle* vCB1 = vShader->getCBHandle(CB1);
 
-    PixelShader* pShader = shaderManager->getPixelShader(PSTerrain);
+    PixelShader* pShader = shaderManager->getPixelShader("Terrain");
     CBHandle* pCB0 = pShader->getCBHandle(CB0);
     CBHandle* pCB1 = pShader->getCBHandle(CB1);
 
@@ -467,11 +467,11 @@ void VisualSystem::performRenderPass() {
     cpu_timer.beginTimer("Render Pass");
 #endif
 
-    VertexShader* vShader = shaderManager->getVertexShader(VSShadow);
+    VertexShader* vShader = shaderManager->getVertexShader("ShadowShader");
     CBHandle* vCB1 = vShader->getCBHandle(CB1);
     CBHandle* vCB2 = vShader->getCBHandle(CB2);
 
-    PixelShader* pShader = shaderManager->getPixelShader(PSShadow);
+    PixelShader* pShader = shaderManager->getPixelShader("ShadowShader");
     CBHandle* pCB0 = pShader->getCBHandle(CB0);
     CBHandle* pCB1 = pShader->getCBHandle(CB1);
 
@@ -605,10 +605,10 @@ void VisualSystem::renderFinish() {
 }
 
 void VisualSystem::renderDebugPoints() {
-    VertexShader* vShader = shaderManager->getVertexShader(VSDebugPoint);
+    VertexShader* vShader = shaderManager->getVertexShader("DebugPoint");
     CBHandle* vCB1 = vShader->getCBHandle(CB1);
 
-    PixelShader* pShader = shaderManager->getPixelShader(PSDebugPoint);
+    PixelShader* pShader = shaderManager->getPixelShader("DebugPoint");
 
     vShader->getCBHandle(CB0)->clearData();
     vShader->getCBHandle(CB1)->clearData();
@@ -653,10 +653,10 @@ void VisualSystem::renderDebugPoints() {
 }
 
 void VisualSystem::renderDebugLines() {
-    VertexShader* vShader = shaderManager->getVertexShader(VSDebugLine);
+    VertexShader* vShader = shaderManager->getVertexShader("DebugLine");
     CBHandle* vCB1 = vShader->getCBHandle(CB1);
 
-    PixelShader* pShader = shaderManager->getPixelShader(PSDebugLine);
+    PixelShader* pShader = shaderManager->getPixelShader("DebugLine");
 
     vShader->getCBHandle(CB1)->clearData();
 

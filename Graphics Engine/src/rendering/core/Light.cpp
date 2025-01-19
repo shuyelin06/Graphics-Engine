@@ -120,5 +120,27 @@ ID3D11SamplerState*& Light::getSampler() { return sampler_state; }
 UINT Light::getWidth() { return shadowmap_width; }
 UINT Light::getHeight() { return shadowmap_height; }
 
+const Matrix4 Light::getProjectionMatrix(void) const {
+    Matrix4 projection_matrix = Matrix4();
+
+    const float left = -20.f;
+    const float right = 20.f;
+    const float bottom = -20.f;
+    const float top = 20.f;
+    const float z_near = 5.f;
+    const float z_far = 200.f;
+
+    projection_matrix[0][0] = 2 / (right - left);
+    projection_matrix[1][1] = 2 / (top - bottom);
+    projection_matrix[2][2] = 1 / (z_far - z_near);
+    projection_matrix[3][3] = 1;
+
+    projection_matrix[3][0] = - (right + left) / (right - left);
+    projection_matrix[3][1] = - (top + bottom) / (top - bottom);
+    projection_matrix[3][2] = - (z_near) / (z_far - z_near);
+
+    return projection_matrix;
+}
+
 } // namespace Graphics
 } // namespace Engine
