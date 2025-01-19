@@ -18,8 +18,8 @@ Texture::~Texture() {
         shader_view->Release();
 }
 #if defined(_DEBUG)
-void Texture::displayImGui() { displayImGui(256); }
-void Texture::displayImGui(float display_width) {
+void Texture::displayImGui() const { displayImGui(256); }
+void Texture::displayImGui(float display_width) const {
     ImGui::Image((ImTextureID)(intptr_t)shader_view,
                  ImVec2(display_width, display_width * height / width));
 }

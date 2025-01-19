@@ -1,57 +1,49 @@
 #pragma once
 
 #include "Camera.h"
+#include "TextureAtlas.h"
 
 #include "rendering/Direct3D11.h"
 #include "rendering/Shader.h"
-#include "rendering/util/TextureAtlas.h"
 
 #include "math/Color.h"
 #include "math/Matrix4.h"
+#include "math/Transform.h"
 
 namespace Engine {
 namespace Graphics {
 
-enum ShadowMapQuality {
-    QUALITY_0 = 64,
-    QUALITY_1 = 128,
-    QUALITY_2 = 256,
-    QUALITY_3 = 512,
-    QUALITY_DEFAULT = QUALITY_1
-};
-
-struct AtlasTransform {
+// Struct ShadowMapViewport
+// Represents where in the shadowmap_atlas the light's
+// shadow_map is. Stored in pixel coordinates.
+struct ShadowMapViewport {
     float x, y, width, height;
 };
 
-// LightComponent Class:
+// Light Class:
 // Represents a directional light. Lights create shadows, and we create them
 // using a shadow mapping technique.
 // The "direction" of the light's view is given by the direction of its rotated
 // +Z axis. To rotate a light, simply rotate its transform.
-class Light : public Camera {
-  public:
-    // TEMP
-    static TextureAtlas* shadow_atlas;
+class ShadowLight {
+  private:
+    friend class LightManager;
 
-  protected:
-    // Light emission color
+    Transform* transform;
+
     Color color;
+    ShadowMapViewport shadow_viewport;
 
-    // Viewport that must be used to write into the part
-    // of the texture atlas allocated for the light
-    D3D11_VIEWPORT viewport;
-    AtlasTransform atlas_transform;
+    ShadowLight(const ShadowMapViewport& view_port);
+    ~ShadowLight();
 
   public:
-    Light(ID3D11Device* device, ShadowMapQuality quality);
-    ~Light();
+    const Color& getColor() const;
+    const ShadowMapViewport& getShadowmapViewport() const;
 
-    // Accessors of the Light's Data
-    Color& getColor();
-    D3D11_VIEWPORT& getViewport();
-    AtlasTransform& getAtlasTransform();
+    Transform* getTransform();
 
+    const Matrix4 getWorldToLightMatrix(void) const;
     const Matrix4 getProjectionMatrix(void) const;
 };
 } // namespace Graphics

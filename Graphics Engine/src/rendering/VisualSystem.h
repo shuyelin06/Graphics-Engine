@@ -11,6 +11,7 @@
 #include "RenderRequest.h"
 #include "ShaderManager.h"
 #include "TextureManager.h"
+#include "core/LightManager.h"
 
 #include "rendering/core/Camera.h"
 #include "rendering/core/Light.h"
@@ -26,7 +27,7 @@
 #endif
 
 // TESTING
-#include "util/TextureAtlas.h"
+#include "core/TextureAtlas.h"
 #include "math/Compute.h"
 
 namespace Engine {
@@ -59,23 +60,17 @@ class VisualSystem {
 
     // Main Render Targets
     IDXGISwapChain* swap_chain;
-
     ID3D11RenderTargetView* render_target_view;
-    ID3D11DepthStencilView* depth_stencil;
 
     // Managers
     ShaderManager* shaderManager;
     ResourceManager* assetManager;
     TextureManager* texture_manager;
+    LightManager* light_manager;
 
     // Main Camera:
     // The scene is rendered from this camera
     Camera camera;
-
-    // Dynamic Lights:
-    // Lights that are transformable in the scene
-    std::vector<Light*> lights;
-    Light* sun_light; // Always index 0 of lights
 
     // Render Requests:
     // Vectors of render requests submitted to the visual system.
@@ -91,9 +86,6 @@ class VisualSystem {
     std::vector<RenderableTerrain> renderable_terrain;
     std::vector<RenderableAsset> renderable_assets;
 
-    TextureAtlas* atlas;
-    Texture* atlas_texture;
-
   public:
     VisualSystem(HWND _window);
 
@@ -107,8 +99,8 @@ class VisualSystem {
     void shutdown();
 
     // Create objects in the visual system
-    Light* createLight();
-    Light* createLight(ShadowMapQuality quality);
+    ShadowLight* createLight();
+    ShadowLight* createLight(ShadowMapQuality quality);
 
     // Submit render requests to the visual system. These requests
     // are processed into render commands, which the system will use for

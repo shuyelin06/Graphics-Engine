@@ -189,6 +189,7 @@
     <ClCompile Include="src\math\Matrix4.cpp" />
     <ClCompile Include="src\math\Vector4.cpp" />
     <ClCompile Include="src\rendering\core\Asset.cpp" />
+    <ClCompile Include="src\rendering\core\LightManager.cpp" />
     <ClCompile Include="src\rendering\core\MeshBuilder.cpp" />
     <ClCompile Include="src\rendering\core\Camera.cpp" />
     <ClCompile Include="src\rendering\core\Light.cpp" />
@@ -211,7 +212,7 @@
     <ClCompile Include="src\rendering\ShaderManager.cpp" />
     <ClCompile Include="src\rendering\util\CPUTimer.cpp" />
     <ClCompile Include="src\rendering\util\GPUTimer.cpp" />
-    <ClCompile Include="src\rendering\util\TextureAtlas.cpp" />
+    <ClCompile Include="src\rendering\core\TextureAtlas.cpp" />
     <ClCompile Include="src\simulation\PhysicsSystem.cpp" />
     <ClCompile Include="src\rendering\util\_DEP_PLYParser.cpp" />
     <ClCompile Include="src\rendering\VisualDebug.cpp" />
@@ -229,6 +230,7 @@
     <ClInclude Include="src\input\InputFrame.h" />
     <ClInclude Include="src\input\SymbolData.h" />
     <ClInclude Include="src\rendering\AssetIDs.h" />
+    <ClInclude Include="src\rendering\core\LightManager.h" />
     <ClInclude Include="src\rendering\core\Texture.h" />
     <ClInclude Include="src\rendering\core\TextureBuilder.h" />
     <ClInclude Include="src\rendering\ImGui.h" />
@@ -273,7 +275,7 @@
     <ClInclude Include="src\rendering\util\GPUTimer.h" />
     <ClInclude Include="src\rendering\util\OBJFile.h" />
     <ClInclude Include="src\rendering\util\PNGFile.h" />
-    <ClInclude Include="src\rendering\util\TextureAtlas.h" />
+    <ClInclude Include="src\rendering\core\TextureAtlas.h" />
     <ClInclude Include="src\simulation\PhysicsSystem.h" />
     <ClInclude Include="src\rendering\Direct3D11.h" />
     <ClInclude Include="src\rendering\VisualDebug.h" />

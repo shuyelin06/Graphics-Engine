@@ -25,8 +25,8 @@ struct Texture {
     ~Texture();
 
 #if defined(_DEBUG)
-    void displayImGui();
-    void displayImGui(float width);
+    void displayImGui() const;
+    void displayImGui(float width) const;
 #endif
 };
 

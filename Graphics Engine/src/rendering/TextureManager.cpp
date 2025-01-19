@@ -20,9 +20,49 @@ Texture* TextureManager::getTexture(const std::string& name) {
 // Texture Generation
 // Built-in texture generation methods for creating important
 // textures in the rendering pipeline.
-// 
-// DepthTexture: Used in the light shadow map atlas
-Texture* TextureManager::generateDepthTexture(const std::string& name, UINT width, UINT height) {
+// DepthTexture: Stores depth stencil values. Used in the main render's
+// z-testing
+Texture* TextureManager::createDepthTexture(const std::string& name, UINT width, UINT height) {
+    HRESULT result; 
+    Texture* texture = new Texture(width, height);
+    
+    // Create my texture
+    // 24 Bits for Depth, 8 Bits for Stencil
+    D3D11_TEXTURE2D_DESC tex_desc = {};
+    tex_desc.Width = width;
+    tex_desc.Height = height;
+    tex_desc.MipLevels = 1;
+    tex_desc.ArraySize = 1;
+    tex_desc.MipLevels = 1;
+    tex_desc.ArraySize = 1;
+    tex_desc.SampleDesc.Count = 1;
+    tex_desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    tex_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+
+    result = device->CreateTexture2D(&tex_desc, NULL, &texture->texture);
+    assert(SUCCEEDED(result));
+
+    // Create my depth view
+    D3D11_DEPTH_STENCIL_VIEW_DESC desc_stencil = {};
+    desc_stencil.Format =
+        DXGI_FORMAT_D24_UNORM_S8_UINT; // Same format as texture
+    desc_stencil.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
+
+    result = device->CreateDepthStencilView(texture->texture, &desc_stencil,
+                                   &texture->depth_view);
+    assert(SUCCEEDED(result));
+
+    bool registered = registerTexture(name, texture);
+
+    if (registered)
+        return texture;
+    else
+        return nullptr;
+}
+
+// ShadowTexture: Stores light shadow map values.
+// Used in the light shadow map atlas
+Texture* TextureManager::createShadowTexture(const std::string& name, UINT width, UINT height) {
     HRESULT result; 
     Texture* texture = new Texture(width, height);
 
