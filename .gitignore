@@ -1,3 +1,2 @@
 Graphics Engine/.vs
-Graphics Engine/bin/
-Graphics Engine/bin/intermediates
+Graphics Engine/bin/*
