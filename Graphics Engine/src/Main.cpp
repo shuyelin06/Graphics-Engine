@@ -221,11 +221,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
         return 0;
     }
 
+#if defined(_DEBUG)
     // ImGui Input
     extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(
         HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
     if (ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam))
         return true;
+#endif
 
     // Input System Input
     if (input_system.dispatchWin32Input(hwnd, uMsg, wParam, lParam))
