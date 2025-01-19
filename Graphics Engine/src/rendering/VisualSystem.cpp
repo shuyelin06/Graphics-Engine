@@ -247,7 +247,7 @@ void VisualSystem::renderPrepare() {
 
     // Vector3 position = camera.getTransform()->getPosition() +
     // sun_light->getTransform()->backward() * 125; // 75 OG
-    Vector3 position = sun_light->getTransform()->backward() * 125; // 75 OG
+    Vector3 position = sun_light->getTransform()->backward() * 75; // 75 OG
     sun_light->getTransform()->setPosition(position.x, position.y, position.z);
 
 #if defined(_DEBUG)

@@ -12,6 +12,8 @@ ShadowLight::ShadowLight(const ShadowMapViewport& view_port) {
 
     color = Color(1.0f, 1.0f, 1.0f);
     shadow_viewport = view_port;
+
+    setOrthogonalMatrix(40.f, 1.0f, 5.0f, 200.f);
 }
 
 ShadowLight::~ShadowLight() = default;
@@ -27,6 +29,34 @@ const ShadowMapViewport& ShadowLight::getShadowmapViewport() const {
 // Returns a pointer to the transform that allows modification
 Transform* ShadowLight::getTransform() { return transform; }
 
+// SetProjectionMatrix:
+// Sets the light's projection matrix to be orthogonal or perspective,
+// with given parameters
+void ShadowLight::setOrthogonalMatrix(float size_y, float aspect_ratio,
+                                      float z_near, float z_far) {
+    m_projection = Matrix4();
+
+    const float size_x = size_y * aspect_ratio;
+
+    m_projection[0][0] = 2 / size_x;
+    m_projection[1][1] = 2 / size_y;
+    m_projection[2][2] = 1 / (z_far - z_near);
+    m_projection[3][3] = 1;
+    m_projection[3][2] = -(z_near) / (z_far - z_near);
+}
+void ShadowLight::setPerspectiveMatrix(float fov_y, float aspect_ratio,
+                                       float z_near, float z_far) {
+    m_projection = Matrix4();
+
+    const float fov_factor = cosf(fov_y / 2.f) / sinf(fov_y / 2.f);
+
+    m_projection[0][0] = fov_factor / aspect_ratio;
+    m_projection[1][1] = fov_factor;
+    m_projection[2][2] = z_far / (z_far - z_near);
+    m_projection[2][3] = 1;
+    m_projection[3][2] = (z_near * z_far) / (z_near - z_far);
+}
+
 // GetWorldToLightMatrix:
 // Generates and returns the light space matrix
 const Matrix4 ShadowLight::getWorldToLightMatrix(void) const {
@@ -34,26 +64,8 @@ const Matrix4 ShadowLight::getWorldToLightMatrix(void) const {
 }
 // GetProjectionMatrix:
 // Generates and returns the projection matrix
-const Matrix4 ShadowLight::getProjectionMatrix(void) const {
-    Matrix4 projection_matrix = Matrix4();
-
-    const float left = -20.f;
-    const float right = 20.f;
-    const float bottom = -20.f;
-    const float top = 20.f;
-    const float z_near = 5.f;
-    const float z_far = 400.f;
-
-    projection_matrix[0][0] = 2 / (right - left);
-    projection_matrix[1][1] = 2 / (top - bottom);
-    projection_matrix[2][2] = 1 / (z_far - z_near);
-    projection_matrix[3][3] = 1;
-
-    projection_matrix[3][0] = -(right + left) / (right - left);
-    projection_matrix[3][1] = -(top + bottom) / (top - bottom);
-    projection_matrix[3][2] = -(z_near) / (z_far - z_near);
-
-    return projection_matrix;
+const Matrix4& ShadowLight::getProjectionMatrix(void) const {
+    return m_projection;
 }
 
 } // namespace Graphics
