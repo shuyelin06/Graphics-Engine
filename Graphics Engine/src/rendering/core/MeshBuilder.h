@@ -32,8 +32,8 @@ struct MeshTriangle {
 class MeshBuilder {
   private:
     // Device interface for creating GPU resources
-    // Set by AssetManager
-    friend class AssetManager;
+    // Set by ResourceManager
+    friend class ResourceManager;
     static ID3D11Device* device;
 
     std::vector<MeshVertex> vertex_buffer;

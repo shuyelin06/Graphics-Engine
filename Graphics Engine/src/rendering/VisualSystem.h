@@ -7,9 +7,10 @@
 
 #include "Direct3D11.h"
 
-#include "AssetManager.h"
+#include "ResourceManager.h"
 #include "RenderRequest.h"
 #include "ShaderManager.h"
+#include "TextureManager.h"
 
 #include "rendering/core/Camera.h"
 #include "rendering/core/Light.h"
@@ -64,7 +65,8 @@ class VisualSystem {
 
     // Managers
     ShaderManager* shaderManager;
-    AssetManager* assetManager;
+    ResourceManager* assetManager;
+    TextureManager* texture_manager;
 
     // Main Camera:
     // The scene is rendered from this camera

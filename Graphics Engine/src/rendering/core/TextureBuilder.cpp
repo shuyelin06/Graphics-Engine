@@ -22,9 +22,7 @@ TextureBuilder::~TextureBuilder() = default;
 // Generates a texture resource (for use in the rendering pipeline)
 // given the data stored within the builder.
 Texture* TextureBuilder::generate() {
-    Texture* texture_resource = new Texture();
-    texture_resource->width = pixel_width;
-    texture_resource->height = pixel_height;
+    Texture* texture_resource = new Texture(pixel_width, pixel_height);
 
     // Generate my GPU texture resource
     D3D11_TEXTURE2D_DESC tex_desc = {};
@@ -54,7 +52,7 @@ Texture* TextureBuilder::generate() {
     tex_view.Texture2D.MipLevels = 1;
 
     device->CreateShaderResourceView(texture_resource->texture, &tex_view,
-                                     &(texture_resource->view));
+                                     &(texture_resource->shader_view));
 
     return texture_resource;
 }

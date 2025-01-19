@@ -1,4 +1,4 @@
-#include "AssetManager.h"
+#include "ResourceManager.h"
 
 #include <assert.h>
 
@@ -50,7 +50,7 @@ class MarchingCube {
 // GenerateTerrainAsset:
 // For a given terrain chunk, we will generate the mesh for it using Marching
 // Cubes.
-Mesh* AssetManager::GenerateTerrainMesh(MeshBuilder& builder,
+Mesh* ResourceManager::GenerateTerrainMesh(MeshBuilder& builder,
                                         TerrainData data) {
     builder.reset();
 

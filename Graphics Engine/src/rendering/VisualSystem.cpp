@@ -105,22 +105,28 @@ void VisualSystem::initialize() {
                                    &depth_stencil);
 
     // Create my asset and shader managers
-    assetManager = new AssetManager(device, context);
+    assetManager = new ResourceManager(device, context);
     assetManager->initialize();
 
     shaderManager = new ShaderManager(device);
     shaderManager->initialize();
 
+    texture_manager = new TextureManager(device);
+    Light::shadow_atlas = new TextureAtlas(
+        texture_manager->generateDepthTexture("ShadowAtlas", 1024, 1024));
+
     // Create my global light (the sun).
     // It will always be at index 0 of the lights vector.
-    sun_light = createLight(QUALITY_4);
+    sun_light = createLight(QUALITY_1);
+    createLight(QUALITY_0); // TEMP
 
 #if defined(_DEBUG)
     imGuiInitialize();
     imGuiPrepare(); // Pre-Prepare a Frame
 #endif
 
-    atlas = new TextureAtlas(512, 512);
+    TextureBuilder builder = TextureBuilder(512, 216);
+    atlas = new TextureAtlas(builder.generate());
     atlas_texture = atlas->getAllocationView();
 }
 
@@ -294,6 +300,11 @@ void VisualSystem::performShadowPass() {
 
     PixelShader* pShader = shaderManager->getPixelShader("ShadowMap");
 
+    const Texture* shadow_texture = Light::shadow_atlas->getTexture();
+
+    context->ClearDepthStencilView(shadow_texture->depth_view,
+                                   D3D11_CLEAR_DEPTH, 1.0f, 0);
+
     for (Light* light : lights) {
         // Load light view and projection matrix
         vCB0->clearData();
@@ -304,9 +315,7 @@ void VisualSystem::performShadowPass() {
         vCB0->loadData(&projectionMatrix, FLOAT4X4);
 
         // Set the light as the render target.
-        context->ClearDepthStencilView(light->getDepthView(), D3D11_CLEAR_DEPTH,
-                                       1.0f, 0);
-        context->OMSetRenderTargets(0, nullptr, light->getDepthView());
+        context->OMSetRenderTargets(0, nullptr, shadow_texture->depth_view);
         context->RSSetViewports(1, &light->getViewport());
 
         // For each asset, load its mesh
@@ -387,33 +396,31 @@ void VisualSystem::performTerrainPass() {
             const Vector3& position = light->getTransform()->getPosition();
             pCB1->loadData(&position, FLOAT3);
 
-            const UINT width = light->getWidth();
-            pCB1->loadData(&width, INT);
+            pCB1->loadData(nullptr, FLOAT);
 
             const Color& color = light->getColor();
             pCB1->loadData(&color, FLOAT3);
 
-            const UINT height = light->getHeight();
-            pCB1->loadData(&height, INT);
+            pCB1->loadData(nullptr, INT);
 
             const Matrix4 viewMatrix = light->getWorldToCameraMatrix();
             pCB1->loadData(&viewMatrix, FLOAT4X4);
 
             const Matrix4 projectionMatrix = light->getProjectionMatrix();
             pCB1->loadData(&projectionMatrix, FLOAT4X4);
+
+            AtlasTransform& atlas_trans = light->getAtlasTransform();
+            pCB1->loadData(&atlas_trans, FLOAT4);
         }
     }
 
     // Load my Textures
     {
         Texture* tex = assetManager->getTexture(TerrainGrass);
-        context->PSSetShaderResources(0, 1, &tex->view);
+        context->PSSetShaderResources(0, 1, &tex->shader_view);
 
-        // Load light textures and samplers.
-        for (int i = 0; i < lights.size(); i++) {
-            Light* light = lights[i];
-            context->PSSetShaderResources(i + 1, 1, &light->getShaderView());
-        }
+        const Texture* shadow_texture = Light::shadow_atlas->getTexture();
+        context->PSSetShaderResources(1, 1, &shadow_texture->shader_view);
     }
 
     // Load my Samplers
@@ -507,20 +514,21 @@ void VisualSystem::performRenderPass() {
             const Vector3& position = light->getTransform()->getPosition();
             pCB1->loadData(&position, FLOAT3);
 
-            const UINT width = light->getWidth();
-            pCB1->loadData(&width, INT);
+            pCB1->loadData(nullptr, FLOAT);
 
             const Color& color = light->getColor();
             pCB1->loadData(&color, FLOAT3);
 
-            const UINT height = light->getHeight();
-            pCB1->loadData(&height, INT);
+            pCB1->loadData(nullptr, FLOAT);
 
             const Matrix4 viewMatrix = light->getWorldToCameraMatrix();
             pCB1->loadData(&viewMatrix, FLOAT4X4);
 
             const Matrix4 projectionMatrix = light->getProjectionMatrix();
             pCB1->loadData(&projectionMatrix, FLOAT4X4);
+
+            AtlasTransform& atlas_trans = light->getAtlasTransform();
+            pCB1->loadData(&atlas_trans, FLOAT4);
 
             // DEBUG
             const Matrix4 frustumMatrix =
@@ -532,13 +540,10 @@ void VisualSystem::performRenderPass() {
     // Load my Textures
     {
         Texture* tex = assetManager->getTexture(Perlin);
-        context->PSSetShaderResources(0, 1, &tex->view);
+        context->PSSetShaderResources(0, 1, &tex->shader_view);
 
-        // Load light textures and samplers.
-        for (int i = 0; i < lights.size(); i++) {
-            Light* light = lights[i];
-            context->PSSetShaderResources(i + 1, 1, &light->getShaderView());
-        }
+        const Texture* shadow_texture = Light::shadow_atlas->getTexture();
+        context->PSSetShaderResources(1, 1, &shadow_texture->shader_view);
     }
 
     // Load my Samplers

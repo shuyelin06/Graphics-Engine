@@ -35,7 +35,7 @@
 
 #include "rendering/VisualDebug.h"
 
-#include "rendering/AssetManager.h"
+#include "rendering/ResourceManager.h"
 
 #include "math/Compute.h"
 #include "utility/Stopwatch.h"
