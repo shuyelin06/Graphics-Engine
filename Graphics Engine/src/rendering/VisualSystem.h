@@ -14,7 +14,6 @@
 #include "core/LightManager.h"
 
 #include "rendering/core/Camera.h"
-#include "rendering/core/Light.h"
 
 #include "datamodel/Terrain.h"
 
@@ -61,6 +60,7 @@ class VisualSystem {
     // Main Render Targets
     IDXGISwapChain* swap_chain;
     ID3D11RenderTargetView* render_target_view;
+    D3D11_VIEWPORT viewport;
 
     // Managers
     ShaderManager* shaderManager;
@@ -137,15 +137,6 @@ class VisualSystem {
     void imGuiShutdown();
 #endif
 
-  public:
-    // --- Data / Resource Queries ---
-    // Get current viewport
-    D3D11_VIEWPORT
-    getViewport() const;
-
-    // Create Texture
-    ID3D11Texture2D* CreateTexture2D(D3D11_BIND_FLAG bind_flag, int width,
-                                     int height);
 };
 } // namespace Graphics
 } // namespace Engine

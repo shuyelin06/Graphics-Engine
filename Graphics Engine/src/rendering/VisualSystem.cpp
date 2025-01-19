@@ -90,6 +90,9 @@ void VisualSystem::initialize() {
 
     framebuffer->Release(); // Free frame buffer (no longer needed)
 
+    // Create my viewport
+    viewport = {0.0f, 0.0f, (float)width, (float)height, 0.0f, 1.0f};
+
     // Create my managers
     assetManager = new ResourceManager(device, context);
     assetManager->initialize();
@@ -354,7 +357,6 @@ void VisualSystem::performTerrainPass() {
                                 depth_texture->depth_view);
     context->ClearDepthStencilView(depth_texture->depth_view, D3D11_CLEAR_DEPTH,
                                    1.0f, 0);
-    D3D11_VIEWPORT viewport = getViewport();
     context->RSSetViewports(1, &viewport);
 
     // Vertex Constant Buffer 0:
@@ -476,7 +478,6 @@ void VisualSystem::performRenderPass() {
                                 depth_texture->depth_view);
     context->ClearDepthStencilView(depth_texture->depth_view, D3D11_CLEAR_DEPTH,
                                    1.0f, 0);
-    D3D11_VIEWPORT viewport = getViewport();
     context->RSSetViewports(1, &viewport);
 
     // Vertex Constant Buffer 1:
@@ -758,56 +759,6 @@ void VisualSystem::imGuiShutdown() {
 }
 
 #endif
-// GetViewport:
-// Returns the current viewport
-D3D11_VIEWPORT VisualSystem::getViewport() const {
-    // Get the window rectangle
-    RECT winRect;
-    GetClientRect(window, &winRect);
-
-    // Generate viewport description
-    D3D11_VIEWPORT viewport = {0.0f,
-                               0.0f,
-                               (float)(winRect.right - winRect.left),
-                               (float)(winRect.bottom - winRect.top),
-                               0.0f,
-                               1.0f};
-
-    // Set depth for the depth buffer
-    viewport.MinDepth = 0;
-    viewport.MaxDepth = 1;
-
-    // Return
-    return viewport;
-}
-
-// CreateTexture2D:
-// Creates a 2D texture for use in the rendering pipeline.
-ID3D11Texture2D* VisualSystem::CreateTexture2D(D3D11_BIND_FLAG bind_flag,
-                                               int width, int height) {
-    ID3D11Texture2D* texture = NULL;
-
-    // Create texture description
-    D3D11_TEXTURE2D_DESC desc_texture = {};
-    desc_texture.Width = width;
-    desc_texture.Height = height;
-    desc_texture.MipLevels = 1;
-    desc_texture.ArraySize = 1;
-    desc_texture.MipLevels = 1;
-    desc_texture.ArraySize = 1;
-    desc_texture.SampleDesc.Count = 1;
-    desc_texture.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    desc_texture.BindFlags = bind_flag;
-
-    // Create 2D texture
-    HRESULT result = device->CreateTexture2D(&desc_texture, NULL, &texture);
-
-    // Check for failure
-    if (result != S_OK)
-        assert(false);
-
-    return texture;
-}
 
 } // namespace Graphics
 } // namespace Engine
