@@ -19,7 +19,6 @@ VisualSystem::VisualSystem(HWND _window) {
     window = _window;
 
     camera = Camera();
-    lights = std::vector<Light*>();
 
     device = NULL;
     context = NULL;
@@ -29,7 +28,6 @@ VisualSystem::VisualSystem(HWND _window) {
 
     swap_chain = NULL;
     render_target_view = NULL;
-    depth_stencil = NULL;
 }
 
 // GetCamera:
@@ -92,36 +90,33 @@ void VisualSystem::initialize() {
 
     framebuffer->Release(); // Free frame buffer (no longer needed)
 
-    // Create my depth stencil for z-testing, and a view so I can use it.
-    ID3D11Texture2D* depth_texture =
-        CreateTexture2D(D3D11_BIND_DEPTH_STENCIL, width, height);
+    // Create my viewport
+    viewport = {0.0f, 0.0f, (float)width, (float)height, 0.0f, 1.0f};
 
-    D3D11_DEPTH_STENCIL_VIEW_DESC desc_stencil = {};
-    desc_stencil.Format =
-        DXGI_FORMAT_D24_UNORM_S8_UINT; // Same format as texture
-    desc_stencil.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
-
-    device->CreateDepthStencilView(depth_texture, &desc_stencil,
-                                   &depth_stencil);
-
-    // Create my asset and shader managers
-    assetManager = new AssetManager(device, context);
+    // Create my managers
+    assetManager = new ResourceManager(device, context);
     assetManager->initialize();
 
     shaderManager = new ShaderManager(device);
     shaderManager->initialize();
 
+    texture_manager = new TextureManager(device);
+    
+    TextureAtlas* shadow_atlas = new TextureAtlas(
+        texture_manager->createShadowTexture("ShadowAtlas", 1024, 1024));
+    light_manager = new LightManager(shadow_atlas);
+
+    texture_manager->createDepthTexture("DepthStencilMain", width, height);
+
     // Create my global light (the sun).
     // It will always be at index 0 of the lights vector.
-    sun_light = createLight(QUALITY_4);
+    createLight(QUALITY_1);
+    createLight(QUALITY_0); // TEMP
 
 #if defined(_DEBUG)
     imGuiInitialize();
     imGuiPrepare(); // Pre-Prepare a Frame
 #endif
-
-    atlas = new TextureAtlas(512, 512);
-    atlas_texture = atlas->getAllocationView();
 }
 
 // Shutdown:
@@ -134,11 +129,9 @@ void VisualSystem::shutdown() {
 
 // CreateLight:
 // Creates and returns a light in the visual system
-Light* VisualSystem::createLight() { return createLight(QUALITY_1); }
-Light* VisualSystem::createLight(ShadowMapQuality quality) {
-    Light* newLight = new Light(device, quality);
-    lights.push_back(newLight);
-    return newLight;
+ShadowLight* VisualSystem::createLight() { return createLight(QUALITY_1); }
+ShadowLight* VisualSystem::createLight(ShadowMapQuality quality) {
+    return light_manager->createShadowLight(quality);
 }
 
 // DrawRequests:
@@ -173,18 +166,6 @@ void VisualSystem::render() {
     renderDebugLines();
     VisualDebug::Clear();
 #endif
-
-    // TEMP
-    if (ImGui::Button("Add Allocation")) {
-        int x_size = Compute::Random(16, 64);
-        int y_size = Compute::Random(16, 64);
-
-        atlas->allocateTexture(x_size, y_size);
-        delete atlas_texture;
-
-        atlas_texture = atlas->getAllocationView();
-    }
-    atlas_texture->displayImGui();
 
 #if defined(_DEBUG)
     gpu_timer.endTimer("GPU Frametime");
@@ -263,15 +244,13 @@ void VisualSystem::renderPrepare() {
     terrainRequests.clear();
 
     // Set sun position to be
-    Light* sun_light = lights[0];
+    ShadowLight* sun_light = light_manager->getShadowLight(0);
 
     sun_light->getTransform()->setViewDirection(Vector3(0, -0.25f, 0.75f));
-    sun_light->setZFar(500);
-    sun_light->setFOV(7.5f);
 
     // Vector3 position = camera.getTransform()->getPosition() +
     // sun_light->getTransform()->backward() * 125; // 75 OG
-    Vector3 position = sun_light->getTransform()->backward() * 125; // 75 OG
+    Vector3 position = sun_light->getTransform()->backward() * 75; // 75 OG
     sun_light->getTransform()->setPosition(position.x, position.y, position.z);
 
 #if defined(_DEBUG)
@@ -294,20 +273,34 @@ void VisualSystem::performShadowPass() {
 
     PixelShader* pShader = shaderManager->getPixelShader("ShadowMap");
 
-    for (Light* light : lights) {
+    const Texture* shadow_texture = light_manager->getAtlasTexture();
+    context->ClearDepthStencilView(shadow_texture->depth_view,
+                                   D3D11_CLEAR_DEPTH, 1.0f, 0);
+    const std::vector<ShadowLight*>& shadow_lights =
+        light_manager->getShadowLights();
+    for (ShadowLight* light : shadow_lights) {
         // Load light view and projection matrix
         vCB0->clearData();
 
-        const Matrix4 viewMatrix = light->getWorldToCameraMatrix();
+        const Matrix4 viewMatrix = light->getWorldToLightMatrix();
         vCB0->loadData(&viewMatrix, FLOAT4X4);
         const Matrix4 projectionMatrix = light->getProjectionMatrix();
         vCB0->loadData(&projectionMatrix, FLOAT4X4);
 
         // Set the light as the render target.
-        context->ClearDepthStencilView(light->getDepthView(), D3D11_CLEAR_DEPTH,
-                                       1.0f, 0);
-        context->OMSetRenderTargets(0, nullptr, light->getDepthView());
-        context->RSSetViewports(1, &light->getViewport());
+        const ShadowMapViewport& shadow_viewport =
+            light->getShadowmapViewport();
+
+        D3D11_VIEWPORT viewport = {};
+        viewport.TopLeftX = shadow_viewport.x;
+        viewport.TopLeftY = shadow_viewport.y;
+        viewport.Width = shadow_viewport.width;
+        viewport.Height = shadow_viewport.height;
+        viewport.MinDepth = 0.0f;
+        viewport.MaxDepth = 1.0f;
+
+        context->OMSetRenderTargets(0, nullptr, shadow_texture->depth_view);
+        context->RSSetViewports(1, &viewport);
 
         // For each asset, load its mesh
         for (const ShadowCaster& caster : shadow_casters) {
@@ -357,9 +350,13 @@ void VisualSystem::performTerrainPass() {
     CBHandle* pCB0 = pShader->getCBHandle(CB0);
     CBHandle* pCB1 = pShader->getCBHandle(CB1);
 
-    context->OMSetRenderTargets(1, &render_target_view, depth_stencil);
-    context->ClearDepthStencilView(depth_stencil, D3D11_CLEAR_DEPTH, 1.0f, 0);
-    D3D11_VIEWPORT viewport = getViewport();
+    const Texture* depth_texture =
+        texture_manager->getTexture("DepthStencilMain");
+
+    context->OMSetRenderTargets(1, &render_target_view,
+                                depth_texture->depth_view);
+    context->ClearDepthStencilView(depth_texture->depth_view, D3D11_CLEAR_DEPTH,
+                                   1.0f, 0);
     context->RSSetViewports(1, &viewport);
 
     // Vertex Constant Buffer 0:
@@ -378,42 +375,41 @@ void VisualSystem::performTerrainPass() {
         const Vector3& cameraPosition = camera.getTransform()->getPosition();
         pCB1->loadData(&cameraPosition, FLOAT3);
 
-        int lightCount = lights.size();
+        int lightCount = light_manager->getShadowLights().size();
         pCB1->loadData(&lightCount, INT);
 
-        for (int i = 0; i < lights.size(); i++) {
-            Light* light = lights[i];
-
+        const std::vector<ShadowLight*>& shadow_lights =
+            light_manager->getShadowLights();
+        for (ShadowLight* light : shadow_lights) {
             const Vector3& position = light->getTransform()->getPosition();
             pCB1->loadData(&position, FLOAT3);
 
-            const UINT width = light->getWidth();
-            pCB1->loadData(&width, INT);
+            pCB1->loadData(nullptr, FLOAT);
 
             const Color& color = light->getColor();
             pCB1->loadData(&color, FLOAT3);
 
-            const UINT height = light->getHeight();
-            pCB1->loadData(&height, INT);
+            pCB1->loadData(nullptr, INT);
 
-            const Matrix4 viewMatrix = light->getWorldToCameraMatrix();
+            const Matrix4 viewMatrix = light->getWorldToLightMatrix();
             pCB1->loadData(&viewMatrix, FLOAT4X4);
 
             const Matrix4 projectionMatrix = light->getProjectionMatrix();
             pCB1->loadData(&projectionMatrix, FLOAT4X4);
+
+            const NormalizedShadowViewport normalized_view =
+                light_manager->normalizeViewport(light->getShadowmapViewport());
+            pCB1->loadData(&normalized_view, FLOAT4);
         }
     }
 
     // Load my Textures
     {
         Texture* tex = assetManager->getTexture(TerrainGrass);
-        context->PSSetShaderResources(0, 1, &tex->view);
+        context->PSSetShaderResources(0, 1, &tex->shader_view);
 
-        // Load light textures and samplers.
-        for (int i = 0; i < lights.size(); i++) {
-            Light* light = lights[i];
-            context->PSSetShaderResources(i + 1, 1, &light->getShaderView());
-        }
+        const Texture* shadow_texture = light_manager->getAtlasTexture();
+        context->PSSetShaderResources(1, 1, &shadow_texture->shader_view);
     }
 
     // Load my Samplers
@@ -475,9 +471,13 @@ void VisualSystem::performRenderPass() {
     CBHandle* pCB0 = pShader->getCBHandle(CB0);
     CBHandle* pCB1 = pShader->getCBHandle(CB1);
 
-    context->OMSetRenderTargets(1, &render_target_view, depth_stencil);
-    context->ClearDepthStencilView(depth_stencil, D3D11_CLEAR_DEPTH, 1.0f, 0);
-    D3D11_VIEWPORT viewport = getViewport();
+    const Texture* depth_texture =
+        texture_manager->getTexture("DepthStencilMain");
+
+    context->OMSetRenderTargets(1, &render_target_view,
+                                depth_texture->depth_view);
+    context->ClearDepthStencilView(depth_texture->depth_view, D3D11_CLEAR_DEPTH,
+                                   1.0f, 0);
     context->RSSetViewports(1, &viewport);
 
     // Vertex Constant Buffer 1:
@@ -498,29 +498,31 @@ void VisualSystem::performRenderPass() {
         const Vector3& cameraPosition = camera.getTransform()->getPosition();
         pCB1->loadData(&cameraPosition, FLOAT3);
 
-        int lightCount = lights.size();
+        int lightCount = light_manager->getShadowLights().size();
         pCB1->loadData(&lightCount, INT);
 
-        for (int i = 0; i < lights.size(); i++) {
-            Light* light = lights[i];
-
+        const std::vector<ShadowLight*>& shadow_lights =
+            light_manager->getShadowLights();
+        for (ShadowLight* light : shadow_lights) {
             const Vector3& position = light->getTransform()->getPosition();
             pCB1->loadData(&position, FLOAT3);
 
-            const UINT width = light->getWidth();
-            pCB1->loadData(&width, INT);
+            pCB1->loadData(nullptr, FLOAT);
 
             const Color& color = light->getColor();
             pCB1->loadData(&color, FLOAT3);
 
-            const UINT height = light->getHeight();
-            pCB1->loadData(&height, INT);
+            pCB1->loadData(nullptr, INT);
 
-            const Matrix4 viewMatrix = light->getWorldToCameraMatrix();
+            const Matrix4 viewMatrix = light->getWorldToLightMatrix();
             pCB1->loadData(&viewMatrix, FLOAT4X4);
 
             const Matrix4 projectionMatrix = light->getProjectionMatrix();
             pCB1->loadData(&projectionMatrix, FLOAT4X4);
+
+            const NormalizedShadowViewport normalized_view =
+                light_manager->normalizeViewport(light->getShadowmapViewport());
+            pCB1->loadData(&normalized_view, FLOAT4);
 
             // DEBUG
             const Matrix4 frustumMatrix =
@@ -532,13 +534,10 @@ void VisualSystem::performRenderPass() {
     // Load my Textures
     {
         Texture* tex = assetManager->getTexture(Perlin);
-        context->PSSetShaderResources(0, 1, &tex->view);
+        context->PSSetShaderResources(0, 1, &tex->shader_view);
 
-        // Load light textures and samplers.
-        for (int i = 0; i < lights.size(); i++) {
-            Light* light = lights[i];
-            context->PSSetShaderResources(i + 1, 1, &light->getShaderView());
-        }
+        const Texture* shadow_texture = light_manager->getAtlasTexture();
+        context->PSSetShaderResources(1, 1, &shadow_texture->shader_view);
     }
 
     // Load my Samplers
@@ -655,7 +654,7 @@ void VisualSystem::renderDebugPoints() {
 void VisualSystem::renderDebugLines() {
     VertexShader* vShader = shaderManager->getVertexShader("DebugLine");
     CBHandle* vCB1 = vShader->getCBHandle(CB1);
-
+    
     PixelShader* pShader = shaderManager->getPixelShader("DebugLine");
 
     vShader->getCBHandle(CB1)->clearData();
@@ -735,11 +734,15 @@ void VisualSystem::imGuiFinish() {
     // Finish and Display GPU + CPU Times
     gpu_timer.endFrame();
 
-    if (ImGui::CollapsingHeader("Info")) {
+    if (ImGui::CollapsingHeader("Rendering")) {
         ImGui::SeparatorText("CPU Times:");
         cpu_timer.displayTimes();
+        
         ImGui::SeparatorText("GPU Times:");
         gpu_timer.displayTimes();
+
+        ImGui::SeparatorText("Shadow Atlas:");
+        light_manager->getAtlasTexture()->displayImGui(256);
     }
 
     // Finish the ImGui Frame
@@ -756,56 +759,6 @@ void VisualSystem::imGuiShutdown() {
 }
 
 #endif
-// GetViewport:
-// Returns the current viewport
-D3D11_VIEWPORT VisualSystem::getViewport() const {
-    // Get the window rectangle
-    RECT winRect;
-    GetClientRect(window, &winRect);
-
-    // Generate viewport description
-    D3D11_VIEWPORT viewport = {0.0f,
-                               0.0f,
-                               (float)(winRect.right - winRect.left),
-                               (float)(winRect.bottom - winRect.top),
-                               0.0f,
-                               1.0f};
-
-    // Set depth for the depth buffer
-    viewport.MinDepth = 0;
-    viewport.MaxDepth = 1;
-
-    // Return
-    return viewport;
-}
-
-// CreateTexture2D:
-// Creates a 2D texture for use in the rendering pipeline.
-ID3D11Texture2D* VisualSystem::CreateTexture2D(D3D11_BIND_FLAG bind_flag,
-                                               int width, int height) {
-    ID3D11Texture2D* texture = NULL;
-
-    // Create texture description
-    D3D11_TEXTURE2D_DESC desc_texture = {};
-    desc_texture.Width = width;
-    desc_texture.Height = height;
-    desc_texture.MipLevels = 1;
-    desc_texture.ArraySize = 1;
-    desc_texture.MipLevels = 1;
-    desc_texture.ArraySize = 1;
-    desc_texture.SampleDesc.Count = 1;
-    desc_texture.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    desc_texture.BindFlags = bind_flag;
-
-    // Create 2D texture
-    HRESULT result = device->CreateTexture2D(&desc_texture, NULL, &texture);
-
-    // Check for failure
-    if (result != S_OK)
-        assert(false);
-
-    return texture;
-}
 
 } // namespace Graphics
 } // namespace Engine

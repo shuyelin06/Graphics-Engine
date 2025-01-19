@@ -11,16 +11,21 @@ Texture2D terrain_texture : register(t0);
 struct LightData
 {
     float3 position;
-    uint shadowmap_width;
+    float pad0;
     
     float3 color;
-    uint shadowmap_height;
+    float pad1;
     
     float4x4 m_view;
     float4x4 m_projection;
+    
+    float tex_x;
+    float tex_y;
+    float tex_width;
+    float tex_height;
 };
 
-Texture2D lightDepthMaps[10] : register(t1);
+Texture2D shadow_atlas : register(t1);
 
 cbuffer CB1 : register(b1)
 {
@@ -77,30 +82,18 @@ float4 psterrain_main(PS_IN input) : SV_TARGET
                 // no contribution to the color at that point (point is in shadow). 
                 // We add a small offset 0.01 in the step() function to avoid precision errors
                 float cur_depth = lightview_coords.z;
-                 
+                
+                float map_x = light_instances[i].tex_x;
+                float map_y = light_instances[i].tex_y;
+                float map_width = light_instances[i].tex_width;
+                float map_height = light_instances[i].tex_height;
+                
                 float2 shadowmap_coords = float2((lightview_coords.x + 1) / 2.f, (-lightview_coords.y + 1) / 2.f);
-                float offset_x = 1.0f / float(light_instances[i].shadowmap_width);
-                float offset_y = 1.0f / float(light_instances[i].shadowmap_height);
+                shadowmap_coords = float2(shadowmap_coords.x * map_width + map_x, shadowmap_coords.y * map_height + map_y);
                 
-                // Normal Shadow Map
-                // lightDepthMaps[i].Sample(shadowmap_sampler, shadowmap_coords).r;
-                // Attempt at PCF
-                float shadow_factor = 0.0f;
-                
-                for (int x = -1; x <= 1; x++)
-                {
-                    for (int y = -1; y <= 1; y++)
-                    {
-                        float2 sample_coords = shadowmap_coords + float2(x * offset_x, y * offset_y);
-                        float sampled_depth = lightDepthMaps[i].Sample(shadowmap_sampler, sample_coords).r;
-                        float inShadow = step(cur_depth, sampled_depth + 0.01f);
+                float sampled_depth = shadow_atlas.Sample(shadowmap_sampler, shadowmap_coords).r;
+                float shadow_factor = step(cur_depth, sampled_depth + 0.01f);
                         
-                        shadow_factor += inShadow;
-                    }
-                }
-
-                shadow_factor = shadow_factor / 9.0f; // Doesn't work very well
-    
                 // --- Calculate vectors necessary for lighting ---
                 // 1) Normal at Point 
                 float3 normal = normalize(input.normal);

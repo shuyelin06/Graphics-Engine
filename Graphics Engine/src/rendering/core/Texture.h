@@ -7,22 +7,26 @@ typedef unsigned int UINT;
 namespace Engine {
 namespace Graphics {
 
-enum TextureFormat {
-
-};
-
 // Texture Struct:
 // Represents a texture that can be uploaded to the GPU.
 struct Texture {
     ID3D11Texture2D* texture;
-    ID3D11ShaderResourceView* view;
+
+    // Different views for the texture. NULL if
+    // uninitialized.
+    ID3D11ShaderResourceView* shader_view;
+    ID3D11DepthStencilView* depth_view;
+    ID3D11RenderTargetView* target_view;
 
     UINT width;
     UINT height;
 
+    Texture(UINT width, UINT height);
     ~Texture();
+
 #if defined(_DEBUG)
-    void displayImGui();
+    void displayImGui() const;
+    void displayImGui(float width) const;
 #endif
 };
 

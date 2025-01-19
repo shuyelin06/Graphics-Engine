@@ -10,18 +10,21 @@ Texture2D mesh_texture : register(t0);
 struct LightData
 {
     float3 position;
-    float padding1;
+    float pad0;
     
     float3 color;
-    float padding2;
+    float pad1;
     
     float4x4 m_view;
     float4x4 m_projection;
+    
+    float tex_x;
+    float tex_y;
+    float tex_width;
+    float tex_height;
 };
 
-Texture2D lightDepthMaps[10] : register(t1);
-
-Texture2DArray testing : register(t12);
+Texture2D shadow_atlas : register(t1);
 
 cbuffer CB1 : register(b1)
 {
@@ -70,9 +73,16 @@ float4 ps_main(VS_OUT input) : SV_TARGET
         {
             if (-1 <= view_position.y && view_position.y <= 1)
             {
+                float map_x = light_instances[i].tex_x;
+                float map_y = light_instances[i].tex_y;
+                float map_width = light_instances[i].tex_width;
+                float map_height = light_instances[i].tex_height;
+                
                 // Sample the light shadow map to see how far the light can see at that location. 
                 float2 shadowmap_coords = float2((view_position.x + 1) / 2.f, (-view_position.y + 1) / 2.f);
-                float sampledDepth = lightDepthMaps[i].Sample(shadowmap_sampler, shadowmap_coords).r;
+                shadowmap_coords = float2(shadowmap_coords.x * map_width + map_x, shadowmap_coords.y * map_height + map_y);
+                
+                float sampledDepth = shadow_atlas.Sample(shadowmap_sampler, shadowmap_coords).r;
                 
                 // If sampled depth is < depth, the light cannot see the point, so it provides
                 // no contribution to the color at that point (point is in shadow). 

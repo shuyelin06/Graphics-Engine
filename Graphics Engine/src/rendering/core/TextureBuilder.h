@@ -7,8 +7,7 @@
 namespace Engine {
 namespace Graphics {
 // TextureBuilder Class:
-// Provides an interface for creating Textures.
-// Only supports R8G8B8A8 textures.
+// Provides an interface for building Textures manually.
 struct TextureColor {
     uint8_t r;
     uint8_t g;
@@ -19,8 +18,8 @@ struct TextureColor {
 class TextureBuilder {
   private:
     // Device interface for creating GPU resources.
-    // Set by AssetManager
-    friend class AssetManager;
+    // Set by ResourceManager
+    friend class ResourceManager;
     static ID3D11Device* device;
 
     // Data for the texture

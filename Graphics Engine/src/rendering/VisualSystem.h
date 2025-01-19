@@ -7,12 +7,13 @@
 
 #include "Direct3D11.h"
 
-#include "AssetManager.h"
+#include "ResourceManager.h"
 #include "RenderRequest.h"
 #include "ShaderManager.h"
+#include "TextureManager.h"
+#include "core/LightManager.h"
 
 #include "rendering/core/Camera.h"
-#include "rendering/core/Light.h"
 
 #include "datamodel/Terrain.h"
 
@@ -25,7 +26,7 @@
 #endif
 
 // TESTING
-#include "util/TextureAtlas.h"
+#include "core/TextureAtlas.h"
 #include "math/Compute.h"
 
 namespace Engine {
@@ -58,22 +59,18 @@ class VisualSystem {
 
     // Main Render Targets
     IDXGISwapChain* swap_chain;
-
     ID3D11RenderTargetView* render_target_view;
-    ID3D11DepthStencilView* depth_stencil;
+    D3D11_VIEWPORT viewport;
 
     // Managers
     ShaderManager* shaderManager;
-    AssetManager* assetManager;
+    ResourceManager* assetManager;
+    TextureManager* texture_manager;
+    LightManager* light_manager;
 
     // Main Camera:
     // The scene is rendered from this camera
     Camera camera;
-
-    // Dynamic Lights:
-    // Lights that are transformable in the scene
-    std::vector<Light*> lights;
-    Light* sun_light; // Always index 0 of lights
 
     // Render Requests:
     // Vectors of render requests submitted to the visual system.
@@ -89,9 +86,6 @@ class VisualSystem {
     std::vector<RenderableTerrain> renderable_terrain;
     std::vector<RenderableAsset> renderable_assets;
 
-    TextureAtlas* atlas;
-    Texture* atlas_texture;
-
   public:
     VisualSystem(HWND _window);
 
@@ -105,8 +99,8 @@ class VisualSystem {
     void shutdown();
 
     // Create objects in the visual system
-    Light* createLight();
-    Light* createLight(ShadowMapQuality quality);
+    ShadowLight* createLight();
+    ShadowLight* createLight(ShadowMapQuality quality);
 
     // Submit render requests to the visual system. These requests
     // are processed into render commands, which the system will use for
@@ -143,15 +137,6 @@ class VisualSystem {
     void imGuiShutdown();
 #endif
 
-  public:
-    // --- Data / Resource Queries ---
-    // Get current viewport
-    D3D11_VIEWPORT
-    getViewport() const;
-
-    // Create Texture
-    ID3D11Texture2D* CreateTexture2D(D3D11_BIND_FLAG bind_flag, int width,
-                                     int height);
 };
 } // namespace Graphics
 } // namespace Engine
