@@ -16,6 +16,8 @@ class Vector3 {
 
     ~Vector3(){};
 
+    void set(const Vector3& vec); // Updates the contents of the current vector
+
     void inplaceNormalize();
 
     Vector3 unit() const;

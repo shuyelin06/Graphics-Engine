@@ -52,8 +52,25 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 // Static reference to the input system for use in the window message callback
 static InputSystem input_system;
 
-#include "rendering/Shader.h"
-#include "utility/FileReader.h"
+#include "math/GJK.h"
+
+class CircleSupportFunc : public GJKSupportFunc {
+  public:
+    Vector3 cen;
+    float radius;
+
+  public:
+    CircleSupportFunc(const Vector3& _center, float _radius) {
+        cen = _center;
+        radius = _radius;
+    }
+    const Vector3 center() {
+        return cen;
+    }
+    const Vector3 furthestPoint(const Vector3& direction) {
+        return cen + direction.unit() * radius;
+    }
+};
 
 // Main Function
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
@@ -117,17 +134,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     visual_system.getCamera().getTransform()->setPosition(0,10,0);
 
     // Bind Lights to Camera
-    //Light* light = visual_system.createLight();
-    //light->setTransform(visual_system.getCamera().getTransform());
-
-    /*{
-        Transform transform = Transform();
-        transform.offsetPosition(0, 5, -10);
-        transform.offsetRotation(Vector3::PositiveX(), 0.05f);
-
-        Light* lObj = visual_system.createLight();
-        lObj->setTransform(&transform);
-    }*/
+    CircleSupportFunc* c1 = new CircleSupportFunc(Vector3(), 5);
+    CircleSupportFunc* c2 = new CircleSupportFunc(Vector3(), 2);
+    float c1_arr[3] = {};
+    float c2_arr[3] = {};
+    GJKSolver solver = GJKSolver(c1,c2);
 
     // Create Object Hierarchy
     Object& parent_object = scene_graph.createObject();
@@ -184,6 +195,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         // TODO: THIS CODE IS WRONG
         child2.getTransform().lookAt(visual_system.getCamera().getTransform()->getPosition());
 
+        ImGui::Text("Distance: %f", (c1->center() - c2->center()).magnitude());
+        ImGui::SliderFloat3("C1: ", c1_arr, -10, 10);
+        ImGui::SliderFloat3("C2: ", c2_arr, -10, 10);
+        c1->cen.set(Vector3(c1_arr[0], c1_arr[1], c1_arr[2]));
+        c2->cen.set(Vector3(c2_arr[0], c2_arr[1], c2_arr[2]));
+        ImGui::Text("GJK: %i", (int) solver.checkIntersection());
+        
         // Submit Object Render Requests
         std::vector<AssetRenderRequest> asset_requests;
         scene_graph.updateAndRenderObjects(asset_requests);

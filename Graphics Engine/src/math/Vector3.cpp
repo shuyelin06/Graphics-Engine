@@ -27,6 +27,14 @@ Vector3::Vector3(float _x, float _y, float _z) {
     z = _z;
 }
 
+// Set:
+// Updates the contents of the current vector
+void Vector3::set(const Vector3& vec) {
+    x = vec.x;
+    y = vec.y;
+    z = vec.z;
+} 
+
 // Magnitude:
 // Returns the vector's magnitude
 float Vector3::magnitude() const { return sqrtf(x * x + y * y + z * z); }
