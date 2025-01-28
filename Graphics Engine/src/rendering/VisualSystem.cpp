@@ -101,7 +101,7 @@ void VisualSystem::initialize() {
     shaderManager->initialize();
 
     texture_manager = new TextureManager(device);
-    
+
     TextureAtlas* shadow_atlas = new TextureAtlas(
         texture_manager->createShadowTexture("ShadowAtlas", 1024, 1024));
     light_manager = new LightManager(shadow_atlas);
@@ -155,11 +155,12 @@ void VisualSystem::render() {
 
     renderPrepare();
 
-    performShadowPass();
+    performShadowPass(); //..
 
     performTerrainPass();
     performRenderPass();
 
+    // ...
 #if defined(_DEBUG)
     // Debug Functionality
     renderDebugPoints();
@@ -604,7 +605,13 @@ void VisualSystem::renderFinish() {
 }
 
 void VisualSystem::renderDebugPoints() {
+    std::vector<PointData>& points = VisualDebug::points;
+
+    if (points.size() == 0)
+        return;
+
     VertexShader* vShader = shaderManager->getVertexShader("DebugPoint");
+    CBHandle* vCB0 = vShader->getCBHandle(CB0);
     CBHandle* vCB1 = vShader->getCBHandle(CB1);
 
     PixelShader* pShader = shaderManager->getPixelShader("DebugPoint");
@@ -630,7 +637,25 @@ void VisualSystem::renderDebugPoints() {
     vShader->bindShader(device, context);
     pShader->bindShader(device, context);
 
-    int numPoints = VisualDebug::LoadPointData(vShader->getCBHandle(CB0));
+    int numPoints = 0;
+
+    // Load data into the constant buffer handle, while removing points
+    // which are expired
+    for (int i = 0; i < points.size(); i++) {
+        PointData& data = points[i];
+        vCB0->loadData(&data.position, FLOAT3);
+        vCB0->loadData(&data.scale, FLOAT);
+        vCB0->loadData(&data.color, FLOAT3);
+        vCB0->loadData(nullptr, FLOAT);
+
+        if (data.frameExpiration > 0)
+            data.frameExpiration -= 1;
+
+        if (data.frameExpiration == -1 || data.frameExpiration > 0)
+            points[numPoints++] = data;
+    }
+
+    points.resize(numPoints);
 
     if (numPoints > 0) {
         // Vertex Constant Buffer 1:
@@ -652,14 +677,40 @@ void VisualSystem::renderDebugPoints() {
 }
 
 void VisualSystem::renderDebugLines() {
+    std::vector<LinePoint>& lines = VisualDebug::lines;
+
+    if (lines.size() == 0)
+        return;
+
     VertexShader* vShader = shaderManager->getVertexShader("DebugLine");
     CBHandle* vCB1 = vShader->getCBHandle(CB1);
-    
+
     PixelShader* pShader = shaderManager->getPixelShader("DebugLine");
 
     vShader->getCBHandle(CB1)->clearData();
 
-    int numLines = VisualDebug::LoadLineData(context, device);
+    // Load line data into a vertex buffer
+    if (line_vbuffer != nullptr)
+        line_vbuffer->Release();
+
+    D3D11_BUFFER_DESC buff_desc = {};
+    buff_desc.ByteWidth = sizeof(LinePoint) * lines.size();
+    buff_desc.Usage = D3D11_USAGE_DEFAULT;
+    buff_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+    D3D11_SUBRESOURCE_DATA sr_data = {0};
+    sr_data.pSysMem = (void*)lines.data();
+
+    device->CreateBuffer(&buff_desc, &sr_data, &line_vbuffer);
+
+    UINT vertexStride = sizeof(LinePoint);
+    UINT vertexOffset = 0;
+
+    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+    context->IASetVertexBuffers(DEBUG_LINE, 1, &line_vbuffer, &vertexStride,
+                                &vertexOffset);
+
+    int numLines = lines.size() * 2;
 
     if (numLines > 0) {
         // Vertex Constant Buffer 1:
@@ -737,12 +788,12 @@ void VisualSystem::imGuiFinish() {
     if (ImGui::CollapsingHeader("Rendering")) {
         ImGui::SeparatorText("CPU Times:");
         cpu_timer.displayTimes();
-        
+
         ImGui::SeparatorText("GPU Times:");
         gpu_timer.displayTimes();
 
         ImGui::SeparatorText("Shadow Atlas:");
-        light_manager->getAtlasTexture()->displayImGui(256);
+        light_manager->getAtlasTexture()->displayImGui(512);
     }
 
     // Finish the ImGui Frame

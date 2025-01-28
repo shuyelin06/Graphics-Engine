@@ -52,25 +52,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 // Static reference to the input system for use in the window message callback
 static InputSystem input_system;
 
-#include "math/GJK.h"
-
-class CircleSupportFunc : public GJKSupportFunc {
-  public:
-    Vector3 cen;
-    float radius;
-
-  public:
-    CircleSupportFunc(const Vector3& _center, float _radius) {
-        cen = _center;
-        radius = _radius;
-    }
-    const Vector3 center() {
-        return cen;
-    }
-    const Vector3 furthestPoint(const Vector3& direction) {
-        return cen + direction.unit() * radius;
-    }
-};
+#include "math/geometry/AABB.h"
+#include "math/geometry/GJK.h"
+#include "math/geometry/GJKSupport.h"
 
 // Main Function
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
@@ -91,15 +75,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     // Create a window instance from this class. HWND will contain a handle
     // to the window created.
-    HWND hwnd = CreateWindowEx(0,                   // Optional window styles.
-                               CLASS_NAME,          // Window class
-                               L"Graphics Engine",  // Window text
+    HWND hwnd = CreateWindowEx(0,                  // Optional window styles.
+                               CLASS_NAME,         // Window class
+                               L"Graphics Engine", // Window text
                                WS_BORDER,          // Window style
 
                                // Size and position
-                               CW_USEDEFAULT, CW_USEDEFAULT, 
-                               960,
-                               640,
+                               CW_USEDEFAULT, CW_USEDEFAULT, 960, 640,
 
                                NULL,      // Parent window
                                NULL,      // Menu
@@ -131,14 +113,20 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     // Bind Camera
     MovementHandler movementHandler(visual_system.getCamera().getTransform());
-    visual_system.getCamera().getTransform()->setPosition(0,10,0);
+    visual_system.getCamera().getTransform()->setPosition(0, 10, 0);
 
-    // Bind Lights to Camera
-    CircleSupportFunc* c1 = new CircleSupportFunc(Vector3(), 5);
-    CircleSupportFunc* c2 = new CircleSupportFunc(Vector3(), 2);
-    float c1_arr[3] = {};
-    float c2_arr[3] = {};
-    GJKSolver solver = GJKSolver(c1,c2);
+    // TEST: GJK
+    GJKSupportPointSet* supp1 = new GJKSupportPointSet();
+    GJKSupportPointSet* supp2 = new GJKSupportPointSet();
+    GJKSolver solver = GJKSolver(supp1, supp2);
+
+    AABB box1 = AABB();
+    box1.expandToContain(Vector3(-5, -5, -5));
+    box1.expandToContain(Vector3(5, 5, 5));
+
+    AABB box2 = AABB();
+    box2.expandToContain(Vector3(-3, -3, -3));
+    box2.expandToContain(Vector3(3, 3, 3));
 
     // Create Object Hierarchy
     Object& parent_object = scene_graph.createObject();
@@ -193,15 +181,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         physics_system.update();
 
         // TODO: THIS CODE IS WRONG
-        child2.getTransform().lookAt(visual_system.getCamera().getTransform()->getPosition());
+        child2.getTransform().lookAt(
+            visual_system.getCamera().getTransform()->getPosition());
 
-        ImGui::Text("Distance: %f", (c1->center() - c2->center()).magnitude());
-        ImGui::SliderFloat3("C1: ", c1_arr, -10, 10);
-        ImGui::SliderFloat3("C2: ", c2_arr, -10, 10);
-        c1->cen.set(Vector3(c1_arr[0], c1_arr[1], c1_arr[2]));
-        c2->cen.set(Vector3(c2_arr[0], c2_arr[1], c2_arr[2]));
-        ImGui::Text("GJK: %i", (int) solver.checkIntersection());
-        
+        // TESTING
+        box1.debugDrawExtents();
+        box2.debugDrawExtents();
+
         // Submit Object Render Requests
         std::vector<AssetRenderRequest> asset_requests;
         scene_graph.updateAndRenderObjects(asset_requests);
@@ -211,9 +197,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         // Submit Terrain Render Requests
         std::vector<TerrainRenderRequest> terrain_requests;
         scene_graph.updateAndRenderTerrain(terrain_requests);
-        for (const TerrainRenderRequest& request : terrain_requests) 
+        for (const TerrainRenderRequest& request : terrain_requests)
             visual_system.drawTerrain(request);
-        
+
         visual_system.render();
 
         // Stall until enough time has elapsed for 60 frames / second
@@ -232,8 +218,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
                             LPARAM lParam) {
     // Escape will always quit the application, just in case
-    if (uMsg == WM_DESTROY || 
-        (uMsg == WM_KEYDOWN && wParam == VK_ESCAPE)) {
+    if (uMsg == WM_DESTROY || (uMsg == WM_KEYDOWN && wParam == VK_ESCAPE)) {
         ClipCursor(NULL);
         PostQuitMessage(0);
         return 0;

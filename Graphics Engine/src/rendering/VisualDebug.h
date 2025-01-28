@@ -1,16 +1,10 @@
 #pragma once
 
-#include "Direct3D11.h"
-
 #include <vector>
-
-#include "rendering/Shader.h"
 
 #include "math/Color.h"
 #include "math/Matrix4.h"
 #include "math/Vector3.h"
-
-#define ENABLE_DEBUG_VISUALS
 
 namespace Engine {
 using namespace Math;
@@ -48,9 +42,7 @@ class VisualDebug {
 
   private:
     static std::vector<PointData> points;
-
     static std::vector<LinePoint> lines;
-    static ID3D11Buffer* lineVertexBuffer;
 
   public:
     // Clear all debug rendering data
@@ -66,10 +58,6 @@ class VisualDebug {
 
     // Rendering for specific features
     static void DrawFrustum(const Matrix4& frustumMatrix, const Color& rgb);
-
-    // Pipeline Management
-    static int LoadPointData(CBHandle* cbHandle);
-    static int LoadLineData(ID3D11DeviceContext* context, ID3D11Device* device);
 };
 } // namespace Graphics
 } // namespace Engine
