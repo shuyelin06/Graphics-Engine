@@ -40,6 +40,9 @@
 #include "math/Compute.h"
 #include "utility/Stopwatch.h"
 
+// TEMP
+#include "math/geometry/ConvexHull.h"
+
 using namespace Engine;
 using namespace Engine::Simulation;
 using namespace Engine::Datamodel;
@@ -120,14 +123,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     GJKSupportPointSet* supp2 = new GJKSupportPointSet();
     GJKSolver solver = GJKSolver(supp1, supp2);
 
-    AABB box1 = AABB();
-    box1.expandToContain(Vector3(-5, -5, -5));
-    box1.expandToContain(Vector3(5, 5, 5));
-
-    AABB box2 = AABB();
-    box2.expandToContain(Vector3(-3, -3, -3));
-    box2.expandToContain(Vector3(3, 3, 3));
-
     // Create Object Hierarchy
     Object& parent_object = scene_graph.createObject();
 
@@ -146,10 +141,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     Utility::Stopwatch framerate_watch = Utility::Stopwatch();
 
-    VisualDebug::DrawPoint(Vector3(0, 0, 0), 1, Color::White(), 60 * 7);
-    VisualDebug::DrawPoint(Vector3(1, 0, 0), 1, Color::Red(), 60 * 7);
-    VisualDebug::DrawPoint(Vector3(0, 1, 0), 1, Color::Green(), 60 * 7);
-    VisualDebug::DrawPoint(Vector3(0, 0, 1), 1, Color::Blue(), 60 * 7);
+    VisualDebug::DrawPoint(Vector3(0, 0, 0), 1, Color::White());
+    VisualDebug::DrawPoint(Vector3(1, 0, 0), 1, Color::Red());
+    VisualDebug::DrawPoint(Vector3(0, 1, 0), 1, Color::Green());
+    VisualDebug::DrawPoint(Vector3(0, 0, 1), 1, Color::Blue());
 
     VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(5, 0, 0),
                           Color::Red());                      // X Red
@@ -157,6 +152,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                           Color::Green());
     VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(0, 0, 5), // Z Blue
                           Color::Blue());
+
+    ConvexHull convex_hull = ConvexHull();
+    std::vector<Vector3> point_cloud; 
+    
+    for (int i = 0; i < 5; i++) {
+        point_cloud.push_back(Vector3(Compute::Random(-10.f, 10.f), Compute::Random(-10.f, 10.f), Compute::Random(-10.f, 10.f)));
+    }
 
     // Main loop: runs once per frame
     while (!close) {
@@ -185,8 +187,18 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             visual_system.getCamera().getTransform()->getPosition());
 
         // TESTING
-        box1.debugDrawExtents();
-        box2.debugDrawExtents();
+        static float pos[3] = {};
+        ImGui::SliderFloat3("Position:", pos, -20.f, 20.f);
+
+        point_cloud[0].set(Vector3(pos[0], pos[1], pos[2]));
+
+        for (const Vector3& point : point_cloud) {
+            VisualDebug::DrawPoint(point, 0.5f);
+        }
+
+        convex_hull.generateQuickHull(point_cloud);
+
+        convex_hull.debugDrawConvexHull();
 
         // Submit Object Render Requests
         std::vector<AssetRenderRequest> asset_requests;

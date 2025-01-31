@@ -17,10 +17,8 @@ void VisualDebug::Clear() { lines.clear(); }
 // Registers a point in 3D space to be drawn by the visual
 // engine. Points are cleared after every frame
 bool VisualDebug::DrawPoint(const Vector3& position, float scale,
-                            const Color& color, int expiration) {
+                            const Color& color) {
     const int POINT_CAP = (4096 * 4 * sizeof(float)) / sizeof(PointData);
-
-    assert(expiration == -1 || expiration > 0);
 
     // Check if there is space in the constant buffer for the point. If not
     // fail
@@ -33,7 +31,6 @@ bool VisualDebug::DrawPoint(const Vector3& position, float scale,
         data.position = position;
         data.scale = scale;
         data.color = color;
-        data.frameExpiration = expiration;
 
         points.push_back(data);
 
@@ -41,9 +38,8 @@ bool VisualDebug::DrawPoint(const Vector3& position, float scale,
     }
 }
 
-bool VisualDebug::DrawPoint(const Vector3& position, float scale,
-                            int expiration) {
-    return DrawPoint(position, scale, Color::Red(), expiration);
+bool VisualDebug::DrawPoint(const Vector3& position, float scale) {
+    return DrawPoint(position, scale, Color::Red());
 }
 
 // DrawLine:

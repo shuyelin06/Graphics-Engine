@@ -64,7 +64,7 @@ float Vector3::dot(const Vector3& vector) const {
 // Cross:
 // Performs the cross product between two vectors.
 Vector3 Vector3::cross(const Vector3& vector) const {
-    return Vector3(y * vector.z - z * vector.y, x * vector.z - z * vector.x,
+    return Vector3(y * vector.z - z * vector.y, -(x * vector.z - z * vector.x),
                    x * vector.y - y * vector.x);
 }
 

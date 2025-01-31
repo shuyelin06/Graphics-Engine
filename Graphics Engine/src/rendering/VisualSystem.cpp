@@ -637,7 +637,7 @@ void VisualSystem::renderDebugPoints() {
     vShader->bindShader(device, context);
     pShader->bindShader(device, context);
 
-    int numPoints = 0;
+    const int numPoints = points.size();
 
     // Load data into the constant buffer handle, while removing points
     // which are expired
@@ -647,15 +647,9 @@ void VisualSystem::renderDebugPoints() {
         vCB0->loadData(&data.scale, FLOAT);
         vCB0->loadData(&data.color, FLOAT3);
         vCB0->loadData(nullptr, FLOAT);
-
-        if (data.frameExpiration > 0)
-            data.frameExpiration -= 1;
-
-        if (data.frameExpiration == -1 || data.frameExpiration > 0)
-            points[numPoints++] = data;
     }
 
-    points.resize(numPoints);
+    points.clear();
 
     if (numPoints > 0) {
         // Vertex Constant Buffer 1:
