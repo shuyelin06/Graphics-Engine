@@ -13,8 +13,10 @@ namespace Engine
 {
 namespace Math
 {
-// QuickHull Class:
-// Uses a naive QuickHull algorithm to generate a 3D convex hull on a set of points.
+// ConvexHull Class:
+// Defines a 3D Convex Hull in space as a set of triangles and indices.
+// Provides an implementation of QuickHull that can be used to generate a 3D
+// Convex Hull on any arbitrary point cloud. 
 class ConvexHull {
 private:
     std::vector<Triangle> convex_hull;
@@ -25,8 +27,8 @@ public:
 
     const std::vector<Triangle>& getConvexHull();
 
-    // Convex Hull generation with the Quick Hull algorithm
-    void generateQuickHull(const std::vector<Vector3>& point_cloud);
+    // Convex Hull generation with Quick Hull
+    static ConvexHull* QuickHull(const std::vector<Vector3>& point_cloud);
 
 #if defined(DRAW_CONVEX_HULL)
     void debugDrawConvexHull() const;

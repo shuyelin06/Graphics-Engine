@@ -153,10 +153,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(0, 0, 5), // Z Blue
                           Color::Blue());
 
-    ConvexHull convex_hull = ConvexHull();
     std::vector<Vector3> point_cloud; 
     
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 20; i++) {
         point_cloud.push_back(Vector3(Compute::Random(-10.f, 10.f), Compute::Random(-10.f, 10.f), Compute::Random(-10.f, 10.f)));
     }
 
@@ -196,9 +195,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             VisualDebug::DrawPoint(point, 0.5f);
         }
 
-        convex_hull.generateQuickHull(point_cloud);
+        ConvexHull* convex_hull = ConvexHull::QuickHull(point_cloud);
 
-        convex_hull.debugDrawConvexHull();
+        convex_hull->debugDrawConvexHull();
 
         // Submit Object Render Requests
         std::vector<AssetRenderRequest> asset_requests;
