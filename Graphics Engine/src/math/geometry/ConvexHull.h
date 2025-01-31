@@ -21,8 +21,8 @@ class ConvexHull {
 private:
     std::vector<Triangle> convex_hull;
 
-public:
     ConvexHull();
+  public:
     ~ConvexHull();
 
     const std::vector<Triangle>& getConvexHull();
@@ -32,7 +32,6 @@ public:
 
 #if defined(DRAW_CONVEX_HULL)
     void debugDrawConvexHull() const;
-    void debugDrawPoints() const;
 #endif
 };
 

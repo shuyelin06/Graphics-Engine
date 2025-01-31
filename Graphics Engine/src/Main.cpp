@@ -154,9 +154,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                           Color::Blue());
 
     std::vector<Vector3> point_cloud; 
-    
     for (int i = 0; i < 20; i++) {
-        point_cloud.push_back(Vector3(Compute::Random(-10.f, 10.f), Compute::Random(-10.f, 10.f), Compute::Random(-10.f, 10.f)));
+        point_cloud.push_back(Vector3(Compute::Random(-20.f, 20.f),
+                                      Compute::Random(-20.f, 20.f),
+                                      Compute::Random(-20.f, 20.f)));
     }
 
     // Main loop: runs once per frame
@@ -186,16 +187,24 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             visual_system.getCamera().getTransform()->getPosition());
 
         // TESTING
-        static float pos[3] = {};
-        ImGui::SliderFloat3("Position:", pos, -20.f, 20.f);
+        ConvexHull* convex_hull = ConvexHull::QuickHull(point_cloud);
 
-        point_cloud[0].set(Vector3(pos[0], pos[1], pos[2]));
+        if (ImGui::Button("New Hull")) {
+            point_cloud.clear();
+            for (int i = 0; i < 20; i++) {
+                point_cloud.push_back(Vector3(Compute::Random(-20.f, 20.f),
+                                              Compute::Random(-20.f, 20.f),
+                                              Compute::Random(-20.f, 20.f)));
+            }
 
+            convex_hull = ConvexHull::QuickHull(point_cloud);
+        }
+        
         for (const Vector3& point : point_cloud) {
             VisualDebug::DrawPoint(point, 0.5f);
         }
 
-        ConvexHull* convex_hull = ConvexHull::QuickHull(point_cloud);
+        
 
         convex_hull->debugDrawConvexHull();
 

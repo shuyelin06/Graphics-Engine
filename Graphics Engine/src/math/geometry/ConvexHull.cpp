@@ -3,9 +3,10 @@
 #include <assert.h>
 
 #if defined(DRAW_CONVEX_HULL)
-#include "math/Compute.h"
-#include "rendering/ImGui.h"
 #include "rendering/VisualDebug.h"
+
+#define DRAW_WIREFRAME
+#define DRAW_NORMALS
 #endif
 
 namespace Engine {
@@ -20,7 +21,8 @@ const std::vector<Triangle>& ConvexHull::getConvexHull() { return convex_hull; }
 // --- QuickHull ---
 // An implementation of the QuickHull algorithm for 3D Convex Hull generation.
 // Callable through ConvexHull::QuickHull.
-static constexpr float EPSILON = 1.f;
+// Epsilon is set quite large here. Larger values give us a lower chance of imprecision error, but also can yield less accurate hulls
+static constexpr float EPSILON = 3.5f; 
 static constexpr int UNASSIGNED = -1;
 static constexpr int INSIDE = -2;
 
@@ -131,29 +133,35 @@ ConvexHull* ConvexHull::QuickHull(const std::vector<Vector3>& point_cloud) {
         else {
             // Otherwise, first find the horizon edge from the point.
             solver.horizon_edge.clear();
-
             for (int i = 0; i < solver.faces.size(); i++)
                 solver.faces[i].traversal_flag = false;
 
             findHorizonEdge(solver, furthest_point,
                             solver.points[furthest_point].face, -1);
 
+            // Now, remove all visible faces, and for all horizon edge, generate
+            // a new face with that edge and the furthest point.
             const int first_index = solver.faces.size();
-            int prev_index =
+            const int last_index =
                 solver.faces.size() + solver.horizon_edge.size() - 1;
-            int next_index = solver.faces.size() + 1;
+
+            int prev_index = last_index;
+            int next_index = first_index + 1;
 
             for (const HorizonEdge& edge : solver.horizon_edge) {
+                // Create my new face
                 const int new_face_index = solver.faces.size();
+                solver.faces.push_back(QuickHullFace(
+                    edge.point_1, edge.point_2, furthest_point, next_index,
+                    prev_index, edge.nonvisible_face));
 
-                QuickHullFace new_face =
-                    QuickHullFace(edge.point_1, edge.point_2, furthest_point,
-                                  next_index, prev_index, edge.nonvisible_face);
-
-                solver.faces.push_back(new_face);
-
+                // Update face index references
                 prev_index = new_face_index;
-                next_index = next_index + 1;
+
+                if (next_index == last_index)
+                    next_index = first_index;
+                else
+                    next_index = next_index + 1;
 
                 // Remove visible face
                 solver.faces[edge.visible_face].in_convex_hull = false;
@@ -161,6 +169,7 @@ ConvexHull* ConvexHull::QuickHull(const std::vector<Vector3>& point_cloud) {
                 // Update non-visible face
                 QuickHullFace& nonvisible_face =
                     solver.faces[edge.nonvisible_face];
+
                 if (nonvisible_face.i_opposite_faces[0] == edge.visible_face)
                     nonvisible_face.i_opposite_faces[0] = new_face_index;
                 else if (nonvisible_face.i_opposite_faces[1] ==
@@ -169,15 +178,15 @@ ConvexHull* ConvexHull::QuickHull(const std::vector<Vector3>& point_cloud) {
                 else if (nonvisible_face.i_opposite_faces[2] ==
                          edge.visible_face)
                     nonvisible_face.i_opposite_faces[2] = new_face_index;
+                // This can happen, though I'm not sure exactly why. I'm guessing it can 
+                // fire due to imprecision (hence why I turned Epsilon up high).
                 else
                     assert(false);
             }
-
-            solver.faces[solver.faces.size() - 1].i_opposite_faces[0] =
-                first_index;
         }
     }
 
+    // Translate my data to a triangle strip!
     hull->convex_hull.clear();
     for (const QuickHullFace& face : solver.faces) {
         if (face.in_convex_hull) {
@@ -375,7 +384,7 @@ void findHorizonEdge(QuickHullSolver& solver, int point, int face,
 
         // Checck if the next face is visible by the point.
         if (solver.signedDistanceTo(cur_face.i_opposite_faces[index_0], point) >
-            EPSILON) {
+            EPSILON / 2) {
             findHorizonEdge(solver, point, cur_face.i_opposite_faces[index_0],
                             face);
         }
@@ -396,15 +405,19 @@ void findHorizonEdge(QuickHullSolver& solver, int point, int face,
 #if defined(DRAW_CONVEX_HULL)
 void ConvexHull::debugDrawConvexHull() const {
     for (const Triangle& triangle : convex_hull) {
+#if defined(DRAW_WIREFRAME)
         Graphics::VisualDebug::DrawLine(triangle.vertex(0), triangle.vertex(1));
         Graphics::VisualDebug::DrawLine(triangle.vertex(1), triangle.vertex(2));
         Graphics::VisualDebug::DrawLine(triangle.vertex(2), triangle.vertex(0));
+#endif
 
+#if defined(DRAW_NORMALS)
         const Vector3 center = triangle.center();
         const Vector3 norm = triangle.normal();
         Graphics::VisualDebug::DrawPoint(center, 0.5f, Color::Blue());
         Graphics::VisualDebug::DrawLine(center, center + norm * 5,
                                         Color::Blue());
+#endif
     }
 }
 #endif
