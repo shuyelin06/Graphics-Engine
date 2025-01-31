@@ -162,7 +162,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     GJKSupportPointSet* supp2 = new GJKSupportPointSet(t2);
 
     for (int i = 0; i < 20; i++) {
-        supp2->addPoint(Vector3(50.f, 50.f, 50.f) + Vector3(Compute::Random(-20.f, 20.f),
+        supp2->addPoint(Vector3(Compute::Random(-20.f, 20.f),
                                 Compute::Random(-20.f, 20.f),
                                 Compute::Random(-20.f, 20.f)));
     }
@@ -197,15 +197,31 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
         // TESTING
         static float offset[3] = {};
-        ImGui::SliderFloat3("Position:", offset, -100.f, 100.f);
+        ImGui::SliderFloat3("Position:", offset, -50.f, 50.f);
         t1->setPosition(offset[0], offset[1], offset[2]);
 
+        static float rotate[2] = {};
+        ImGui::SliderFloat2("rotation:", rotate, -2 * 3.14f, 2 * 3.14f);
+        t1->setRotation(
+            Quaternion::RotationAroundAxis(Vector3::PositiveX(), rotate[0]) *
+            Quaternion::RotationAroundAxis(Vector3::PositiveY(), rotate[1]));
+
         ConvexHull* ch1 = ConvexHull::QuickHull(supp1->getPoints());
-        ch1->transformPoints(t1);
         ConvexHull* ch2 = ConvexHull::QuickHull(supp2->getPoints());
+
+        bool blue = false;
+        if (solver.checkIntersection()) {
+            blue = true;
+
+            // Testing of the penetration vector
+           /* const Vector3 penetration = solver.penetrationVector();
+            t1->offsetPosition(penetration.x, penetration.y, penetration.z); */
+        }
+
+        ch1->transformPoints(t1);
         ch2->transformPoints(t2);
 
-        if (solver.checkIntersection()) {
+        if (blue) {
             ch1->debugDrawConvexHull(Color::Blue());
             ch2->debugDrawConvexHull(Color::Blue());
         }

@@ -9,6 +9,8 @@ namespace Math {
 GJKSolver::GJKSolver(GJKSupportFunc* _shape_1, GJKSupportFunc* _shape_2) {
     shape_1 = _shape_1;
     shape_2 = _shape_2;
+
+    simplex = nullptr;
 }
 
 // CheckIntersection:
@@ -18,29 +20,38 @@ GJKSolver::GJKSolver(GJKSupportFunc* _shape_1, GJKSupportFunc* _shape_2) {
 // To do this, it attempts to "smartly" choose directions to create a simplex
 // within this difference, and checks if this simplex contains the origin or
 // not.
-static constexpr float EPSILON = 0.001f;
+struct GJKSimplex {
+    Vector3 points[4];
+    int num_points;
 
-GJKSimplex::GJKSimplex() : points() { num_points = 0; }
-void GJKSimplex::push_back(const Vector3& p) { points[num_points++] = p; }
-int GJKSimplex::size() const { return num_points; }
-void GJKSimplex::remove(int index) {
-    for (int i = index; i < 3; i++) {
-        points[i] = points[i + 1];
+    GJKSimplex() : points() { num_points = 0; }
+
+    void swap(int i1, int i2) {
+        const Vector3 temp = points[i1];
+        points[i1] = points[i2];
+        points[i2] = temp;
+    }
+    void push_back(const Vector3& p) { points[num_points++] = p; }
+    void remove(int index) {
+        for (int i = index; i < num_points - 1; i++)
+            points[index] = points[index + 1];
+        num_points--;
     }
 
-    num_points--;
-}
-
-const Vector3 GJKSimplex::p1() const { return points[num_points - 1]; }
-const Vector3 GJKSimplex::p2() const { return points[num_points - 2]; }
-const Vector3 GJKSimplex::p3() const { return points[num_points - 3]; }
-const Vector3 GJKSimplex::p4() const { return points[num_points - 4]; }
+    // Last (p1) to first (p4) vertex inserted, in that order
+    const Vector3& p1() const { return points[num_points - 1]; }
+    const Vector3& p2() const { return points[num_points - 2]; }
+    const Vector3& p3() const { return points[num_points - 3]; }
+    const Vector3& p4() const { return points[num_points - 4]; }
+};
 
 // CheckIntersection:
 // Returns whether or not the shapes intersect.
 // True on intersection, false if none.
 bool GJKSolver::checkIntersection() {
-    simplex = GJKSimplex();
+    if (simplex != nullptr)
+        delete simplex;
+    simplex = new GJKSimplex();
 
     SolverStatus status = Evolving;
     while (status == Evolving)
@@ -58,7 +69,7 @@ SolverStatus GJKSolver::iterate() {
     // direction to query our support functions, depending on how many
     // points we currently have in the simplex. When our simplex is full, we
     // start checking if it contains our origin point.
-    switch (simplex.size()) {
+    switch (simplex->num_points) {
     // Empty Simplex: Choose some initial direction.
     // Direction can be whatever we want. Commonly, it is the
     // direction pointing from one shape center to the other.
@@ -76,8 +87,8 @@ SolverStatus GJKSolver::iterate() {
     // Direction is the vector orthogonal to the line p1, p2,
     // pointing towards the origin.
     case 2: {
-        const Vector3 A = simplex.p1();
-        const Vector3 B = simplex.p2();
+        const Vector3& A = simplex->p1();
+        const Vector3& B = simplex->p2();
 
         const Vector3 AB = B - A;
         const Vector3 AO = -A;
@@ -89,9 +100,9 @@ SolverStatus GJKSolver::iterate() {
     // Direction is the normal of the triangle pointing towards the
     // origin.
     case 3: {
-        const Vector3 A = simplex.p1();
-        const Vector3 B = simplex.p2();
-        const Vector3 C = simplex.p3();
+        const Vector3& A = simplex->p1();
+        const Vector3& B = simplex->p2();
+        const Vector3& C = simplex->p3();
 
         // Calculate the edges of my triangle and find the normal
         const Vector3 AC = C - A;
@@ -102,13 +113,12 @@ SolverStatus GJKSolver::iterate() {
         const Vector3 AO = -A;
         if (direction.dot(AO) < 0) {
             direction = -direction;
-             
-            // Flip orientation of triangle
-            const Vector3 temp = simplex.points[1];
-            simplex.points[1] = simplex.points[2];
-            simplex.points[2] = temp;
+
+            // Flip orientation of triangle if it is facing the wrong way.
+            // This way, when we generate our tetrahedron, the face normals will
+            // correctly point outwards.
+            simplex->swap(1,2);
         }
-            
 
     } break;
 
@@ -116,10 +126,10 @@ SolverStatus GJKSolver::iterate() {
     // We have a full simplex. We now check to see where the
     // origin could be.
     case 4: {
-        const Vector3 A = simplex.p1();
-        const Vector3 B = simplex.p2();
-        const Vector3 C = simplex.p3();
-        const Vector3 D = simplex.p4();
+        const Vector3& A = simplex->p1();
+        const Vector3& B = simplex->p2();
+        const Vector3& C = simplex->p3();
+        const Vector3& D = simplex->p4();
 
         // Calculate edges of the tetrahedron. We only care about the
         // edges from A to every other vertex.
@@ -140,28 +150,17 @@ SolverStatus GJKSolver::iterate() {
         const Vector3 ACDNorm = AD.cross(AC);
         const Vector3 ADBNorm = AB.cross(AD);
 
-        constexpr int A_INDEX = 3;
-        constexpr int B_INDEX = 2;
-        constexpr int C_INDEX = 1;
-        constexpr int D_INDEX = 0;
-
-        if (ABCNorm.dot(AO) > EPSILON) {
-            simplex.num_points = 3;
-            simplex.points[2] = A;
-            simplex.points[1] = B;
-            simplex.points[0] = C;
+        // If we know what face the origin is outside, we will correct our
+        // simplex so that the triangle is clock-wise when viewed from the
+        // origin (so that our algorithm chooses the correct direction later).
+        if (ABCNorm.dot(AO) > 0.0f) {
+            simplex->remove(0); // Remove Point D
             direction = ABCNorm;
-        } else if (ACDNorm.dot(AO) > EPSILON) {
-            simplex.num_points = 3;
-            simplex.points[2] = A;
-            simplex.points[1] = C;
-            simplex.points[0] = D;
+        } else if (ACDNorm.dot(AO) > 0.0f) {
+            simplex->remove(2); // Remove Point B
             direction = ACDNorm;
-        } else if (ADBNorm.dot(AO) > EPSILON) {
-            simplex.num_points = 3;
-            simplex.points[2] = A;
-            simplex.points[1] = D;
-            simplex.points[0] = B;
+        } else if (ADBNorm.dot(AO) > 0.0f) {
+            simplex->remove(1); // Remove Point C
             direction = ADBNorm;
         }
         // If not outside any of the triangles, then origin
@@ -176,10 +175,10 @@ SolverStatus GJKSolver::iterate() {
     // If the new vertex.dot(direction) is < 0, then origin cannot
     // exist inside our Minkowski Difference.
     const Vector3 newVertex = querySupports(direction);
-    if (direction.dot(newVertex) < EPSILON) {
+    if (direction.dot(newVertex) < 0.0f) {
         return IntersectionFalse;
     } else {
-        simplex.push_back(newVertex);
+        simplex->push_back(newVertex);
         return Evolving;
     }
 }
@@ -210,7 +209,7 @@ Vector3 GJKSolver::penetrationVector() {
 
     for (const Vector3& direction : directions) {
         const Vector3 support_point = querySupports(direction);
-        if (support_point.dot(direction) <= distance) {
+        if (support_point.dot(direction) < distance) {
             penetration = support_point;
             distance = support_point.dot(direction);
         }

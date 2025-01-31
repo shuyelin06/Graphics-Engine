@@ -5,23 +5,7 @@
 namespace Engine {
 namespace Math {
 class GJKSupportFunc;
-
-struct GJKSimplex {
-    Vector3 points[4];
-    int num_points;
-
-    GJKSimplex();
-
-    void push_back(const Vector3& p);
-    void remove(int index);
-    int size() const;
-
-    // Last (p1) to first (p4) vertex inserted, in that order
-    const Vector3 p1() const;
-    const Vector3 p2() const;
-    const Vector3 p3() const;
-    const Vector3 p4() const;
-};
+struct GJKSimplex;
 
 // GJKSolver Class:
 // Implements the GJK algorithm. Takes two support functions, and returns
@@ -38,7 +22,8 @@ class GJKSolver {
     GJKSupportFunc* shape_1;
     GJKSupportFunc* shape_2;
 
-    GJKSimplex simplex;
+    // Helper simplex used to find collisions and their information
+    GJKSimplex* simplex;
     Vector3 direction;
 
   public:
