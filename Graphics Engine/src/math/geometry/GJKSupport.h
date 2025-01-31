@@ -6,6 +6,7 @@
 
 #include <vector>
 
+#include "../Transform.h"
 #include "../Vector3.h"
 
 namespace Engine {
@@ -22,12 +23,18 @@ class GJKSupportFunc {
 class GJKSupportPointSet : public GJKSupportFunc {
   private:
     std::vector<Vector3> points;
+    
+    const Transform* transform;
 
   public:
-    GJKSupportPointSet();
+    GJKSupportPointSet(const Transform* transform);
     ~GJKSupportPointSet();
 
+    const std::vector<Vector3>& getPoints();
+    
+    void setTransform(const Transform* transform);
     void addPoint(const Vector3& point);
+    
     void reset();
 
     const Vector3 center(void);

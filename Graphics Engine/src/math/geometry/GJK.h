@@ -6,12 +6,10 @@ namespace Engine {
 namespace Math {
 class GJKSupportFunc;
 
-class GJKSimplex {
-  private:
+struct GJKSimplex {
     Vector3 points[4];
     int num_points;
 
-  public:
     GJKSimplex();
 
     void push_back(const Vector3& p);

@@ -118,11 +118,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     MovementHandler movementHandler(visual_system.getCamera().getTransform());
     visual_system.getCamera().getTransform()->setPosition(0, 10, 0);
 
-    // TEST: GJK
-    GJKSupportPointSet* supp1 = new GJKSupportPointSet();
-    GJKSupportPointSet* supp2 = new GJKSupportPointSet();
-    GJKSolver solver = GJKSolver(supp1, supp2);
-
     // Create Object Hierarchy
     Object& parent_object = scene_graph.createObject();
 
@@ -153,12 +148,26 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(0, 0, 5), // Z Blue
                           Color::Blue());
 
-    std::vector<Vector3> point_cloud; 
+    // TEST: GJK
+    Transform* t1 = new Transform();
+    GJKSupportPointSet* supp1 = new GJKSupportPointSet(t1);
+
     for (int i = 0; i < 20; i++) {
-        point_cloud.push_back(Vector3(Compute::Random(-20.f, 20.f),
-                                      Compute::Random(-20.f, 20.f),
-                                      Compute::Random(-20.f, 20.f)));
+        supp1->addPoint(Vector3(Compute::Random(-20.f, 20.f),
+                                Compute::Random(-20.f, 20.f),
+                                Compute::Random(-20.f, 20.f)));
     }
+
+    Transform* t2 = new Transform();
+    GJKSupportPointSet* supp2 = new GJKSupportPointSet(t2);
+
+    for (int i = 0; i < 20; i++) {
+        supp2->addPoint(Vector3(50.f, 50.f, 50.f) + Vector3(Compute::Random(-20.f, 20.f),
+                                Compute::Random(-20.f, 20.f),
+                                Compute::Random(-20.f, 20.f)));
+    }
+
+    GJKSolver solver = GJKSolver(supp1, supp2);
 
     // Main loop: runs once per frame
     while (!close) {
@@ -187,26 +196,23 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             visual_system.getCamera().getTransform()->getPosition());
 
         // TESTING
-        ConvexHull* convex_hull = ConvexHull::QuickHull(point_cloud);
+        static float offset[3] = {};
+        ImGui::SliderFloat3("Position:", offset, -100.f, 100.f);
+        t1->setPosition(offset[0], offset[1], offset[2]);
 
-        if (ImGui::Button("New Hull")) {
-            point_cloud.clear();
-            for (int i = 0; i < 20; i++) {
-                point_cloud.push_back(Vector3(Compute::Random(-20.f, 20.f),
-                                              Compute::Random(-20.f, 20.f),
-                                              Compute::Random(-20.f, 20.f)));
-            }
+        ConvexHull* ch1 = ConvexHull::QuickHull(supp1->getPoints());
+        ch1->transformPoints(t1);
+        ConvexHull* ch2 = ConvexHull::QuickHull(supp2->getPoints());
+        ch2->transformPoints(t2);
 
-            convex_hull = ConvexHull::QuickHull(point_cloud);
+        if (solver.checkIntersection()) {
+            ch1->debugDrawConvexHull(Color::Blue());
+            ch2->debugDrawConvexHull(Color::Blue());
         }
-        
-        for (const Vector3& point : point_cloud) {
-            VisualDebug::DrawPoint(point, 0.5f);
+        else {
+            ch1->debugDrawConvexHull(Color::Red());
+            ch2->debugDrawConvexHull(Color::Red());
         }
-
-        
-
-        convex_hull->debugDrawConvexHull();
 
         // Submit Object Render Requests
         std::vector<AssetRenderRequest> asset_requests;

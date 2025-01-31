@@ -13,6 +13,15 @@ namespace Math {
 // initialized to 0
 Vector4::Vector4() { x = y = z = w = 0.f; }
 
+// Conversion Constructor:
+// Convert a Vector3 to a Vector4
+Vector4::Vector4(const Vector3& vec3, float _w) {
+    x = vec3.x;
+    y = vec3.y;
+    z = vec3.z;
+    w = _w;
+}
+
 // Copy Constructor:
 // Given a Vector4, creates a copy of the vector
 // and returns it

@@ -18,7 +18,7 @@ class Transform {
   public:
     // Constructor
     Transform();
-
+    
     // Get and set the transform properties
     const Vector3& getPosition() const;
     void setPosition(float x, float y, float z);

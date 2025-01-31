@@ -25,7 +25,7 @@ class Vector3 {
 
     float dot(const Vector3& vector) const;
     Vector3 cross(const Vector3& vector) const;
-
+    
     Vector3 componentMin(const Vector3& vector) const;
     Vector3 componentMax(const Vector3& vector) const;
 
