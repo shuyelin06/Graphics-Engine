@@ -41,6 +41,7 @@
 #include "utility/Stopwatch.h"
 
 // TEMP
+#include "math/geometry/QuickHull.h"
 #include "math/geometry/ConvexHull.h"
 
 using namespace Engine;
@@ -206,16 +207,23 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             Quaternion::RotationAroundAxis(Vector3::PositiveX(), rotate[0]) *
             Quaternion::RotationAroundAxis(Vector3::PositiveY(), rotate[1]));
 
-        ConvexHull* ch1 = ConvexHull::QuickHull(supp1->getPoints());
-        ConvexHull* ch2 = ConvexHull::QuickHull(supp2->getPoints());
+        QuickHullSolver solver1 = QuickHullSolver();
+        solver1.computeConvexHull(supp1->getPoints());
+        ConvexHull* ch1 = solver1.getHull();
+
+        QuickHullSolver solver2 = QuickHullSolver();
+        solver2.computeConvexHull(supp2->getPoints());
+        ConvexHull* ch2 = solver2.getHull();
 
         bool blue = false;
         if (solver.checkIntersection()) {
             blue = true;
 
             // Testing of the penetration vector
-           /* const Vector3 penetration = solver.penetrationVector();
-            t1->offsetPosition(penetration.x, penetration.y, penetration.z); */
+            const Vector3 penetration = solver.penetrationVector();
+            t1->offsetPosition(penetration.x, penetration.y, penetration.z); 
+
+            VisualDebug::DrawLine(Vector3(0,0,0), penetration, Color::Green());
         }
 
         ch1->transformPoints(t1);
@@ -229,6 +237,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             ch1->debugDrawConvexHull(Color::Red());
             ch2->debugDrawConvexHull(Color::Red());
         }
+
+        delete ch1, ch2;
 
         // Submit Object Render Requests
         std::vector<AssetRenderRequest> asset_requests;

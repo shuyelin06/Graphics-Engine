@@ -23,6 +23,8 @@ typedef unsigned int UINT;
 // Convex Hull on any arbitrary point cloud. 
 class ConvexHull {
 private:
+    friend class QuickHullSolver;
+
     std::vector<Vector3> vertices;
     std::vector<UINT> indices;
 
@@ -35,9 +37,6 @@ private:
 
     // Transform all points in the hull by the specified transform
     void transformPoints(const Transform* transform);
-
-    // Convex Hull generation with Quick Hull
-    static ConvexHull* QuickHull(const std::vector<Vector3>& point_cloud);
 
 #if defined(DRAW_CONVEX_HULL)
     void debugDrawConvexHull() const;

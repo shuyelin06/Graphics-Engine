@@ -3,7 +3,7 @@
 #include "../Vector3.h"
 
 #if defined(_DEBUG)
-#define DRAW_AABB_EXTENTS
+// #define DRAW_AABB_EXTENTS
 #endif
 
 namespace Engine {

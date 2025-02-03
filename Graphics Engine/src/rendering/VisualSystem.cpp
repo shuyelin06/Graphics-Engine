@@ -528,7 +528,7 @@ void VisualSystem::performRenderPass() {
             // DEBUG
             const Matrix4 frustumMatrix =
                 viewMatrix.inverse() * projectionMatrix.inverse();
-            VisualDebug::DrawFrustum(frustumMatrix, Color::Green());
+            // VisualDebug::DrawFrustum(frustumMatrix, Color::Green());
         }
     }
 

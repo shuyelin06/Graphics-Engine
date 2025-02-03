@@ -32,12 +32,12 @@ class GJKSolver {
     // Returns if the two shapes are intersecting or not
     bool checkIntersection();
 
-    // If the two shapes are intersecting, returns the penetration
-    // vector. Does this using an approximation.
+    // If the two shapes are intersecting, returns the penetration vector
     Vector3 penetrationVector();
 
   private:
-    SolverStatus iterate();
+    // Performs 1 iteration of the GJK algorithm
+    SolverStatus iterate(); 
 
     const Vector3 querySupports(const Vector3& direction);
 };

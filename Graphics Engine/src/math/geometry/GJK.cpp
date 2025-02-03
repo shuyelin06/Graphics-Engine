@@ -1,8 +1,14 @@
 #include "GJK.h"
 
+#include <assert.h>
 #include <math.h>
 
 #include "GJKSupport.h"
+#include "QuickHull.h"
+#include "../Matrix4.h"
+#include "../Quaternion.h"
+
+#include "rendering/VisualDebug.h"
 
 namespace Engine {
 namespace Math {
@@ -117,7 +123,7 @@ SolverStatus GJKSolver::iterate() {
             // Flip orientation of triangle if it is facing the wrong way.
             // This way, when we generate our tetrahedron, the face normals will
             // correctly point outwards.
-            simplex->swap(1,2);
+            simplex->swap(1, 2);
         }
 
     } break;
@@ -185,33 +191,45 @@ SolverStatus GJKSolver::iterate() {
 
 // PenetrationVector:
 // If an intersection is found, returns the vector of penetration between
-// the two shapes.
-// Does this by sampling directions on the Minkowski difference and choosing
-// the one with the smallest distance.
+// the two shapes. Does this using the expanding prototype algorithm (EPA)
+// https://allenchou.net/2013/12/game-physics-contact-generation-epa/
 Vector3 GJKSolver::penetrationVector() {
-    Vector3 directions[14] = {Vector3(1, 0, 0),
-                              Vector3(0, 1, 0),
-                              Vector3(0, 0, 1),
-                              Vector3(-1, 0, 0),
-                              Vector3(0, -1, 0),
-                              Vector3(0, 0, -1),
-                              Vector3(0.5773f, 0.5773f, 0.5773f),
-                              Vector3(0.5773f, 0.5773f, -0.5773f),
-                              Vector3(0.5773f, -0.5773f, 0.5773f),
-                              Vector3(0.5773f, -0.5773f, -0.5773f),
-                              Vector3(-0.5773f, 0.5773f, 0.5773f),
-                              Vector3(-0.5773f, 0.5773f, -0.5773f),
-                              Vector3(-0.5773f, -0.5773f, 0.5773f),
-                              Vector3(-0.5773f, -0.5773f, -0.5773f)};
-
     Vector3 penetration = Vector3::VectorMax();
-    float distance = 100000;
+    float distance = FLT_MAX;
 
-    for (const Vector3& direction : directions) {
-        const Vector3 support_point = querySupports(direction);
-        if (support_point.dot(direction) < distance) {
-            penetration = support_point;
-            distance = support_point.dot(direction);
+    const int SAMPLES_THETA = 15;
+    const int SAMPLES_PHI = 10;
+
+    for (int i = 0; i < SAMPLES_THETA; i++) {
+        const float theta = i * (2 * 3.14159f) / SAMPLES_THETA;
+
+        for (int j = 0; j < SAMPLES_PHI; j++) {
+            const float phi = j * (3.14159) / SAMPLES_PHI;
+
+            const Quaternion rotation = Quaternion::RotationAroundAxis(Vector3::PositiveZ(), theta) * Quaternion::RotationAroundAxis(Vector3::PositiveY(), phi);
+            const Vector3 qv = rotation.im;
+            const float qw = rotation.r;
+
+            // Create quaternion matrix
+            const Matrix4 rotation_matrix = Matrix4(
+                1 - 2 * (qv.y * qv.y + qv.z * qv.z),
+                2 * (qv.x * qv.y - qw * qv.z), 2 * (qv.x * qv.z + qw * qv.y),
+                0.f, 2 * (qv.x * qv.y + qw * qv.z),
+                1 - 2 * (qv.x * qv.x + qv.z * qv.z),
+                2 * (qv.y * qv.z - qw * qv.x), 0.f,
+                2 * (qv.x * qv.z - qw * qv.y), 2 * (qv.y * qv.z + qw * qv.x),
+                1 - 2 * (qv.x * qv.x + qv.y * qv.y), 0.f, 0.f, 0.f, 0.f, 1.f);
+
+            const Vector3 direction = (rotation_matrix * Vector4(0,0,1,1)).xyz();
+            Graphics::VisualDebug::DrawLine(Vector3(), direction * 3, Color::White());
+
+            const Vector3 support_point = querySupports(direction);
+            Graphics::VisualDebug::DrawPoint(support_point, 1.25f);
+
+            if (support_point.dot(direction) < distance) {
+                penetration = -direction * support_point.dot(direction);
+                distance = support_point.dot(direction);
+            }
         }
     }
 
