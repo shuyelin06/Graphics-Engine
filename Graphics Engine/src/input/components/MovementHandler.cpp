@@ -10,8 +10,8 @@ MovementHandler::MovementHandler(Transform* _transform) {
 
     sensitivity = 5.0f;
 
-    xRotation = Quaternion(Vector3(), 1.f);
-    yRotation = Quaternion(Vector3(), 1.f);
+    xRotation = Quaternion();
+    yRotation = Quaternion();
 
     prev_x = center_x = 0;
     prev_y = center_y = 0;

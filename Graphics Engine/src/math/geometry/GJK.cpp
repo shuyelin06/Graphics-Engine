@@ -207,20 +207,9 @@ Vector3 GJKSolver::penetrationVector() {
             const float phi = j * (3.14159) / SAMPLES_PHI;
 
             const Quaternion rotation = Quaternion::RotationAroundAxis(Vector3::PositiveZ(), theta) * Quaternion::RotationAroundAxis(Vector3::PositiveY(), phi);
-            const Vector3 qv = rotation.im;
-            const float qw = rotation.r;
+            const Matrix3 m_rotation = rotation.rotationMatrix3();
+            const Vector3 direction = m_rotation * Vector3::PositiveZ();
 
-            // Create quaternion matrix
-            const Matrix4 rotation_matrix = Matrix4(
-                1 - 2 * (qv.y * qv.y + qv.z * qv.z),
-                2 * (qv.x * qv.y - qw * qv.z), 2 * (qv.x * qv.z + qw * qv.y),
-                0.f, 2 * (qv.x * qv.y + qw * qv.z),
-                1 - 2 * (qv.x * qv.x + qv.z * qv.z),
-                2 * (qv.y * qv.z - qw * qv.x), 0.f,
-                2 * (qv.x * qv.z - qw * qv.y), 2 * (qv.y * qv.z + qw * qv.x),
-                1 - 2 * (qv.x * qv.x + qv.y * qv.y), 0.f, 0.f, 0.f, 0.f, 1.f);
-
-            const Vector3 direction = (rotation_matrix * Vector4(0,0,1,1)).xyz();
             Graphics::VisualDebug::DrawLine(Vector3(), direction * 3, Color::White());
 
             const Vector3 support_point = querySupports(direction);
