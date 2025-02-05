@@ -6,9 +6,8 @@ namespace Engine {
 namespace Math {
 
 // Matrix3
-// Contains methods and data for a 3x3
-// matrix.
-// TODO: Currently row major. We should make it column major instead.
+// Contains methods and data for a 3x3 matrix.
+// This is internally stored as a column-major matrix.
 class Matrix3 {
   protected:
     float data[3][3];
@@ -20,8 +19,8 @@ class Matrix3 {
     Matrix3 transpose() const;
     Matrix3 inverse() const;
 
-    float minor(int row, int col) const;
-    float cofactor(int row, int col) const;
+    float minor(int col, int row) const;
+    float cofactor(int col, int row) const;
 
     float trace() const;
     float determinant() const;

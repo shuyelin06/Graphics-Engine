@@ -40,6 +40,10 @@
 #include "math/Compute.h"
 #include "utility/Stopwatch.h"
 
+// TEMP
+#include "math/geometry/QuickHull.h"
+#include "math/geometry/ConvexHull.h"
+
 using namespace Engine;
 using namespace Engine::Simulation;
 using namespace Engine::Datamodel;
@@ -52,8 +56,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 // Static reference to the input system for use in the window message callback
 static InputSystem input_system;
 
-#include "rendering/Shader.h"
-#include "utility/FileReader.h"
+#include "math/geometry/AABB.h"
+#include "math/geometry/GJK.h"
+#include "math/geometry/GJKSupport.h"
 
 // Main Function
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
@@ -74,15 +79,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     // Create a window instance from this class. HWND will contain a handle
     // to the window created.
-    HWND hwnd = CreateWindowEx(0,                   // Optional window styles.
-                               CLASS_NAME,          // Window class
-                               L"Graphics Engine",  // Window text
+    HWND hwnd = CreateWindowEx(0,                  // Optional window styles.
+                               CLASS_NAME,         // Window class
+                               L"Graphics Engine", // Window text
                                WS_BORDER,          // Window style
 
                                // Size and position
-                               CW_USEDEFAULT, CW_USEDEFAULT, 
-                               960,
-                               640,
+                               CW_USEDEFAULT, CW_USEDEFAULT, 960, 640,
 
                                NULL,      // Parent window
                                NULL,      // Menu
@@ -114,20 +117,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     // Bind Camera
     MovementHandler movementHandler(visual_system.getCamera().getTransform());
-    visual_system.getCamera().getTransform()->setPosition(0,10,0);
-
-    // Bind Lights to Camera
-    //Light* light = visual_system.createLight();
-    //light->setTransform(visual_system.getCamera().getTransform());
-
-    /*{
-        Transform transform = Transform();
-        transform.offsetPosition(0, 5, -10);
-        transform.offsetRotation(Vector3::PositiveX(), 0.05f);
-
-        Light* lObj = visual_system.createLight();
-        lObj->setTransform(&transform);
-    }*/
+    visual_system.getCamera().getTransform()->setPosition(0, 10, 0);
 
     // Create Object Hierarchy
     Object& parent_object = scene_graph.createObject();
@@ -147,10 +137,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     Utility::Stopwatch framerate_watch = Utility::Stopwatch();
 
-    VisualDebug::DrawPoint(Vector3(0, 0, 0), 1, Color::White(), 60 * 7);
-    VisualDebug::DrawPoint(Vector3(1, 0, 0), 1, Color::Red(), 60 * 7);
-    VisualDebug::DrawPoint(Vector3(0, 1, 0), 1, Color::Green(), 60 * 7);
-    VisualDebug::DrawPoint(Vector3(0, 0, 1), 1, Color::Blue(), 60 * 7);
+    VisualDebug::DrawPoint(Vector3(0, 0, 0), 1, Color::White());
+    VisualDebug::DrawPoint(Vector3(1, 0, 0), 1, Color::Red());
+    VisualDebug::DrawPoint(Vector3(0, 1, 0), 1, Color::Green());
+    VisualDebug::DrawPoint(Vector3(0, 0, 1), 1, Color::Blue());
 
     VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(5, 0, 0),
                           Color::Red());                      // X Red
@@ -158,6 +148,27 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                           Color::Green());
     VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(0, 0, 5), // Z Blue
                           Color::Blue());
+
+    // TEST: GJK
+    Transform* t1 = new Transform();
+    GJKSupportPointSet* supp1 = new GJKSupportPointSet(t1);
+
+    for (int i = 0; i < 20; i++) {
+        supp1->addPoint(Vector3(Compute::Random(-20.f, 20.f),
+                                Compute::Random(-20.f, 20.f),
+                                Compute::Random(-20.f, 20.f)));
+    }
+
+    Transform* t2 = new Transform();
+    GJKSupportPointSet* supp2 = new GJKSupportPointSet(t2);
+
+    for (int i = 0; i < 20; i++) {
+        supp2->addPoint(Vector3(Compute::Random(-20.f, 20.f),
+                                Compute::Random(-20.f, 20.f),
+                                Compute::Random(-20.f, 20.f)));
+    }
+
+    GJKSolver solver = GJKSolver(supp1, supp2);
 
     // Main loop: runs once per frame
     while (!close) {
@@ -182,7 +193,52 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         physics_system.update();
 
         // TODO: THIS CODE IS WRONG
-        child2.getTransform().lookAt(visual_system.getCamera().getTransform()->getPosition());
+        child2.getTransform().lookAt(
+            visual_system.getCamera().getTransform()->getPosition());
+
+        // TESTING
+        static float offset[3] = {};
+        ImGui::SliderFloat3("Position:", offset, -50.f, 50.f);
+        t1->setPosition(offset[0], offset[1], offset[2]);
+
+        static float rotate[2] = {};
+        ImGui::SliderFloat2("rotation:", rotate, -2 * 3.14f, 2 * 3.14f);
+        t1->setRotation(
+            Quaternion::RotationAroundAxis(Vector3::PositiveX(), rotate[0]) *
+            Quaternion::RotationAroundAxis(Vector3::PositiveY(), rotate[1]));
+
+        QuickHullSolver solver1 = QuickHullSolver();
+        solver1.computeConvexHull(supp1->getPoints());
+        ConvexHull* ch1 = solver1.getHull();
+
+        QuickHullSolver solver2 = QuickHullSolver();
+        solver2.computeConvexHull(supp2->getPoints());
+        ConvexHull* ch2 = solver2.getHull();
+
+        bool blue = false;
+        if (solver.checkIntersection()) {
+            blue = true;
+
+            // Testing of the penetration vector
+            const Vector3 penetration = solver.penetrationVector();
+            t1->offsetPosition(penetration.x, penetration.y, penetration.z); 
+
+            VisualDebug::DrawLine(Vector3(0,0,0), penetration, Color::Green());
+        }
+
+        ch1->transformPoints(t1);
+        ch2->transformPoints(t2);
+
+        if (blue) {
+            ch1->debugDrawConvexHull(Color::Blue());
+            ch2->debugDrawConvexHull(Color::Blue());
+        }
+        else {
+            ch1->debugDrawConvexHull(Color::Red());
+            ch2->debugDrawConvexHull(Color::Red());
+        }
+
+        delete ch1, ch2;
 
         // Submit Object Render Requests
         std::vector<AssetRenderRequest> asset_requests;
@@ -193,9 +249,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         // Submit Terrain Render Requests
         std::vector<TerrainRenderRequest> terrain_requests;
         scene_graph.updateAndRenderTerrain(terrain_requests);
-        for (const TerrainRenderRequest& request : terrain_requests) 
+        for (const TerrainRenderRequest& request : terrain_requests)
             visual_system.drawTerrain(request);
-        
+
         visual_system.render();
 
         // Stall until enough time has elapsed for 60 frames / second
@@ -214,8 +270,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
                             LPARAM lParam) {
     // Escape will always quit the application, just in case
-    if (uMsg == WM_DESTROY || 
-        (uMsg == WM_KEYDOWN && wParam == VK_ESCAPE)) {
+    if (uMsg == WM_DESTROY || (uMsg == WM_KEYDOWN && wParam == VK_ESCAPE)) {
         ClipCursor(NULL);
         PostQuitMessage(0);
         return 0;

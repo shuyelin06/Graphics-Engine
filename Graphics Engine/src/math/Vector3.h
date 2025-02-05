@@ -16,6 +16,8 @@ class Vector3 {
 
     ~Vector3(){};
 
+    void set(const Vector3& vec); // Updates the contents of the current vector
+
     void inplaceNormalize();
 
     Vector3 unit() const;
@@ -23,7 +25,7 @@ class Vector3 {
 
     float dot(const Vector3& vector) const;
     Vector3 cross(const Vector3& vector) const;
-
+    
     Vector3 componentMin(const Vector3& vector) const;
     Vector3 componentMax(const Vector3& vector) const;
 

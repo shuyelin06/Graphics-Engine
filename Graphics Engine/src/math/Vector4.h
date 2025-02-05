@@ -14,6 +14,7 @@ class Vector4 {
     float x, y, z, w;
 
     Vector4();
+    Vector4(const Vector3& vec3, float w);
     Vector4(const Vector4& copy);
     Vector4(float _x, float _y, float _z, float _w);
 

@@ -123,8 +123,9 @@ class VisualSystem {
     void renderDebugPoints(); // DEBUG
     void renderDebugLines();  // DEBUG
 
-#if defined(_DEBUG) // ImGui
+#if defined(_DEBUG) 
   private:
+    // Debug via ImGui
     // Frametime Tracking (CPU + GPU)
     GPUTimer gpu_timer;
     CPUTimer cpu_timer;
@@ -135,6 +136,9 @@ class VisualSystem {
     void imGuiFinish();
 
     void imGuiShutdown();
+
+    // Debug via VisualDebug
+    ID3D11Buffer* line_vbuffer;
 #endif
 
 };

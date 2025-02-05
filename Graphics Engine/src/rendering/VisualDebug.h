@@ -1,16 +1,10 @@
 #pragma once
 
-#include "Direct3D11.h"
-
 #include <vector>
-
-#include "rendering/Shader.h"
 
 #include "math/Color.h"
 #include "math/Matrix4.h"
 #include "math/Vector3.h"
-
-#define ENABLE_DEBUG_VISUALS
 
 namespace Engine {
 using namespace Math;
@@ -24,11 +18,7 @@ struct PointData {
     float scale;
 
     Color color;
-
-    // Determines for how many frames the point should persist. If -1,
-    // the point should exist indefinitely over the entire program.
-    // Unused in the shader, but conveniently pads the line data
-    int frameExpiration;
+    float padding;
 };
 
 // LineData Struct:
@@ -48,9 +38,7 @@ class VisualDebug {
 
   private:
     static std::vector<PointData> points;
-
     static std::vector<LinePoint> lines;
-    static ID3D11Buffer* lineVertexBuffer;
 
   public:
     // Clear all debug rendering data
@@ -58,18 +46,14 @@ class VisualDebug {
 
     // Quick and dirty rendering in 3D space
     static bool DrawPoint(const Vector3& position, float scale,
-                          const Color& color, int expiration);
-    static bool DrawPoint(const Vector3& position, float scale, int expiration);
+                          const Color& color);
+    static bool DrawPoint(const Vector3& position, float scale);
     static bool DrawLine(const Vector3& p1, const Vector3& p2,
                          const Color& rgb);
     static bool DrawLine(const Vector3& p1, const Vector3& p2);
 
     // Rendering for specific features
     static void DrawFrustum(const Matrix4& frustumMatrix, const Color& rgb);
-
-    // Pipeline Management
-    static int LoadPointData(CBHandle* cbHandle);
-    static int LoadLineData(ID3D11DeviceContext* context, ID3D11Device* device);
 };
 } // namespace Graphics
 } // namespace Engine

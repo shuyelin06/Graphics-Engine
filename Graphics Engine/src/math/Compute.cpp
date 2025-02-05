@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "Transform.h"
 #include "Vector2.h"
 #include "Vector4.h"
 
@@ -41,11 +40,6 @@ Vector3 Compute::SphericalToEuler(float r, float theta, float phi) {
     const float x = r * sinf(theta) * cosf(phi);
     const float y = r * sinf(theta) * sinf(phi);
     const float z = r * cosf(theta);
-
-    Vector4 z_axis = Vector4(0, 0, r, 1);
-    Quaternion q1 = Quaternion::RotationAroundAxis(Vector3::PositiveY(), theta);
-    Quaternion q2 = Quaternion::RotationAroundAxis(Vector3::PositiveZ(), phi);
-    z_axis = Transform::GenerateRotationMatrix(q2 * q1) * z_axis;
 
     return Vector3(x, y, z);
 }

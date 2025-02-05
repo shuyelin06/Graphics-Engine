@@ -35,7 +35,7 @@ Vector3 Triangle::center() const {
 Vector3 Triangle::normal() const {
     const Vector3 edge1 = vertices[1] - vertices[0];
     const Vector3 edge2 = vertices[2] - vertices[0];
-    const Vector3 normal = edge1.cross(edge2);
+    const Vector3 normal = edge2.cross(edge1);
 
     return normal.unit();
 }

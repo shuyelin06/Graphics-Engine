@@ -11,8 +11,8 @@ namespace Math {
 // Default Constructor:
 // Initializes transform with all properties set to 0
 Transform::Transform() {
-    position_local = Vector3();
-    rotation = Quaternion(Vector3(), 1);
+    position_local = Vector3(0, 0, 0);
+    rotation = Quaternion::Identity();
     scale = Vector3(1, 1, 1);
 }
 
@@ -39,10 +39,10 @@ void Transform::offsetPosition(float x, float y, float z) {
 // Returns an object's rotation
 const Quaternion& Transform::getRotation() const { return rotation; }
 
-// Set Viewng Direction: 
+// Set Viewng Direction:
 // Updates the object's rotation so that the object is facing the direction.
-// Assumes that the object's "view" is on the +Z axis, and target is in the object's
-// local space.
+// Assumes that the object's "view" is on the +Z axis, and target is in the
+// object's local space.
 // TODO: Small bug causes rapid swapping of the rotation at specific directions
 void Transform::setViewDirection(const Vector3& direc) {
     const Vector3 direction = direc.unit();
@@ -167,7 +167,7 @@ Matrix4 Transform::scaleMatrix(void) const {
 // RotationMatrix:
 // Returns the rotation matrix for the transform
 Matrix4 Transform::rotationMatrix(void) const {
-    return GenerateRotationMatrix(rotation);
+    return rotation.rotationMatrix4();
 }
 
 // TranslationMatrix:
@@ -180,24 +180,9 @@ Matrix4 Transform::translationMatrix(void) const {
 Matrix4 Transform::GenerateTranslationMatrix(float x, float y, float z) {
     return Matrix4(1, 0, 0, x, 0, 1, 0, y, 0, 0, 1, z, 0, 0, 0, 1);
 }
-Matrix4 Transform::GenerateRotationMatrix(const Quaternion& q) {
-    const Vector3 qv = q.im;
-    const float qw = q.r;
-
-    // Create quaternion matrix
-    const Matrix4 rotation_matrix = Matrix4(
-        1 - 2 * (qv.y * qv.y + qv.z * qv.z), 2 * (qv.x * qv.y - qw * qv.z),
-        2 * (qv.x * qv.z + qw * qv.y), 0.f, 2 * (qv.x * qv.y + qw * qv.z),
-        1 - 2 * (qv.x * qv.x + qv.z * qv.z), 2 * (qv.y * qv.z - qw * qv.x), 0.f,
-        2 * (qv.x * qv.z - qw * qv.y), 2 * (qv.y * qv.z + qw * qv.x),
-        1 - 2 * (qv.x * qv.x + qv.y * qv.y), 0.f, 0.f, 0.f, 0.f, 1.f);
-
-    return rotation_matrix;
-}
-
 Matrix4 Transform::GenerateRotationMatrix(const Vector3& axis, float theta) {
     const Quaternion rotation = Quaternion::RotationAroundAxis(axis, theta);
-    return GenerateRotationMatrix(rotation);
+    return rotation.rotationMatrix4();
 }
 
 } // namespace Math

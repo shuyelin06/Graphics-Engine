@@ -6,14 +6,14 @@ Matrix3::Matrix3() : data{{0}} {}
 
 Matrix3::Matrix3(float c1, float c2, float c3, float c4, float c5, float c6,
                  float c7, float c8, float c9)
-    : data{{c1, c2, c3}, {c4, c5, c6}, {c7, c8, c9}} {}
+    : data{{c1, c4, c7}, {c2, c5, c8}, {c3, c6, c9}} {}
 
 Matrix3 Matrix3::transpose() const {
     Matrix3 new_matrix;
 
-    for (int row = 0; row < 3; row++) {
-        for (int col = 0; col < 3; col++) {
-            new_matrix[row][col] = data[col][row];
+    for (int col = 0; col < 3; col++) {
+        for (int row = 0; row < 3; row++) {
+            new_matrix[col][row] = data[row][col];
         }
     }
 
@@ -24,29 +24,28 @@ Matrix3 Matrix3::inverse() const {
     Matrix3 inv;
     float det = determinant();
 
-    for (int row = 0; row < 3; row++) {
-        for (int col = 0; col < 3; col++) {
+    for (int col = 0; col < 3; col++) {
+        for (int row = 0; row < 3; row++) {
             // Take the adjoint and divide by the determinant
-            inv[row][col] = cofactor(col, row) / det;
+            inv[col][row] = cofactor(row, col) / det;
         }
     }
 
     return inv;
 }
 
-float Matrix3::minor(int row, int col) const {
-    int row_one = (row == 0 ? 1 : 0);
-    int row_two = (row == 2 ? 1 : 2);
+float Matrix3::minor(int col, int row) const {
+    const int col_one = (col == 0 ? 1 : 0);
+    const int col_two = (col == 2 ? 1 : 2);
+    const int row_one = (row == 0 ? 1 : 0);
+    const int row_two = (row == 2 ? 1 : 2);
 
-    int col_one = (col == 0 ? 1 : 0);
-    int col_two = (col == 2 ? 1 : 2);
-
-    return data[row_one][col_one] * data[row_two][col_two] -
-           data[row_one][col_two] * data[row_two][col_one];
+    return data[col_one][row_one] * data[col_two][row_two] -
+           data[col_two][row_one] * data[col_one][row_two];
 }
 
-float Matrix3::cofactor(int row, int col) const {
-    float m = minor(row, col);
+float Matrix3::cofactor(int col, int row) const {
+    float m = minor(col, row);
     return (row + col) % 2 == 0 ? m : -m;
 }
 
@@ -57,20 +56,19 @@ float Matrix3::determinant() const {
            data[0][2] * cofactor(0, 2);
 }
 
-float* const Matrix3::operator[](int row) { return data[row]; }
+float* const Matrix3::operator[](int col) { return data[col]; }
 
 Matrix3 Matrix3::operator*(Matrix3& matrix) const {
     Matrix3 new_matrix = Matrix3();
 
-    for (int row = 0; row < 3; row++) {
-        for (int col = 0; col < 3; col++) {
+    for (int col = 0; col < 3; col++) {
+        for (int row = 0; row < 3; row++) {
             float value = 0;
 
-            for (int i = 0; i < 3; i++) {
-                value += data[row][i] * matrix[i][col];
-            }
+            for (int i = 0; i < 3; i++)
+                value += data[i][row] * matrix[col][i];
 
-            new_matrix[row][col] = value;
+            new_matrix[col][row] = value;
         }
     }
 
@@ -78,9 +76,12 @@ Matrix3 Matrix3::operator*(Matrix3& matrix) const {
 }
 
 Vector3 Matrix3::operator*(const Vector3& vector) const {
-    float x = vector.x * (data[0][0] + data[1][0] + data[2][0]);
-    float y = vector.y * (data[0][1] + data[1][1] + data[2][1]);
-    float z = vector.z * (data[0][2] + data[1][2] + data[2][2]);
+    const float x =
+        vector.x * data[0][0] + vector.y * data[1][0] + vector.z * data[2][0];
+    const float y =
+        vector.x * data[0][1] + vector.y * data[1][1] + vector.z * data[2][1];
+    const float z =
+        vector.x * data[0][2] + vector.y * data[1][2] + vector.z * data[2][2];
 
     return Vector3(x, y, z);
 }
@@ -88,9 +89,9 @@ Vector3 Matrix3::operator*(const Vector3& vector) const {
 Matrix3 Matrix3::operator*(const float c) const {
     Matrix3 new_matrix = Matrix3();
 
-    for (int row = 0; row < 3; row++) {
-        for (int col = 0; col < 3; col++) {
-            new_matrix[row][col] = data[row][col] * c;
+    for (int col = 0; col < 3; col++) {
+        for (int row = 0; row < 3; row++) {
+            new_matrix[col][row] = data[col][row] * c;
         }
     }
 
@@ -100,9 +101,9 @@ Matrix3 Matrix3::operator*(const float c) const {
 Matrix3 Matrix3::operator/(const float c) const {
     Matrix3 new_matrix = Matrix3();
 
-    for (int row = 0; row < 3; row++) {
-        for (int col = 0; col < 3; col++) {
-            new_matrix[row][col] = data[row][col] / c;
+    for (int col = 0; col < 3; col++) {
+        for (int row = 0; row < 3; row++) {
+            new_matrix[col][row] = data[col][row] / c;
         }
     }
 

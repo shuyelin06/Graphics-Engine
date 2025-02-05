@@ -4,6 +4,9 @@
 
 namespace Engine {
 namespace Math {
+// Triangle Class:
+// Defines a triangle with 3 points: v0, v1, v2.
+// Triangles are defined to have a clock-wise winding order.
 class Triangle {
   private:
     Vector3 vertices[3];

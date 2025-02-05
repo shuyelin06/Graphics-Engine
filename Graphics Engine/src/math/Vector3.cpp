@@ -27,6 +27,14 @@ Vector3::Vector3(float _x, float _y, float _z) {
     z = _z;
 }
 
+// Set:
+// Updates the contents of the current vector
+void Vector3::set(const Vector3& vec) {
+    x = vec.x;
+    y = vec.y;
+    z = vec.z;
+} 
+
 // Magnitude:
 // Returns the vector's magnitude
 float Vector3::magnitude() const { return sqrtf(x * x + y * y + z * z); }
@@ -56,7 +64,7 @@ float Vector3::dot(const Vector3& vector) const {
 // Cross:
 // Performs the cross product between two vectors.
 Vector3 Vector3::cross(const Vector3& vector) const {
-    return Vector3(y * vector.z - z * vector.y, x * vector.z - z * vector.x,
+    return Vector3(y * vector.z - z * vector.y, -(x * vector.z - z * vector.x),
                    x * vector.y - y * vector.x);
 }
 

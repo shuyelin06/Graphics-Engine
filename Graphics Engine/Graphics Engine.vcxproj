@@ -170,6 +170,12 @@
     <ClCompile Include="src\datamodel\Terrain.cpp" />
     <ClCompile Include="src\input\components\MovementHandler.cpp" />
     <ClCompile Include="src\input\InputFrame.cpp" />
+    <ClCompile Include="src\math\geometry\AABB.cpp" />
+    <ClCompile Include="src\math\geometry\ConvexHull.cpp" />
+    <ClCompile Include="src\math\geometry\GJK.cpp" />
+    <ClCompile Include="src\math\geometry\GJKSupport.cpp" />
+    <ClCompile Include="src\math\geometry\OBB.cpp" />
+    <ClCompile Include="src\math\geometry\QuickHull.cpp" />
     <ClCompile Include="src\math\PerlinNoise.cpp" />
     <ClCompile Include="src\math\Transform.cpp" />
     <ClCompile Include="src\input\InputState.cpp" />
@@ -229,6 +235,12 @@
     <ClInclude Include="src\datamodel\TerrainConfig.h" />
     <ClInclude Include="src\input\InputFrame.h" />
     <ClInclude Include="src\input\SymbolData.h" />
+    <ClInclude Include="src\math\geometry\AABB.h" />
+    <ClInclude Include="src\math\geometry\ConvexHull.h" />
+    <ClInclude Include="src\math\geometry\GJK.h" />
+    <ClInclude Include="src\math\geometry\GJKSupport.h" />
+    <ClInclude Include="src\math\geometry\OBB.h" />
+    <ClInclude Include="src\math\geometry\QuickHull.h" />
     <ClInclude Include="src\rendering\AssetIDs.h" />
     <ClInclude Include="src\rendering\core\LightManager.h" />
     <ClInclude Include="src\rendering\core\Texture.h" />
