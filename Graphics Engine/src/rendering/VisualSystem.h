@@ -7,18 +7,21 @@
 
 #include "Direct3D11.h"
 
-#include "ResourceManager.h"
-#include "RenderRequest.h"
-#include "TextureManager.h"
+#include "core/ResourceManager.h"
+#include "core/TextureManager.h"
 #include "shaders/ShaderManager.h"
 #include "lights/LightManager.h"
+
+#include "core/AssetObject.h"
+#include "lights/LightObject.h"
+
+#include "RenderRequest.h"
 
 #include "rendering/core/Camera.h"
 
 #include "datamodel/Terrain.h"
 
-#include "core/AssetObject.h"
-#include "lights/LightObject.h"
+
 
 #if defined(_DEBUG)
 // imgui Includes

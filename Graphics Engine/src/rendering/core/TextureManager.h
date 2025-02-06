@@ -3,10 +3,10 @@
 #include <string>
 #include <unordered_map>
 
-#include "Direct3D11.h"
+#include "../Direct3D11.h"
 
-#include "rendering/core/TextureBuilder.h"
-#include "rendering/core/Texture.h"
+#include "TextureBuilder.h"
+#include "Texture.h"
 
 namespace Engine {
 namespace Graphics {
@@ -26,7 +26,7 @@ class TextureManager {
     Texture* getTexture(const std::string& name);
 
     // Built-in texture generation methods
-    Texture* createDepthTexture(const std::string&, UINT width, UINT height);
+    Texture* createDepthTexture(const std::string& name, UINT width, UINT height);
     Texture* createShadowTexture(const std::string& name, UINT width, UINT height);
 
 private:

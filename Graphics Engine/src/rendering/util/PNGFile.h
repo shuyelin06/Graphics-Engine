@@ -2,8 +2,8 @@
 
 #include <string>
 
-#include "rendering/Direct3D11.h"
-#include "rendering/core/TextureBuilder.h"
+#include "../Direct3D11.h"
+#include "../core/TextureBuilder.h"
 
 namespace Engine
 {

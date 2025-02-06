@@ -201,7 +201,7 @@
     <ClCompile Include="src\rendering\core\MeshBuilder.cpp" />
     <ClCompile Include="src\rendering\core\Camera.cpp" />
     <ClCompile Include="src\rendering\lights\Light.cpp" />
-    <ClCompile Include="src\rendering\ResourceManager.cpp" />
+    <ClCompile Include="src\rendering\core\ResourceManager.cpp" />
     <ClCompile Include="src\rendering\core\Texture.cpp" />
     <ClCompile Include="src\rendering\core\TextureBuilder.cpp" />
     <ClCompile Include="src\rendering\imgui\imgui.cpp" />
@@ -211,8 +211,8 @@
     <ClCompile Include="src\rendering\imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="src\rendering\imgui\imgui_tables.cpp" />
     <ClCompile Include="src\rendering\imgui\imgui_widgets.cpp" />
-    <ClCompile Include="src\rendering\MarchingCubes.cpp" />
-    <ClCompile Include="src\rendering\TextureManager.cpp" />
+    <ClCompile Include="src\rendering\core\MarchingCubes.cpp" />
+    <ClCompile Include="src\rendering\core\TextureManager.cpp" />
     <ClCompile Include="src\rendering\util\OBJFile.cpp" />
     <ClCompile Include="src\rendering\util\PNGFile.cpp" />
     <ClCompile Include="src\rendering\RenderRequest.cpp" />
@@ -228,7 +228,7 @@
     <ClCompile Include="src\rendering\VisualSystem.cpp" />
     <ClCompile Include="src\utility\FileReader.cpp" />
     <ClCompile Include="src\utility\Stopwatch.cpp" />
-    <ClCompile Include="src\rendering\_VertexStreamIDs_.h" />
+    <ClCompile Include="src\rendering\core\VertexStreamIDs.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\zconf.h" />
@@ -259,7 +259,7 @@
     <ClInclude Include="src\rendering\imgui\imstb_rectpack.h" />
     <ClInclude Include="src\rendering\imgui\imstb_textedit.h" />
     <ClInclude Include="src\rendering\imgui\imstb_truetype.h" />
-    <ClInclude Include="src\rendering\MarchingCubeTables.h" />
+    <ClInclude Include="src\rendering\core\MarchingCubeTables.h" />
     <ClInclude Include="src\input\components\MovementHandler.h" />
     <ClInclude Include="src\math\PerlinNoise.h" />
     <ClInclude Include="src\math\Transform.h" />
@@ -282,11 +282,11 @@
     <ClInclude Include="src\rendering\core\MeshBuilder.h" />
     <ClInclude Include="src\rendering\core\Camera.h" />
     <ClInclude Include="src\rendering\lights\Light.h" />
-    <ClInclude Include="src\rendering\ResourceManager.h" />
+    <ClInclude Include="src\rendering\core\ResourceManager.h" />
     <ClInclude Include="src\rendering\RenderRequest.h" />
     <ClInclude Include="src\rendering\shaders\Shader.h" />
     <ClInclude Include="src\rendering\shaders\ShaderManager.h" />
-    <ClInclude Include="src\rendering\TextureManager.h" />
+    <ClInclude Include="src\rendering\core\TextureManager.h" />
     <ClInclude Include="src\rendering\util\CPUTimer.h" />
     <ClInclude Include="src\rendering\util\GPUTimer.h" />
     <ClInclude Include="src\rendering\util\OBJFile.h" />

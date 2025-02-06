@@ -1,22 +1,20 @@
 #pragma once
 
-#include <unordered_map>
 #include <map>
 #include <string>
-
-#include "Direct3D11.h"
+#include <unordered_map>
 
 #include "datamodel/SceneGraph.h"
 
-#include "rendering/core/Asset.h"
-#include "rendering/core/MeshBuilder.h"
-#include "rendering/core/TextureBuilder.h"
+#include "../Direct3D11.h"
+
+#include "Asset.h"
+#include "MeshBuilder.h"
+#include "TextureBuilder.h"
 
 namespace Engine {
-namespace Graphics {
 using namespace Datamodel;
-
-// enum AssetSlot from AssetIDs.h
+namespace Graphics {
 
 enum TextureSlot {
     Test = 0,
@@ -35,9 +33,10 @@ class ResourceManager {
   private:
     ID3D11Device* device;
     ID3D11DeviceContext* context;
-    
+
     std::unordered_map<std::string, Asset*> assets;
-    std::vector<Texture*> textures;
+    std::unordered_map<std::string, Texture*> textures;
+
     std::vector<ID3D11SamplerState*> samplers;
 
     Mesh* terrain_meshes[CHUNK_X_LIMIT][CHUNK_Z_LIMIT];
@@ -52,7 +51,8 @@ class ResourceManager {
     // Get an asset data by name
     Asset* getAsset(const std::string& name);
     // Get a texture by name
-    Texture* getTexture(TextureSlot texture);
+    Texture* getTexture(const std::string& name);
+
     // Get a sampler by name
     ID3D11SamplerState* getSampler(SamplerSlot sampler);
 
@@ -68,8 +68,7 @@ class ResourceManager {
     Mesh* GenerateTerrainMesh(MeshBuilder& builder, TerrainData data);
 
     // Load assets from files.
-    Asset* LoadAssetFromOBJ(MeshBuilder& builder, std::string path,
-                            std::string objFile);
+    Asset* LoadAssetFromOBJ(const std::string& path, const std::string& objFile);
 
     bool LoadTextureFromPNG(TextureBuilder& builder, std::string path,
                             std::string png_file);

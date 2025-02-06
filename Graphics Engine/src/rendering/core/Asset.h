@@ -1,15 +1,16 @@
 #pragma once
 
-#include "rendering/Direct3D11.h"
-#include "rendering/_VertexStreamIDs_.h"
-
 #include <string>
 #include <vector>
+
+#include "../Direct3D11.h"
+#include "VertexStreamIDs.h"
+#include "Texture.h"
 
 #include "math/Color.h"
 #include "math/Vector2.h"
 #include "math/Vector3.h"
-#include "Texture.h"
+
 
 namespace Engine {
 using namespace Math;

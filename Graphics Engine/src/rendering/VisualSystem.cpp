@@ -403,7 +403,7 @@ void VisualSystem::performTerrainPass() {
 
     // Load my Textures
     {
-        Texture* tex = assetManager->getTexture(TerrainGrass);
+        Texture* tex = assetManager->getTexture("TerrainGrass");
         context->PSSetShaderResources(0, 1, &tex->shader_view);
 
         const Texture* shadow_texture = light_manager->getAtlasTexture();
@@ -531,7 +531,7 @@ void VisualSystem::performRenderPass() {
 
     // Load my Textures
     {
-        Texture* tex = assetManager->getTexture(CapybaraTex);
+        Texture* tex = assetManager->getTexture("CapybaraTex");
         context->PSSetShaderResources(0, 1, &tex->shader_view);
 
         const Texture* shadow_texture = light_manager->getAtlasTexture();

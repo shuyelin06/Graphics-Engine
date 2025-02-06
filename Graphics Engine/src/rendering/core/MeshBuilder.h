@@ -18,7 +18,7 @@ struct MeshVertex {
     MeshVertex();
     MeshVertex(const MeshVertex& vertex);
     MeshVertex(const Vector3& pos, const Vector2& tex,
-               const Math::Vector3& norm);
+               const Vector3& norm);
 };
 
 struct MeshTriangle {

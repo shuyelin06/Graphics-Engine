@@ -63,7 +63,7 @@
     <ClCompile Include="src\rendering\lights\Light.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\ResourceManager.cpp">
+    <ClCompile Include="src\rendering\core\ResourceManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\math\Vector2.cpp">
@@ -111,13 +111,13 @@
     <ClCompile Include="src\math\PerlinNoise.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\MarchingCubes.cpp">
+    <ClCompile Include="src\rendering\core\MarchingCubes.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\RenderRequest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\_VertexStreamIDs_.h">
+    <ClCompile Include="src\rendering\core\VertexStreamIDs.h">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\imgui\imgui.cpp">
@@ -168,7 +168,7 @@
     <ClCompile Include="src\rendering\util\OBJFile.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\TextureManager.cpp">
+    <ClCompile Include="src\rendering\core\TextureManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\lights\LightManager.cpp">
@@ -251,7 +251,7 @@
     <ClInclude Include="src\rendering\lights\Light.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\ResourceManager.h">
+    <ClInclude Include="src\rendering\core\ResourceManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\math\Vector2.h">
@@ -269,7 +269,7 @@
     <ClInclude Include="src\math\Color.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\MarchingCubeTables.h">
+    <ClInclude Include="src\rendering\core\MarchingCubeTables.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\math\Quaternion.h">
@@ -374,7 +374,7 @@
     <ClInclude Include="src\rendering\util\OBJFile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\TextureManager.h">
+    <ClInclude Include="src\rendering\core\TextureManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\lights\LightManager.h">
