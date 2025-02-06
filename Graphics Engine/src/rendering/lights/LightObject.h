@@ -1,7 +1,7 @@
 #pragma once
 
+#include "../VisualObject.h"
 #include "Light.h"
-#include "rendering/VisualObject.h"
 
 namespace Engine {
 namespace Graphics {

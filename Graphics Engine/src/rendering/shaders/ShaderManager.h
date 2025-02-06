@@ -2,9 +2,9 @@
 
 #include <unordered_map>
 
-#include "Direct3D11.h"
-#include "_VertexStreamIDs_.h"
 #include "Shader.h"
+#include "../Direct3D11.h"
+#include "../_VertexStreamIDs_.h"
 
 namespace Engine {
 namespace Graphics {

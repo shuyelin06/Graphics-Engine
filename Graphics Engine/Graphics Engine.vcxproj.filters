@@ -60,7 +60,7 @@
     <ClCompile Include="src\physics\PhysicsSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\core\Light.cpp">
+    <ClCompile Include="src\rendering\lights\Light.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\ResourceManager.cpp">
@@ -72,10 +72,10 @@
     <ClCompile Include="src\rendering\core\Asset.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\ShaderManager.cpp">
+    <ClCompile Include="src\rendering\shaders\ShaderManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\Shader.cpp">
+    <ClCompile Include="src\rendering\shaders\Shader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\math\Color.cpp">
@@ -171,7 +171,7 @@
     <ClCompile Include="src\rendering\TextureManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\core\LightManager.cpp">
+    <ClCompile Include="src\rendering\lights\LightManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\math\geometry\AABB.cpp">
@@ -201,7 +201,7 @@
     <ClCompile Include="src\rendering\core\AssetObject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\core\LightObject.cpp">
+    <ClCompile Include="src\rendering\lights\LightObject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -248,7 +248,7 @@
     <ClInclude Include="src\physics\PhysicsSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\core\Light.h">
+    <ClInclude Include="src\rendering\lights\Light.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\ResourceManager.h">
@@ -260,10 +260,10 @@
     <ClInclude Include="src\rendering\core\Asset.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\ShaderManager.h">
+    <ClInclude Include="src\rendering\shaders\ShaderManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\Shader.h">
+    <ClInclude Include="src\rendering\shaders\Shader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\math\Color.h">
@@ -377,7 +377,7 @@
     <ClInclude Include="src\rendering\TextureManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\core\LightManager.h">
+    <ClInclude Include="src\rendering\lights\LightManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\math\geometry\AABB.h">
@@ -407,7 +407,7 @@
     <ClInclude Include="src\rendering\core\AssetObject.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\core\LightObject.h">
+    <ClInclude Include="src\rendering\lights\LightObject.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

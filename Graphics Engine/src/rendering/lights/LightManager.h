@@ -1,7 +1,7 @@
 #pragma once
 
+#include "../core/TextureAtlas.h"
 #include "Light.h"
-#include "TextureAtlas.h"
 
 #include <vector>
 

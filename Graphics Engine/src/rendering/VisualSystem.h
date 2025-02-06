@@ -9,16 +9,16 @@
 
 #include "ResourceManager.h"
 #include "RenderRequest.h"
-#include "ShaderManager.h"
 #include "TextureManager.h"
-#include "core/LightManager.h"
+#include "shaders/ShaderManager.h"
+#include "lights/LightManager.h"
 
 #include "rendering/core/Camera.h"
 
 #include "datamodel/Terrain.h"
 
 #include "core/AssetObject.h"
-#include "core/LightObject.h"
+#include "lights/LightObject.h"
 
 #if defined(_DEBUG)
 // imgui Includes

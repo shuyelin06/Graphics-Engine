@@ -1,10 +1,7 @@
 #pragma once
 
-#include "Camera.h"
-#include "TextureAtlas.h"
-
-#include "rendering/Direct3D11.h"
-#include "rendering/Shader.h"
+#include "../Direct3D11.h"
+#include "../core/TextureAtlas.h"
 
 #include "math/Color.h"
 #include "math/Matrix4.h"
