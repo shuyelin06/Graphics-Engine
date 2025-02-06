@@ -85,6 +85,10 @@ void ResourceManager::initialize() {
     assets[Cube] = LoadCube(mesh_builder);
     // Fox by Jake Blakeley [CC-BY] via Poly Pizza
     assets[Fox] = LoadAssetFromOBJ(mesh_builder, "data/", "model.obj");
+
+    // Capybara
+    // Capybara by Poly by Google [CC-BY] via Poly Pizza
+    
 }
 
 // GetAsset:

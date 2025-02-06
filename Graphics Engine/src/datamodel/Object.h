@@ -13,6 +13,11 @@ namespace Engine {
 using namespace Math;
 using namespace Graphics;
 
+namespace Physics {
+class PhysicsObject;
+}
+using namespace Physics;
+
 namespace Datamodel {
 // Object Class
 // Stores data regarding a generic object in our engine.
@@ -31,9 +36,12 @@ class Object {
 
     // (Cached) Local --> World Matrix
     Matrix4 m_local;
-    
+
     // Renderable Asset Associated with the Object
     AssetSlot asset;
+
+    // Physics Data Associated with the Object
+    PhysicsObject* physics_object;
 
   public:
     // Constructor & Destructor
@@ -57,6 +65,9 @@ class Object {
 
     void setAsset(AssetSlot asset);
 
+    // Physics Methods
+    const PhysicsObject* getPhysicsObject() const;
+    void setPhysicsObject(PhysicsObject* phys_obj);
 };
 } // namespace Datamodel
 } // namespace Engine

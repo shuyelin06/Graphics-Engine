@@ -31,8 +31,13 @@ void Transform::setPosition(float x, float y, float z) {
 // OffsetPosition:
 // Changes the transform's position by adding given values to it
 void Transform::offsetPosition(float x, float y, float z) {
-    setPosition(position_local.x + x, position_local.y + y,
-                position_local.z + z);
+    position_local.x = position_local.x + x;
+    position_local.y = position_local.y + y;
+    position_local.z = position_local.z + z;
+}
+
+void Transform::offsetPosition(const Vector3& offset) {
+    offsetPosition(offset.x, offset.y, offset.z);
 }
 
 // GetRotation:

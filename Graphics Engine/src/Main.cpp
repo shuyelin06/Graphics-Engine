@@ -28,8 +28,8 @@
 
 #include "datamodel/SceneGraph.h"
 #include "input/InputSystem.h"
+#include "physics/PhysicsSystem.h"
 #include "rendering/VisualSystem.h"
-#include "simulation/PhysicsSystem.h"
 
 #include "input/components/MovementHandler.h"
 
@@ -41,11 +41,11 @@
 #include "utility/Stopwatch.h"
 
 // TEMP
-#include "math/geometry/QuickHull.h"
 #include "math/geometry/ConvexHull.h"
+#include "math/geometry/QuickHull.h"
 
 using namespace Engine;
-using namespace Engine::Simulation;
+using namespace Engine::Physics;
 using namespace Engine::Datamodel;
 using namespace Engine::Input;
 using namespace Engine::Graphics;
@@ -131,44 +131,34 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                                       Compute::Random(-2.5f, 2.5f),
                                       Compute::Random(15, 25));
 
+    Object& collider_1 = parent_object.createChild();
+    PhysicsObject* phys_1 = physics_system.bindPhysicsObject(&collider_1);
+    GJKSupportPointSet* supp_1 =
+        new GJKSupportPointSet(&collider_1.getTransform());
+    for (int i = 0; i < 20; i++) {
+        supp_1->addPoint(Vector3(Compute::Random(-20.f, 20.f),
+                                 Compute::Random(-20.f, 20.f),
+                                 Compute::Random(-20.f, 20.f)));
+    }
+    phys_1->setCollisionFunction(supp_1);
+
+    Object& collider_2 = parent_object.createChild();
+    collider_2.getTransform().setPosition(20,20,20);
+    PhysicsObject* phys_2 = physics_system.bindPhysicsObject(&collider_2);
+    GJKSupportPointSet* supp_2 =
+        new GJKSupportPointSet(&collider_2.getTransform());
+    for (int i = 0; i < 20; i++) {
+        supp_2->addPoint(Vector3(Compute::Random(-20.f, 20.f),
+                                 Compute::Random(-20.f, 20.f),
+                                 Compute::Random(-20.f, 20.f)));
+    }
+    phys_2->setCollisionFunction(supp_2);
+
     // Begin window messaging loop
     MSG msg = {};
     bool close = false;
 
     Utility::Stopwatch framerate_watch = Utility::Stopwatch();
-
-    VisualDebug::DrawPoint(Vector3(0, 0, 0), 1, Color::White());
-    VisualDebug::DrawPoint(Vector3(1, 0, 0), 1, Color::Red());
-    VisualDebug::DrawPoint(Vector3(0, 1, 0), 1, Color::Green());
-    VisualDebug::DrawPoint(Vector3(0, 0, 1), 1, Color::Blue());
-
-    VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(5, 0, 0),
-                          Color::Red());                      // X Red
-    VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(0, 5, 0), // Y Green
-                          Color::Green());
-    VisualDebug::DrawLine(Vector3(0, 0, 0), Vector3(0, 0, 5), // Z Blue
-                          Color::Blue());
-
-    // TEST: GJK
-    Transform* t1 = new Transform();
-    GJKSupportPointSet* supp1 = new GJKSupportPointSet(t1);
-
-    for (int i = 0; i < 20; i++) {
-        supp1->addPoint(Vector3(Compute::Random(-20.f, 20.f),
-                                Compute::Random(-20.f, 20.f),
-                                Compute::Random(-20.f, 20.f)));
-    }
-
-    Transform* t2 = new Transform();
-    GJKSupportPointSet* supp2 = new GJKSupportPointSet(t2);
-
-    for (int i = 0; i < 20; i++) {
-        supp2->addPoint(Vector3(Compute::Random(-20.f, 20.f),
-                                Compute::Random(-20.f, 20.f),
-                                Compute::Random(-20.f, 20.f)));
-    }
-
-    GJKSolver solver = GJKSolver(supp1, supp2);
 
     // Main loop: runs once per frame
     while (!close) {
@@ -192,51 +182,27 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         // Update Physics System
         physics_system.update();
 
-        // TODO: THIS CODE IS WRONG
-        child2.getTransform().lookAt(
-            visual_system.getCamera().getTransform()->getPosition());
+        //// TODO: THIS CODE IS WRONG
+        //child2.getTransform().lookAt(
+        //    visual_system.getCamera().getTransform()->getPosition());
 
         // TESTING
         static float offset[3] = {};
-        ImGui::SliderFloat3("Position:", offset, -50.f, 50.f);
-        t1->setPosition(offset[0], offset[1], offset[2]);
-
-        static float rotate[2] = {};
-        ImGui::SliderFloat2("rotation:", rotate, -2 * 3.14f, 2 * 3.14f);
-        t1->setRotation(
-            Quaternion::RotationAroundAxis(Vector3::PositiveX(), rotate[0]) *
-            Quaternion::RotationAroundAxis(Vector3::PositiveY(), rotate[1]));
+        ImGui::SliderFloat3("Velocity:", offset, -5.f, 5.f);
+        phys_1->setVelocity(Vector3(offset[0], offset[1], offset[2]));
 
         QuickHullSolver solver1 = QuickHullSolver();
-        solver1.computeConvexHull(supp1->getPoints());
+        solver1.computeConvexHull(supp_1->getPoints());
         ConvexHull* ch1 = solver1.getHull();
+        ch1->transformPoints(&collider_1.getTransform());
 
         QuickHullSolver solver2 = QuickHullSolver();
-        solver2.computeConvexHull(supp2->getPoints());
+        solver2.computeConvexHull(supp_2->getPoints());
         ConvexHull* ch2 = solver2.getHull();
+        ch2->transformPoints(&collider_2.getTransform());
 
-        bool blue = false;
-        if (solver.checkIntersection()) {
-            blue = true;
-
-            // Testing of the penetration vector
-            const Vector3 penetration = solver.penetrationVector();
-            t1->offsetPosition(penetration.x, penetration.y, penetration.z); 
-
-            VisualDebug::DrawLine(Vector3(0,0,0), penetration, Color::Green());
-        }
-
-        ch1->transformPoints(t1);
-        ch2->transformPoints(t2);
-
-        if (blue) {
-            ch1->debugDrawConvexHull(Color::Blue());
-            ch2->debugDrawConvexHull(Color::Blue());
-        }
-        else {
-            ch1->debugDrawConvexHull(Color::Red());
-            ch2->debugDrawConvexHull(Color::Red());
-        }
+        ch1->debugDrawConvexHull(Color::Blue());
+        ch2->debugDrawConvexHull(Color::Red());
 
         delete ch1, ch2;
 

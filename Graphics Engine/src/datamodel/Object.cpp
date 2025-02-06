@@ -2,6 +2,8 @@
 
 #include <math.h>
 
+#include "physics/PhysicsObject.h"
+
 namespace Engine {
 using namespace Math;
 
@@ -15,8 +17,9 @@ Object::Object() {
     parent = nullptr;
     children = std::vector<Object*>(0);
 
-    // Objects start with no asset 
+    // Objects start with no asset
     asset = NoAsset;
+    physics_object = nullptr;
 
     // Default transform
     transform = Transform();
@@ -79,14 +82,25 @@ const Matrix4& Object::updateLocalMatrix(const Math::Matrix4& m_parent) {
 
 // GetAsset:
 // Returns the asset associated with this object.
-AssetSlot Object::getAsset() const {
-    return asset;
-}
+AssetSlot Object::getAsset() const { return asset; }
 
 // SetAsset:
 // Updates the asset associated with this object.
-void Object::setAsset(AssetSlot _asset) {
-    asset = _asset;
+void Object::setAsset(AssetSlot _asset) { asset = _asset; }
+
+// GetPhysicsObject:
+// Returns the physics object currently associated with this object
+const PhysicsObject* Object::getPhysicsObject() const {
+    return physics_object;
+}
+
+// SetPhysicsObject:
+// Change the current physics object. If needed, marks the old physics object
+// for destruction.
+void Object::setPhysicsObject(PhysicsObject* phys_obj) {
+    if (physics_object != nullptr)
+        physics_object->destroy = true;
+    physics_object = phys_obj;
 }
 
 } // namespace Datamodel

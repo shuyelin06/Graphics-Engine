@@ -23,6 +23,7 @@ class Transform {
     const Vector3& getPosition() const;
     void setPosition(float x, float y, float z);
     void offsetPosition(float x, float y, float z);
+    void offsetPosition(const Vector3& offset);
 
     const Quaternion& getRotation() const;
     void setViewDirection(const Vector3& direction); // Set +Z in a Direction
