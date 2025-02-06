@@ -6,7 +6,6 @@
 #include "Direct3D11.h"
 
 #include "datamodel/SceneGraph.h"
-#include "utility/IndexMap.h"
 
 #include "rendering/AssetIDs.h"
 #include "rendering/core/Asset.h"
@@ -15,7 +14,6 @@
 
 namespace Engine {
 namespace Graphics {
-using namespace Utility;
 using namespace Datamodel;
 
 // enum AssetSlot from AssetIDs.h

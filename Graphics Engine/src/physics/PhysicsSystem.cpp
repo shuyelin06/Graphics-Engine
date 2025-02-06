@@ -43,8 +43,8 @@ void PhysicsSystem::update() {
 
                 if (gjk_solver.checkIntersection()) {
                     const Vector3 penetration = gjk_solver.penetrationVector();
-                    o1->velocity += -penetration / 2;
-                    o2->velocity += penetration / 2;
+                    o1->velocity += -penetration;
+                    o2->velocity += penetration;
                 }
             }
         }
@@ -65,13 +65,16 @@ void PhysicsSystem::update() {
 // marked for destruction, and finds the amount of time that has elapsed
 // since the last call.
 void PhysicsSystem::physicsPrepare() {
-    // Remove all PhysicsObjects marked for destruction
+    // Remove all PhysicsObjects marked for destruction, and free their memory.
     int head = 0;
 
     for (int i = 0; i < objects.size(); i++) {
         if (!objects[i]->destroy) {
             objects[head] = objects[i];
             head++;
+        } else {
+            delete objects[i];
+            objects[i] = nullptr;
         }
     }
 

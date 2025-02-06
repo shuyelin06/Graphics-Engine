@@ -16,16 +16,23 @@ class Vector3 {
 
     ~Vector3(){};
 
-    void set(const Vector3& vec); // Updates the contents of the current vector
+    // Updates the contents of the current vector
+    void set(const Vector3& vec); 
 
-    void inplaceNormalize();
+    // Normalize the vector
+    void inplaceNormalize(); // In-Place Normalize
+    Vector3 unit() const;    // Returns a Normalized Copy
 
-    Vector3 unit() const;
     float magnitude() const;
 
+    // Dot and Cross Product
     float dot(const Vector3& vector) const;
     Vector3 cross(const Vector3& vector) const;
     
+    // Projects this vector onto another vector.
+    Vector3 projectOnto(const Vector3& vector) const;
+
+    // Returns a new vector with each x,y,z value the minimum (or maximum) of the two vectors
     Vector3 componentMin(const Vector3& vector) const;
     Vector3 componentMax(const Vector3& vector) const;
 

@@ -24,7 +24,7 @@ class PhysicsSystem {
     // Performs relevant initializations for the scene physics
     void initialize();
 
-    // Bind a PhysicsObject to an object
+    // Bind a PhysicsObject to an object and return it for configuration
     PhysicsObject* bindPhysicsObject(Object* object);
 
     // Updates the physics for a scene

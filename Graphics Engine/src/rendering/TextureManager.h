@@ -7,11 +7,8 @@
 
 #include "rendering/core/TextureBuilder.h"
 #include "rendering/core/Texture.h"
-#include "utility/IndexMap.h"
 
 namespace Engine {
-using namespace Utility;
-
 namespace Graphics {
 // TextureManager Class:
 // Manager for handling textures. It supports creation of textures, loading of

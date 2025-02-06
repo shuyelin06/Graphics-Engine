@@ -1,14 +1,12 @@
 #pragma once
 
+#include <unordered_map>
+
 #include "Direct3D11.h"
 #include "_VertexStreamIDs_.h"
 #include "Shader.h"
 
-#include "utility/IndexMap.h"
-
 namespace Engine {
-using namespace Utility;
-
 namespace Graphics {
 
 // ShaderManager Class:
@@ -18,8 +16,8 @@ class ShaderManager {
   private:
     ID3D11Device* device;
 
-    IndexMap<VertexShader*> vertex_shaders;
-    IndexMap<PixelShader*> pixel_shaders;
+    std::unordered_map<std::string, VertexShader*> vertex_shaders;
+    std::unordered_map<std::string, PixelShader*> pixel_shaders;
 
   public:
     ShaderManager(ID3D11Device* _device);

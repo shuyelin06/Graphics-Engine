@@ -68,6 +68,13 @@ Vector3 Vector3::cross(const Vector3& vector) const {
                    x * vector.y - y * vector.x);
 }
 
+// ProjectOnto:
+// Projects this vector onto another vector.
+Vector3 Vector3::projectOnto(const Vector3& vector) const {
+    const float dot_product = dot(vector);
+    return vector * dot_product;
+}
+
 // Min:
 // Returns the component-wise minimum.
 Vector3 Vector3::componentMin(const Vector3& vector) const {

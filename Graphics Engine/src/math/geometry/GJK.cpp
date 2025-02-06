@@ -216,7 +216,7 @@ Vector3 GJKSolver::penetrationVector() {
             Graphics::VisualDebug::DrawPoint(support_point, 1.25f);
 
             if (support_point.dot(direction) < distance) {
-                penetration = direction * support_point.dot(direction);
+                penetration = support_point.projectOnto(direction);
                 distance = support_point.dot(direction);
             }
         }

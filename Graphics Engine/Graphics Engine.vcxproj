@@ -180,7 +180,6 @@
     <ClCompile Include="src\math\Transform.cpp" />
     <ClCompile Include="src\input\InputState.cpp" />
     <ClCompile Include="src\input\EventHandler.cpp" />
-    <ClCompile Include="src\math\BoundingBox.cpp" />
     <ClCompile Include="src\math\Color.cpp" />
     <ClCompile Include="src\math\Compute.cpp" />
     <ClCompile Include="src\datamodel\Object.cpp" />
@@ -263,7 +262,6 @@
     <ClInclude Include="src\input\InputState.h" />
     <ClInclude Include="src\input\EventHandler.h" />
     <ClInclude Include="src\input\EventData.h" />
-    <ClInclude Include="src\math\BoundingBox.h" />
     <ClInclude Include="src\math\Color.h" />
     <ClInclude Include="src\math\Compute.h" />
     <ClInclude Include="src\datamodel\Object.h" />
@@ -295,7 +293,6 @@
     <ClInclude Include="src\rendering\VisualDebug.h" />
     <ClInclude Include="src\rendering\VisualSystem.h" />
     <ClInclude Include="src\utility\FileReader.h" />
-    <ClInclude Include="src\utility\IndexMap.h" />
     <ClInclude Include="src\utility\Stopwatch.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -37,7 +37,7 @@ class ShaderIncludeHandler : public ID3DInclude {
             assert(file != NULL);
 
             // Read file size
-            UINT file_size = (UINT) std::filesystem::file_size(path);
+            UINT file_size = (UINT)std::filesystem::file_size(path);
             uint8_t* read_data = new uint8_t[file_size];
             fread(read_data, 1, file_size, file);
 
@@ -65,17 +65,17 @@ ShaderManager::~ShaderManager() = default;
 void ShaderManager::initialize() {
     // ShadowMap Shader:
     // A very simple shader that takes vertex triangle data, as well as matrix
-    // transforms and writes them to a light's shadow map (depth buffer). 
+    // transforms and writes them to a light's shadow map (depth buffer).
     {
         VertexDataStream shadow_map_input[] = {POSITION};
         VertexShader* vs = createVertexShader("ShadowMap.hlsl", "vs_main",
                                               shadow_map_input, 1);
         vs->enableCB(CB0);
         vs->enableCB(CB1);
-        vertex_shaders.addElement("ShadowMap", vs);
+        vertex_shaders["ShadowMap"] = vs;
 
         PixelShader* ps = createPixelShader("ShadowMap.hlsl", "ps_main");
-        pixel_shaders.addElement("ShadowMap", ps);
+        pixel_shaders["ShadowMap"] = ps;
     }
 
     // Terrain Shader:
@@ -87,12 +87,12 @@ void ShaderManager::initialize() {
             "VSTerrain.hlsl", "vsterrain_main", terrain_input, 2);
         vs->enableCB(CB0);
         vs->enableCB(CB1);
-        vertex_shaders.addElement("Terrain", vs);
+        vertex_shaders["Terrain"] = vs;
 
         PixelShader* ps = createPixelShader("PSTerrain.hlsl", "psterrain_main");
         ps->enableCB(CB0); // Global Illumination
         ps->enableCB(CB1);
-        pixel_shaders.addElement("Terrain", ps);
+        pixel_shaders["Terrain"] = ps;
     }
 
     // DebugPoint:
@@ -100,15 +100,15 @@ void ShaderManager::initialize() {
     // the debug flag is flipped.
     {
         VertexDataStream debug_point_input[2] = {POSITION, INSTANCE_ID};
-        VertexShader* vs = createVertexShader(
-            "DebugPointRenderer.hlsl", "vs_main", debug_point_input, 2);
+        VertexShader* vs = createVertexShader("DebugPointRenderer.hlsl",
+                                              "vs_main", debug_point_input, 2);
         vs->enableCB(CB0);
         vs->enableCB(CB1);
-        vertex_shaders.addElement("DebugPoint", vs);
+        vertex_shaders["DebugPoint"] = vs;
 
         PixelShader* ps =
             createPixelShader("DebugPointRenderer.hlsl", "ps_main");
-        pixel_shaders.addElement("DebugPoint", ps);
+        pixel_shaders["DebugPoint"] = ps;
     }
 
     // DebugLine:
@@ -116,14 +116,14 @@ void ShaderManager::initialize() {
     // debug flag is flipped.
     {
         VertexDataStream debug_line_input[1] = {DEBUG_LINE};
-        VertexShader* vs = createVertexShader(
-            "DebugLineRenderer.hlsl", "vs_main", debug_line_input, 1);
+        VertexShader* vs = createVertexShader("DebugLineRenderer.hlsl",
+                                              "vs_main", debug_line_input, 1);
         vs->enableCB(CB1);
-        vertex_shaders.addElement("DebugLine", vs);
+        vertex_shaders["DebugLine"] = vs;
 
         PixelShader* ps =
             createPixelShader("DebugLineRenderer.hlsl", "ps_main");
-        pixel_shaders.addElement("DebugLine", ps);
+        pixel_shaders["DebugLine"] = ps;
     }
 
     /*vertexShaders[VSDefault] =
@@ -137,17 +137,16 @@ void ShaderManager::initialize() {
     // Draws a mesh with dynamic lights enabled
     {
         VertexDataStream shadow_input[3] = {POSITION, TEXTURE, NORMAL};
-        VertexShader* vs = createVertexShader(
-            "ShadowShaderV.hlsl", "vs_main", shadow_input, 3);
+        VertexShader* vs = createVertexShader("ShadowShaderV.hlsl", "vs_main",
+                                              shadow_input, 3);
         vs->enableCB(CB1);
         vs->enableCB(CB2);
-        vertex_shaders.addElement("ShadowShader", vs);
+        vertex_shaders["ShadowShader"] = vs;
 
-        PixelShader* ps =
-            createPixelShader("ShadowShaderP.hlsl", "ps_main");
+        PixelShader* ps = createPixelShader("ShadowShaderP.hlsl", "ps_main");
         ps->enableCB(CB0); // Global Illumination
         ps->enableCB(CB1);
-        pixel_shaders.addElement("ShadowShader", ps);
+        pixel_shaders["ShadowShader"] = ps;
     }
 }
 
@@ -155,14 +154,20 @@ void ShaderManager::initialize() {
 // Returns a vertex shader by a given slot, which internally
 // indexes an array.
 VertexShader* ShaderManager::getVertexShader(const std::string& name) {
-    return vertex_shaders.get(name);
+    if (vertex_shaders.contains(name))
+        return vertex_shaders[name];
+    else
+        return nullptr;
 }
 
 // GetPixelShader:
 // Returns a pixel shader by a given slot, which internally
 // indexes an array.
 PixelShader* ShaderManager::getPixelShader(const std::string& name) {
-    return pixel_shaders.get(name);
+    if (pixel_shaders.contains(name))
+        return pixel_shaders[name];
+    else
+        return nullptr;
 }
 
 // CompileShaderBlob:
@@ -323,7 +328,7 @@ VertexShader* ShaderManager::createVertexShader(const std::string& filename,
         input_desc.push_back(desc);
     }
 
-    device->CreateInputLayout(input_desc.data(), (UINT) input_desc.size(),
+    device->CreateInputLayout(input_desc.data(), (UINT)input_desc.size(),
                               shader_blob->GetBufferPointer(),
                               shader_blob->GetBufferSize(), &inputLayout);
     assert(inputLayout != NULL);

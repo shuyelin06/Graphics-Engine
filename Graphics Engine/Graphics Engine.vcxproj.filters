@@ -90,9 +90,6 @@
     <ClCompile Include="src\utility\FileReader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\math\BoundingBox.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\math\Plane.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -275,9 +272,6 @@
     <ClInclude Include="src\utility\FileReader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\math\BoundingBox.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\math\Plane.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -366,9 +360,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\core\TextureBuilder.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\utility\IndexMap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\util\PNGFile.h">
