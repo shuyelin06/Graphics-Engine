@@ -8,8 +8,6 @@ namespace Graphics {
 // Initializes a texture resource for use in the shadow mapping. The
 // device is needed to intialize
 ShadowLight::ShadowLight(const ShadowMapViewport& view_port) {
-    transform = new Transform();
-
     color = Color(1.0f, 1.0f, 1.0f);
     shadow_viewport = view_port;
 
@@ -24,10 +22,6 @@ const Color& ShadowLight::getColor() const { return color; }
 const ShadowMapViewport& ShadowLight::getShadowmapViewport() const {
     return shadow_viewport;
 }
-
-// GetTransform:
-// Returns a pointer to the transform that allows modification
-Transform* ShadowLight::getTransform() { return transform; }
 
 // SetProjectionMatrix:
 // Sets the light's projection matrix to be orthogonal or perspective,
@@ -57,11 +51,6 @@ void ShadowLight::setPerspectiveMatrix(float fov_y, float aspect_ratio,
     m_projection[3][2] = (z_near * z_far) / (z_near - z_far);
 }
 
-// GetWorldToLightMatrix:
-// Generates and returns the light space matrix
-const Matrix4 ShadowLight::getWorldToLightMatrix(void) const {
-    return transform->transformMatrix().inverse();
-}
 // GetProjectionMatrix:
 // Generates and returns the projection matrix
 const Matrix4& ShadowLight::getProjectionMatrix(void) const {

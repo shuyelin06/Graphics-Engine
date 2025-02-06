@@ -108,11 +108,6 @@ void VisualSystem::initialize() {
 
     texture_manager->createDepthTexture("DepthStencilMain", width, height);
 
-    // Create my global light (the sun).
-    // It will always be at index 0 of the lights vector.
-    createLight(QUALITY_1);
-    createLight(QUALITY_0); // TEMP
-
 #if defined(_DEBUG)
     imGuiInitialize();
     imGuiPrepare(); // Pre-Prepare a Frame
@@ -127,20 +122,28 @@ void VisualSystem::shutdown() {
 #endif
 }
 
-// CreateLight:
-// Creates and returns a light in the visual system
-ShadowLight* VisualSystem::createLight() { return createLight(QUALITY_1); }
-ShadowLight* VisualSystem::createLight(ShadowMapQuality quality) {
-    return light_manager->createShadowLight(quality);
+// Create Objects:
+// Creates and returns objects in the visual system
+AssetObject* VisualSystem::bindAssetObject(Object* object,
+                                           const std::string& asset_name) {
+    Asset* asset = assetManager->getAsset(asset_name);
+    AssetObject* asset_obj = new AssetObject(object, asset);
+    object->setVisualObject(asset_obj);
+    renderable_assets.push_back(asset_obj);
+    return asset_obj;
+}
+
+ShadowLightObject* VisualSystem::bindShadowLightObject(Object* object) {
+    ShadowLight* light = light_manager->createShadowLight(QUALITY_1);
+    ShadowLightObject* light_obj = new ShadowLightObject(object, light);
+    object->setVisualObject(light_obj);
+    shadow_lights.push_back(light_obj);
+    return light_obj;
 }
 
 // DrawRequests:
 // Methods that let other components of the application submit requests
 // for rendering
-void VisualSystem::drawAsset(const AssetRenderRequest& request) {
-    assetRequests.push_back(request);
-}
-
 void VisualSystem::drawTerrain(const TerrainRenderRequest& request) {
     terrainRequests.push_back(request);
 }
@@ -194,26 +197,29 @@ void VisualSystem::renderPrepare() {
     float color[4] = {RGB(158.f), RGB(218.f), RGB(255.f), 1.0f};
     context->ClearRenderTargetView(render_target_view, color);
 
-    // Parse all asset render requests, by querying the asset manager for the
-    // assets.
-    for (const AssetRenderRequest& request : assetRequests) {
-        Asset* asset = assetManager->getAsset(request.slot);
+    // Check and remove any visual objects that are no longer valid
+    int head;
 
-        for (Mesh* mesh : asset->getMeshes()) {
-            ShadowCaster shadowCaster;
-            shadowCaster.mesh = mesh;
-            shadowCaster.m_localToWorld = request.mLocalToWorld;
+    head = 0;
+    for (int i = 0; i < renderable_assets.size(); i++) {
+        if (!renderable_assets[i]->destroy) {
+            // Load into shadow caster vector
+            for (Mesh* mesh : renderable_assets[i]->asset->getMeshes()) {
+                ShadowCaster caster;
+                caster.mesh = mesh;
+                caster.m_localToWorld =
+                    renderable_assets[i]->object->getLocalMatrix();
+                shadow_casters.push_back(caster);
+            }
 
-            shadow_casters.push_back(shadowCaster);
+            renderable_assets[head] = renderable_assets[i];
+            head++;
+        } else {
+            delete renderable_assets[i];
+            renderable_assets[i] = nullptr;
         }
-
-        RenderableAsset renderableAsset;
-        renderableAsset.asset = asset;
-        renderableAsset.m_localToWorld = request.mLocalToWorld;
-        renderable_assets.push_back(renderableAsset);
     }
-
-    assetRequests.clear();
+    renderable_assets.resize(head);
 
     // Parse all terrain render requests. This may involve generating the
     // terrain data.
@@ -244,16 +250,6 @@ void VisualSystem::renderPrepare() {
 
     terrainRequests.clear();
 
-    // Set sun position to be
-    ShadowLight* sun_light = light_manager->getShadowLight(0);
-
-    sun_light->getTransform()->setViewDirection(Vector3(0, -0.25f, 0.75f));
-
-    // Vector3 position = camera.getTransform()->getPosition() +
-    // sun_light->getTransform()->backward() * 125; // 75 OG
-    Vector3 position = sun_light->getTransform()->backward() * 75; // 75 OG
-    sun_light->getTransform()->setPosition(position.x, position.y, position.z);
-
 #if defined(_DEBUG)
     cpu_timer.endTimer("Render Prepare");
 #endif
@@ -277,20 +273,19 @@ void VisualSystem::performShadowPass() {
     const Texture* shadow_texture = light_manager->getAtlasTexture();
     context->ClearDepthStencilView(shadow_texture->depth_view,
                                    D3D11_CLEAR_DEPTH, 1.0f, 0);
-    const std::vector<ShadowLight*>& shadow_lights =
-        light_manager->getShadowLights();
-    for (ShadowLight* light : shadow_lights) {
+
+    for (ShadowLightObject* light_obj : shadow_lights) {
         // Load light view and projection matrix
         vCB0->clearData();
 
-        const Matrix4 viewMatrix = light->getWorldToLightMatrix();
+        const Matrix4 viewMatrix = light_obj->object->getLocalMatrix().inverse();
         vCB0->loadData(&viewMatrix, FLOAT4X4);
-        const Matrix4 projectionMatrix = light->getProjectionMatrix();
+        const Matrix4 projectionMatrix = light_obj->light->getProjectionMatrix();
         vCB0->loadData(&projectionMatrix, FLOAT4X4);
 
         // Set the light as the render target.
         const ShadowMapViewport& shadow_viewport =
-            light->getShadowmapViewport();
+            light_obj->light->getShadowmapViewport();
 
         D3D11_VIEWPORT viewport = {};
         viewport.TopLeftX = shadow_viewport.x;
@@ -379,27 +374,29 @@ void VisualSystem::performTerrainPass() {
         int lightCount = light_manager->getShadowLights().size();
         pCB1->loadData(&lightCount, INT);
 
-        const std::vector<ShadowLight*>& shadow_lights =
-            light_manager->getShadowLights();
-        for (ShadowLight* light : shadow_lights) {
-            const Vector3& position = light->getTransform()->getPosition();
+        for (ShadowLightObject* light_obj : shadow_lights) {
+            const Vector3& position =
+                light_obj->object->getTransform().getPosition();
             pCB1->loadData(&position, FLOAT3);
 
             pCB1->loadData(nullptr, FLOAT);
 
-            const Color& color = light->getColor();
+            const Color& color = light_obj->light->getColor();
             pCB1->loadData(&color, FLOAT3);
 
             pCB1->loadData(nullptr, INT);
 
-            const Matrix4 viewMatrix = light->getWorldToLightMatrix();
+            const Matrix4 viewMatrix =
+                light_obj->object->getLocalMatrix().inverse();
             pCB1->loadData(&viewMatrix, FLOAT4X4);
 
-            const Matrix4 projectionMatrix = light->getProjectionMatrix();
+            const Matrix4 projectionMatrix =
+                light_obj->light->getProjectionMatrix();
             pCB1->loadData(&projectionMatrix, FLOAT4X4);
 
             const NormalizedShadowViewport normalized_view =
-                light_manager->normalizeViewport(light->getShadowmapViewport());
+                light_manager->normalizeViewport(
+                    light_obj->light->getShadowmapViewport());
             pCB1->loadData(&normalized_view, FLOAT4);
         }
     }
@@ -502,27 +499,27 @@ void VisualSystem::performRenderPass() {
         int lightCount = light_manager->getShadowLights().size();
         pCB1->loadData(&lightCount, INT);
 
-        const std::vector<ShadowLight*>& shadow_lights =
-            light_manager->getShadowLights();
-        for (ShadowLight* light : shadow_lights) {
-            const Vector3& position = light->getTransform()->getPosition();
+        for (ShadowLightObject* light_obj : shadow_lights) {
+            const Vector3& position =
+                light_obj->object->getTransform().getPosition();
             pCB1->loadData(&position, FLOAT3);
 
             pCB1->loadData(nullptr, FLOAT);
 
-            const Color& color = light->getColor();
+            const Color& color = light_obj->light->getColor();
             pCB1->loadData(&color, FLOAT3);
 
             pCB1->loadData(nullptr, INT);
 
-            const Matrix4 viewMatrix = light->getWorldToLightMatrix();
+            const Matrix4 viewMatrix =
+                light_obj->object->getLocalMatrix().inverse();
             pCB1->loadData(&viewMatrix, FLOAT4X4);
 
-            const Matrix4 projectionMatrix = light->getProjectionMatrix();
+            const Matrix4 projectionMatrix = light_obj->light->getProjectionMatrix();
             pCB1->loadData(&projectionMatrix, FLOAT4X4);
 
             const NormalizedShadowViewport normalized_view =
-                light_manager->normalizeViewport(light->getShadowmapViewport());
+                light_manager->normalizeViewport(light_obj->light->getShadowmapViewport());
             pCB1->loadData(&normalized_view, FLOAT4);
 
             // DEBUG
@@ -534,7 +531,7 @@ void VisualSystem::performRenderPass() {
 
     // Load my Textures
     {
-        Texture* tex = assetManager->getTexture(Perlin);
+        Texture* tex = assetManager->getTexture(CapybaraTex);
         context->PSSetShaderResources(0, 1, &tex->shader_view);
 
         const Texture* shadow_texture = light_manager->getAtlasTexture();
@@ -552,9 +549,9 @@ void VisualSystem::performRenderPass() {
         context->PSSetSamplers(1, 1, &shadowmap_sampler);
     }
 
-    for (const RenderableAsset& command : renderable_assets) {
-        Asset* asset = command.asset;
-        const Matrix4& mLocalToWorld = command.m_localToWorld;
+    for (const AssetObject* asset_obj : renderable_assets) {
+        Asset* asset = asset_obj->asset;
+        const Matrix4& mLocalToWorld = asset_obj->object->getLocalMatrix();
 
         {
             vCB2->clearData();
@@ -601,7 +598,6 @@ void VisualSystem::renderFinish() {
 
     shadow_casters.clear();
     renderable_terrain.clear();
-    renderable_assets.clear();
 }
 
 void VisualSystem::renderDebugPoints() {
@@ -619,7 +615,7 @@ void VisualSystem::renderDebugPoints() {
     vShader->getCBHandle(CB0)->clearData();
     vShader->getCBHandle(CB1)->clearData();
 
-    Asset* cube = assetManager->getAsset(Cube);
+    Asset* cube = assetManager->getAsset("Cube");
     Mesh* mesh = cube->getMesh(0);
 
     ID3D11Buffer* indexBuffer = mesh->index_buffer;

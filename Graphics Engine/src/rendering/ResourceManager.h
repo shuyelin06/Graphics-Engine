@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_map>
 #include <map>
 #include <string>
 
@@ -7,7 +8,6 @@
 
 #include "datamodel/SceneGraph.h"
 
-#include "rendering/AssetIDs.h"
 #include "rendering/core/Asset.h"
 #include "rendering/core/MeshBuilder.h"
 #include "rendering/core/TextureBuilder.h"
@@ -23,6 +23,7 @@ enum TextureSlot {
     Test2 = 1,
     Perlin = 2,
     TerrainGrass = 3,
+    CapybaraTex = 4,
     TextureCount
 };
 enum SamplerSlot { ShadowMap = 0, MeshTexture = 1, SamplerCount };
@@ -34,8 +35,8 @@ class ResourceManager {
   private:
     ID3D11Device* device;
     ID3D11DeviceContext* context;
-
-    std::vector<Asset*> assets;
+    
+    std::unordered_map<std::string, Asset*> assets;
     std::vector<Texture*> textures;
     std::vector<ID3D11SamplerState*> samplers;
 
@@ -49,7 +50,7 @@ class ResourceManager {
     void initialize();
 
     // Get an asset data by name
-    Asset* getAsset(AssetSlot asset);
+    Asset* getAsset(const std::string& name);
     // Get a texture by name
     Texture* getTexture(TextureSlot texture);
     // Get a sampler by name

@@ -195,7 +195,9 @@
     <ClCompile Include="src\math\Vector4.cpp" />
     <ClCompile Include="src\physics\PhysicsObject.cpp" />
     <ClCompile Include="src\rendering\core\Asset.cpp" />
+    <ClCompile Include="src\rendering\core\AssetObject.cpp" />
     <ClCompile Include="src\rendering\core\LightManager.cpp" />
+    <ClCompile Include="src\rendering\core\LightObject.cpp" />
     <ClCompile Include="src\rendering\core\MeshBuilder.cpp" />
     <ClCompile Include="src\rendering\core\Camera.cpp" />
     <ClCompile Include="src\rendering\core\Light.cpp" />
@@ -222,6 +224,7 @@
     <ClCompile Include="src\physics\PhysicsSystem.cpp" />
     <ClCompile Include="src\rendering\util\_DEP_PLYParser.cpp" />
     <ClCompile Include="src\rendering\VisualDebug.cpp" />
+    <ClCompile Include="src\rendering\VisualObject.cpp" />
     <ClCompile Include="src\rendering\VisualSystem.cpp" />
     <ClCompile Include="src\utility\FileReader.cpp" />
     <ClCompile Include="src\utility\Stopwatch.cpp" />
@@ -242,8 +245,9 @@
     <ClInclude Include="src\math\geometry\OBB.h" />
     <ClInclude Include="src\math\geometry\QuickHull.h" />
     <ClInclude Include="src\physics\PhysicsObject.h" />
-    <ClInclude Include="src\rendering\AssetIDs.h" />
+    <ClInclude Include="src\rendering\core\AssetObject.h" />
     <ClInclude Include="src\rendering\core\LightManager.h" />
+    <ClInclude Include="src\rendering\core\LightObject.h" />
     <ClInclude Include="src\rendering\core\Texture.h" />
     <ClInclude Include="src\rendering\core\TextureBuilder.h" />
     <ClInclude Include="src\rendering\ImGui.h" />
@@ -291,6 +295,7 @@
     <ClInclude Include="src\physics\PhysicsSystem.h" />
     <ClInclude Include="src\rendering\Direct3D11.h" />
     <ClInclude Include="src\rendering\VisualDebug.h" />
+    <ClInclude Include="src\rendering\VisualObject.h" />
     <ClInclude Include="src\rendering\VisualSystem.h" />
     <ClInclude Include="src\utility\FileReader.h" />
     <ClInclude Include="src\utility\Stopwatch.h" />

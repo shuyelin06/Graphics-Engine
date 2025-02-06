@@ -7,16 +7,18 @@
 #include "math/Transform.h"
 #include "math/Vector3.h"
 
-#include "rendering/AssetIDs.h"
-
 namespace Engine {
 using namespace Math;
-using namespace Graphics;
 
 namespace Physics {
 class PhysicsObject;
 }
 using namespace Physics;
+
+namespace Graphics {
+class VisualObject;
+}
+using namespace Graphics;
 
 namespace Datamodel {
 // Object Class
@@ -38,7 +40,7 @@ class Object {
     Matrix4 m_local;
 
     // Renderable Asset Associated with the Object
-    AssetSlot asset;
+    VisualObject* visual_object;
 
     // Physics Data Associated with the Object
     PhysicsObject* physics_object;
@@ -60,14 +62,14 @@ class Object {
     const Matrix4& getLocalMatrix() const;
     const Matrix4& updateLocalMatrix(const Matrix4& m_parent);
 
-    // Renderable Methods
-    AssetSlot getAsset() const;
-
-    void setAsset(AssetSlot asset);
+    // Visual Methods
+    const VisualObject* getVisualObject() const;
+    void setVisualObject(VisualObject* visual_obj);
 
     // Physics Methods
     const PhysicsObject* getPhysicsObject() const;
     void setPhysicsObject(PhysicsObject* phys_obj);
+
 };
 } // namespace Datamodel
 } // namespace Engine

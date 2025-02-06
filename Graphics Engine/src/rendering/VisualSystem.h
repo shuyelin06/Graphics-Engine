@@ -17,6 +17,9 @@
 
 #include "datamodel/Terrain.h"
 
+#include "core/AssetObject.h"
+#include "core/LightObject.h"
+
 #if defined(_DEBUG)
 // imgui Includes
 #include "ImGui.h"
@@ -40,10 +43,6 @@ struct ShadowCaster {
 struct RenderableTerrain {
     Mesh* mesh;
     Vector3 terrain_offset;
-};
-struct RenderableAsset {
-    Asset* asset;
-    Matrix4 m_localToWorld;
 };
 
 // VisualSystem Class:
@@ -74,17 +73,17 @@ class VisualSystem {
 
     // Render Requests:
     // Vectors of render requests submitted to the visual system.
-    std::vector<AssetRenderRequest> assetRequests;
     std::vector<TerrainRenderRequest> terrainRequests;
 
     // Render Information:
     // Vectors of rendering information that the visual system actually uses
     // for rendering. It takes all render requests, and processes them into
     // this information.
-    std::vector<ShadowCaster> shadow_casters;
+    std::vector<AssetObject*> renderable_assets;
+    std::vector<ShadowLightObject*> shadow_lights;
 
+    std::vector<ShadowCaster> shadow_casters;
     std::vector<RenderableTerrain> renderable_terrain;
-    std::vector<RenderableAsset> renderable_assets;
 
   public:
     VisualSystem(HWND _window);
@@ -99,13 +98,12 @@ class VisualSystem {
     void shutdown();
 
     // Create objects in the visual system
-    ShadowLight* createLight();
-    ShadowLight* createLight(ShadowMapQuality quality);
+    AssetObject* bindAssetObject(Object* object, const std::string& asset_name);
+    ShadowLightObject* bindShadowLightObject(Object* object);
 
     // Submit render requests to the visual system. These requests
     // are processed into render commands, which the system will use for
     // rendering.
-    void drawAsset(const AssetRenderRequest& renderRequest);
     void drawTerrain(const TerrainRenderRequest& renderRequest);
 
     // Renders an entire scene

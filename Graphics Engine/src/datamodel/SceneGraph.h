@@ -45,11 +45,10 @@ class SceneGraph {
     
     // Update object transforms and submit render requests
     // for each
-    void updateAndRenderObjects(std::vector<AssetRenderRequest>& requests);
+    void updateAndRenderObjects();
 
   private:
-    void updateAndRenderObjects(Object* object, const Matrix4& m_parent,
-                                std::vector<AssetRenderRequest>& requests);
+    void updateAndRenderObjects(Object* object, const Matrix4& m_parent);
 };
 
 } // namespace Datamodel

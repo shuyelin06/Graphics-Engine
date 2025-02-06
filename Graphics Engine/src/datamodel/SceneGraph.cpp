@@ -60,29 +60,20 @@ void SceneGraph::updateAndRenderTerrain(
 // UpdateAndRenderObjects:
 // Update and cache object transforms in the SceneGraph, and submit
 // render requests for each.
-void SceneGraph::updateAndRenderObjects(
-    std::vector<AssetRenderRequest>& requests) {
+void SceneGraph::updateAndRenderObjects() {
     Matrix4 identity = Matrix4::identity();
 
     for (Object* object : objects)
-        updateAndRenderObjects(object, identity, requests);
+        updateAndRenderObjects(object, identity);
 }
 
 void SceneGraph::updateAndRenderObjects(
-    Object* object, const Matrix4& m_parent,
-    std::vector<AssetRenderRequest>& requests) {
+    Object* object, const Matrix4& m_parent) {
     assert(object != nullptr);
 
     const Matrix4 m_local = object->updateLocalMatrix(m_parent);
-
-    if (object->getAsset() != NoAsset) {
-        AssetRenderRequest request =
-            AssetRenderRequest(object->getAsset(), m_local);
-        requests.push_back(request);
-    }
-
     for (Object* child : object->getChildren())
-        updateAndRenderObjects(child, m_local, requests);
+        updateAndRenderObjects(child, m_local);
 }
 
 } // namespace Datamodel

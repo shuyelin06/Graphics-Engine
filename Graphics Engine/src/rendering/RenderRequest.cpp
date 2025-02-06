@@ -2,12 +2,6 @@
 
 namespace Engine {
 namespace Graphics {
-AssetRenderRequest::AssetRenderRequest(AssetSlot _slot,
-                                       const Matrix4& _mLocalToWorld) {
-    slot = _slot;
-    mLocalToWorld = _mLocalToWorld;
-}
-
 TerrainData::TerrainData() = default;
 TerrainData::TerrainData(
     float (*_data)[TERRAIN_CHUNK_X_SAMPLES][TERRAIN_CHUNK_Z_SAMPLES]

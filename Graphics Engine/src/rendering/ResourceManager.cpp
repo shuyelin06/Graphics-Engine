@@ -25,7 +25,7 @@ using namespace Math;
 using namespace Utility;
 namespace Graphics {
 ResourceManager::ResourceManager(ID3D11Device* _device,
-                           ID3D11DeviceContext* _context) {
+                                 ID3D11DeviceContext* _context) {
     device = _device;
     context = _context;
 
@@ -48,7 +48,7 @@ void ResourceManager::initialize() {
     textures.resize(TextureCount);
     TextureBuilder tex_builder = TextureBuilder(10, 10);
 
-    textures[Test] = tex_builder.generate();
+    // textures[Test] = tex_builder.generate();
 
     //// Noise
     // tex_builder.reset(1000, 1000);
@@ -62,14 +62,17 @@ void ResourceManager::initialize() {
     //                              {convert, convert, convert, 255});
     //     }
     // }
-    textures[Perlin] = tex_builder.generate();
+    // textures[Perlin] = tex_builder.generate();
     // WriteTextureToPNG(textures[Perlin]->texture, "data/", "perlin.png");
 
-    LoadTextureFromPNG(tex_builder, "data/", "test.png");
-    textures[Test2] = tex_builder.generate();
+    // LoadTextureFromPNG(tex_builder, "data/", "test.png");
+    //  textures[Test2] = tex_builder.generate();
 
     LoadTextureFromPNG(tex_builder, "data/", "grass.png");
     textures[TerrainGrass] = tex_builder.generate();
+
+    LoadTextureFromPNG(tex_builder, "data/", "Capybara_BaseColor.png");
+    textures[CapybaraTex] = tex_builder.generate();
 
     // Create my samplers
     samplers.resize(SamplerCount);
@@ -78,24 +81,25 @@ void ResourceManager::initialize() {
     samplers[MeshTexture] = LoadMeshTextureSampler();
 
     // Create my assets
-    assets.resize(AssetCount);
-
     MeshBuilder mesh_builder = MeshBuilder();
 
-    assets[Cube] = LoadCube(mesh_builder);
+    assets["Cube"] = LoadCube(mesh_builder);
     // Fox by Jake Blakeley [CC-BY] via Poly Pizza
-    assets[Fox] = LoadAssetFromOBJ(mesh_builder, "data/", "model.obj");
+    assets["Fox"] = LoadAssetFromOBJ(mesh_builder, "data/", "model.obj");
 
+    assets["Capybara"] =
+        LoadAssetFromOBJ(mesh_builder, "data/", "Capybara.obj");
     // Capybara
     // Capybara by Poly by Google [CC-BY] via Poly Pizza
-    
 }
 
 // GetAsset:
 // Return an asset by name.
-Asset* ResourceManager::getAsset(AssetSlot asset) {
-    assert(0 <= asset && asset < assets.size());
-    return assets[asset];
+Asset* ResourceManager::getAsset(const std::string& name) {
+    if (assets.contains(name))
+        return assets[name];
+    else
+        return nullptr;
 }
 
 Texture* ResourceManager::getTexture(TextureSlot texture) {
@@ -121,16 +125,16 @@ Mesh* ResourceManager::getTerrainMesh(int x, int z, TerrainData data) {
 
 // LoadTextureFromPNG:
 // Uses the PNGFile interface to load a texture from a PNG file
-bool ResourceManager::LoadTextureFromPNG(TextureBuilder& builder, std::string path,
-                                      std::string file) {
+bool ResourceManager::LoadTextureFromPNG(TextureBuilder& builder,
+                                         std::string path, std::string file) {
     PNGFile png_file = PNGFile(path + file);
     return png_file.readTextureFromFile(builder);
 }
 
 // WriteTextureToPNG:
 // Uses the PNGFile interface to write a texture to a PNG file
-bool ResourceManager::WriteTextureToPNG(ID3D11Texture2D* texture, std::string path,
-                                     std::string file) {
+bool ResourceManager::WriteTextureToPNG(ID3D11Texture2D* texture,
+                                        std::string path, std::string file) {
     PNGFile png_file = PNGFile(path + file);
     return png_file.writeTextureToFile(device, context, texture);
 }
@@ -161,7 +165,7 @@ static void ParseMaterials(std::string path, std::string material_file,
                            OBJData& data);
 
 Asset* ResourceManager::LoadAssetFromOBJ(MeshBuilder& builder, std::string path,
-                                      std::string objFile) {
+                                         std::string objFile) {
     // Open target file with file reader
     TextFileReader fileReader = TextFileReader(path + objFile);
 

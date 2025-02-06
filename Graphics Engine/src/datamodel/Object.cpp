@@ -3,6 +3,7 @@
 #include <math.h>
 
 #include "physics/PhysicsObject.h"
+#include "rendering/VisualObject.h"
 
 namespace Engine {
 using namespace Math;
@@ -18,7 +19,7 @@ Object::Object() {
     children = std::vector<Object*>(0);
 
     // Objects start with no asset
-    asset = NoAsset;
+    visual_object = nullptr;
     physics_object = nullptr;
 
     // Default transform
@@ -32,6 +33,9 @@ Object::~Object() {
     // Deallocate children
     for (Object* child : children)
         delete child;
+
+    setVisualObject(nullptr);
+    setPhysicsObject(nullptr);
 }
 
 /* --- Object Hierarchy Methods --- */
@@ -80,19 +84,21 @@ const Matrix4& Object::updateLocalMatrix(const Math::Matrix4& m_parent) {
     return m_local;
 }
 
-// GetAsset:
-// Returns the asset associated with this object.
-AssetSlot Object::getAsset() const { return asset; }
+// GetVisualObject:
+// Returns the visual object currently associated with this object
+const VisualObject* Object::getVisualObject() const { return visual_object; }
 
-// SetAsset:
-// Updates the asset associated with this object.
-void Object::setAsset(AssetSlot _asset) { asset = _asset; }
+// SetVisualObject:
+// Change the current visual object. If needed, marks the old visual object for destruction.
+void Object::setVisualObject(VisualObject* visual_obj) {
+    if (visual_object != nullptr)
+        visual_object->destroy = true;
+    visual_object = visual_obj;
+}
 
 // GetPhysicsObject:
 // Returns the physics object currently associated with this object
-const PhysicsObject* Object::getPhysicsObject() const {
-    return physics_object;
-}
+const PhysicsObject* Object::getPhysicsObject() const { return physics_object; }
 
 // SetPhysicsObject:
 // Change the current physics object. If needed, marks the old physics object

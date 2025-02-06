@@ -236,7 +236,7 @@ bool PNGFile::readTextureFromFile(TextureBuilder& builder) {
 
     // Assumptions of this PNG spec.
     assert(interlace == 0);  // No interlacing
-    assert(color_type == 6); // RGBA Channels
+    assert(color_type == 2 || color_type == 6); // RGB (2) or RGBA (6) Channels
     assert(bit_depth == 8);  // 8 Bits per Sample
 
     // Prepare my builder to begin loading the texture.
@@ -254,7 +254,7 @@ bool PNGFile::readTextureFromFile(TextureBuilder& builder) {
     }
 
     // Decompress with zlib
-    constexpr int BYTES_PER_PIXEL = 4;
+    const int BYTES_PER_PIXEL = (color_type == 2) ? 3 : 4;
     std::vector<uint8_t> decompressed;
     decompressed.resize(height * (1 + width * BYTES_PER_PIXEL));
 
@@ -284,8 +284,6 @@ bool PNGFile::readTextureFromFile(TextureBuilder& builder) {
                                          (x * BYTES_PER_PIXEL) + 2];
                 uint8_t b = decompressed[y * (width * BYTES_PER_PIXEL + 1) +
                                          (x * BYTES_PER_PIXEL) + 3];
-                uint8_t a = decompressed[y * (width * BYTES_PER_PIXEL + 1) +
-                                         (x * BYTES_PER_PIXEL) + 4];
 
                 decompressed[y * (width * BYTES_PER_PIXEL + 1) +
                              (x * BYTES_PER_PIXEL) + 1] = r + prev_r;
@@ -299,10 +297,16 @@ bool PNGFile::readTextureFromFile(TextureBuilder& builder) {
                              (x * BYTES_PER_PIXEL) + 3] = b + prev_b;
                 prev_b = decompressed[y * (width * BYTES_PER_PIXEL + 1) +
                                       (x * BYTES_PER_PIXEL) + 3];
-                decompressed[y * (width * BYTES_PER_PIXEL + 1) +
-                             (x * BYTES_PER_PIXEL) + 4] = a + prev_a;
-                prev_a = decompressed[y * (width * BYTES_PER_PIXEL + 1) +
-                                      (x * BYTES_PER_PIXEL) + 4];
+
+                if (color_type == 6) {
+                    uint8_t a = decompressed[y * (width * BYTES_PER_PIXEL + 1) +
+                                             (x * BYTES_PER_PIXEL) + 4];
+                    decompressed[y * (width * BYTES_PER_PIXEL + 1) +
+                                 (x * BYTES_PER_PIXEL) + 4] = a + prev_a;
+                    prev_a = decompressed[y * (width * BYTES_PER_PIXEL + 1) +
+                                          (x * BYTES_PER_PIXEL) + 4];
+                }
+                
             }
         }
 
@@ -315,9 +319,13 @@ bool PNGFile::readTextureFromFile(TextureBuilder& builder) {
                                      (x * BYTES_PER_PIXEL) + 2];
             uint8_t b = decompressed[y * (width * BYTES_PER_PIXEL + 1) +
                                      (x * BYTES_PER_PIXEL) + 3];
-            uint8_t a = decompressed[y * (width * BYTES_PER_PIXEL + 1) +
-                                     (x * BYTES_PER_PIXEL) + 4];
-
+            uint8_t a = 255;
+            
+            if (color_type == 6) {
+                a = decompressed[y * (width * BYTES_PER_PIXEL + 1) +
+                                 (x * BYTES_PER_PIXEL) + 4];
+            }
+            
             builder.setColor(x, y, {r, g, b, a});
         }
     }

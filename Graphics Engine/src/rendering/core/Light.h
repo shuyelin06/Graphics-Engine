@@ -29,11 +29,8 @@ class ShadowLight {
   private:
     friend class LightManager;
 
-    Transform* transform;
-
     Color color;
     ShadowMapViewport shadow_viewport;
-
     Matrix4 m_projection;
 
     ShadowLight(const ShadowMapViewport& view_port);
@@ -43,12 +40,9 @@ class ShadowLight {
     const Color& getColor() const;
     const ShadowMapViewport& getShadowmapViewport() const;
 
-    Transform* getTransform();
-    
     void setOrthogonalMatrix(float size_y, float aspect_ratio, float z_near, float z_far);
     void setPerspectiveMatrix(float fov_y, float aspect_ratio, float z_near, float z_far);
 
-    const Matrix4 getWorldToLightMatrix(void) const;
     const Matrix4& getProjectionMatrix(void) const;
 };
 } // namespace Graphics

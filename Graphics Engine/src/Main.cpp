@@ -122,10 +122,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     // Create Object Hierarchy
     Object& parent_object = scene_graph.createObject();
 
-    Object& child1 = parent_object.createChild();
+    Object& sun_light = parent_object.createChild();
+    visual_system.bindShadowLightObject(&sun_light);
 
     Object& child2 = parent_object.createChild();
-    child2.setAsset(AssetSlot::Fox);
+    visual_system.bindAssetObject(&child2, "Capybara");
+    child2.getTransform().offsetRotation(Vector3::PositiveY(), PI);
     child2.getTransform().setScale(5, 5, 5);
     child2.getTransform().setPosition(Compute::Random(-2.5f, 2.5f),
                                       Compute::Random(-2.5f, 2.5f),
@@ -186,6 +188,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         //child2.getTransform().lookAt(
         //    visual_system.getCamera().getTransform()->getPosition());
 
+        child2.getTransform().offsetRotation(Vector3::PositiveY(), PI / 20);
+        
+        sun_light.getTransform().setViewDirection(Vector3(0, -0.25f, 0.75f));
+        Vector3 position = sun_light.getTransform().backward() * 75; // 75 OG
+        sun_light.getTransform().setPosition(position.x, position.y,
+                                               position.z);
+
         // TESTING
         static float offset[3] = {};
         ImGui::SliderFloat3("Velocity:", offset, -5.f, 5.f);
@@ -207,10 +216,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         delete ch1, ch2;
 
         // Submit Object Render Requests
-        std::vector<AssetRenderRequest> asset_requests;
-        scene_graph.updateAndRenderObjects(asset_requests);
-        for (const AssetRenderRequest& request : asset_requests)
-            visual_system.drawAsset(request);
+        scene_graph.updateAndRenderObjects();
 
         // Submit Terrain Render Requests
         std::vector<TerrainRenderRequest> terrain_requests;
