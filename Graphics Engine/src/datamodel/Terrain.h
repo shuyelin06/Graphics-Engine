@@ -1,7 +1,13 @@
 #pragma once
 
-#include "datamodel/TerrainConfig.h"
 #include "math/Vector3.h"
+
+constexpr float HEIGHT_MAP_XZ_SIZE = 200.f;
+constexpr float HEIGHT_MAP_Y_HEIGHT = 100.f;
+
+constexpr int HEIGHT_MAP_XZ_SAMPLES = 20;
+
+constexpr float DISTANCE_BETWEEN_SAMPLES = HEIGHT_MAP_XZ_SIZE / HEIGHT_MAP_XZ_SAMPLES;
 
 namespace Engine {
 using namespace Math;
@@ -10,27 +16,33 @@ namespace Datamodel {
 typedef unsigned int UINT;
 
 // Terrain Class:
-// Represents a chunk of terrain that can be sampled and rendered.
-// Terrain generation is done by running the Marching Cubes algorithm on some
-// defined noise function.
-// It generates the best surface for the data by assuming linear interpolation,
-// and generating a surface where the data will approximately be 0. Data that is
-// postive is assumed to be inside the surface, and data that is negative is
-// assumed to be outside the surface.
+// Stores a height-map representing the terrain in the engine.
 class Terrain {
   private:
-    // Stores a scalar field's values at vertices of each voxel within the
-    // chunk.
-    float terrainData[TERRAIN_CHUNK_X_SAMPLES][TERRAIN_CHUNK_Z_SAMPLES]
-                     [TERRAIN_CHUNK_Y_SAMPLES];
+    // Stores the bottom x,z world coordinates for the terrain specifying the world coordinates\
+    // of the terrain
+    float world_x, world_z;
+
+    // 2D heightmap that stores the y height of the terrain in the X,Z directions
+    float height_map[HEIGHT_MAP_XZ_SAMPLES][HEIGHT_MAP_XZ_SAMPLES];
 
   public:
-    Terrain(int x_offset, int z_offset);
-    ~Terrain();
+    Terrain(float world_x, float world_z);
+    
+    // Get the x,z coordinates on which the Terrain is based
+    float getTerrainHeight(int x_index, int z_index) const;
+    float getX() const;
+    float getZ() const;
 
-    float sample(UINT x, UINT y, UINT z) const;
-    float (*getRawData())[TERRAIN_CHUNK_X_SAMPLES][TERRAIN_CHUNK_Z_SAMPLES]
-                         [TERRAIN_CHUNK_Y_SAMPLES];
+    // Calculates and returns the x,z coordinates for a heightmap sample
+    float calculateXCoordinate(int x_index) const;
+    float calculateZCoordinate(int z_index) const;
+
+    // Get the height of the terrain given a x,z coordinate
+    float sampleTerrainHeight(float x, float z) const;
+
+    // Reload a terrain chunk by index, and samples based on Does this by sampling
+    void reloadTerrainChunk(UINT index_x, UINT index_z);    
 };
 
 } // namespace Datamodel

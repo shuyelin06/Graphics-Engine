@@ -38,10 +38,6 @@
 #include "math/Compute.h"
 #include "utility/Stopwatch.h"
 
-// TEMP
-#include "math/geometry/ConvexHull.h"
-#include "math/geometry/QuickHull.h"
-
 using namespace Engine;
 using namespace Engine::Physics;
 using namespace Engine::Datamodel;
@@ -54,15 +50,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 // Static reference to the input system for use in the window message callback
 static InputSystem input_system;
 
-#include "math/geometry/AABB.h"
-#include "math/geometry/GJK.h"
-#include "math/geometry/GJKSupport.h"
-
 // Main Function
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                     PWSTR pCmdLine, int nCmdShow) {
-    Vector3 result = Compute::SphericalToEuler(sqrtf(26), 1.3734f, 5.3559f);
-    Vector3 original = Compute::EulerToSpherical(result.x, result.y, result.z);
+    Vector3 result = SphericalToEuler(sqrtf(26), 1.3734f, 5.3559f);
+    Vector3 original = EulerToSpherical(result.x, result.y, result.z);
 
     // Create a Window Class with the OS
     const wchar_t CLASS_NAME[] = L"Main";
@@ -118,6 +110,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     visual_system.getCamera().getTransform()->setPosition(0, 10, 0);
 
     // Create Object Hierarchy
+    visual_system.bindVisualTerrain(scene_graph.terrain);
+
     Object& parent_object = scene_graph.createObject();
 
     Object& sun_light = parent_object.createChild();
@@ -127,32 +121,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     visual_system.bindAssetObject(&child2, "Capybara");
     child2.getTransform().offsetRotation(Vector3::PositiveY(), PI);
     child2.getTransform().setScale(5, 5, 5);
-    child2.getTransform().setPosition(Compute::Random(-2.5f, 2.5f),
-                                      Compute::Random(-2.5f, 2.5f),
-                                      Compute::Random(15, 25));
-
-    Object& collider_1 = parent_object.createChild();
-    PhysicsObject* phys_1 = physics_system.bindPhysicsObject(&collider_1);
-    GJKSupportPointSet* supp_1 =
-        new GJKSupportPointSet(&collider_1.getTransform());
-    for (int i = 0; i < 20; i++) {
-        supp_1->addPoint(Vector3(Compute::Random(-20.f, 20.f),
-                                 Compute::Random(-20.f, 20.f),
-                                 Compute::Random(-20.f, 20.f)));
-    }
-    phys_1->setCollisionFunction(supp_1);
-
-    Object& collider_2 = parent_object.createChild();
-    collider_2.getTransform().setPosition(20,20,20);
-    PhysicsObject* phys_2 = physics_system.bindPhysicsObject(&collider_2);
-    GJKSupportPointSet* supp_2 =
-        new GJKSupportPointSet(&collider_2.getTransform());
-    for (int i = 0; i < 20; i++) {
-        supp_2->addPoint(Vector3(Compute::Random(-20.f, 20.f),
-                                 Compute::Random(-20.f, 20.f),
-                                 Compute::Random(-20.f, 20.f)));
-    }
-    phys_2->setCollisionFunction(supp_2);
+    child2.getTransform().setPosition(Random(-2.5f, 2.5f), Random(-2.5f, 2.5f),
+                                      Random(15, 25));
 
     // Begin window messaging loop
     MSG msg = {};
@@ -183,44 +153,27 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         physics_system.update();
 
         //// TODO: THIS CODE IS WRONG
-        //child2.getTransform().lookAt(
-        //    visual_system.getCamera().getTransform()->getPosition());
-
+        // child2.getTransform().lookAt(
+        //     visual_system.getCamera().getTransform()->getPosition());
         child2.getTransform().offsetRotation(Vector3::PositiveY(), PI / 20);
-        
         sun_light.getTransform().setViewDirection(Vector3(0, -0.25f, 0.75f));
         Vector3 position = sun_light.getTransform().backward() * 75; // 75 OG
         sun_light.getTransform().setPosition(position.x, position.y,
-                                               position.z);
+                                             position.z);
 
-        // TESTING
-        static float offset[3] = {};
-        ImGui::SliderFloat3("Velocity:", offset, -5.f, 5.f);
-        phys_1->setVelocity(Vector3(offset[0], offset[1], offset[2]));
+        const Vector3 cam_pos =
+            visual_system.getCamera().getTransform()->getPosition();
+        const Vector3 point = Vector3(
+            cam_pos.x,
+            scene_graph.terrain->sampleTerrainHeight(cam_pos.x, cam_pos.z),
+            cam_pos.z);
+        visual_system.getCamera().getTransform()->setPosition(point.x, point.y + 2.f , point.z);
 
-        QuickHullSolver solver1 = QuickHullSolver();
-        solver1.computeConvexHull(supp_1->getPoints());
-        ConvexHull* ch1 = solver1.getHull();
-        ch1->transformPoints(&collider_1.getTransform());
-
-        QuickHullSolver solver2 = QuickHullSolver();
-        solver2.computeConvexHull(supp_2->getPoints());
-        ConvexHull* ch2 = solver2.getHull();
-        ch2->transformPoints(&collider_2.getTransform());
-
-        ch1->debugDrawConvexHull(Color::Blue());
-        ch2->debugDrawConvexHull(Color::Red());
-
-        delete ch1, ch2;
+        VisualDebug::DrawPoint(point, 0.5f, Color::Green());
 
         // Submit Object Render Requests
         scene_graph.updateAndRenderObjects();
-
-        // Submit Terrain Render Requests
-        std::vector<TerrainRenderRequest> terrain_requests;
-        scene_graph.updateAndRenderTerrain(terrain_requests);
-        for (const TerrainRenderRequest& request : terrain_requests)
-            visual_system.drawTerrain(request);
+        scene_graph.updateAndRenderTerrain();
 
         visual_system.render();
 

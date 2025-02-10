@@ -1,15 +1,18 @@
-#include "ResourceManager.h"
-
 #include <assert.h>
 
+#include <cmath>
+#include <math.h>
+
 #include "MarchingCubeTables.h"
-#include "datamodel/TerrainConfig.h"
 #include "math/Compute.h"
 #include "math/Matrix3.h"
 #include "math/Triangle.h"
 
+constexpr float FLT_EPSILON = 0.0001f;
+
 namespace Engine {
-namespace Graphics {
+using namespace Math;
+namespace Deprecated {
 
 // MarchingCube Class:
 // Represents a cube with float values at each of its 8 vertices. These float
@@ -50,7 +53,8 @@ class MarchingCube {
 // GenerateTerrainAsset:
 // For a given terrain chunk, we will generate the mesh for it using Marching
 // Cubes.
-Mesh* ResourceManager::GenerateTerrainMesh(MeshBuilder& builder,
+/*
+Mesh* GenerateTerrainMesh(MeshBuilder& builder,
                                         TerrainData data) {
     builder.reset();
 
@@ -109,6 +113,7 @@ Mesh* ResourceManager::GenerateTerrainMesh(MeshBuilder& builder,
 
     return builder.generate();
 }
+*/
 
 // -------------------------------------------------------------
 // Terrain Generation using an adapted version of Lewiner, et. al's

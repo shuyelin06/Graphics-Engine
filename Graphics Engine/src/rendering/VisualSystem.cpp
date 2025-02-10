@@ -141,11 +141,42 @@ ShadowLightObject* VisualSystem::bindShadowLightObject(Object* object) {
     return light_obj;
 }
 
-// DrawRequests:
-// Methods that let other components of the application submit requests
-// for rendering
-void VisualSystem::drawTerrain(const TerrainRenderRequest& request) {
-    terrainRequests.push_back(request);
+VisualTerrain* VisualSystem::bindVisualTerrain(Terrain* terrain) {
+    // TEMP: Generate a triangulation of the terrain
+    MeshBuilder builder = MeshBuilder();
+
+    for (int x = 0; x < HEIGHT_MAP_XZ_SAMPLES; x++) {
+        for (int z = 0; z < HEIGHT_MAP_XZ_SAMPLES; z++) {
+            const float x_coord = terrain->calculateXCoordinate(x);
+            const float z_coord = terrain->calculateZCoordinate(z);
+            const float y_coord = terrain->getTerrainHeight(x, z);
+
+            builder.addVertex(Vector3(x_coord, y_coord, z_coord), Vector2(),
+                              Vector3());
+        }
+    }
+
+    for (int x = 1; x < HEIGHT_MAP_XZ_SAMPLES - 1; x++) {
+        for (int z = 1; z < HEIGHT_MAP_XZ_SAMPLES - 1; z++) {
+            const int v0 = (x * HEIGHT_MAP_XZ_SAMPLES + z);
+
+            builder.addTriangle(v0, (x)*HEIGHT_MAP_XZ_SAMPLES + (z + 1),
+                                (x + 1) * HEIGHT_MAP_XZ_SAMPLES + (z));
+            builder.addTriangle(v0, (x + 1) * HEIGHT_MAP_XZ_SAMPLES + (z),
+                                (x)*HEIGHT_MAP_XZ_SAMPLES + (z - 1));
+            builder.addTriangle(v0, (x)*HEIGHT_MAP_XZ_SAMPLES + (z - 1),
+                                (x - 1) * HEIGHT_MAP_XZ_SAMPLES + (z));
+            builder.addTriangle(v0, (x - 1) * HEIGHT_MAP_XZ_SAMPLES + (z),
+                                (x - 1) * HEIGHT_MAP_XZ_SAMPLES + (z + 1));
+        }
+    }
+
+    builder.regenerateNormals();
+    Mesh* mesh = builder.generate();
+
+    VisualTerrain* visual_terrain = new VisualTerrain(terrain, mesh);
+    terrain_chunks.push_back(visual_terrain);
+    return visual_terrain;
 }
 
 // Render:
@@ -221,34 +252,28 @@ void VisualSystem::renderPrepare() {
     }
     renderable_assets.resize(head);
 
-    // Parse all terrain render requests. This may involve generating the
-    // terrain data.
-    for (const TerrainRenderRequest& request : terrainRequests) {
-        // Offset the terrain chunks so that they are adjacent to one another,
-        // and are centered around the origin.
-        const float x_offset =
-            request.x_offset * TERRAIN_SIZE - CHUNK_X_LIMIT / 2 * TERRAIN_SIZE;
-        const float z_offset =
-            request.z_offset * TERRAIN_SIZE - CHUNK_Z_LIMIT / 2 * TERRAIN_SIZE;
-        const float y_offset = -TERRAIN_HEIGHT * 0.75f;
+    for (const AssetObject* object : renderable_assets) {
+        for (Mesh* mesh : object->asset->getMeshes()) {
+            ShadowCaster shadowCaster;
+            shadowCaster.mesh = mesh;
+            shadowCaster.m_localToWorld = object->object->getLocalMatrix();
+            shadow_casters.push_back(shadowCaster);
+        }
+    }
 
-        Mesh* mesh = assetManager->getTerrainMesh(
-            request.x_offset, request.z_offset, request.data);
-
+    // Parse all terrain data
+    for (const VisualTerrain* terrain: terrain_chunks) {
         ShadowCaster shadowCaster;
-        shadowCaster.mesh = mesh;
-        shadowCaster.m_localToWorld =
-            Transform::GenerateTranslationMatrix(x_offset, y_offset, z_offset);
+        shadowCaster.mesh = terrain->terrain_mesh;
+        shadowCaster.m_localToWorld = Matrix4();
         shadow_casters.push_back(shadowCaster);
 
         RenderableTerrain renderableTerrain;
-        renderableTerrain.mesh = mesh;
-        renderableTerrain.terrain_offset =
-            Vector3(x_offset, y_offset, z_offset);
+        renderableTerrain.mesh = terrain->terrain_mesh;
+        renderableTerrain.terrain_offset = Vector3();
         renderable_terrain.push_back(renderableTerrain);
     }
 
-    terrainRequests.clear();
 
 #if defined(_DEBUG)
     cpu_timer.endTimer("Render Prepare");
@@ -278,9 +303,11 @@ void VisualSystem::performShadowPass() {
         // Load light view and projection matrix
         vCB0->clearData();
 
-        const Matrix4 viewMatrix = light_obj->object->getLocalMatrix().inverse();
+        const Matrix4 viewMatrix =
+            light_obj->object->getLocalMatrix().inverse();
         vCB0->loadData(&viewMatrix, FLOAT4X4);
-        const Matrix4 projectionMatrix = light_obj->light->getProjectionMatrix();
+        const Matrix4 projectionMatrix =
+            light_obj->light->getProjectionMatrix();
         vCB0->loadData(&projectionMatrix, FLOAT4X4);
 
         // Set the light as the render target.
@@ -413,17 +440,18 @@ void VisualSystem::performTerrainPass() {
     // Load my Samplers
     {
         ID3D11SamplerState* mesh_texture_sampler =
-            assetManager->getSampler(MeshTexture);
+            assetManager->getMeshSampler();
         context->PSSetSamplers(0, 1, &mesh_texture_sampler);
 
         ID3D11SamplerState* shadowmap_sampler =
-            assetManager->getSampler(ShadowMap);
+            assetManager->getShadowMapSampler();
         context->PSSetSamplers(1, 1, &shadowmap_sampler);
     }
 
-    for (const RenderableTerrain& terrain : renderable_terrain) {
+    // TEMP
+    for (const RenderableTerrain terrain : renderable_terrain) {
         Mesh* mesh = terrain.mesh;
-        const Vector3& offset = terrain.terrain_offset;
+        const Vector3 offset = terrain.terrain_offset;
 
         vCB1->clearData();
         vCB1->loadData(&offset, FLOAT3);
@@ -474,8 +502,8 @@ void VisualSystem::performRenderPass() {
 
     context->OMSetRenderTargets(1, &render_target_view,
                                 depth_texture->depth_view);
-    context->ClearDepthStencilView(depth_texture->depth_view, D3D11_CLEAR_DEPTH,
-                                   1.0f, 0);
+    /*context->ClearDepthStencilView(depth_texture->depth_view, D3D11_CLEAR_DEPTH,
+                                   1.0f, 0);*/
     context->RSSetViewports(1, &viewport);
 
     // Vertex Constant Buffer 1:
@@ -515,11 +543,13 @@ void VisualSystem::performRenderPass() {
                 light_obj->object->getLocalMatrix().inverse();
             pCB1->loadData(&viewMatrix, FLOAT4X4);
 
-            const Matrix4 projectionMatrix = light_obj->light->getProjectionMatrix();
+            const Matrix4 projectionMatrix =
+                light_obj->light->getProjectionMatrix();
             pCB1->loadData(&projectionMatrix, FLOAT4X4);
 
             const NormalizedShadowViewport normalized_view =
-                light_manager->normalizeViewport(light_obj->light->getShadowmapViewport());
+                light_manager->normalizeViewport(
+                    light_obj->light->getShadowmapViewport());
             pCB1->loadData(&normalized_view, FLOAT4);
 
             // DEBUG
@@ -541,11 +571,11 @@ void VisualSystem::performRenderPass() {
     // Load my Samplers
     {
         ID3D11SamplerState* mesh_texture_sampler =
-            assetManager->getSampler(MeshTexture);
+            assetManager->getMeshSampler();
         context->PSSetSamplers(0, 1, &mesh_texture_sampler);
 
         ID3D11SamplerState* shadowmap_sampler =
-            assetManager->getSampler(ShadowMap);
+            assetManager->getShadowMapSampler();
         context->PSSetSamplers(1, 1, &shadowmap_sampler);
     }
 

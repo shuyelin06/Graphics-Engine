@@ -159,9 +159,9 @@ Texture* TextureAtlas::getAllocationView() {
 
     for (const AtlasAllocation& alloc : allocations) {
         TextureColor color;
-        color.r = Compute::Random(0, 255);
-        color.g = Compute::Random(0, 255);
-        color.b = Compute::Random(0, 255);
+        color.r = Random(0, 255);
+        color.g = Random(0, 255);
+        color.b = Random(0, 255);
         color.a = 255;
 
         for (int x = 0; x < alloc.width; x++) {

@@ -4,9 +4,6 @@
 
 #include "Object.h"
 #include "Terrain.h"
-#include "datamodel/TerrainConfig.h"
-
-#include "rendering/RenderRequest.h"
 
 namespace Engine {
 namespace Datamodel {
@@ -24,7 +21,9 @@ class SceneGraph {
     Vector3* center; 
 
     std::vector<Object*> objects;
-    Terrain* terrain_chunks[CHUNK_X_LIMIT][CHUNK_Z_LIMIT];
+    
+public:
+    Terrain* terrain; // TEMP
 
   public:
     SceneGraph();
@@ -32,16 +31,11 @@ class SceneGraph {
 
     // Object handling
     const std::vector<Object*>& getObjects();
-
     Object& createObject();
-
-    // Terrain handling
-    const Terrain* getTerrain(int x, int z) const;
-    Terrain* getTerrain(int x, int z);
 
     // Update terrain (if needed) and submit render requests for each.
     // Later, the scene graph can do some culling optimizations for us. 
-    void updateAndRenderTerrain(std::vector<TerrainRenderRequest>& requests);
+    void updateAndRenderTerrain();
     
     // Update object transforms and submit render requests
     // for each

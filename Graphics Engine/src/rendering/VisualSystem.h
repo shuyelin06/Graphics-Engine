@@ -12,16 +12,11 @@
 #include "shaders/ShaderManager.h"
 #include "lights/LightManager.h"
 
+#include "VisualTerrain.h"
 #include "core/AssetObject.h"
 #include "lights/LightObject.h"
 
-#include "RenderRequest.h"
-
 #include "rendering/core/Camera.h"
-
-#include "datamodel/Terrain.h"
-
-
 
 #if defined(_DEBUG)
 // imgui Includes
@@ -74,16 +69,13 @@ class VisualSystem {
     // The scene is rendered from this camera
     Camera camera;
 
-    // Render Requests:
-    // Vectors of render requests submitted to the visual system.
-    std::vector<TerrainRenderRequest> terrainRequests;
-
     // Render Information:
     // Vectors of rendering information that the visual system actually uses
-    // for rendering. It takes all render requests, and processes them into
-    // this information.
+    // for rendering. It takes the datamodel state, and processes them into
+    // render information.
     std::vector<AssetObject*> renderable_assets;
     std::vector<ShadowLightObject*> shadow_lights;
+    std::vector<VisualTerrain*> terrain_chunks;
 
     std::vector<ShadowCaster> shadow_casters;
     std::vector<RenderableTerrain> renderable_terrain;
@@ -103,11 +95,7 @@ class VisualSystem {
     // Create objects in the visual system
     AssetObject* bindAssetObject(Object* object, const std::string& asset_name);
     ShadowLightObject* bindShadowLightObject(Object* object);
-
-    // Submit render requests to the visual system. These requests
-    // are processed into render commands, which the system will use for
-    // rendering.
-    void drawTerrain(const TerrainRenderRequest& renderRequest);
+    VisualTerrain* bindVisualTerrain(Terrain* terrain);
 
     // Renders an entire scene
     void render();

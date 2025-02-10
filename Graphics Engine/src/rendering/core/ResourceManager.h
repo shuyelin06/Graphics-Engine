@@ -16,16 +16,6 @@ namespace Engine {
 using namespace Datamodel;
 namespace Graphics {
 
-enum TextureSlot {
-    Test = 0,
-    Test2 = 1,
-    Perlin = 2,
-    TerrainGrass = 3,
-    CapybaraTex = 4,
-    TextureCount
-};
-enum SamplerSlot { ShadowMap = 0, MeshTexture = 1, SamplerCount };
-
 // ResourceManager Class:
 // Manages assets for the engine. Provides methods
 // to load assets, and prepare them for rendering.
@@ -37,9 +27,8 @@ class ResourceManager {
     std::unordered_map<std::string, Asset*> assets;
     std::unordered_map<std::string, Texture*> textures;
 
-    std::vector<ID3D11SamplerState*> samplers;
-
-    Mesh* terrain_meshes[CHUNK_X_LIMIT][CHUNK_Z_LIMIT];
+    ID3D11SamplerState* shadowmap_sampler;
+    ID3D11SamplerState* mesh_sampler;
 
   public:
     ResourceManager(ID3D11Device* device, ID3D11DeviceContext* context);
@@ -54,18 +43,12 @@ class ResourceManager {
     Texture* getTexture(const std::string& name);
 
     // Get a sampler by name
-    ID3D11SamplerState* getSampler(SamplerSlot sampler);
-
-    // Get a terrain mesh by its positional ID. Caches the generated terrain so
-    // we don't have to generate it again.
-    Mesh* getTerrainMesh(int x, int z, TerrainData data);
+    ID3D11SamplerState* getShadowMapSampler();
+    ID3D11SamplerState* getMeshSampler();
 
   private:
     // Generate a cube
     Asset* LoadCube(MeshBuilder& builder);
-
-    // Generate terrain given terrain chunk data
-    Mesh* GenerateTerrainMesh(MeshBuilder& builder, TerrainData data);
 
     // Load assets from files.
     Asset* LoadAssetFromOBJ(const std::string& path, const std::string& objFile);

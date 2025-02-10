@@ -28,12 +28,6 @@ ResourceManager::ResourceManager(ID3D11Device* _device,
                                  ID3D11DeviceContext* _context) {
     device = _device;
     context = _context;
-
-    for (int i = 0; i < CHUNK_X_LIMIT; i++) {
-        for (int j = 0; j < CHUNK_Z_LIMIT; j++) {
-            terrain_meshes[i][j] = nullptr;
-        }
-    }
 }
 ResourceManager::~ResourceManager() = default;
 
@@ -74,10 +68,8 @@ void ResourceManager::initialize() {
     textures["CapybaraTex"] = tex_builder.generate();
 
     // Create my samplers
-    samplers.resize(SamplerCount);
-
-    samplers[ShadowMap] = LoadShadowMapSampler();
-    samplers[MeshTexture] = LoadMeshTextureSampler();
+    shadowmap_sampler = LoadShadowMapSampler();
+    mesh_sampler = LoadMeshTextureSampler();
 
     // Create my assets
     MeshBuilder mesh_builder = MeshBuilder();
@@ -107,21 +99,11 @@ Texture* ResourceManager::getTexture(const std::string& name) {
         return nullptr;
 }
 
-ID3D11SamplerState* ResourceManager::getSampler(SamplerSlot sampler) {
-    assert(0 <= sampler && sampler <= samplers.size());
-    return samplers[sampler];
+ID3D11SamplerState* ResourceManager::getShadowMapSampler() {
+    return shadowmap_sampler;
 }
 
-// GetTerrain:
-// Generates terrain given data.
-Mesh* ResourceManager::getTerrainMesh(int x, int z, TerrainData data) {
-    if (terrain_meshes[x][z] == nullptr) {
-        MeshBuilder builder = MeshBuilder();
-        terrain_meshes[x][z] = GenerateTerrainMesh(builder, data);
-    }
-
-    return terrain_meshes[x][z];
-}
+ID3D11SamplerState* ResourceManager::getMeshSampler() { return mesh_sampler; }
 
 // LoadTextureFromPNG:
 // Uses the PNGFile interface to load a texture from a PNG file

@@ -211,11 +211,10 @@
     <ClCompile Include="src\rendering\imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="src\rendering\imgui\imgui_tables.cpp" />
     <ClCompile Include="src\rendering\imgui\imgui_widgets.cpp" />
-    <ClCompile Include="src\rendering\core\MarchingCubes.cpp" />
+    <ClCompile Include="src\deprecated\MarchingCubes.cpp" />
     <ClCompile Include="src\rendering\core\TextureManager.cpp" />
     <ClCompile Include="src\rendering\util\OBJFile.cpp" />
     <ClCompile Include="src\rendering\util\PNGFile.cpp" />
-    <ClCompile Include="src\rendering\RenderRequest.cpp" />
     <ClCompile Include="src\rendering\shaders\Shader.cpp" />
     <ClCompile Include="src\rendering\shaders\ShaderManager.cpp" />
     <ClCompile Include="src\rendering\util\CPUTimer.cpp" />
@@ -226,6 +225,7 @@
     <ClCompile Include="src\rendering\VisualDebug.cpp" />
     <ClCompile Include="src\rendering\VisualObject.cpp" />
     <ClCompile Include="src\rendering\VisualSystem.cpp" />
+    <ClCompile Include="src\rendering\VisualTerrain.cpp" />
     <ClCompile Include="src\utility\FileReader.cpp" />
     <ClCompile Include="src\utility\Stopwatch.cpp" />
     <ClCompile Include="src\rendering\core\VertexStreamIDs.h" />
@@ -235,7 +235,6 @@
     <ClInclude Include="include\zlib.h" />
     <ClInclude Include="src\datamodel\SceneGraph.h" />
     <ClInclude Include="src\datamodel\Terrain.h" />
-    <ClInclude Include="src\datamodel\TerrainConfig.h" />
     <ClInclude Include="src\input\InputFrame.h" />
     <ClInclude Include="src\input\SymbolData.h" />
     <ClInclude Include="src\math\geometry\AABB.h" />
@@ -259,7 +258,7 @@
     <ClInclude Include="src\rendering\imgui\imstb_rectpack.h" />
     <ClInclude Include="src\rendering\imgui\imstb_textedit.h" />
     <ClInclude Include="src\rendering\imgui\imstb_truetype.h" />
-    <ClInclude Include="src\rendering\core\MarchingCubeTables.h" />
+    <ClInclude Include="src\deprecated\MarchingCubeTables.h" />
     <ClInclude Include="src\input\components\MovementHandler.h" />
     <ClInclude Include="src\math\PerlinNoise.h" />
     <ClInclude Include="src\math\Transform.h" />
@@ -283,7 +282,6 @@
     <ClInclude Include="src\rendering\core\Camera.h" />
     <ClInclude Include="src\rendering\lights\Light.h" />
     <ClInclude Include="src\rendering\core\ResourceManager.h" />
-    <ClInclude Include="src\rendering\RenderRequest.h" />
     <ClInclude Include="src\rendering\shaders\Shader.h" />
     <ClInclude Include="src\rendering\shaders\ShaderManager.h" />
     <ClInclude Include="src\rendering\core\TextureManager.h" />
@@ -297,6 +295,7 @@
     <ClInclude Include="src\rendering\VisualDebug.h" />
     <ClInclude Include="src\rendering\VisualObject.h" />
     <ClInclude Include="src\rendering\VisualSystem.h" />
+    <ClInclude Include="src\rendering\VisualTerrain.h" />
     <ClInclude Include="src\utility\FileReader.h" />
     <ClInclude Include="src\utility\Stopwatch.h" />
   </ItemGroup>

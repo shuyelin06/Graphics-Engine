@@ -1,5 +1,7 @@
 #include "PerlinNoise.h"
 
+#include "Compute.h"
+
 namespace Engine {
 namespace Math {
 
@@ -50,11 +52,6 @@ constexpr unsigned char permutations[] = {
 // so things look smoother and aren't as jagged.
 static float fade(float t) { return (t * t * t) * (10 + t * (6 * t - 15)); }
 
-// Linear Interpolation Function:
-// Given two numbers and a number from [0,1], linearly
-// interpolates between the two numbers
-static float lerp(float a, float b, float t) { return a + (b - a) * t; }
-
 // Gradient Function:
 // Given a hash value, and a (x,y) coordinate, returns the result of the
 // gradient vector dotted with the direction vector (from (x,y) to the corner
@@ -97,11 +94,11 @@ float PerlinNoise::octaveNoise2D(float x, float y, int octaves,
     // persistence
     float total = 0;
     // MaxValue is used to normalize the result to [0,1]
-    float maxValue = 0; 
+    float maxValue = 0;
 
     float frequency = 1;
     float amplitude = 1;
-    
+
     for (int i = 0; i < octaves; i++) {
         total += noise2D(x * frequency, y * frequency) * amplitude;
 
@@ -126,8 +123,8 @@ float PerlinNoise::noise2D(float x, float y) {
     // Coordinates within our cell, faded for a smoother input.
     // This represents a coordinate within
     // our cell which we want to find the Perlin Noise for.
-    const float xf = fade(x - (int)x);
-    const float yf = fade(y - (int)y);
+    const float xf = Clamp(fade(x - (int)x), 0, 1);
+    const float yf = Clamp(fade(y - (int)y), 0, 1);
 
     // For my coordinates, create a "hash" for each vertex using the permutation
     // table. This hash will determine my gradient vectors. aa represents the
@@ -145,10 +142,13 @@ float PerlinNoise::noise2D(float x, float y) {
     const float grad_bb = grad2D(bb, xf - 1, yf - 1);
 
     const float perlin_value =
-        lerp(lerp(grad_aa, grad_ab, yf), lerp(grad_ba, grad_bb, yf), xf);
+        Lerp(Lerp(grad_aa, grad_ab, yf),
+                      Lerp(grad_ba, grad_bb, yf), xf);
 
     // Normalize to be between (0,1)
-    return (perlin_value + 1) / 2.f;
+    const float normalized_value = (perlin_value + 1) / 2.f;
+
+    return normalized_value;
 }
 
 } // namespace Math

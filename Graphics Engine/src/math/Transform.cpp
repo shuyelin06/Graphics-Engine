@@ -53,7 +53,7 @@ void Transform::setViewDirection(const Vector3& direc) {
     const Vector3 direction = direc.unit();
 
     // Now, convert to spherical coordinates
-    const Vector3 spherical_coords = Compute::EulerToSpherical(direction);
+    const Vector3 spherical_coords = EulerToSpherical(direction);
     const float theta = spherical_coords.y;
     const float phi = spherical_coords.z;
 

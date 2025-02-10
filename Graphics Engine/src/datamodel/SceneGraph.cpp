@@ -6,21 +6,11 @@ namespace Engine {
 namespace Datamodel {
 
 SceneGraph::SceneGraph() : objects() {
-    for (int i = 0; i < CHUNK_X_LIMIT; i++) {
-        for (int j = 0; j < CHUNK_Z_LIMIT; j++) {
-            terrain_chunks[i][j] = new Terrain(i, j);
-        }
-    }
+    terrain = new Terrain(-100,-100);
 }
 SceneGraph::~SceneGraph() {
     for (Object* object : objects)
         delete object;
-
-    for (int i = 0; i < CHUNK_X_LIMIT; i++) {
-        for (int j = 0; j < CHUNK_Z_LIMIT; j++) {
-            delete terrain_chunks[i][j];
-        }
-    }
 }
 
 // GetObjects:
@@ -35,26 +25,9 @@ Object& SceneGraph::createObject() {
     return *object;
 }
 
-// GetTerrain:
-// Returns the scene's terrain.
-const Terrain* SceneGraph::getTerrain(int x, int z) const {
-    return terrain_chunks[x][z];
-}
-Terrain* SceneGraph::getTerrain(int x, int z) { return terrain_chunks[x][z]; }
-
 // UpdateAndRenderTerrain:
-// Update and submit render requests for the terrain chunks.
-void SceneGraph::updateAndRenderTerrain(
-    std::vector<TerrainRenderRequest>& requests) {
-    for (int i = 0; i < CHUNK_X_LIMIT; i++) {
-        for (int j = 0; j < CHUNK_Z_LIMIT; j++) {
-            TerrainData terrain_data =
-                TerrainData(terrain_chunks[i][j]->getRawData());
-            TerrainRenderRequest request =
-                TerrainRenderRequest(i, j, terrain_data);
-            requests.push_back(request);
-        }
-    }
+// Update the terrain chunks.
+void SceneGraph::updateAndRenderTerrain() {
 }
 
 // UpdateAndRenderObjects:

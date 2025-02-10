@@ -47,7 +47,7 @@ void Camera::setTransform(Transform* _transform) { transform = _transform; }
 // Set's the camera's FOV. Clamped to prevent excessively wide
 // FOVs.
 void Camera::setFOV(float new_fov) {
-    fov = Compute::Clamp(new_fov, 0.5f, PI - 0.5f);
+    fov = Clamp(new_fov, 0.5f, PI - 0.5f);
 }
 
 // SetZNear:

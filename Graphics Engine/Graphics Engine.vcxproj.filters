@@ -111,10 +111,7 @@
     <ClCompile Include="src\math\PerlinNoise.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\core\MarchingCubes.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\rendering\RenderRequest.cpp">
+    <ClCompile Include="src\deprecated\MarchingCubes.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\core\VertexStreamIDs.h">
@@ -204,6 +201,9 @@
     <ClCompile Include="src\rendering\lights\LightObject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\rendering\VisualTerrain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\math\Vector3.h">
@@ -269,7 +269,7 @@
     <ClInclude Include="src\math\Color.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\core\MarchingCubeTables.h">
+    <ClInclude Include="src\deprecated\MarchingCubeTables.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\math\Quaternion.h">
@@ -303,12 +303,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\math\PerlinNoise.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\rendering\RenderRequest.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\datamodel\TerrainConfig.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\imgui\imgui.h">
@@ -408,6 +402,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\lights\LightObject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rendering\VisualTerrain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
