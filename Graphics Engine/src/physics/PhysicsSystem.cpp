@@ -1,7 +1,6 @@
 #include "PhysicsSystem.h"
 
-#include "math/geometry/GJK.h"
-
+#include "collisions/GJK.h"
 #include "rendering/VisualDebug.h"
 
 namespace Engine {
@@ -10,7 +9,7 @@ using namespace Utility;
 namespace Physics {
 // Constructor:
 // Initializes relevant fields
-PhysicsSystem::PhysicsSystem() : stopwatch() {}
+PhysicsSystem::PhysicsSystem() : broadphase_tree(0.2f), stopwatch() {}
 
 // Initialize:
 // Begin the stopwatch to track delta_time.
@@ -57,7 +56,6 @@ void PhysicsSystem::update() {
         transform.offsetPosition(object->velocity * delta_time);
         object->velocity /= 2;
     }
-
 }
 
 // PhysicsPrepare:

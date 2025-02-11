@@ -21,7 +21,7 @@ class PhysicsSystem {
     std::vector<PhysicsObject*> objects;
     
     // Dynamic AABB tree for the collision broad-phase
-    // AABBTree collision_tree;
+    AABBTree broadphase_tree;
 
   public:
     PhysicsSystem();

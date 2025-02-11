@@ -2,8 +2,8 @@
 
 #include "datamodel/Object.h"
 
+#include "collisions/GJKSupport.h"
 #include "math/Vector3.h"
-#include "math/geometry/GJKSupport.h"
 
 namespace Engine {
 using namespace Datamodel;

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ConvexHull.h"
-#include "../Triangle.h"
+#include "Triangle.h"
 
 namespace Engine {
 namespace Math {

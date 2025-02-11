@@ -174,16 +174,16 @@
     <ClCompile Include="src\physics\collisions\AABB.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\math\geometry\GJK.cpp">
+    <ClCompile Include="src\physics\collisions\GJK.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\math\geometry\GJKSupport.cpp">
+    <ClCompile Include="src\physics\collisions\GJKSupport.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\math\geometry\ConvexHull.cpp">
+    <ClCompile Include="src\math\ConvexHull.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\math\geometry\QuickHull.cpp">
+    <ClCompile Include="src\math\QuickHull.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\physics\PhysicsObject.cpp">
@@ -377,16 +377,16 @@
     <ClInclude Include="src\physics\collisions\AABB.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\math\geometry\GJK.h">
+    <ClInclude Include="src\physics\collisions\GJK.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\math\geometry\GJKSupport.h">
+    <ClInclude Include="src\physics\collisions\GJKSupport.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\math\geometry\ConvexHull.h">
+    <ClInclude Include="src\math\ConvexHull.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\math\geometry\QuickHull.h">
+    <ClInclude Include="src\math\QuickHull.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\physics\PhysicsObject.h">

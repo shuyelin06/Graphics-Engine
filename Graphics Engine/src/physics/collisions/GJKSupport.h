@@ -6,11 +6,13 @@
 
 #include <vector>
 
-#include "../Transform.h"
-#include "../Vector3.h"
+#include "math/Transform.h"
+#include "math/Vector3.h"
 
 namespace Engine {
-namespace Math {
+using namespace Math;
+
+namespace Physics {
 class GJKSupportFunc {
   public:
     virtual const Vector3 center() = 0;

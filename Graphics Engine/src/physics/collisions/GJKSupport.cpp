@@ -1,7 +1,7 @@
 #include "GJKSupport.h"
 
 namespace Engine {
-namespace Math {
+namespace Physics {
 GJKSupportPointSet::GJKSupportPointSet(const Transform* _transform) : points() {
     transform = _transform;
 }

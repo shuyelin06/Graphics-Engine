@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <unordered_map>
 
-#include "../Plane.h"
+#include "Plane.h"
 
 namespace Engine {
 namespace Math {

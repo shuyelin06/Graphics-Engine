@@ -4,14 +4,15 @@
 #include <math.h>
 
 #include "GJKSupport.h"
-#include "QuickHull.h"
-#include "../Matrix4.h"
-#include "../Quaternion.h"
+
+#include "math/QuickHull.h"
+#include "math/Matrix4.h"
+#include "math/Quaternion.h"
 
 #include "rendering/VisualDebug.h"
 
 namespace Engine {
-namespace Math {
+namespace Physics {
 GJKSolver::GJKSolver(GJKSupportFunc* _shape_1, GJKSupportFunc* _shape_2) {
     shape_1 = _shape_1;
     shape_2 = _shape_2;
