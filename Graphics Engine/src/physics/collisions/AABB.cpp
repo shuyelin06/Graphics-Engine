@@ -7,9 +7,12 @@
 #endif
 
 namespace Engine {
-namespace Math {
-AABB::AABB() : minimum(Vector3::VectorMax()), maximum(Vector3::VectorMin()) {}
-AABB::AABB(const Vector3& center) : minimum(center), maximum(center) {}
+namespace Physics {
+AABB::AABB() : minimum(Vector3::VectorMax()), maximum(Vector3::VectorMin()) {
+    node = nullptr;
+}
+AABB::AABB(const Vector3& center)
+    : minimum(center), maximum(center), node(nullptr) {}
 AABB::~AABB() = default;
 
 // Getters:
@@ -21,55 +24,85 @@ float AABB::volume() const {
 const Vector3& AABB::getMin() const { return minimum; }
 const Vector3& AABB::getMax() const { return maximum; }
 
+// Contains:
+// Returns true if this AABB contains the parameter, false otherwise
+bool AABB::contains(const AABB& aabb) const {
+    const bool x = minimum.x <= aabb.minimum.x && aabb.maximum.x <= maximum.x;
+    const bool y = minimum.y <= aabb.minimum.y && aabb.maximum.y <= maximum.y;
+    const bool z = minimum.z <= aabb.minimum.z && aabb.maximum.z <= maximum.z;
+    return x && y && z;
+}
+
+// UnionWith:
+// Returns the union of two AABBs
+AABB AABB::unionWith(const AABB& aabb) const {
+    AABB result;
+    result.minimum = minimum.componentMin(aabb.minimum);
+    result.maximum = maximum.componentMax(aabb.maximum);
+    return result;
+}
+
 // ExpandToContain:
 // Given a point, expands the AABB so that it includes the point.
+void AABB::expandToContain(const std::vector<Vector3>& points) {
+    for (const Vector3& point : points)
+        expandToContain(point);
+}
+
 void AABB::expandToContain(const Vector3& point) {
     minimum = minimum.componentMin(point);
     maximum = maximum.componentMax(point);
 }
 
+void AABB::reset() {
+    minimum = Vector3::VectorMax();
+    maximum = Vector3::VectorMin();
+}
+
 #if defined(DRAW_AABB_EXTENTS)
-void AABB::debugDrawExtents() const {
+void AABB::debugDrawExtents() const { debugDrawExtents(Color::Blue()); }
+
+void AABB::debugDrawExtents(const Color& color) const {
     Graphics::VisualDebug::DrawLine(Vector3(minimum.x, minimum.y, minimum.z),
                                     Vector3(maximum.x, minimum.y, minimum.z),
-                                    Color::Blue());
+                                    color);
     Graphics::VisualDebug::DrawLine(Vector3(maximum.x, minimum.y, minimum.z),
                                     Vector3(maximum.x, maximum.y, minimum.z),
-                                    Color::Blue());
+                                    color);
     Graphics::VisualDebug::DrawLine(Vector3(maximum.x, maximum.y, minimum.z),
                                     Vector3(minimum.x, maximum.y, minimum.z),
-                                    Color::Blue());
+                                    color);
     Graphics::VisualDebug::DrawLine(Vector3(minimum.x, maximum.y, minimum.z),
                                     Vector3(minimum.x, minimum.y, minimum.z),
-                                    Color::Blue());
+                                    color);
 
     Graphics::VisualDebug::DrawLine(Vector3(minimum.x, minimum.y, maximum.z),
                                     Vector3(maximum.x, minimum.y, maximum.z),
-                                    Color::Blue());
+                                    color);
     Graphics::VisualDebug::DrawLine(Vector3(maximum.x, minimum.y, maximum.z),
                                     Vector3(maximum.x, maximum.y, maximum.z),
-                                    Color::Blue());
+                                    color);
     Graphics::VisualDebug::DrawLine(Vector3(maximum.x, maximum.y, maximum.z),
                                     Vector3(minimum.x, maximum.y, maximum.z),
-                                    Color::Blue());
+                                    color);
     Graphics::VisualDebug::DrawLine(Vector3(minimum.x, maximum.y, maximum.z),
                                     Vector3(minimum.x, minimum.y, maximum.z),
-                                    Color::Blue());
+                                    color);
 
     Graphics::VisualDebug::DrawLine(Vector3(minimum.x, minimum.y, minimum.z),
                                     Vector3(minimum.x, minimum.y, maximum.z),
-                                    Color::Blue());
+                                    color);
     Graphics::VisualDebug::DrawLine(Vector3(minimum.x, maximum.y, minimum.z),
                                     Vector3(minimum.x, maximum.y, maximum.z),
-                                    Color::Blue());
+                                    color);
     Graphics::VisualDebug::DrawLine(Vector3(maximum.x, minimum.y, minimum.z),
                                     Vector3(maximum.x, minimum.y, maximum.z),
-                                    Color::Blue());
+                                    color);
     Graphics::VisualDebug::DrawLine(Vector3(maximum.x, maximum.y, minimum.z),
                                     Vector3(maximum.x, maximum.y, maximum.z),
-                                    Color::Blue());
+                                    color);
 }
 #endif
 
-} // namespace Math
+} // namespace Physics
 } // namespace Engine

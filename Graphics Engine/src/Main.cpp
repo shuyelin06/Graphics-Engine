@@ -38,6 +38,10 @@
 #include "math/Compute.h"
 #include "utility/Stopwatch.h"
 
+// ----- TESTING -----
+#include "physics/collisions/AABBTree.h"
+// -----
+
 using namespace Engine;
 using namespace Engine::Physics;
 using namespace Engine::Datamodel;
@@ -124,6 +128,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     child2.getTransform().setPosition(Random(-2.5f, 2.5f), Random(-2.5f, 2.5f),
                                       Random(15, 25));
 
+    AABBTree aabb_tree = AABBTree(0.2f);
+    static AABB* param = new AABB();
+    aabb_tree.add(param);
+
+
     // Begin window messaging loop
     MSG msg = {};
     bool close = false;
@@ -161,15 +170,43 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         sun_light.getTransform().setPosition(position.x, position.y,
                                              position.z);
 
-        const Vector3 cam_pos =
-            visual_system.getCamera().getTransform()->getPosition();
-        const Vector3 point = Vector3(
-            cam_pos.x,
-            scene_graph.terrain->sampleTerrainHeight(cam_pos.x, cam_pos.z),
-            cam_pos.z);
-        visual_system.getCamera().getTransform()->setPosition(point.x, point.y + 2.f , point.z);
+        // ImGui Testing for AABBTree
+        static float minimum[3] = {-2.f, -2.f, -2.f};
+        static float maximum[3] = {2.f, 2.f, 2.f};
 
-        VisualDebug::DrawPoint(point, 0.5f, Color::Green());
+        ImGui::SliderFloat3("Minimum: ", minimum, -50, 50);
+        ImGui::SliderFloat3("Maximum: ", maximum, -50, 50);
+
+        VisualDebug::DrawPoint(Vector3(minimum[0], minimum[1], minimum[2]),
+                               1.5f, Color::Green());
+        VisualDebug::DrawPoint(Vector3(maximum[0], maximum[1], maximum[2]),
+                               1.5f, Color::Green());
+
+        param->reset();
+        param->expandToContain(Vector3(minimum[0], minimum[1], minimum[2]));
+        param->expandToContain(Vector3(maximum[0], maximum[1], maximum[2]));
+        
+        static AABB* last_aabb = nullptr;
+
+        if (ImGui::Button("Add AABB")) {
+            AABB* aabb = new AABB();
+
+            aabb->expandToContain(Vector3(minimum[0], minimum[1], minimum[2]));
+            aabb->expandToContain(Vector3(maximum[0], maximum[1], maximum[2]));
+
+            aabb_tree.add(aabb);
+
+            last_aabb = aabb;
+        }
+
+        if (ImGui::Button("Remove Last") && last_aabb != nullptr) {
+            aabb_tree.remove(last_aabb);
+            last_aabb = nullptr;
+        }
+
+        aabb_tree.update();
+
+        aabb_tree.debugDrawTree();
 
         // Submit Object Render Requests
         scene_graph.updateAndRenderObjects();

@@ -171,13 +171,10 @@
     <ClCompile Include="src\rendering\lights\LightManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\math\geometry\AABB.cpp">
+    <ClCompile Include="src\physics\collisions\AABB.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\math\geometry\GJK.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\math\geometry\OBB.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\math\geometry\GJKSupport.cpp">
@@ -202,6 +199,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\VisualTerrain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\physics\collisions\AABBTree.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -374,13 +374,10 @@
     <ClInclude Include="src\rendering\lights\LightManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\math\geometry\AABB.h">
+    <ClInclude Include="src\physics\collisions\AABB.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\math\geometry\GJK.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\math\geometry\OBB.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\math\geometry\GJKSupport.h">
@@ -405,6 +402,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\VisualTerrain.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\physics\collisions\AABBTree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
