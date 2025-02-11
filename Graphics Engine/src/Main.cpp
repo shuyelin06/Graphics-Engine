@@ -208,6 +208,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
         aabb_tree.debugDrawTree();
 
+        const std::vector<ColliderPair> colliders = aabb_tree.computeColliderPairs();
+        for (const ColliderPair pair : colliders) {
+            pair.aabb_1->debugDrawExtents(Color::White());
+            pair.aabb_2->debugDrawExtents(Color::White());
+        }
+
         // Submit Object Render Requests
         scene_graph.updateAndRenderObjects();
         scene_graph.updateAndRenderTerrain();

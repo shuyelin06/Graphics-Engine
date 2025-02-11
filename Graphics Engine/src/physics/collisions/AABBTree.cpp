@@ -4,6 +4,11 @@
 
 namespace Engine {
 namespace Physics {
+ColliderPair::ColliderPair(AABB* aabb1, AABB* aabb2) {
+    aabb_1 = aabb1;
+    aabb_2 = aabb2;
+}
+
 // AABBNode Class:
 // Represents a node in the tree. A node has a parent, and 2 children.
 // If the node is a branch, then it is an AABB that contains other
@@ -81,7 +86,7 @@ struct AABBNode {
     }
 };
 
-AABBTree::AABBTree(float fat_margin) {
+AABBTree::AABBTree(float fat_margin) : collider_pairs() {
     root = nullptr;
     margin = fat_margin;
 }
@@ -248,6 +253,72 @@ void AABBTree::findInvalidBeforeUpdate(AABBNode* node,
     }
 }
 
+// ComputeColliderPairs:
+// Broadphase that traverses the trees to find all AABBs (leaves) that are
+// intersecting.
+const std::vector<ColliderPair>& AABBTree::computeColliderPairs() {
+    collider_pairs.clear();
+
+    // Early-Out: If no root, or root is a leaf
+    if (root == nullptr || root->isLeaf())
+        return collider_pairs;
+
+    // Traverse the tree
+    findColliderPairs(root->children[0], root->children[1]);
+
+    return collider_pairs;
+}
+
+void AABBTree::findColliderPairs(AABBNode* n1, AABBNode* n2) {
+    // To find collider pairs, we compare the AABB boxes of the nodes.
+    // Case 1 (Base Case): Both nodes are leaves.
+    if (n1->isLeaf() && n2->isLeaf()) {
+        // If the AABBs are intersecting, add to collision pair list.
+        if (n1->data->intersects(*n2->data))
+            collider_pairs.push_back(ColliderPair(n1->data, n2->data));
+    }
+    // Case 2: Both nodes are branches
+    else if (!n1->isLeaf() && !n2->isLeaf()) {
+        // Check if the AABBs are intersecting. If they are not, then we only
+        // need to check for collisions within each node separately. Otherwise,
+        // we need to check all combinations of children.
+        if (n1->aabb.intersects(n2->aabb)) {
+            findColliderPairs(n1->children[0], n1->children[1]);
+            findColliderPairs(n1->children[0], n2->children[0]);
+            findColliderPairs(n1->children[0], n2->children[1]);
+
+            findColliderPairs(n1->children[1], n2->children[0]);
+            findColliderPairs(n1->children[1], n2->children[1]);
+
+            findColliderPairs(n2->children[0], n2->children[1]);
+        } else {
+            findColliderPairs(n1->children[0], n1->children[1]);
+            findColliderPairs(n2->children[0], n2->children[1]);
+        }
+    }
+    // Case 3: 1 node is a branch, 1 node is a leaf
+    else {
+        // Figure out which node is a leaf and which is a branch
+        AABBNode* leaf = n1;
+        AABBNode* branch = n2;
+
+        if (n2->isLeaf()) {
+            leaf = n2;
+            branch = n1;
+        }
+
+        // Check if the nodes are intersecting. If they are, then we have to check for leaf collision with the branch's children.
+        // Otherwise, we only check the branch separately.
+        if (leaf->data->intersects(branch->aabb)) {
+            findColliderPairs(leaf, branch->children[0]);
+            findColliderPairs(leaf, branch->children[1]);
+        }
+        else {
+            findColliderPairs(branch->children[0], branch->children[1]);
+        }
+    }
+}
+
 #if defined(DRAW_AABB_TREE)
 void AABBTree::debugDrawTree() const {
     if (root != nullptr)
@@ -257,7 +328,10 @@ void AABBTree::debugDrawTree() const {
 void AABBTree::debugDrawTreeHelper(AABBNode* cur) const {
     assert(cur != nullptr);
 
-    cur->aabb.debugDrawExtents();
+    if (cur->isLeaf())
+        cur->aabb.debugDrawExtents(Color::Blue());
+    else 
+        cur->aabb.debugDrawExtents(Color::Red());
 
     if (!cur->isLeaf()) {
         debugDrawTreeHelper(cur->children[0]);

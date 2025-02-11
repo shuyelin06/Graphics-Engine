@@ -41,6 +41,9 @@ friend struct AABBNode;
     const Vector3& getMax() const;
 
     bool contains(const AABB& aabb) const;
+    bool contains(const Vector3& point) const;
+    bool intersects(const AABB& aabb) const;
+
     AABB unionWith(const AABB& aabb) const;
 
     // If this is called and the node is not null, the AABBTree should be

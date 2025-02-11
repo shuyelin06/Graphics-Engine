@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include "collisions/AABBTree.h"
+
 #include "PhysicsObject.h"
 #include "utility/Stopwatch.h"
 
@@ -17,6 +19,9 @@ class PhysicsSystem {
 
     // All physics object the engine is in control of
     std::vector<PhysicsObject*> objects;
+    
+    // Dynamic AABB tree for the collision broad-phase
+    // AABBTree collision_tree;
 
   public:
     PhysicsSystem();

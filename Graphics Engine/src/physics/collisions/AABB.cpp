@@ -33,6 +33,34 @@ bool AABB::contains(const AABB& aabb) const {
     return x && y && z;
 }
 
+bool AABB::contains(const Vector3& point) const {
+    const bool x = minimum.x <= point.x && point.x <= maximum.x;
+    const bool y = minimum.y <= point.y && point.y <= maximum.y;
+    const bool z = minimum.z <= point.z && point.z <= maximum.z;
+    return x && y && z;
+}
+
+// Intersects:
+// Returns true if the two AABBs are intersecting. Determines this using the
+// separating axis theorem, which asserts that the AABBS cannot intersect if
+// there exists an axis separating them.
+bool AABB::intersects(const AABB& aabb) const {
+    // Check x-axis
+    if (maximum.x < aabb.minimum.x || aabb.maximum.x < minimum.x)
+        return false;
+
+    // Check y-axis
+    if (maximum.y < aabb.minimum.y || aabb.maximum.y < minimum.y)
+        return false;
+
+    // Check z-axis
+    if (maximum.z < aabb.minimum.z || aabb.maximum.z < minimum.z)
+        return false;
+
+    // Intersects on all axes, the AABBs are intersecting
+    return true;
+}
+
 // UnionWith:
 // Returns the union of two AABBs
 AABB AABB::unionWith(const AABB& aabb) const {

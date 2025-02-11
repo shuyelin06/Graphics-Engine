@@ -17,6 +17,18 @@ namespace Physics {
 // https://allenchou.net/2014/02/game-physics-broadphase-dynamic-aabb-tree/
 struct AABBNode;
 
+// ColliderPair:
+// Contains two AABBs that the AABBTree has found to be colliding 
+// during its broadphase.
+// Can be used by the physics engine for a more precise collision
+// check and resolution.
+struct ColliderPair {
+    AABB* aabb_1;
+    AABB* aabb_2;
+
+    ColliderPair(AABB* aabb1, AABB* aabb2);
+};
+
 class AABBTree {
   private:
     AABBNode* root;
@@ -26,6 +38,10 @@ class AABBTree {
     // directions. When AABBs leave this margin, we update them.
     float margin;
 
+    // Stores our collider pairs. 
+    // Call computeColliderPairs() to populate.
+    std::vector<ColliderPair> collider_pairs;
+
   public:
     AABBTree(float fat_margin);
     ~AABBTree();
@@ -33,6 +49,11 @@ class AABBTree {
     void add(AABB* aabb);
     void remove(AABB* aabb);
     void update();
+
+    // Broadphase:
+    // Recursively traverses the tree and finds AABB pairs that intersect.
+    // Using our tree, we can prune it to avoid some unnecessary computations.
+    const std::vector<ColliderPair>& computeColliderPairs();
 
 #if defined(DRAW_AABB_TREE)
     void debugDrawTree() const;
@@ -45,6 +66,8 @@ class AABBTree {
     void correctTreeAfterRemoval(AABBNode* node);
 
     void findInvalidBeforeUpdate(AABBNode* node, std::vector<AABB*>& invalid);
+
+    void findColliderPairs(AABBNode* n1, AABBNode* n2);
 
 #if defined(DRAW_AABB_TREE)
     void debugDrawTreeHelper(AABBNode* cur) const;
