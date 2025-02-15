@@ -94,7 +94,7 @@ void VisualSystem::initialize() {
     viewport = {0.0f, 0.0f, (float)width, (float)height, 0.0f, 1.0f};
 
     // Create my managers
-    assetManager = new ResourceManager(device, context);
+    assetManager = new VisualResourceManager(device, context);
     assetManager->initialize();
 
     shaderManager = new ShaderManager(device);

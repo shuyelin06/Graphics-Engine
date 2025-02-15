@@ -19,7 +19,7 @@ class TextureBuilder {
   private:
     // Device interface for creating GPU resources.
     // Set by ResourceManager
-    friend class ResourceManager;
+    friend class VisualResourceManager;
     static ID3D11Device* device;
 
     // Data for the texture

@@ -2,10 +2,10 @@
 
 #include <vector>
 
-#include "../Transform.h"
-#include "../Vector3.h"
-#include "../Triangle.h"
-#include "../Color.h"
+#include "Transform.h"
+#include "Vector3.h"
+#include "Triangle.h"
+#include "Color.h"
 
 #if defined(_DEBUG)
 #define DRAW_CONVEX_HULL

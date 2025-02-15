@@ -61,7 +61,7 @@ class VisualSystem {
 
     // Managers
     ShaderManager* shaderManager;
-    ResourceManager* assetManager;
+    VisualResourceManager* assetManager;
     TextureManager* texture_manager;
     LightManager* light_manager;
 

@@ -17,6 +17,8 @@ class AssetObject : public VisualObject {
 
   public:
     ~AssetObject();
+    
+    const Asset* getAsset();
 };
 
 } // namespace Graphics

@@ -1,9 +1,10 @@
 #pragma once
 
 #include "datamodel/Object.h"
+#include "collisions/CollisionObject.h"
 
+#include "collisions/GJKSupport.h"
 #include "math/Vector3.h"
-#include "math/geometry/GJKSupport.h"
 
 namespace Engine {
 using namespace Datamodel;
@@ -21,7 +22,8 @@ class PhysicsObject {
     Object* const object;
 
     Vector3 velocity;
-    GJKSupportFunc* collision_func;
+    
+    CollisionObject* collider;
 
     // Marks if the PhysicsObject should be destroyed or not
     // by the PhysicsSystem
@@ -33,7 +35,6 @@ class PhysicsObject {
     ~PhysicsObject();
 
     void setVelocity(const Vector3& velocity);
-    void setCollisionFunction(GJKSupportFunc* collision_func);
 };
 
 } // namespace Physics

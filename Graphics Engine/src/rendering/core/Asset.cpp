@@ -34,6 +34,7 @@ std::vector<Mesh*>& Asset::getMeshes() { return meshes; }
 std::vector<Material*>& Asset::getMaterials() { return materials; }
 
 Mesh* Asset::getMesh(int mesh_index) { return meshes[mesh_index]; }
+const Mesh* Asset::getMesh(int mesh_index) const { return meshes[mesh_index]; }
 
 Material* Asset::getMaterial(int material_index) {
     return materials[material_index];

@@ -68,6 +68,7 @@ class Asset {
     std::vector<Material*>& getMaterials();
 
     Mesh* getMesh(int mesh_index);
+    const Mesh* getMesh(int mesh_index) const;
     Material* getMaterial(int material_index);
 };
 

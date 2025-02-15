@@ -38,6 +38,10 @@
 #include "math/Compute.h"
 #include "utility/Stopwatch.h"
 
+// ----- TESTING -----
+#include "physics/collisions/AABBTree.h"
+// -----
+
 using namespace Engine;
 using namespace Engine::Physics;
 using namespace Engine::Datamodel;
@@ -118,11 +122,24 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     visual_system.bindShadowLightObject(&sun_light);
 
     Object& child2 = parent_object.createChild();
-    visual_system.bindAssetObject(&child2, "Capybara");
+    AssetObject* asset2 = visual_system.bindAssetObject(&child2, "Capybara");
     child2.getTransform().offsetRotation(Vector3::PositiveY(), PI);
     child2.getTransform().setScale(5, 5, 5);
     child2.getTransform().setPosition(Random(-2.5f, 2.5f), Random(-2.5f, 2.5f),
                                       Random(15, 25));
+
+    std::vector<Vector3> points;
+    points.push_back(Vector3(-2.5, -2.5, -2.5));
+    points.push_back(Vector3(-2.5, -2.5, 2.5));
+    points.push_back(Vector3(-2.5, 2.5, -2.5));
+    points.push_back(Vector3(-2.5, 2.5, 2.5));
+    points.push_back(Vector3(2.5, -2.5, -2.5));
+    points.push_back(Vector3(2.5, -2.5, 2.5));
+    points.push_back(Vector3(2.5, 2.5, -2.5));
+    points.push_back(Vector3(2.5, 2.5, 2.5));
+    physics_system.addCollisionHull("Box", points);
+    PhysicsObject* p1 = physics_system.bindPhysicsObject(&child2);
+    CollisionObject* c1 = physics_system.bindCollisionObject(p1, "Box");
 
     // Begin window messaging loop
     MSG msg = {};
@@ -160,16 +177,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         Vector3 position = sun_light.getTransform().backward() * 75; // 75 OG
         sun_light.getTransform().setPosition(position.x, position.y,
                                              position.z);
-
-        const Vector3 cam_pos =
-            visual_system.getCamera().getTransform()->getPosition();
-        const Vector3 point = Vector3(
-            cam_pos.x,
-            scene_graph.terrain->sampleTerrainHeight(cam_pos.x, cam_pos.z),
-            cam_pos.z);
-        visual_system.getCamera().getTransform()->setPosition(point.x, point.y + 2.f , point.z);
-
-        VisualDebug::DrawPoint(point, 0.5f, Color::Green());
 
         // Submit Object Render Requests
         scene_graph.updateAndRenderObjects();

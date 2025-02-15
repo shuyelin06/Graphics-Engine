@@ -1,9 +1,11 @@
 #pragma once
 
-#include "../Vector3.h"
+#include "math/Vector3.h"
 
 namespace Engine {
-namespace Math {
+using namespace Math;
+
+namespace Physics {
 class GJKSupportFunc;
 struct GJKSimplex;
 

@@ -19,7 +19,7 @@ namespace Graphics {
 // ResourceManager Class:
 // Manages assets for the engine. Provides methods
 // to load assets, and prepare them for rendering.
-class ResourceManager {
+class VisualResourceManager {
   private:
     ID3D11Device* device;
     ID3D11DeviceContext* context;
@@ -31,8 +31,8 @@ class ResourceManager {
     ID3D11SamplerState* mesh_sampler;
 
   public:
-    ResourceManager(ID3D11Device* device, ID3D11DeviceContext* context);
-    ~ResourceManager();
+    VisualResourceManager(ID3D11Device* device, ID3D11DeviceContext* context);
+    ~VisualResourceManager();
 
     // Initialize assets
     void initialize();

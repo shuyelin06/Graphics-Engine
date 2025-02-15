@@ -10,4 +10,8 @@ AssetObject::AssetObject(Object* object, Asset* _asset) : VisualObject(object) {
 
 AssetObject::~AssetObject() = default;
 
+const Asset* AssetObject::getAsset() {
+    return asset;
+}
+
 }}
