@@ -15,6 +15,8 @@ using namespace Math;
 namespace Physics {
 class AABBTree;
 struct AABBNode;
+class CollisionObject;
+class PhysicsSystem;
 
 // AxisAlignedBoundingBox (AABB):
 // Represents an AABB in 3D space, given by its lower left corner and upper
@@ -22,6 +24,8 @@ struct AABBNode;
 class AABB {
 friend class AABBTree;
 friend struct AABBNode;
+friend class CollisionObject;
+friend class PhysicsSystem;
 
   private:
     Vector3 minimum;
@@ -29,6 +33,8 @@ friend struct AABBNode;
 
     // Stores a reference to its node in the AABBTree
     AABBNode* node;
+    // Stores a reference to its collider object
+    CollisionObject* collider;
 
   public:
     AABB();

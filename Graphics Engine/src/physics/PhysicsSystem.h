@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_map>
 #include <vector>
 
 #include "collisions/AABBTree.h"
@@ -19,9 +20,11 @@ class PhysicsSystem {
 
     // All physics object the engine is in control of
     std::vector<PhysicsObject*> objects;
-    
+
     // Dynamic AABB tree for the collision broad-phase
     AABBTree broadphase_tree;
+
+    std::unordered_map<std::string, CollisionHull*> collision_hulls;
 
   public:
     PhysicsSystem();
@@ -29,8 +32,13 @@ class PhysicsSystem {
     // Performs relevant initializations for the scene physics
     void initialize();
 
+    void addCollisionHull(const std::string& name, const std::vector<Vector3>& points);
+
     // Bind a PhysicsObject to an object and return it for configuration
     PhysicsObject* bindPhysicsObject(Object* object);
+
+    CollisionObject*
+    bindCollisionObject(PhysicsObject* physics_object, const std::string& hull_id);
 
     // Updates the physics for a scene
     void update();

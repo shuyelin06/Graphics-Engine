@@ -29,7 +29,7 @@ void GJKSupportPointSet::reset() { points.clear(); }
 
 // Center:
 // Calculates the center of the set
-const Vector3 GJKSupportPointSet::center(void) {
+const Vector3 GJKSupportPointSet::center(void) const {
     Vector3 center = Vector3(0, 0, 0);
 
     for (const Vector3& point : points)
@@ -44,7 +44,8 @@ const Vector3 GJKSupportPointSet::center(void) {
 // FurthestPoint:
 // Given a directional vector, calculates the point furthest in that
 // direction
-const Vector3 GJKSupportPointSet::furthestPoint(const Vector3& direction) {
+const Vector3
+GJKSupportPointSet::furthestPoint(const Vector3& direction) const {
     if (points.size() == 0) {
         return Vector3(0, 0, 0);
     }
@@ -64,5 +65,5 @@ const Vector3 GJKSupportPointSet::furthestPoint(const Vector3& direction) {
     return furthest;
 }
 
-} // namespace Math
+} // namespace Physics
 } // namespace Engine

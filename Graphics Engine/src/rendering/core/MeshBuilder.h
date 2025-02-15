@@ -33,7 +33,7 @@ class MeshBuilder {
   private:
     // Device interface for creating GPU resources
     // Set by ResourceManager
-    friend class ResourceManager;
+    friend class VisualResourceManager;
     static ID3D11Device* device;
 
     std::vector<MeshVertex> vertex_buffer;

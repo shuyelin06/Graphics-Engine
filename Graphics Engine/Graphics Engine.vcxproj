@@ -172,6 +172,7 @@
     <ClCompile Include="src\input\InputFrame.cpp" />
     <ClCompile Include="src\physics\collisions\AABB.cpp" />
     <ClCompile Include="src\math\ConvexHull.cpp" />
+    <ClCompile Include="src\physics\collisions\CollisionObject.cpp" />
     <ClCompile Include="src\physics\collisions\GJK.cpp" />
     <ClCompile Include="src\physics\collisions\GJKSupport.cpp" />
     <ClCompile Include="src\math\QuickHull.cpp" />
@@ -233,12 +234,14 @@
   <ItemGroup>
     <ClInclude Include="include\zconf.h" />
     <ClInclude Include="include\zlib.h" />
+    <ClInclude Include="src\datamodel\ResourceManager.h" />
     <ClInclude Include="src\datamodel\SceneGraph.h" />
     <ClInclude Include="src\datamodel\Terrain.h" />
     <ClInclude Include="src\input\InputFrame.h" />
     <ClInclude Include="src\input\SymbolData.h" />
     <ClInclude Include="src\physics\collisions\AABB.h" />
     <ClInclude Include="src\math\ConvexHull.h" />
+    <ClInclude Include="src\physics\collisions\CollisionObject.h" />
     <ClInclude Include="src\physics\collisions\GJK.h" />
     <ClInclude Include="src\physics\collisions\GJKSupport.h" />
     <ClInclude Include="src\math\QuickHull.h" />

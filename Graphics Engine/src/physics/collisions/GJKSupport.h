@@ -15,8 +15,8 @@ using namespace Math;
 namespace Physics {
 class GJKSupportFunc {
   public:
-    virtual const Vector3 center() = 0;
-    virtual const Vector3 furthestPoint(const Vector3& direction) = 0;
+    virtual const Vector3 center() const = 0;
+    virtual const Vector3 furthestPoint(const Vector3& direction) const = 0;
 };
 
 // GJKSupportPointSet Class:
@@ -39,8 +39,8 @@ class GJKSupportPointSet : public GJKSupportFunc {
     
     void reset();
 
-    const Vector3 center(void);
-    const Vector3 furthestPoint(const Vector3& direction);
+    const Vector3 center(void) const;
+    const Vector3 furthestPoint(const Vector3& direction) const;
 };
 
 } // namespace Math

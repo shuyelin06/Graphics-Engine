@@ -122,16 +122,24 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     visual_system.bindShadowLightObject(&sun_light);
 
     Object& child2 = parent_object.createChild();
-    visual_system.bindAssetObject(&child2, "Capybara");
+    AssetObject* asset2 = visual_system.bindAssetObject(&child2, "Capybara");
     child2.getTransform().offsetRotation(Vector3::PositiveY(), PI);
     child2.getTransform().setScale(5, 5, 5);
     child2.getTransform().setPosition(Random(-2.5f, 2.5f), Random(-2.5f, 2.5f),
                                       Random(15, 25));
 
-    AABBTree aabb_tree = AABBTree(0.2f);
-    static AABB* param = new AABB();
-    aabb_tree.add(param);
-
+    std::vector<Vector3> points;
+    points.push_back(Vector3(-2.5, -2.5, -2.5));
+    points.push_back(Vector3(-2.5, -2.5, 2.5));
+    points.push_back(Vector3(-2.5, 2.5, -2.5));
+    points.push_back(Vector3(-2.5, 2.5, 2.5));
+    points.push_back(Vector3(2.5, -2.5, -2.5));
+    points.push_back(Vector3(2.5, -2.5, 2.5));
+    points.push_back(Vector3(2.5, 2.5, -2.5));
+    points.push_back(Vector3(2.5, 2.5, 2.5));
+    physics_system.addCollisionHull("Box", points);
+    PhysicsObject* p1 = physics_system.bindPhysicsObject(&child2);
+    CollisionObject* c1 = physics_system.bindCollisionObject(p1, "Box");
 
     // Begin window messaging loop
     MSG msg = {};
@@ -169,50 +177,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         Vector3 position = sun_light.getTransform().backward() * 75; // 75 OG
         sun_light.getTransform().setPosition(position.x, position.y,
                                              position.z);
-
-        // ImGui Testing for AABBTree
-        static float minimum[3] = {-2.f, -2.f, -2.f};
-        static float maximum[3] = {2.f, 2.f, 2.f};
-
-        ImGui::SliderFloat3("Minimum: ", minimum, -50, 50);
-        ImGui::SliderFloat3("Maximum: ", maximum, -50, 50);
-
-        VisualDebug::DrawPoint(Vector3(minimum[0], minimum[1], minimum[2]),
-                               1.5f, Color::Green());
-        VisualDebug::DrawPoint(Vector3(maximum[0], maximum[1], maximum[2]),
-                               1.5f, Color::Green());
-
-        param->reset();
-        param->expandToContain(Vector3(minimum[0], minimum[1], minimum[2]));
-        param->expandToContain(Vector3(maximum[0], maximum[1], maximum[2]));
-        
-        static AABB* last_aabb = nullptr;
-
-        if (ImGui::Button("Add AABB")) {
-            AABB* aabb = new AABB();
-
-            aabb->expandToContain(Vector3(minimum[0], minimum[1], minimum[2]));
-            aabb->expandToContain(Vector3(maximum[0], maximum[1], maximum[2]));
-
-            aabb_tree.add(aabb);
-
-            last_aabb = aabb;
-        }
-
-        if (ImGui::Button("Remove Last") && last_aabb != nullptr) {
-            aabb_tree.remove(last_aabb);
-            last_aabb = nullptr;
-        }
-
-        aabb_tree.update();
-
-        aabb_tree.debugDrawTree();
-
-        const std::vector<ColliderPair> colliders = aabb_tree.computeColliderPairs();
-        for (const ColliderPair pair : colliders) {
-            pair.aabb_1->debugDrawExtents(Color::White());
-            pair.aabb_2->debugDrawExtents(Color::White());
-        }
 
         // Submit Object Render Requests
         scene_graph.updateAndRenderObjects();

@@ -24,16 +24,16 @@ namespace Engine {
 using namespace Math;
 
 namespace Graphics {
-ResourceManager::ResourceManager(ID3D11Device* _device,
+VisualResourceManager::VisualResourceManager(ID3D11Device* _device,
                                  ID3D11DeviceContext* _context) {
     device = _device;
     context = _context;
 }
-ResourceManager::~ResourceManager() = default;
+VisualResourceManager::~VisualResourceManager() = default;
 
 // Initialize:
 // Loads assets into the asset manager.
-void ResourceManager::initialize() {
+void VisualResourceManager::initialize() {
     // Prepare my builders
     TextureBuilder::device = device;
     MeshBuilder::device = device;
@@ -85,29 +85,29 @@ void ResourceManager::initialize() {
 
 // Get Resources:
 // Return resources by name.
-Asset* ResourceManager::getAsset(const std::string& name) {
+Asset* VisualResourceManager::getAsset(const std::string& name) {
     if (assets.contains(name))
         return assets[name];
     else
         return nullptr;
 }
 
-Texture* ResourceManager::getTexture(const std::string& name) {
+Texture* VisualResourceManager::getTexture(const std::string& name) {
     if (textures.contains(name))
         return textures[name];
     else
         return nullptr;
 }
 
-ID3D11SamplerState* ResourceManager::getShadowMapSampler() {
+ID3D11SamplerState* VisualResourceManager::getShadowMapSampler() {
     return shadowmap_sampler;
 }
 
-ID3D11SamplerState* ResourceManager::getMeshSampler() { return mesh_sampler; }
+ID3D11SamplerState* VisualResourceManager::getMeshSampler() { return mesh_sampler; }
 
 // LoadTextureFromPNG:
 // Uses the PNGFile interface to load a texture from a PNG file
-bool ResourceManager::LoadTextureFromPNG(TextureBuilder& builder,
+bool VisualResourceManager::LoadTextureFromPNG(TextureBuilder& builder,
                                          std::string path, std::string file) {
     PNGFile png_file = PNGFile(path + file);
     return png_file.readTextureFromFile(builder);
@@ -115,7 +115,7 @@ bool ResourceManager::LoadTextureFromPNG(TextureBuilder& builder,
 
 // WriteTextureToPNG:
 // Uses the PNGFile interface to write a texture to a PNG file
-bool ResourceManager::WriteTextureToPNG(ID3D11Texture2D* texture,
+bool VisualResourceManager::WriteTextureToPNG(ID3D11Texture2D* texture,
                                         std::string path, std::string file) {
     PNGFile png_file = PNGFile(path + file);
     return png_file.writeTextureToFile(device, context, texture);
@@ -123,7 +123,7 @@ bool ResourceManager::WriteTextureToPNG(ID3D11Texture2D* texture,
 
 // Helper parsing functions
 
-Asset* ResourceManager::LoadAssetFromOBJ(const std::string& path,
+Asset* VisualResourceManager::LoadAssetFromOBJ(const std::string& path,
                                          const std::string& objFile) {
     MeshBuilder mesh_builder;
     TextureBuilder texture_builder(0, 0);
@@ -134,7 +134,7 @@ Asset* ResourceManager::LoadAssetFromOBJ(const std::string& path,
 
 // Hard-Coded Cube Creator
 // Used in debugging
-Asset* ResourceManager::LoadCube(MeshBuilder& builder) {
+Asset* VisualResourceManager::LoadCube(MeshBuilder& builder) {
     // We duplicate vertices so that the cube has sharp normals.
     const MeshVertex vertices[] = {
         // Front Face
@@ -200,7 +200,7 @@ Asset* ResourceManager::LoadCube(MeshBuilder& builder) {
 
 // Load___Sampler:
 // Create Texture Samplers!
-ID3D11SamplerState* ResourceManager::LoadShadowMapSampler() {
+ID3D11SamplerState* VisualResourceManager::LoadShadowMapSampler() {
     ID3D11SamplerState* sampler;
 
     D3D11_SAMPLER_DESC sampler_desc = {};
@@ -222,7 +222,7 @@ ID3D11SamplerState* ResourceManager::LoadShadowMapSampler() {
     return sampler;
 }
 
-ID3D11SamplerState* ResourceManager::LoadMeshTextureSampler() {
+ID3D11SamplerState* VisualResourceManager::LoadMeshTextureSampler() {
     ID3D11SamplerState* sampler;
 
     D3D11_SAMPLER_DESC sampler_desc = {};
