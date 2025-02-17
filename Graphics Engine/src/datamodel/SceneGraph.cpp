@@ -6,7 +6,7 @@ namespace Engine {
 namespace Datamodel {
 
 SceneGraph::SceneGraph() : objects() {
-    terrain = new Terrain(-100,-100);
+    terrain = new Terrain(0,0);
 }
 SceneGraph::~SceneGraph() {
     for (Object* object : objects)

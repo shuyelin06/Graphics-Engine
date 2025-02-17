@@ -1,3 +1,4 @@
+
 // Ensure that the UNICODE symbol is defined
 #ifndef UNICODE
 #define UNICODE
@@ -172,9 +173,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         //// TODO: THIS CODE IS WRONG
         // child2.getTransform().lookAt(
         //     visual_system.getCamera().getTransform()->getPosition());
+        VisualDebug::DrawPoint(Vector3(0,25,0), 5.f);
+
         child2.getTransform().offsetRotation(Vector3::PositiveY(), PI / 20);
         sun_light.getTransform().setViewDirection(Vector3(0, -0.25f, 0.75f));
-        Vector3 position = sun_light.getTransform().backward() * 75; // 75 OG
+        Vector3 position = visual_system.getCamera().getTransform()->getPosition() + sun_light.getTransform().backward() * 75; // 75 OG
         sun_light.getTransform().setPosition(position.x, position.y,
                                              position.z);
 

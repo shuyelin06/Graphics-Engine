@@ -29,6 +29,14 @@ float Lerp(float a, float b, float t) {
     return a * (1 - t) + b * t;
 }
 
+// CubicInterp:
+// Cubic interpolation between a,b given t
+float CubicInterp(float a, float b, float t) {
+    const float t2 = t * t;
+    const float t3 = t2 * t;
+    return (b - a + 1.5f) * t3 - 1.5f * t2 + a;
+}
+
 // Random:
 // Generates a random value within the range [low, high]
 float Random(float low, float high) {

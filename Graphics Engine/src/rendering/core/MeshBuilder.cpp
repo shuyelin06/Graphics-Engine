@@ -4,8 +4,6 @@
 
 namespace Engine {
 namespace Graphics {
-ID3D11Device* MeshBuilder::device = nullptr;
-
 MeshVertex::MeshVertex() = default;
 MeshVertex::MeshVertex(const MeshVertex& vertex) {
     position = vertex.position;
@@ -25,7 +23,8 @@ MeshTriangle::MeshTriangle(UINT v0, UINT v1, UINT v2) {
     vertex2 = v2;
 }
 
-MeshBuilder::MeshBuilder() = default;
+MeshBuilder::MeshBuilder(ID3D11Device* _device) : device(_device){};
+
 MeshBuilder::~MeshBuilder() = default;
 
 // Generate:
@@ -130,6 +129,10 @@ void MeshBuilder::ExtractVertexNormal(const MeshVertex& vertex,
 
 // AddVertex:
 // Adds a vertex with position, texture, and norm to the MeshBuilder.
+UINT MeshBuilder::addVertex(const Vector3& pos) {
+    return addVertex(pos, Vector2(), Vector3());
+}
+
 UINT MeshBuilder::addVertex(const Vector3& pos, const Vector2& tex,
                             const Vector3& norm) {
     UINT index = vertex_buffer.size();
@@ -141,6 +144,42 @@ UINT MeshBuilder::addVertex(const Vector3& pos, const Vector2& tex,
 // Adds a triangle to the MeshBuilder with indices specified by the parameters.
 void MeshBuilder::addTriangle(UINT v1, UINT v2, UINT v3) {
     index_buffer.push_back(MeshTriangle(v1, v2, v3));
+}
+
+// AddShapes:
+// Generates various shapes (given parameters) and adds them to the mesh
+// builder.
+void MeshBuilder::addCube(const Vector3& center, float size) {
+    // Cube vertices and indices
+    const Vector3 vertices[] = {
+        Vector3(0.5f, -0.5f, 0.5f),   Vector3(0.5f, -0.5f, -0.5f),
+        Vector3(-0.5f, -0.5f, -0.5f), Vector3(-0.5f, -0.5f, 0.5f),
+        Vector3(0.5f, 0.5f, 0.5f),    Vector3(0.5f, 0.5f, -0.5f),
+        Vector3(-0.5f, 0.5f, -0.5f),  Vector3(-0.5f, 0.5f, 0.5f)};
+
+    const int indices[] = {// Bottom
+                           0, 2, 1, 3, 2, 0,
+                           // Top
+                           4, 5, 6, 7, 4, 6,
+                           // Front
+                           0, 4, 7, 3, 0, 7,
+                           // Right
+                           0, 1, 4, 5, 4, 1,
+                           // Back
+                           2, 5, 1, 6, 5, 2,
+                           // Left
+                           3, 7, 2, 6, 2, 7};
+
+    // Add my vertices (transformed)
+    const int start_index = addVertex(center + vertices[0] * size);
+    for (int i = 1; i < 8; i++)
+        addVertex(center + vertices[i] * size);
+
+    // Add my triangles
+    for (int i = 0; i < 36; i += 3) {
+        addTriangle(start_index + indices[i], start_index + indices[i + 1],
+                    start_index + indices[i + 2]);
+    }
 }
 
 // RegenerateNormals:

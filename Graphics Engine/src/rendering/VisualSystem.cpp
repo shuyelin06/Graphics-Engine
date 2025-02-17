@@ -143,31 +143,47 @@ ShadowLightObject* VisualSystem::bindShadowLightObject(Object* object) {
 
 VisualTerrain* VisualSystem::bindVisualTerrain(Terrain* terrain) {
     // TEMP: Generate a triangulation of the terrain
-    MeshBuilder builder = MeshBuilder();
+    MeshBuilder builder = MeshBuilder(device);
 
-    for (int x = 0; x < HEIGHT_MAP_XZ_SAMPLES; x++) {
-        for (int z = 0; z < HEIGHT_MAP_XZ_SAMPLES; z++) {
-            const float x_coord = terrain->calculateXCoordinate(x);
-            const float z_coord = terrain->calculateZCoordinate(z);
-            const float y_coord = terrain->getTerrainHeight(x, z);
+    const Vector2 XZ_MIN = Vector2(0.f, 0.f);
+    const Vector2 XZ_MAX = Vector2(100.f, 100.f);
+    constexpr int SAMPLE_COUNT = 400;
 
-            builder.addVertex(Vector3(x_coord, y_coord, z_coord), Vector2(),
-                              Vector3());
+    for (int i = 0; i < SAMPLE_COUNT; i++) {
+        for (int j = 0; j < SAMPLE_COUNT; j++) {
+            const float x = (XZ_MAX.u - XZ_MIN.u) * i / SAMPLE_COUNT + XZ_MIN.u;
+            const float z = (XZ_MAX.v - XZ_MIN.v) * j / SAMPLE_COUNT + XZ_MIN.v;
+
+            const float y = terrain->sampleTerrainHeight(x, z);
+
+            builder.addVertex(Vector3(x, y, z), Vector2(), Vector3());
         }
     }
 
-    for (int x = 1; x < HEIGHT_MAP_XZ_SAMPLES - 1; x++) {
-        for (int z = 1; z < HEIGHT_MAP_XZ_SAMPLES - 1; z++) {
-            const int v0 = (x * HEIGHT_MAP_XZ_SAMPLES + z);
+    for (int i = 0; i < SAMPLE_COUNT; i++) {
+        for (int j = 0; j < SAMPLE_COUNT; j++) {
+            const int v0 = i * SAMPLE_COUNT + j;
+            const int v1 = (i + 1) * SAMPLE_COUNT + j;
+            const int v2 = i * SAMPLE_COUNT + (j + 1);
+            const int v3 = (i - 1) * SAMPLE_COUNT + j;
+            const int v4 = i * SAMPLE_COUNT + (j - 1);
 
-            builder.addTriangle(v0, (x)*HEIGHT_MAP_XZ_SAMPLES + (z + 1),
-                                (x + 1) * HEIGHT_MAP_XZ_SAMPLES + (z));
-            builder.addTriangle(v0, (x + 1) * HEIGHT_MAP_XZ_SAMPLES + (z),
-                                (x)*HEIGHT_MAP_XZ_SAMPLES + (z - 1));
-            builder.addTriangle(v0, (x)*HEIGHT_MAP_XZ_SAMPLES + (z - 1),
-                                (x - 1) * HEIGHT_MAP_XZ_SAMPLES + (z));
-            builder.addTriangle(v0, (x - 1) * HEIGHT_MAP_XZ_SAMPLES + (z),
-                                (x - 1) * HEIGHT_MAP_XZ_SAMPLES + (z + 1));
+            // NE triangle
+            if (i < SAMPLE_COUNT - 1 && j < SAMPLE_COUNT - 1)
+                builder.addTriangle(v0, v2, v1);
+
+            // NW triangle
+            if (i > 0 && j < SAMPLE_COUNT - 1)
+                builder.addTriangle(v0, v3, v2);
+            
+            // SW triangle
+            if (i > 0 && j > 0)
+                builder.addTriangle(v0, v4, v3);
+
+            // SE triangle
+            if (i < SAMPLE_COUNT - 1 && j > 0) 
+                builder.addTriangle(v0, v1, v4);
+
         }
     }
 
@@ -262,7 +278,7 @@ void VisualSystem::renderPrepare() {
     }
 
     // Parse all terrain data
-    for (const VisualTerrain* terrain: terrain_chunks) {
+    for (const VisualTerrain* terrain : terrain_chunks) {
         ShadowCaster shadowCaster;
         shadowCaster.mesh = terrain->terrain_mesh;
         shadowCaster.m_localToWorld = Matrix4();
@@ -273,7 +289,6 @@ void VisualSystem::renderPrepare() {
         renderableTerrain.terrain_offset = Vector3();
         renderable_terrain.push_back(renderableTerrain);
     }
-
 
 #if defined(_DEBUG)
     cpu_timer.endTimer("Render Prepare");
@@ -502,8 +517,8 @@ void VisualSystem::performRenderPass() {
 
     context->OMSetRenderTargets(1, &render_target_view,
                                 depth_texture->depth_view);
-    /*context->ClearDepthStencilView(depth_texture->depth_view, D3D11_CLEAR_DEPTH,
-                                   1.0f, 0);*/
+    /*context->ClearDepthStencilView(depth_texture->depth_view,
+       D3D11_CLEAR_DEPTH, 1.0f, 0);*/
     context->RSSetViewports(1, &viewport);
 
     // Vertex Constant Buffer 1:

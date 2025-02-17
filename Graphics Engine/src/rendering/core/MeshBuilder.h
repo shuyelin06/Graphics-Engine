@@ -31,27 +31,28 @@ struct MeshTriangle {
 
 class MeshBuilder {
   private:
-    // Device interface for creating GPU resources
-    // Set by ResourceManager
-    friend class VisualResourceManager;
-    static ID3D11Device* device;
+    ID3D11Device* device;
 
     std::vector<MeshVertex> vertex_buffer;
     std::vector<MeshTriangle> index_buffer;
 
   public:
-    MeshBuilder();
+    MeshBuilder(ID3D11Device* device);
     ~MeshBuilder();
 
     // Generates the Mesh for use in the rendering pipeline
     Mesh* generate();
 
-    // Add a vertex to the builder, and returns the index corresponding to
-    // this vertex.
+    // Add vertices and triangles to the builder. If a vertex is added,
+    // the builder returns the index corresponding to that vertex. 
+    UINT addVertex(const Vector3& pos);
     UINT addVertex(const Vector3& pos, const Vector2& tex, const Vector3& norm);
 
-    // Add a triangle to the builder, based on indices.
     void addTriangle(UINT v1, UINT v2, UINT v3);
+    
+    // Add shapes to the builder. This makes it easy to compose objects using the builder.
+    // Unit cube centered around the origin
+    void addCube(const Vector3& center, float size);
 
     // Discard the current normals for the mesh and regenerate them
     void regenerateNormals();

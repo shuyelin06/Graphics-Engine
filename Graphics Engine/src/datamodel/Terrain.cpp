@@ -78,10 +78,10 @@ float Terrain::sampleTerrainHeight(float x, float z) const {
     // Bilinearly interpolate the height data.
     // To do this, find the x,z coordinates we are inside of our grid cell, x,z
     // in [0,1].
-    const int x0 = int(index_x);
-    const int x1 = int(index_x + 1);
-    const int z0 = int(index_z);
-    const int z1 = int(index_z + 1);
+    const int x0 = floor(index_x);
+    const int x1 = floor(index_x + 1);
+    const int z0 = floor(index_z);
+    const int z1 = floor(index_z + 1);
 
     const float height_00 = height_map[x0][z0];
     const float height_10 = height_map[x1][z0];
@@ -91,9 +91,11 @@ float Terrain::sampleTerrainHeight(float x, float z) const {
     const float x_dist = index_x - x0;
     const float z_dist = index_z - z0;
 
-    const float height =
-        Lerp(Lerp(height_00, height_10, x_dist),
-                      Lerp(height_10, height_11, x_dist), z_dist);
+    /*const float height =
+        CubicInterp(CubicInterp(height_00, height_10, x_dist),
+                    CubicInterp(height_01, height_11, x_dist), z_dist);*/
+    const float height = Lerp(Lerp(height_00, height_10, x_dist),
+                              Lerp(height_01, height_11, x_dist), z_dist);
 
     return height;
 }

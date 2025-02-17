@@ -25,7 +25,7 @@ using namespace Math;
 
 namespace Graphics {
 VisualResourceManager::VisualResourceManager(ID3D11Device* _device,
-                                 ID3D11DeviceContext* _context) {
+                                             ID3D11DeviceContext* _context) {
     device = _device;
     context = _context;
 }
@@ -36,7 +36,6 @@ VisualResourceManager::~VisualResourceManager() = default;
 void VisualResourceManager::initialize() {
     // Prepare my builders
     TextureBuilder::device = device;
-    MeshBuilder::device = device;
 
     // Create my textures
     TextureBuilder tex_builder = TextureBuilder(10, 10);
@@ -72,7 +71,7 @@ void VisualResourceManager::initialize() {
     mesh_sampler = LoadMeshTextureSampler();
 
     // Create my assets
-    MeshBuilder mesh_builder = MeshBuilder();
+    MeshBuilder mesh_builder = MeshBuilder(device);
 
     assets["Cube"] = LoadCube(mesh_builder);
     // Fox by Jake Blakeley [CC-BY] via Poly Pizza
@@ -103,12 +102,15 @@ ID3D11SamplerState* VisualResourceManager::getShadowMapSampler() {
     return shadowmap_sampler;
 }
 
-ID3D11SamplerState* VisualResourceManager::getMeshSampler() { return mesh_sampler; }
+ID3D11SamplerState* VisualResourceManager::getMeshSampler() {
+    return mesh_sampler;
+}
 
 // LoadTextureFromPNG:
 // Uses the PNGFile interface to load a texture from a PNG file
 bool VisualResourceManager::LoadTextureFromPNG(TextureBuilder& builder,
-                                         std::string path, std::string file) {
+                                               std::string path,
+                                               std::string file) {
     PNGFile png_file = PNGFile(path + file);
     return png_file.readTextureFromFile(builder);
 }
@@ -116,7 +118,8 @@ bool VisualResourceManager::LoadTextureFromPNG(TextureBuilder& builder,
 // WriteTextureToPNG:
 // Uses the PNGFile interface to write a texture to a PNG file
 bool VisualResourceManager::WriteTextureToPNG(ID3D11Texture2D* texture,
-                                        std::string path, std::string file) {
+                                              std::string path,
+                                              std::string file) {
     PNGFile png_file = PNGFile(path + file);
     return png_file.writeTextureToFile(device, context, texture);
 }
@@ -124,8 +127,8 @@ bool VisualResourceManager::WriteTextureToPNG(ID3D11Texture2D* texture,
 // Helper parsing functions
 
 Asset* VisualResourceManager::LoadAssetFromOBJ(const std::string& path,
-                                         const std::string& objFile) {
-    MeshBuilder mesh_builder;
+                                               const std::string& objFile) {
+    MeshBuilder mesh_builder = MeshBuilder(device);
     TextureBuilder texture_builder(0, 0);
 
     OBJFile obj_file = OBJFile(path, objFile);
@@ -135,64 +138,10 @@ Asset* VisualResourceManager::LoadAssetFromOBJ(const std::string& path,
 // Hard-Coded Cube Creator
 // Used in debugging
 Asset* VisualResourceManager::LoadCube(MeshBuilder& builder) {
-    // We duplicate vertices so that the cube has sharp normals.
-    const MeshVertex vertices[] = {
-        // Front Face
-        MeshVertex(Vector3(-1, -1, 1), Vector2(), Vector3(0, 0, 1)),
-        MeshVertex(Vector3(1, -1, 1), Vector2(), Vector3(0, 0, 1)),
-        MeshVertex(Vector3(1, 1, 1), Vector2(), Vector3(0, 0, 1)),
-        MeshVertex(Vector3(-1, 1, 1), Vector2(), Vector3(0, 0, 1)),
-        // Back Face
-        MeshVertex(Vector3(-1, -1, -1), Vector2(), Vector3(0, 0, -1)),
-        MeshVertex(Vector3(1, -1, -1), Vector2(), Vector3(0, 0, -1)),
-        MeshVertex(Vector3(1, 1, -1), Vector2(), Vector3(0, 0, -1)),
-        MeshVertex(Vector3(-1, 1, -1), Vector2(), Vector3(0, 0, -1)),
-        // Top Face
-        MeshVertex(Vector3(-1, 1, -1), Vector2(), Vector3(0, 1, 0)),
-        MeshVertex(Vector3(1, 1, -1), Vector2(), Vector3(0, 1, 0)),
-        MeshVertex(Vector3(1, 1, 1), Vector2(), Vector3(0, 1, 0)),
-        MeshVertex(Vector3(-1, 1, 1), Vector2(), Vector3(0, 1, 0)),
-        // Bottom Face
-        MeshVertex(Vector3(-1, -1, -1), Vector2(), Vector3(0, -1, 0)),
-        MeshVertex(Vector3(1, -1, -1), Vector2(), Vector3(0, -1, 0)),
-        MeshVertex(Vector3(1, -1, 1), Vector2(), Vector3(0, -1, 0)),
-        MeshVertex(Vector3(-1, -1, 1), Vector2(), Vector3(0, -1, 0)),
-        // Right Face
-        MeshVertex(Vector3(1, -1, -1), Vector2(), Vector3(1, 0, 0)),
-        MeshVertex(Vector3(1, 1, -1), Vector2(), Vector3(1, 0, 0)),
-        MeshVertex(Vector3(1, 1, 1), Vector2(), Vector3(1, 0, 0)),
-        MeshVertex(Vector3(1, -1, 1), Vector2(), Vector3(1, 0, 0)),
-        // Left Face
-        MeshVertex(Vector3(-1, -1, -1), Vector2(), Vector3(-1, 0, 0)),
-        MeshVertex(Vector3(-1, 1, -1), Vector2(), Vector3(-1, 0, 0)),
-        MeshVertex(Vector3(-1, 1, 1), Vector2(), Vector3(-1, 0, 0)),
-        MeshVertex(Vector3(-1, -1, 1), Vector2(), Vector3(-1, 0, 0)),
-    };
-
-    const int indices[] = {
-        0,  1,  2,  2,  3,  0,  // Front Face
-        4,  6,  5,  6,  4,  7,  // Back Face
-        8,  10, 9,  10, 8,  11, // Top Face
-        12, 13, 14, 14, 15, 12, // Bottom Face
-        16, 17, 18, 18, 19, 16, // Right Face
-        20, 22, 21, 22, 20, 23  // Left Face
-    };
+    builder.reset();
+    builder.addCube(Vector3(0, 0, 0), 1.f);
 
     Asset* cube = new Asset();
-    builder.reset();
-
-    for (int i = 0; i < 24; i++) {
-        MeshVertex vertex = vertices[i];
-        builder.addVertex(vertex.position, vertex.textureCoord, vertex.normal);
-    }
-
-    for (int i = 0; i < 12; i++) {
-        MeshTriangle triangle = MeshTriangle(indices[i * 3], indices[i * 3 + 1],
-                                             indices[i * 3 + 2]);
-        builder.addTriangle(triangle.vertex0, triangle.vertex1,
-                            triangle.vertex2);
-    }
-
     cube->addMesh(builder.generate());
 
     return cube;

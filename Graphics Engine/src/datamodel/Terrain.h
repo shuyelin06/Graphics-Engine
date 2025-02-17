@@ -5,7 +5,7 @@
 constexpr float HEIGHT_MAP_XZ_SIZE = 200.f;
 constexpr float HEIGHT_MAP_Y_HEIGHT = 100.f;
 
-constexpr int HEIGHT_MAP_XZ_SAMPLES = 20;
+constexpr int HEIGHT_MAP_XZ_SAMPLES = 50;
 
 constexpr float DISTANCE_BETWEEN_SAMPLES = HEIGHT_MAP_XZ_SIZE / HEIGHT_MAP_XZ_SAMPLES;
 

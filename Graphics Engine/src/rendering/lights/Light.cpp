@@ -11,7 +11,7 @@ ShadowLight::ShadowLight(const ShadowMapViewport& view_port) {
     color = Color(1.0f, 1.0f, 1.0f);
     shadow_viewport = view_port;
 
-    setOrthogonalMatrix(40.f, 1.0f, 5.0f, 200.f);
+    setOrthogonalMatrix(200.f, 1.0f, 5.0f, 200.f);
 }
 
 ShadowLight::~ShadowLight() = default;
