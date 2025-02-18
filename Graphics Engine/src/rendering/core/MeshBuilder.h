@@ -12,13 +12,15 @@ namespace Graphics {
 // buffer references these vertices by index to create triangles for the mesh.
 struct MeshVertex {
     Vector3 position;
-    Vector2 textureCoord;
+
+    Vector2 tex;
+    
     Vector3 normal;
+    Vector3 color;
 
     MeshVertex();
+    MeshVertex(const Vector3& position);
     MeshVertex(const MeshVertex& vertex);
-    MeshVertex(const Vector3& pos, const Vector2& tex,
-               const Vector3& norm);
 };
 
 struct MeshTriangle {
@@ -46,7 +48,7 @@ class MeshBuilder {
     // Add vertices and triangles to the builder. If a vertex is added,
     // the builder returns the index corresponding to that vertex. 
     UINT addVertex(const Vector3& pos);
-    UINT addVertex(const Vector3& pos, const Vector2& tex, const Vector3& norm);
+    UINT addVertex(const MeshVertex& vertex);
 
     void addTriangle(UINT v1, UINT v2, UINT v3);
     
@@ -66,6 +68,7 @@ class MeshBuilder {
     static void ExtractVertexPosition(const MeshVertex& vertex, uint8_t*output);
     static void ExtractVertexTexture(const MeshVertex& vertex, uint8_t* output);
     static void ExtractVertexNormal(const MeshVertex& vertex, uint8_t* output);
+    static void ExtractVertexColor(const MeshVertex& vertex, uint8_t* output);
 };
 
 } // namespace Graphics

@@ -207,6 +207,9 @@
     <ClCompile Include="src\physics\collisions\CollisionObject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\datamodel\TreeGenerator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\math\Vector3.h">
@@ -414,6 +417,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\datamodel\ResourceManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\datamodel\TreeGenerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

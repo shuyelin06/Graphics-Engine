@@ -4,6 +4,8 @@
 
 #include <map>
 
+#include "rendering/VisualTerrain.h"
+
 #include "math/Compute.h"
 #include "math/Matrix3.h"
 #include "math/PerlinNoise.h"
@@ -15,9 +17,11 @@
 
 namespace Engine {
 namespace Datamodel {
-Terrain::Terrain(float _world_x, float _world_z) {
+TerrainChunk::TerrainChunk(float _world_x, float _world_z) {
     world_x = _world_x;
     world_z = _world_z;
+
+    visual_terrain = nullptr;
 
     for (int x = 0; x < HEIGHT_MAP_XZ_SAMPLES; x++) {
         for (int z = 0; z < HEIGHT_MAP_XZ_SAMPLES; z++) {
@@ -25,19 +29,20 @@ Terrain::Terrain(float _world_x, float _world_z) {
         }
     }
 }
+TerrainChunk::~TerrainChunk() {
+    if (visual_terrain != nullptr)
+        visual_terrain->destroy();
+}
 
 // Get
 // Returns data about the terrain.
-float Terrain::getTerrainHeight(int x_index, int z_index) const {
-    return height_map[x_index][z_index];
-}
-float Terrain::getX() const { return world_x; }
-float Terrain::getZ() const { return world_z; }
+float TerrainChunk::getX() const { return world_x; }
+float TerrainChunk::getZ() const { return world_z; }
 
 // ReloadTerrainChunk:
 // Reloads a sample of the height-map by index, by calculating the x,z
 // coordinates of that sample.
-void Terrain::reloadTerrainChunk(UINT index_x, UINT index_z) {
+void TerrainChunk::reloadTerrainChunk(UINT index_x, UINT index_z) {
     // For our sample index, calculate the x,z coordinates of where we want to
     // sample.
     const float x = world_x + DISTANCE_BETWEEN_SAMPLES * index_x;
@@ -45,25 +50,16 @@ void Terrain::reloadTerrainChunk(UINT index_x, UINT index_z) {
 
     constexpr float ROUGHNESS = 0.0035f;
     const float noise =
-        PerlinNoise::octaveNoise2D(x * ROUGHNESS, z * ROUGHNESS, 4, 6);
+        PerlinNoise::octaveNoise2D(500.f + x * ROUGHNESS, 500.f + z * ROUGHNESS, 4, 6);
     const float height = noise * HEIGHT_MAP_Y_HEIGHT;
 
     height_map[index_x][index_z] = height;
 }
 
-// CalculateXZCoordinate:
-// Calculates and returns the x,z coordinates for a heightmap sample
-float Terrain::calculateXCoordinate(int x_index) const {
-    return world_x + DISTANCE_BETWEEN_SAMPLES * x_index;
-}
-float Terrain::calculateZCoordinate(int z_index) const {
-    return world_z + DISTANCE_BETWEEN_SAMPLES * z_index;
-}
-
 // SampleTerrainHeight:
 // Samples the height-map at a specific x,z value. Returns -1 if the x,z
 // coordinates are outside of the terrain.
-float Terrain::sampleTerrainHeight(float x, float z) const {
+float TerrainChunk::sampleTerrainHeight(float x, float z) const {
     // Returns a floating point value telling us what height map samples our
     // coordinates are between
     const float index_x = (x - world_x) / DISTANCE_BETWEEN_SAMPLES;
@@ -98,6 +94,15 @@ float Terrain::sampleTerrainHeight(float x, float z) const {
                               Lerp(height_01, height_11, x_dist), z_dist);
 
     return height;
+}
+
+// Bind___:
+// Bind components to the terrain
+void TerrainChunk::bindVisualTerrain(Graphics::VisualTerrain* _visual_terrain) {
+    visual_terrain = _visual_terrain;
+}
+bool TerrainChunk::hasVisualTerrain() const {
+    return visual_terrain != nullptr;
 }
 
 } // namespace Datamodel

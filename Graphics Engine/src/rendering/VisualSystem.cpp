@@ -141,22 +141,25 @@ ShadowLightObject* VisualSystem::bindShadowLightObject(Object* object) {
     return light_obj;
 }
 
-VisualTerrain* VisualSystem::bindVisualTerrain(Terrain* terrain) {
+VisualTerrain* VisualSystem::bindVisualTerrain(TerrainChunk* terrain) {
     // TEMP: Generate a triangulation of the terrain
     MeshBuilder builder = MeshBuilder(device);
 
-    const Vector2 XZ_MIN = Vector2(0.f, 0.f);
-    const Vector2 XZ_MAX = Vector2(100.f, 100.f);
-    constexpr int SAMPLE_COUNT = 400;
+    const Vector2 XZ_MIN =
+        Vector2(terrain->getX(), terrain->getZ());
+    const Vector2 XZ_MAX =
+        Vector2(terrain->getX() + HEIGHT_MAP_XZ_SIZE, terrain->getZ() + HEIGHT_MAP_XZ_SIZE);
+    constexpr int SAMPLE_COUNT = 20;
 
     for (int i = 0; i < SAMPLE_COUNT; i++) {
         for (int j = 0; j < SAMPLE_COUNT; j++) {
-            const float x = (XZ_MAX.u - XZ_MIN.u) * i / SAMPLE_COUNT + XZ_MIN.u;
-            const float z = (XZ_MAX.v - XZ_MIN.v) * j / SAMPLE_COUNT + XZ_MIN.v;
+            const float x = (XZ_MAX.u - XZ_MIN.u) * i / (SAMPLE_COUNT - 1) + XZ_MIN.u;
+            const float z =
+                (XZ_MAX.v - XZ_MIN.v) * j / (SAMPLE_COUNT - 1) + XZ_MIN.v;
 
             const float y = terrain->sampleTerrainHeight(x, z);
 
-            builder.addVertex(Vector3(x, y, z), Vector2(), Vector3());
+            builder.addVertex(Vector3(x, y, z));
         }
     }
 
@@ -175,15 +178,14 @@ VisualTerrain* VisualSystem::bindVisualTerrain(Terrain* terrain) {
             // NW triangle
             if (i > 0 && j < SAMPLE_COUNT - 1)
                 builder.addTriangle(v0, v3, v2);
-            
+
             // SW triangle
             if (i > 0 && j > 0)
                 builder.addTriangle(v0, v4, v3);
 
             // SE triangle
-            if (i < SAMPLE_COUNT - 1 && j > 0) 
+            if (i < SAMPLE_COUNT - 1 && j > 0)
                 builder.addTriangle(v0, v1, v4);
-
         }
     }
 
@@ -192,6 +194,9 @@ VisualTerrain* VisualSystem::bindVisualTerrain(Terrain* terrain) {
 
     VisualTerrain* visual_terrain = new VisualTerrain(terrain, mesh);
     terrain_chunks.push_back(visual_terrain);
+
+    terrain->bindVisualTerrain(visual_terrain);
+
     return visual_terrain;
 }
 
@@ -267,6 +272,21 @@ void VisualSystem::renderPrepare() {
         }
     }
     renderable_assets.resize(head);
+
+    // Check and remove any visual terrain objects that are no longer valid
+    // Check and remove any visual objects that are no longer valid
+    head = 0;
+    for (int i = 0; i < terrain_chunks.size(); i++) {
+        if (!terrain_chunks[i]->markedForDestruction()) {
+            terrain_chunks[head] = terrain_chunks[i];
+            head++;
+        } else {
+            delete terrain_chunks[i];
+            terrain_chunks[i] = nullptr;
+        }
+            
+    }
+    terrain_chunks.resize(head);
 
     for (const AssetObject* object : renderable_assets) {
         for (Mesh* mesh : object->asset->getMeshes()) {

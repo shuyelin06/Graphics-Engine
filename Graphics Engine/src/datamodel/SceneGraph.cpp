@@ -5,43 +5,107 @@
 namespace Engine {
 namespace Datamodel {
 
-SceneGraph::SceneGraph() : objects() {
-    terrain = new Terrain(0,0);
+Scene::Scene() : objects(), terrain(), terrain_helper() {
+    center_chunk_x = INT_MIN, center_chunk_z = INT_MIN;
 }
-SceneGraph::~SceneGraph() {
+Scene::~Scene() {
     for (Object* object : objects)
         delete object;
 }
 
 // GetObjects:
 // Returns the vector of objects in the SceneGraph
-const std::vector<Object*>& SceneGraph::getObjects() { return objects; }
+const std::vector<Object*>& Scene::getObjects() { return objects; }
 
 // NewObject:
 // Creates a new object in the scene.
-Object& SceneGraph::createObject() {
+Object& Scene::createObject() {
     Object* object = new Object();
     objects.push_back(object);
     return *object;
 }
 
+// --- Scene Updating ---
+// UpdateSceneCenter:
+// Updates the scene center and loads / unloads chunks based on this center.
+void Scene::updateSceneCenter(float new_x, float new_z) {
+    // Calculate the chunk these x,y coordinates are in.
+    const int new_x_chunk = floor(new_x / HEIGHT_MAP_XZ_SIZE);
+    const int new_z_chunk = floor(new_z / HEIGHT_MAP_XZ_SIZE);
+
+    if (center_chunk_x == new_x_chunk && center_chunk_z == new_z_chunk)
+        return;
+
+    // Find the x,z coordinates of the chunk that the center is located in.
+    const int old_center_chunk_x = center_chunk_x;
+    const int old_center_chunk_z = center_chunk_z;
+
+    center_chunk_x = new_x_chunk;
+    center_chunk_z = new_z_chunk;
+
+    std::memset(terrain_helper, 0, sizeof(terrain_helper));
+
+    // We have a set of chunks around our old center. After moving our center,
+    // we have a new set of chunks, but we don't want to regenerate chunks that
+    // are the same. We will iterate through all chunks around our new center
+    // and pull them from the old center chunks if possible.
+    for (int i = 0; i < TERRAIN_NUM_CHUNKS; i++) {
+        for (int j = 0; j < TERRAIN_NUM_CHUNKS; j++) {
+            // Find our chunk index on x,z
+            const int old_index_x = i + center_chunk_x - old_center_chunk_x;
+            const int old_index_z = j + center_chunk_z - old_center_chunk_z;
+
+            if (0 <= old_index_x && old_index_x < TERRAIN_NUM_CHUNKS) {
+                if (0 <= old_index_z && old_index_z < TERRAIN_NUM_CHUNKS) {
+                    terrain_helper[i][j] = terrain[old_index_x][old_index_z];
+                    terrain[old_index_x][old_index_z] = nullptr;
+                }
+            }
+        }
+    }
+
+    // Now, iterate through and
+    // 1) Create new chunks that need to be created
+    // 2) Destroy old chunks too far from our center
+    for (int i = 0; i < TERRAIN_NUM_CHUNKS; i++) {
+        for (int j = 0; j < TERRAIN_NUM_CHUNKS; j++) {
+            // Free memory for old chunks
+            if (terrain[i][j] != nullptr)
+                delete terrain[i][j];
+
+            // Create new chunks
+            if (terrain_helper[i][j] == nullptr) {
+                const float chunk_x =
+                    (i - TERRAIN_CHUNK_EXTENT + center_chunk_x) *
+                    HEIGHT_MAP_XZ_SIZE;
+                const float chunk_z =
+                    (j - TERRAIN_CHUNK_EXTENT + center_chunk_z) *
+                    HEIGHT_MAP_XZ_SIZE;
+
+                terrain_helper[i][j] = new TerrainChunk(chunk_x, chunk_z);
+            }
+        }
+    }
+
+    // Copy our helper array to the actual terrain array
+    memcpy(terrain, terrain_helper, sizeof(terrain));
+}
+
 // UpdateAndRenderTerrain:
 // Update the terrain chunks.
-void SceneGraph::updateAndRenderTerrain() {
-}
+void Scene::updateAndRenderTerrain() {}
 
 // UpdateAndRenderObjects:
 // Update and cache object transforms in the SceneGraph, and submit
 // render requests for each.
-void SceneGraph::updateAndRenderObjects() {
+void Scene::updateAndRenderObjects() {
     Matrix4 identity = Matrix4::identity();
 
     for (Object* object : objects)
         updateAndRenderObjects(object, identity);
 }
 
-void SceneGraph::updateAndRenderObjects(
-    Object* object, const Matrix4& m_parent) {
+void Scene::updateAndRenderObjects(Object* object, const Matrix4& m_parent) {
     assert(object != nullptr);
 
     const Matrix4 m_local = object->updateLocalMatrix(m_parent);

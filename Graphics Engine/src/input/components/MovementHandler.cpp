@@ -43,7 +43,7 @@ void MovementHandler::update() {
     // Normalize movement vector and offset position
     if (movementVector.magnitude() != 0) {
         movementVector.inplaceNormalize();
-        movementVector /= 3.f;
+        movementVector *= 5 / 3.f;
 
         transform->offsetPosition(movementVector.x, movementVector.y,
                                   movementVector.z);

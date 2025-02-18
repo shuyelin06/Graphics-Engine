@@ -5,16 +5,12 @@
 namespace Engine {
 namespace Graphics {
 MeshVertex::MeshVertex() = default;
+MeshVertex::MeshVertex(const Vector3& _position) { position = _position; }
 MeshVertex::MeshVertex(const MeshVertex& vertex) {
     position = vertex.position;
-    textureCoord = vertex.textureCoord;
+
+    tex = vertex.tex;
     normal = vertex.normal;
-}
-MeshVertex::MeshVertex(const Vector3& pos, const Vector2& tex,
-                       const Vector3& norm) {
-    position = pos;
-    textureCoord = tex;
-    normal = norm;
 }
 
 MeshTriangle::MeshTriangle(UINT v0, UINT v1, UINT v2) {
@@ -56,7 +52,9 @@ Mesh* MeshBuilder::generate() {
         createVertexStream(ExtractVertexTexture, sizeof(float) * 2);
     mesh->vertex_streams[NORMAL] =
         createVertexStream(ExtractVertexNormal, sizeof(float) * 3);
-
+    mesh->vertex_streams[COLOR] =
+        createVertexStream(ExtractVertexColor, sizeof(float) * 3);
+    
     return mesh;
 }
 
@@ -119,7 +117,7 @@ void MeshBuilder::ExtractVertexPosition(const MeshVertex& vertex,
 
 void MeshBuilder::ExtractVertexTexture(const MeshVertex& vertex,
                                        uint8_t* output) {
-    memcpy(output, &vertex.textureCoord, 2 * sizeof(float));
+    memcpy(output, &vertex.tex, 2 * sizeof(float));
 }
 
 void MeshBuilder::ExtractVertexNormal(const MeshVertex& vertex,
@@ -127,16 +125,20 @@ void MeshBuilder::ExtractVertexNormal(const MeshVertex& vertex,
     memcpy(output, &vertex.normal, 3 * sizeof(float));
 }
 
+void MeshBuilder::ExtractVertexColor(const MeshVertex& vertex,
+                                     uint8_t* output) {
+    memcpy(output, &vertex.color, 3 * sizeof(float));
+}
+
 // AddVertex:
 // Adds a vertex with position, texture, and norm to the MeshBuilder.
 UINT MeshBuilder::addVertex(const Vector3& pos) {
-    return addVertex(pos, Vector2(), Vector3());
+    return addVertex(MeshVertex(pos));
 }
 
-UINT MeshBuilder::addVertex(const Vector3& pos, const Vector2& tex,
-                            const Vector3& norm) {
+UINT MeshBuilder::addVertex(const MeshVertex& vertex) {
     UINT index = vertex_buffer.size();
-    vertex_buffer.push_back(MeshVertex(pos, tex, norm));
+    vertex_buffer.push_back(vertex);
     return index;
 }
 

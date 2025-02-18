@@ -95,7 +95,7 @@ class VisualSystem {
     // Create objects in the visual system
     AssetObject* bindAssetObject(Object* object, const std::string& asset_name);
     ShadowLightObject* bindShadowLightObject(Object* object);
-    VisualTerrain* bindVisualTerrain(Terrain* terrain);
+    VisualTerrain* bindVisualTerrain(TerrainChunk* terrain);
 
     // Renders an entire scene
     void render();

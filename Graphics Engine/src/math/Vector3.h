@@ -19,6 +19,8 @@ class Vector3 {
     // Updates the contents of the current vector
     void set(const Vector3& vec); 
 
+    Vector3 xzy() const;
+
     // Normalize the vector
     void inplaceNormalize(); // In-Place Normalize
     Vector3 unit() const;    // Returns a Normalized Copy

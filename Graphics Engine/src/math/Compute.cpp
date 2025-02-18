@@ -48,6 +48,9 @@ int Random(int low, int high) {
     float rand = Random(0.0f, 1.0f);
     return low + (int)(rand * (high - low));
 }
+bool RandomExperiment(float prob_success) {
+    return Random(0.0f, 1.0f) <= prob_success;
+}
 
 // Spherical to Euler Coordinate-System Conversions
 Vector3 SphericalToEuler(const Vector3& spherical) {

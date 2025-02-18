@@ -26,6 +26,8 @@ float CubicInterp(float a, float b, float t);
 float Random(float low, float high);
 int Random(int low, int high);
 
+bool RandomExperiment(float prob_success);
+
 // Conversions between Euler and Spherical Coordinates
 // Euler Space: (x,y,z) based on the X,Y,Z standard basis axes
 // Spherical Space: (r, theta, phi) where r is radius, theta is angle to z-axis,

@@ -35,6 +35,12 @@ void Vector3::set(const Vector3& vec) {
     z = vec.z;
 } 
 
+// XZY:
+// Returns a new vector with the components rearranged
+Vector3 Vector3::xzy() const {
+    return Vector3(x,z,y);
+}
+
 // Magnitude:
 // Returns the vector's magnitude
 float Vector3::magnitude() const { return sqrtf(x * x + y * y + z * z); }
