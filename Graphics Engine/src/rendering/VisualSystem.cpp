@@ -208,17 +208,17 @@ int generateTreeMeshHelper(MeshBuilder& builder,
             Quaternion::RotationAroundAxis(Vector3::PositiveX(), -PI / 2);
         direction = rotation_offset.rotationMatrix3() * direction;
 
-        const Vector3 next_pos = position + direction * tree.trunk_length;
+        const Vector3 next_pos = position + direction * tree.trunk_data.trunk_length;
 
         builder.setColor(Color(150.f / 255.f, 75.f / 255.f, 0));
-        builder.addTube(position, next_pos, 3.0f, 5);
+        builder.addTube(position, next_pos, tree.trunk_data.trunk_thickess, 5);
         return generateTreeMeshHelper(builder, grammar, index + 1, next_pos,
                                       rotation);
     } break;
 
     case BRANCH: {
         const Vector2 new_rotation =
-            rotation + Vector2(tree.branch_angle_phi, tree.branch_angle_theta);
+            rotation + Vector2(tree.branch_data.branch_angle_phi, tree.branch_data.branch_angle_theta);
 
         const int next_index = generateTreeMeshHelper(
             builder, grammar, index + 1, position, new_rotation);
@@ -228,7 +228,15 @@ int generateTreeMeshHelper(MeshBuilder& builder,
 
     case LEAF: {
         builder.setColor(Color::Green());
-        builder.addCube(position, tree.leaf_density);
+
+        const Vector3 random_axis =
+            Vector3(1 + Random(0.f, 1.f), Random(0.f, 1.f), Random(0.f, 1.f))
+                .unit();
+        const float angle = Random(0, 2 * PI);
+
+        builder.addCube(position,
+                        Quaternion::RotationAroundAxis(random_axis, angle),
+                        tree.leaf_data.leaf_density);
         return index + 1;
     } break;
     }
@@ -255,7 +263,7 @@ void VisualSystem::renderPrepare() {
     float color[4] = {RGB(158.f), RGB(218.f), RGB(255.f), 1.0f};
     context->ClearRenderTargetView(render_target_view, color);
 
-        // --- TEST ---
+    // --- TEST ---
     static TreeGenerator tree_gen = TreeGenerator();
     static AssetObject* tree_asset = nullptr;
 
@@ -283,7 +291,7 @@ void VisualSystem::renderPrepare() {
 
     // tree_gen.debugDrawTree(Vector3(0, 0, 0));
     // ---
-    
+
     // Check and remove any visual objects that are no longer valid
     int head;
 
@@ -659,7 +667,7 @@ void VisualSystem::performRenderPass() {
 
         ID3D11Buffer* buffer;
         UINT stride, offset;
-        
+
         stride = sizeof(float) * 3;
         offset = 0;
 
@@ -671,7 +679,7 @@ void VisualSystem::performRenderPass() {
 
         buffer = mesh->vertex_streams[COLOR];
         context->IASetVertexBuffers(COLOR, 1, &buffer, &stride, &offset);
-       
+
         context->IASetIndexBuffer(mesh->index_buffer, DXGI_FORMAT_R32_UINT, 0);
 
         vShader->bindShader(device, context);

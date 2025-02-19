@@ -49,8 +49,7 @@ class Quaternion {
     // Generate a unit quaternion representing a rotation around a given axis
     static Quaternion RotationAroundAxis(const Vector3& axis, float theta);
 
-    // Generate a unit quaternion representing a rotation from one vector to
-    // another
+    // Generate a unit quaternion representing a rotation from one vector to another
     static Quaternion RotationToVector(const Vector3& from, const Vector3& to);
 };
 } // namespace Math

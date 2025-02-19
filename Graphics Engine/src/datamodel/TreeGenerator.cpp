@@ -1,7 +1,7 @@
 #include "TreeGenerator.h"
 
-#include "math/Quaternion.h"
 #include "math/Compute.h"
+#include "math/Quaternion.h"
 
 namespace Engine {
 using namespace Math;
@@ -63,16 +63,23 @@ float TreeGenerator::branchProbability() const { return 0.15f; }
 float TreeGenerator::leafProbability() const { return 0.35f; }
 
 void TreeGenerator::addTrunk() {
-    TreeStructure tree = {};
-    tree.token = TRUNK;
-    tree.trunk_length = 5.f / branch_depth;
+    if (grammar.size() > 0 && grammar[grammar.size() - 1].token == TRUNK) {
+        TreeStructure& tree = grammar[grammar.size() - 1];
+        tree.trunk_data.trunk_thickess += 5.f;
+        tree.trunk_data.trunk_length += 5.f / branch_depth;
+    } else {
+        TreeStructure tree = {};
+        tree.token = TRUNK;
+        tree.trunk_data.trunk_thickess = 3.f;
+        tree.trunk_data.trunk_length = 5.f / branch_depth;
 
-    grammar.push_back(tree);
+        grammar.push_back(tree);
+    }
 }
 void TreeGenerator::addLeaf() {
     TreeStructure tree = {};
     tree.token = LEAF;
-    tree.leaf_density = Random(5.0f, 10.f);
+    tree.leaf_data.leaf_density = Random(5.0f, 10.f);
 
     grammar.push_back(tree);
 
@@ -83,8 +90,8 @@ void TreeGenerator::addBranch() {
     tree.token = BRANCH;
     // Branching angle can only be in the northern hemisphere
     // (trees grow up, after all)
-    tree.branch_angle_phi = Random(0.f, PI / 4.f);
-    tree.branch_angle_theta = Random(0.f, 2 * PI);
+    tree.branch_data.branch_angle_phi = Random(0.f, PI / 4.f);
+    tree.branch_data.branch_angle_theta = Random(0.f, 2 * PI);
 
     grammar.push_back(tree);
     branch_depth++;
@@ -114,10 +121,12 @@ int TreeGenerator::debugDrawTreeHelper(int index, const Vector3& position,
         const float theta = rotation.v;
 
         Vector3 direction = SphericalToEuler(1.0, theta, phi);
-        const Quaternion rotation_offset = Quaternion::RotationAroundAxis(Vector3::PositiveX(), -PI / 2);
+        const Quaternion rotation_offset =
+            Quaternion::RotationAroundAxis(Vector3::PositiveX(), -PI / 2);
         direction = rotation_offset.rotationMatrix3() * direction;
 
-        const Vector3 next_pos = position + direction * tree.trunk_length;
+        const Vector3 next_pos =
+            position + direction * tree.trunk_data.trunk_length;
 
         VisualDebug::DrawLine(position, next_pos,
                               Color(150.f / 255.f, 75.f / 255.f, 0));
@@ -125,7 +134,9 @@ int TreeGenerator::debugDrawTreeHelper(int index, const Vector3& position,
     } break;
 
     case BRANCH: {
-        const Vector2 new_rotation = rotation + Vector2(tree.branch_angle_phi, tree.branch_angle_theta);
+        const Vector2 new_rotation =
+            rotation + Vector2(tree.branch_data.branch_angle_phi,
+                               tree.branch_data.branch_angle_theta);
 
         const int next_index =
             debugDrawTreeHelper(index + 1, position, new_rotation);

@@ -20,17 +20,30 @@ namespace Datamodel {
 // b: Branch; Some offshoot from the current wood
 // l: Leaf; denotes the end of a branch, or a trunk
 enum TreeToken { TRUNK, BRANCH, LEAF };
+
+struct TrunkData {
+    float trunk_length;
+    float trunk_thickess;
+};
+struct BranchData {
+    float branch_angle_phi;
+    float branch_angle_theta;
+};
+struct LeafData {
+    float leaf_density;
+};
+
 struct TreeStructure {
     TreeToken token;
     
     // Extra data that will go with the tree's token
-    float trunk_length;
-
-    float branch_angle_phi;
-    float branch_angle_theta;
-
-    float leaf_density;
+    union {
+        TrunkData trunk_data;
+        BranchData branch_data;
+        LeafData leaf_data;
+    };    
 };
+
 // Class TreeGenerator:
 // A procedural generator for trees. Uses context free grammars
 // to do this.

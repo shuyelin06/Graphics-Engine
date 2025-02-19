@@ -145,7 +145,7 @@ Asset* VisualResourceManager::LoadAssetFromOBJ(const std::string& path,
 // Used in debugging
 Asset* VisualResourceManager::LoadCube(MeshBuilder& builder) {
     builder.reset();
-    builder.addCube(Vector3(0, 0, 0), 1.f);
+    builder.addCube(Vector3(0, 0, 0), Quaternion(), 1.f);
 
     Asset* cube = new Asset(builder.generate());
     return cube;

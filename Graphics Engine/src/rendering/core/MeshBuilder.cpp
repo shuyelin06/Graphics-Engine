@@ -165,37 +165,56 @@ void MeshBuilder::addTriangle(UINT v1, UINT v2, UINT v3) {
 // AddShapes:
 // Generates various shapes (given parameters) and adds them to the mesh
 // builder.
-void MeshBuilder::addCube(const Vector3& center, float size) {
+// Creates a plane with boundaries given as vertices a,b,c,d in CCW order.
+void MeshBuilder::addTriangle(const Vector3& a, const Vector3& b, const Vector3& c) {
+    const int i0 = addVertex(a);
+    const int i1 = addVertex(b);
+    const int i2 = addVertex(c);
+
+    addTriangle(i0, i1, i2);
+}
+
+void MeshBuilder::addCube(const Vector3& center, const Quaternion& rotation,
+                          float size) {
     // Cube vertices and indices
-    const Vector3 vertices[] = {
+    Vector3 vertices[] = {
         Vector3(0.5f, -0.5f, 0.5f),   Vector3(0.5f, -0.5f, -0.5f),
         Vector3(-0.5f, -0.5f, -0.5f), Vector3(-0.5f, -0.5f, 0.5f),
         Vector3(0.5f, 0.5f, 0.5f),    Vector3(0.5f, 0.5f, -0.5f),
         Vector3(-0.5f, 0.5f, -0.5f),  Vector3(-0.5f, 0.5f, 0.5f)};
 
     const int indices[] = {// Bottom
-                           0, 2, 1, 3, 2, 0,
+                           0, 3, 2, 1,
                            // Top
-                           4, 5, 6, 7, 4, 6,
+                           4, 5, 6, 7,
                            // Front
-                           0, 4, 7, 3, 0, 7,
+                           0, 4, 7, 3,
                            // Right
-                           0, 1, 4, 5, 4, 1,
+                           0, 1, 5, 4,
                            // Back
-                           2, 5, 1, 6, 5, 2,
+                           2, 6, 5, 1,
                            // Left
-                           3, 7, 2, 6, 2, 7};
+                           3, 7, 6, 2};
 
-    // Add my vertices (transformed)
-    const int start_index = addVertex(center + vertices[0] * size);
-    for (int i = 1; i < 8; i++)
-        addVertex(center + vertices[i] * size);
+    // Transform my vertices.
+    const Matrix3 m_rotation = rotation.rotationMatrix3();
 
-    // Add my triangles
-    for (int i = 0; i < 36; i += 3) {
-        addTriangle(start_index + indices[i], start_index + indices[i + 1],
-                    start_index + indices[i + 2]);
+    for (int i = 0; i < 8; i++) {
+        vertices[i] = center + m_rotation * (vertices[i] * size);
     }
+
+    // Add the faces of the cube. We need to add repeat vertices so that the normals for each face
+    // are sharp. 
+    for (int i = 0; i < 24; i += 4) {
+        const int i0 = addVertex(vertices[indices[i]]);
+        const int i1 = addVertex(vertices[indices[i + 1]]);
+        const int i2 = addVertex(vertices[indices[i + 2]]);
+        const int i3 = addVertex(vertices[indices[i + 3]]);
+
+        addTriangle(i0, i1, i2);
+        addTriangle(i2, i3, i0);
+    }
+
 }
 
 // AddTube:
@@ -243,11 +262,14 @@ void MeshBuilder::addTube(const Vector3& start, const Vector3& end,
         const int top_i1 = end_index + i;
         const int top_i2 = (i != num_vertices) ? top_i1 + 1 : end_index + 1;
 
-        addTriangle(bottom_i1, top_i1, bottom_i2);
-        addTriangle(bottom_i2, top_i1, top_i2);
-    }
+        // Connect the points to form the shaft
+        addTriangle(bottom_i1, bottom_i2, top_i1);
+        addTriangle(bottom_i2, top_i2, top_i1);
 
-    // TODO: Add cap?
+        // Connect the points to form the cap
+        addTriangle(start_index, bottom_i2, bottom_i1);
+        addTriangle(end_index, top_i2, top_i1);
+    }
 }
 
 // RegenerateNormals:
