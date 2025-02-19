@@ -17,7 +17,7 @@ const std::vector<TreeStructure>& TreeGenerator::getTree() { return grammar; }
 void TreeGenerator::generateTree() {
     grammar.clear();
 
-    branch_depth = 0;
+    branch_depth = 1;
 
     addTrunk();
     generateTreeHelper();
@@ -65,7 +65,7 @@ float TreeGenerator::leafProbability() const { return 0.35f; }
 void TreeGenerator::addTrunk() {
     TreeStructure tree = {};
     tree.token = TRUNK;
-    tree.trunk_length = 5.f;
+    tree.trunk_length = 5.f / branch_depth;
 
     grammar.push_back(tree);
 }

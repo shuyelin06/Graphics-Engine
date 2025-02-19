@@ -37,6 +37,9 @@ class VisualResourceManager {
     // Initialize assets
     void initialize();
 
+    // Get builders
+    MeshBuilder* createMeshBuilder();
+
     // Get an asset data by name
     Asset* getAsset(const std::string& name);
     // Get a texture by name

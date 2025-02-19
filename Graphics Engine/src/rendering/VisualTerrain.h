@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/Asset.h"
+#include "core/MeshBuilder.h"
 #include "datamodel/Terrain.h"
 
 namespace Engine {
@@ -14,18 +15,20 @@ class VisualTerrain {
 
   private:
     TerrainChunk* const terrain;
+    Mesh* terrain_mesh;
 
     bool markedToDestroy;
 
-    Mesh* terrain_mesh;
-
-    VisualTerrain(TerrainChunk* terrain, Mesh* terrain_mesh);
+    VisualTerrain(TerrainChunk* terrain, MeshBuilder* mesh_builder);
 
   public:
     ~VisualTerrain();
 
     bool markedForDestruction() const;
     void destroy();
+
+  private:
+    Mesh* generateTerrainMesh(MeshBuilder& builder);
 };
 } // namespace Graphics
 } // namespace Engine

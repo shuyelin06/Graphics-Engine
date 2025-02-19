@@ -166,6 +166,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\datamodel\RockGenerator.cpp" />
     <ClCompile Include="src\datamodel\SceneGraph.cpp" />
     <ClCompile Include="src\datamodel\Terrain.cpp" />
     <ClCompile Include="src\datamodel\TreeGenerator.cpp" />
@@ -236,6 +237,7 @@
     <ClInclude Include="include\zconf.h" />
     <ClInclude Include="include\zlib.h" />
     <ClInclude Include="src\datamodel\ResourceManager.h" />
+    <ClInclude Include="src\datamodel\RockGenerator.h" />
     <ClInclude Include="src\datamodel\SceneGraph.h" />
     <ClInclude Include="src\datamodel\Terrain.h" />
     <ClInclude Include="src\datamodel\TreeGenerator.h" />

@@ -82,6 +82,12 @@ void VisualResourceManager::initialize() {
     // Capybara by Poly by Google [CC-BY] via Poly Pizza
 }
 
+// CreateMeshBuilder:
+// Creates and returns a mesh builder
+MeshBuilder* VisualResourceManager::createMeshBuilder() {
+    return new MeshBuilder(device);
+}
+
 // Get Resources:
 // Return resources by name.
 Asset* VisualResourceManager::getAsset(const std::string& name) {
