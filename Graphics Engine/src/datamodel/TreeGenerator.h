@@ -51,7 +51,7 @@ class TreeGenerator {
     void generateTree();
 
 #if defined(_DEBUG)
-    void debugDrawTree();
+    void debugDrawTree(const Vector3& offset);
 #endif
 
   private:

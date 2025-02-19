@@ -33,19 +33,16 @@ namespace Datamodel {
 // system.
 class Scene {
   private:
-    
-   
-
     std::vector<Object*> objects;
-
-  public:
+    
+    // Terrain Fields
     // Center chunk of the scene. Loading is performed based on this center
     int center_chunk_x, center_chunk_z;
     // Loaded terrain chunks in the scene
     TerrainChunk* terrain[TERRAIN_NUM_CHUNKS][TERRAIN_NUM_CHUNKS];
     // Temporarily stores terrain chunks for when the scene center changes
     TerrainChunk* terrain_helper[TERRAIN_NUM_CHUNKS][TERRAIN_NUM_CHUNKS];
-
+    
   public:
     Scene();
     ~Scene();
@@ -53,6 +50,11 @@ class Scene {
     // Object handling
     const std::vector<Object*>& getObjects();
     Object& createObject();
+
+    // Terrain Handling
+    TerrainChunk* getTerrainChunk(int x_index, int z_index) const;
+    
+    float sampleTerrainHeight(float x, float z) const;
 
     // Update the center of the scene graph. Based on the center, the scene
     // graph will generate terrain chunks

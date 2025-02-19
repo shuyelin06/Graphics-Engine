@@ -87,7 +87,6 @@ void TreeGenerator::addBranch() {
     tree.branch_angle_theta = Random(0.f, 2 * PI);
 
     grammar.push_back(tree);
-
     branch_depth++;
 }
 
@@ -97,9 +96,9 @@ void TreeGenerator::addBranch() {
 #if defined(_DEBUG)
 using namespace Engine::Graphics;
 
-void TreeGenerator::debugDrawTree() {
+void TreeGenerator::debugDrawTree(const Vector3& offset) {
     // Rotation stores (phi, theta), spherical angles. rho is assumed to be 1.
-    debugDrawTreeHelper(0, Vector3(0, 0, 0), Vector2(0, 0));
+    debugDrawTreeHelper(0, offset, Vector2(0, 0));
 }
 
 int TreeGenerator::debugDrawTreeHelper(int index, const Vector3& position,

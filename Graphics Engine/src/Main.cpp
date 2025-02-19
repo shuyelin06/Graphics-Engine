@@ -40,8 +40,8 @@
 #include "utility/Stopwatch.h"
 
 // ----- TESTING -----
-#include "physics/collisions/AABBTree.h"
 #include "datamodel/TreeGenerator.h"
+#include "physics/collisions/AABBTree.h"
 // -----
 
 using namespace Engine;
@@ -113,7 +113,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     // Bind Camera
     MovementHandler movementHandler(visual_system.getCamera().getTransform());
-    visual_system.getCamera().getTransform()->setPosition(0, 10, 0);
+    visual_system.getCamera().getTransform()->setPosition(0, 50.f, 0);
 
     // Create Object Hierarchy
     Object& parent_object = scene_graph.createObject();
@@ -121,12 +121,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     Object& sun_light = parent_object.createChild();
     visual_system.bindShadowLightObject(&sun_light);
 
-   /* Object& child2 = parent_object.createChild();
-    AssetObject* asset2 = visual_system.bindAssetObject(&child2, "Capybara");
-    child2.getTransform().offsetRotation(Vector3::PositiveY(), PI);
-    child2.getTransform().setScale(5, 5, 5);
-    child2.getTransform().setPosition(Random(-2.5f, 2.5f), Random(-2.5f, 2.5f),
-                                      Random(15, 25));*/
+    /* Object& child2 = parent_object.createChild();
+     AssetObject* asset2 = visual_system.bindAssetObject(&child2, "Capybara");
+     child2.getTransform().offsetRotation(Vector3::PositiveY(), PI);
+     child2.getTransform().setScale(5, 5, 5);
+     child2.getTransform().setPosition(Random(-2.5f, 2.5f), Random(-2.5f, 2.5f),
+                                       Random(15, 25));*/
 
     /*std::vector<Vector3> points;
     points.push_back(Vector3(-2.5, -2.5, -2.5));
@@ -180,20 +180,19 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
             for (int i = 0; i < TERRAIN_NUM_CHUNKS; i++) {
                 for (int j = 0; j < TERRAIN_NUM_CHUNKS; j++) {
-                    TerrainChunk* chunk = scene_graph.terrain[i][j];
+                    TerrainChunk* chunk = scene_graph.getTerrainChunk(i,j);
 
                     if (!chunk->hasVisualTerrain()) {
                         visual_system.bindVisualTerrain(chunk);
                     }
                 }
             }
-
         }
 
         //// TODO: THIS CODE IS WRONG
         // child2.getTransform().lookAt(
         //     visual_system.getCamera().getTransform()->getPosition());
-        tree_gen.debugDrawTree();
+        tree_gen.debugDrawTree(Vector3(0, scene_graph.sampleTerrainHeight(0,0), 0));
 
         if (ImGui::Button("Regenerate")) {
             tree_gen.generateTree();
@@ -201,7 +200,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
         // child2.getTransform().offsetRotation(Vector3::PositiveY(), PI / 20);
         sun_light.getTransform().setViewDirection(Vector3(0, -0.25f, 0.75f));
-        Vector3 position = visual_system.getCamera().getTransform()->getPosition() + sun_light.getTransform().backward() * 75; // 75 OG
+        Vector3 position =
+            visual_system.getCamera().getTransform()->getPosition() +
+            sun_light.getTransform().backward() * 75; // 75 OG
         sun_light.getTransform().setPosition(position.x, position.y,
                                              position.z);
 

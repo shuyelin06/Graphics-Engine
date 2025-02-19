@@ -2,13 +2,9 @@
 
 #include "math/Vector3.h"
 
-constexpr float HEIGHT_MAP_XZ_SIZE = 25.f;
+constexpr float HEIGHT_MAP_XZ_SIZE = 100.f;
 constexpr float HEIGHT_MAP_Y_HEIGHT = 100.f;
-
-constexpr int HEIGHT_MAP_XZ_SAMPLES = 10;
-
-constexpr float DISTANCE_BETWEEN_SAMPLES =
-    HEIGHT_MAP_XZ_SIZE / (HEIGHT_MAP_XZ_SAMPLES - 1);
+constexpr int HEIGHT_MAP_XZ_SAMPLES = 75;
 
 namespace Engine {
 using namespace Math;
@@ -54,7 +50,7 @@ class TerrainChunk {
 
   private:
     // Reload the data of a portion of the terrain chunk by index.
-    void reloadTerrainChunk(UINT index_x, UINT index_z);
+    void reloadHeightMap(UINT index_x, UINT index_z);
 };
 
 } // namespace Datamodel

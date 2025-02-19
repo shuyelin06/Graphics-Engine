@@ -15,6 +15,9 @@
 #include "rendering/VisualDebug.h"
 #endif
 
+constexpr float DISTANCE_BETWEEN_SAMPLES =
+    HEIGHT_MAP_XZ_SIZE / (HEIGHT_MAP_XZ_SAMPLES - 1);
+
 namespace Engine {
 namespace Datamodel {
 TerrainChunk::TerrainChunk(float _world_x, float _world_z) {
@@ -25,7 +28,7 @@ TerrainChunk::TerrainChunk(float _world_x, float _world_z) {
 
     for (int x = 0; x < HEIGHT_MAP_XZ_SAMPLES; x++) {
         for (int z = 0; z < HEIGHT_MAP_XZ_SAMPLES; z++) {
-            reloadTerrainChunk(x, z);
+            reloadHeightMap(x, z);
         }
     }
 }
@@ -42,15 +45,17 @@ float TerrainChunk::getZ() const { return world_z; }
 // ReloadTerrainChunk:
 // Reloads a sample of the height-map by index, by calculating the x,z
 // coordinates of that sample.
-void TerrainChunk::reloadTerrainChunk(UINT index_x, UINT index_z) {
+void TerrainChunk::reloadHeightMap(UINT index_x, UINT index_z) {
     // For our sample index, calculate the x,z coordinates of where we want to
     // sample.
     const float x = world_x + DISTANCE_BETWEEN_SAMPLES * index_x;
     const float z = world_z + DISTANCE_BETWEEN_SAMPLES * index_z;
 
+    // Tuning the inputs to the noise, so that the terrain comes out smoothly.
     constexpr float ROUGHNESS = 0.0035f;
-    const float noise =
-        PerlinNoise::octaveNoise2D(500.f + x * ROUGHNESS, 500.f + z * ROUGHNESS, 4, 6);
+    constexpr float OFFSET = 1000.f; 
+    const float noise = PerlinNoise::octaveNoise2D(
+        x * ROUGHNESS + OFFSET, z * ROUGHNESS + OFFSET, 4, 6);
     const float height = noise * HEIGHT_MAP_Y_HEIGHT;
 
     height_map[index_x][index_z] = height;

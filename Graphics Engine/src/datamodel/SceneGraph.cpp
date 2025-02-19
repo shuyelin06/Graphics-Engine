@@ -25,6 +25,31 @@ Object& Scene::createObject() {
     return *object;
 }
 
+// --- Terrain Handling ---
+TerrainChunk* Scene::getTerrainChunk(int x_index, int z_index) const {
+    return terrain[x_index][z_index];
+}
+
+float Scene::sampleTerrainHeight(float x, float z) const {
+    // Calculate the chunk index for these coordinates
+    const int x_index =
+        floor(x / HEIGHT_MAP_XZ_SIZE) - center_chunk_x + TERRAIN_CHUNK_EXTENT;
+    const int z_index =
+        floor(z / HEIGHT_MAP_XZ_SIZE) - center_chunk_z + TERRAIN_CHUNK_EXTENT;
+
+    if (x_index < 0 || TERRAIN_NUM_CHUNKS <= x_index)
+        return FLT_MIN;
+    if (z_index < 0 || TERRAIN_NUM_CHUNKS <= z_index)
+        return FLT_MIN;
+
+    const TerrainChunk* chunk = terrain[x_index][z_index];
+    
+    if (chunk == nullptr)
+        return FLT_MIN;
+
+    return chunk->sampleTerrainHeight(x, z);
+}
+
 // --- Scene Updating ---
 // UpdateSceneCenter:
 // Updates the scene center and loads / unloads chunks based on this center.
