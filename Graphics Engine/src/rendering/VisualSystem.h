@@ -35,7 +35,7 @@ namespace Graphics {
 
 // Render Information
 struct ShadowCaster {
-    Mesh* mesh;
+    const Mesh* mesh;
     Matrix4 m_localToWorld;
 };
 struct RenderableTerrain {

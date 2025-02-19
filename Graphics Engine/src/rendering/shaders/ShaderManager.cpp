@@ -136,7 +136,7 @@ void ShaderManager::initialize() {
     // Shadow:
     // Draws a mesh with dynamic lights enabled
     {
-        VertexDataStream shadow_input[3] = {POSITION, TEXTURE, NORMAL};
+        VertexDataStream shadow_input[3] = {POSITION, NORMAL, COLOR};
         VertexShader* vs = createVertexShader("ShadowShaderV.hlsl", "vs_main",
                                               shadow_input, 3);
         vs->enableCB(CB1);

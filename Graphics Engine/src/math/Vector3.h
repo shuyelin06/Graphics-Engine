@@ -37,6 +37,9 @@ class Vector3 {
     // Returns a new vector with each x,y,z value the minimum (or maximum) of the two vectors
     Vector3 componentMin(const Vector3& vector) const;
     Vector3 componentMax(const Vector3& vector) const;
+    
+    // Returns a new vector that is orthogonal to this vector
+    Vector3 orthogonal() const;
 
     // Vector Operations
     Vector3 operator+(const Vector3&) const; // Addition

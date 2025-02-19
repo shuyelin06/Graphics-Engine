@@ -72,7 +72,7 @@ void TreeGenerator::addTrunk() {
 void TreeGenerator::addLeaf() {
     TreeStructure tree = {};
     tree.token = LEAF;
-    tree.leaf_density = 1.f;
+    tree.leaf_density = Random(5.0f, 10.f);
 
     grammar.push_back(tree);
 

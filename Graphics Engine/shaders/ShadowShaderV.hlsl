@@ -16,8 +16,8 @@ cbuffer CB2 : register(b2)
 struct VS_IN
 {
     float3 position_local : POSITION;
-    float2 tex : TEXTURE;
     float3 normal : NORMAL;
+    float3 color : COLOR;
 };
 
 /* Vertex Shader Output (Pixel Shader Input) */
@@ -26,7 +26,7 @@ struct VS_OUT
     float4 position_clip : SV_POSITION;
     float3 world_position : POSITION;
     float3 normal : NORMAL;
-    float2 tex_coords : TEXTURE;
+    float3 color : COLOR;
 };
 
 // Vertex Shader Entry Point - Takes VS_IN and outputs a VS_OUT
@@ -44,7 +44,7 @@ VS_OUT vs_main(VS_IN input)
     float4 pos = float4(input.position_local, 1.0f);
     float4 norm = float4(input.normal, 0.0f);
 	
-    output.tex_coords = input.tex;
+    output.color = input.color;
     
     // Find World Position
     pos = mul(m_world, pos);

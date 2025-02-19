@@ -9,6 +9,7 @@
 
 #define RGB(rgb) ((rgb) / 255.f)
 
+#include "datamodel/TreeGenerator.h"
 namespace Engine {
 
 namespace Graphics {
@@ -189,6 +190,59 @@ void VisualSystem::render() {
 #endif
 }
 
+int generateTreeMeshHelper(MeshBuilder& builder,
+                           const std::vector<TreeStructure>& grammar, int index,
+                           const Vector3& position, const Vector2& rotation) {
+    if (index >= grammar.size())
+        return -1;
+
+    const TreeStructure tree = grammar[index];
+
+    switch (tree.token) {
+    case TRUNK: {
+        const float phi = rotation.u;
+        const float theta = rotation.v;
+
+        Vector3 direction = SphericalToEuler(1.0, theta, phi);
+        const Quaternion rotation_offset =
+            Quaternion::RotationAroundAxis(Vector3::PositiveX(), -PI / 2);
+        direction = rotation_offset.rotationMatrix3() * direction;
+
+        const Vector3 next_pos = position + direction * tree.trunk_length;
+
+        builder.setColor(Color(150.f / 255.f, 75.f / 255.f, 0));
+        builder.addTube(position, next_pos, 3.0f, 5);
+        return generateTreeMeshHelper(builder, grammar, index + 1, next_pos,
+                                      rotation);
+    } break;
+
+    case BRANCH: {
+        const Vector2 new_rotation =
+            rotation + Vector2(tree.branch_angle_phi, tree.branch_angle_theta);
+
+        const int next_index = generateTreeMeshHelper(
+            builder, grammar, index + 1, position, new_rotation);
+        return generateTreeMeshHelper(builder, grammar, next_index, position,
+                                      rotation);
+    } break;
+
+    case LEAF: {
+        builder.setColor(Color::Green());
+        builder.addCube(position, tree.leaf_density);
+        return index + 1;
+    } break;
+    }
+
+    return -1;
+}
+
+void generateTreeMesh(MeshBuilder& builder,
+                      const std::vector<TreeStructure>& grammar,
+                      const Vector3& offset) {
+    // Rotation stores (phi, theta), spherical angles. rho is assumed to be 1.
+    generateTreeMeshHelper(builder, grammar, 0, offset, Vector2(0, 0));
+}
+
 // RenderPrepare:
 // Prepares the engine for rendering, by processing all render requests and
 // clearing the screen.
@@ -201,21 +255,41 @@ void VisualSystem::renderPrepare() {
     float color[4] = {RGB(158.f), RGB(218.f), RGB(255.f), 1.0f};
     context->ClearRenderTargetView(render_target_view, color);
 
+        // --- TEST ---
+    static TreeGenerator tree_gen = TreeGenerator();
+    static AssetObject* tree_asset = nullptr;
+
+    if (ImGui::Button("Regenerate")) {
+        tree_gen.generateTree();
+
+        const std::vector<TreeStructure> tree = tree_gen.getTree();
+
+        MeshBuilder* builder = assetManager->createMeshBuilder();
+        generateTreeMesh(*builder, tree, Vector3(0, 0, 0));
+        builder->regenerateNormals();
+
+        if (tree_asset == nullptr) {
+            Object* obj = new Object();
+            obj->getTransform().setPosition(0, 50.f, 0);
+            obj->updateLocalMatrix(Matrix4::identity());
+
+            tree_asset = new AssetObject(obj, new Asset(builder->generate()));
+            obj->setVisualObject(tree_asset);
+            renderable_assets.push_back(tree_asset);
+        } else {
+            tree_asset->asset = new Asset(builder->generate());
+        }
+    }
+
+    // tree_gen.debugDrawTree(Vector3(0, 0, 0));
+    // ---
+    
     // Check and remove any visual objects that are no longer valid
     int head;
 
     head = 0;
     for (int i = 0; i < renderable_assets.size(); i++) {
-        if (!renderable_assets[i]->destroy) {
-            // Load into shadow caster vector
-            for (Mesh* mesh : renderable_assets[i]->asset->getMeshes()) {
-                ShadowCaster caster;
-                caster.mesh = mesh;
-                caster.m_localToWorld =
-                    renderable_assets[i]->object->getLocalMatrix();
-                shadow_casters.push_back(caster);
-            }
-
+        if (!renderable_assets[i]->markedForDestruction()) {
             renderable_assets[head] = renderable_assets[i];
             head++;
         } else {
@@ -240,12 +314,12 @@ void VisualSystem::renderPrepare() {
     terrain_chunks.resize(head);
 
     for (const AssetObject* object : renderable_assets) {
-        for (Mesh* mesh : object->asset->getMeshes()) {
-            ShadowCaster shadowCaster;
-            shadowCaster.mesh = mesh;
-            shadowCaster.m_localToWorld = object->object->getLocalMatrix();
-            shadow_casters.push_back(shadowCaster);
-        }
+        const Asset* asset = object->getAsset();
+
+        ShadowCaster shadowCaster;
+        shadowCaster.mesh = asset->getMesh();
+        shadowCaster.m_localToWorld = object->object->getLocalMatrix();
+        shadow_casters.push_back(shadowCaster);
     }
 
     // Parse all terrain data
@@ -313,7 +387,7 @@ void VisualSystem::performShadowPass() {
 
         // For each asset, load its mesh
         for (const ShadowCaster& caster : shadow_casters) {
-            Mesh* mesh = caster.mesh;
+            const Mesh* mesh = caster.mesh;
             const Matrix4& mLocalToWorld = caster.m_localToWorld;
 
             vCB1->clearData();
@@ -579,27 +653,32 @@ void VisualSystem::performRenderPass() {
         }
 
         // Load each mesh
-        for (Mesh* mesh : asset->getMeshes()) {
-            context->IASetPrimitiveTopology(
-                D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        const Mesh* mesh = asset->getMesh();
 
-            ID3D11Buffer* buffers[3] = {mesh->vertex_streams[POSITION],
-                                        mesh->vertex_streams[TEXTURE],
-                                        mesh->vertex_streams[NORMAL]};
-            UINT strides[3] = {sizeof(float) * 3, sizeof(float) * 2,
-                               sizeof(float) * 3};
-            UINT offsets[3] = {0, 0, 0};
+        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-            context->IASetVertexBuffers(0, 3, buffers, strides, offsets);
-            context->IASetIndexBuffer(mesh->index_buffer, DXGI_FORMAT_R32_UINT,
-                                      0);
+        ID3D11Buffer* buffer;
+        UINT stride, offset;
+        
+        stride = sizeof(float) * 3;
+        offset = 0;
 
-            vShader->bindShader(device, context);
-            pShader->bindShader(device, context);
+        buffer = mesh->vertex_streams[POSITION];
+        context->IASetVertexBuffers(POSITION, 1, &buffer, &stride, &offset);
 
-            UINT numIndices = mesh->triangle_count * 3;
-            context->DrawIndexed(numIndices, 0, 0);
-        }
+        buffer = mesh->vertex_streams[NORMAL];
+        context->IASetVertexBuffers(NORMAL, 1, &buffer, &stride, &offset);
+
+        buffer = mesh->vertex_streams[COLOR];
+        context->IASetVertexBuffers(COLOR, 1, &buffer, &stride, &offset);
+       
+        context->IASetIndexBuffer(mesh->index_buffer, DXGI_FORMAT_R32_UINT, 0);
+
+        vShader->bindShader(device, context);
+        pShader->bindShader(device, context);
+
+        UINT numIndices = mesh->triangle_count * 3;
+        context->DrawIndexed(numIndices, 0, 0);
     }
 
 #if defined(_DEBUG)
@@ -632,7 +711,7 @@ void VisualSystem::renderDebugPoints() {
     vShader->getCBHandle(CB1)->clearData();
 
     Asset* cube = assetManager->getAsset("Cube");
-    Mesh* mesh = cube->getMesh(0);
+    const Mesh* mesh = cube->getMesh();
 
     ID3D11Buffer* indexBuffer = mesh->index_buffer;
     ID3D11Buffer* vertexBuffer = mesh->vertex_streams[POSITION];

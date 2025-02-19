@@ -97,6 +97,32 @@ Vector3 Vector3::componentMax(const Vector3& vector) const {
     return result;
 }
 
+// Orthogonal:
+// Returns a new vector that is orthogonal to this vector.
+Vector3 Vector3::orthogonal() const {
+    constexpr float EPSILON = 0.01f;
+    
+    Vector3 perp = Vector3(0,0,0);
+
+    if (abs(z) > EPSILON) {
+        perp.x = 1.f;
+        perp.y = 1.f;
+        perp.z = -(x + y) / z;
+    }
+    else if (abs(y) > EPSILON) {
+        perp.x = 1.f;
+        perp.y = -(x + z) / y;
+        perp.z = 1.f;
+    }
+    else if (abs(x) > EPSILON) {
+        perp.x = -(y + z) / x;
+        perp.y = 1.f;
+        perp.z = 1.f;
+    }
+    
+    return perp;
+}
+
 // + Operator:
 // Returns a new vector which is the summation of
 // this vector and another vector

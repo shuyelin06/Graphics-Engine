@@ -141,9 +141,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     PhysicsObject* p1 = physics_system.bindPhysicsObject(&child2);
     CollisionObject* c1 = physics_system.bindCollisionObject(p1, "Box");*/
 
-    TreeGenerator tree_gen = TreeGenerator();
-    tree_gen.generateTree();
-
     // Begin window messaging loop
     MSG msg = {};
     bool close = false;
@@ -192,11 +189,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         //// TODO: THIS CODE IS WRONG
         // child2.getTransform().lookAt(
         //     visual_system.getCamera().getTransform()->getPosition());
-        tree_gen.debugDrawTree(Vector3(0, scene_graph.sampleTerrainHeight(0,0), 0));
-
-        if (ImGui::Button("Regenerate")) {
-            tree_gen.generateTree();
-        }
+        
 
         // child2.getTransform().offsetRotation(Vector3::PositiveY(), PI / 20);
         sun_light.getTransform().setViewDirection(Vector3(0, -0.25f, 0.75f));

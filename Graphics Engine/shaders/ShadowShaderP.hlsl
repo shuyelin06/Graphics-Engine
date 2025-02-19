@@ -41,7 +41,7 @@ struct VS_OUT
     float4 position_clip : SV_POSITION;
     float3 world_position : POSITION;
     float3 normal : NORMAL;
-    float2 tex_coords : TEXTURE;
+    float3 color : COLOR;
 };
 
 // Lighting: https://lavalle.pl/vr/node197.html
@@ -56,7 +56,7 @@ float4 ps_main(VS_OUT input) : SV_TARGET
     color.rgb += float3(0.1f, 0.1f, 0.1f);
     
     // FORCE USAGE OF MESH TEXTURE?
-    float3 mesh_color = mesh_texture.Sample(mesh_sampler, input.tex_coords).rgb;
+    float3 mesh_color = input.color;
     
     for (int i = 0; i < light_count; i++)
     {

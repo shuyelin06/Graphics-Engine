@@ -52,24 +52,17 @@ struct Mesh {
 // compose one renderable entity.
 class Asset {
   private:
-    std::vector<Mesh*> meshes;
-    std::vector<Material*> materials;
+    Mesh* mesh;
+
+    // Extra renderable properties
+    // ...
 
   public:
-    Asset();
+    Asset(Mesh* mesh);
     ~Asset();
 
-    // Resource creation
-    void addMesh(Mesh* mesh);
-    void addMaterial(Material* material);
-
     // Resource accessing
-    std::vector<Mesh*>& getMeshes();
-    std::vector<Material*>& getMaterials();
-
-    Mesh* getMesh(int mesh_index);
-    const Mesh* getMesh(int mesh_index) const;
-    Material* getMaterial(int material_index);
+    const Mesh* getMesh() const;
 };
 
 } // namespace Graphics

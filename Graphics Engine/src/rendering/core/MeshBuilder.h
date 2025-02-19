@@ -14,12 +14,12 @@ struct MeshVertex {
     Vector3 position;
 
     Vector2 tex;
-    
+
     Vector3 normal;
-    Vector3 color;
+    Color color;
 
     MeshVertex();
-    MeshVertex(const Vector3& position);
+    MeshVertex(const Vector3& position, const Color& color);
     MeshVertex(const MeshVertex& vertex);
 };
 
@@ -38,6 +38,8 @@ class MeshBuilder {
     std::vector<MeshVertex> vertex_buffer;
     std::vector<MeshTriangle> index_buffer;
 
+    Color active_color;
+
   public:
     MeshBuilder(ID3D11Device* device);
     ~MeshBuilder();
@@ -45,16 +47,21 @@ class MeshBuilder {
     // Generates the Mesh for use in the rendering pipeline
     Mesh* generate();
 
+    // Set the active color
+    void setColor(const Color& color);
+
     // Add vertices and triangles to the builder. If a vertex is added,
-    // the builder returns the index corresponding to that vertex. 
+    // the builder returns the index corresponding to that vertex.
     UINT addVertex(const Vector3& pos);
     UINT addVertex(const MeshVertex& vertex);
 
     void addTriangle(UINT v1, UINT v2, UINT v3);
-    
-    // Add shapes to the builder. This makes it easy to compose objects using the builder.
-    // Unit cube centered around the origin
+
+    // Add shapes to the builder. This makes it easy to compose objects using
+    // the builder. Unit cube centered around the origin
     void addCube(const Vector3& center, float size);
+    void addTube(const Vector3& start, const Vector3& end, float radius,
+                 int num_vertices);
 
     // Discard the current normals for the mesh and regenerate them
     void regenerateNormals();
@@ -62,10 +69,13 @@ class MeshBuilder {
     // Resets the builder, so it can be used to generate another mesh
     void reset();
 
-  private: 
-    ID3D11Buffer* createVertexStream(void (*data_parser)(const MeshVertex&, uint8_t *output), UINT element_size);
+  private:
+    ID3D11Buffer* createVertexStream(void (*data_parser)(const MeshVertex&,
+                                                         uint8_t* output),
+                                     UINT element_size);
 
-    static void ExtractVertexPosition(const MeshVertex& vertex, uint8_t*output);
+    static void ExtractVertexPosition(const MeshVertex& vertex,
+                                      uint8_t* output);
     static void ExtractVertexTexture(const MeshVertex& vertex, uint8_t* output);
     static void ExtractVertexNormal(const MeshVertex& vertex, uint8_t* output);
     static void ExtractVertexColor(const MeshVertex& vertex, uint8_t* output);

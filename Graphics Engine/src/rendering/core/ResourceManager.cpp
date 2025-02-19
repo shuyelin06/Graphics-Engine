@@ -147,9 +147,7 @@ Asset* VisualResourceManager::LoadCube(MeshBuilder& builder) {
     builder.reset();
     builder.addCube(Vector3(0, 0, 0), 1.f);
 
-    Asset* cube = new Asset();
-    cube->addMesh(builder.generate());
-
+    Asset* cube = new Asset(builder.generate());
     return cube;
 }
 

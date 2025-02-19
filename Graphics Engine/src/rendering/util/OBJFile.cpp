@@ -41,6 +41,7 @@ static void ParseMaterials(const std::string& path,
 
 Asset* OBJFile::readAssetFromFile(MeshBuilder& mesh_builder,
                                   TextureBuilder& tex_builder) {
+                                  /*
     // Open target file with file reader
     TextFileReader fileReader = TextFileReader(path + file_name);
 
@@ -197,6 +198,10 @@ Asset* OBJFile::readAssetFromFile(MeshBuilder& mesh_builder,
     }
 
     return data.asset;
+*/
+
+    // TODO: Broken
+    return nullptr;
 }
 
 // Parses a material (or materials), and registers them
@@ -205,6 +210,7 @@ Asset* OBJFile::readAssetFromFile(MeshBuilder& mesh_builder,
 // given will be the one used.
 void ParseMaterials(const std::string& path, const std::string& material_file,
                     OBJData& data) {
+    /*
     // Open target file with file reader
     TextFileReader fileReader = TextFileReader(path + material_file);
 
@@ -255,6 +261,7 @@ void ParseMaterials(const std::string& path, const std::string& material_file,
 
         fileReader.popBlock();
     }
+    */
 }
 
 // Helper parser functions. Given a pointer to a
