@@ -17,6 +17,13 @@ class ShadowLightObject : public VisualObject {
 
   public:
     ~ShadowLightObject();
+
+    // Update:
+    // Updates the light's internal data with data from the datamodel.
+    void pullDatamodelData() const;
+
+  private:
+    void updateLightMatrices() const;
 };
 
 } // namespace Graphics

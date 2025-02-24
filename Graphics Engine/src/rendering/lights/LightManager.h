@@ -2,6 +2,7 @@
 
 #include "../core/TextureAtlas.h"
 #include "Light.h"
+#include "SunLight.h"
 
 #include <vector>
 
@@ -27,16 +28,25 @@ struct NormalizedShadowViewport {
 // All shadowed lights use one texture, known as the "shadow_atlas".
 // This is one large texture which has dedicated sections
 // for different light shadow maps.
+class CameraFrustum;
+
 class LightManager {
   private:
     TextureAtlas* shadow_atlas;
+
+    SunLight* sun_light;
     std::vector<ShadowLight*> shadow_lights;
 
   public:
     LightManager(TextureAtlas* shadow_atlas);
 
+    void update(const CameraFrustum& camera_frustum);
+
     const Texture* getAtlasTexture(void) const;
     
+    // Return Shadow Lights 
+    SunLight* getSunLight();
+
     ShadowLight* getShadowLight(UINT index);
     const std::vector<ShadowLight*>& getShadowLights() const;
 

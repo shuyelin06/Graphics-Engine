@@ -26,12 +26,24 @@ Matrix4::Matrix4(float c1, float c2, float c3, float c4, float c5, float c6,
 
 // Identity
 // Returns the 4x4 identity matrix
-Matrix4 Matrix4::identity() {
+Matrix4 Matrix4::Identity() {
     return Matrix4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
 }
 
 /* --- Matrix Operations --- */
 float (*Matrix4::getRawData(void))[4] { return data; }
+
+// Column:
+// Get and set columns of the matrix
+Vector4 Matrix4::column(int col) const {
+    return Vector4(data[col][0], data[col][1], data[col][2], data[col][3]);
+}
+void Matrix4::setColumn(int col, const Vector4& column) {
+    data[col][0] = column.x;
+    data[col][1] = column.y;
+    data[col][2] = column.z;
+    data[col][3] = column.w;
+}
 
 // Tranpose:
 // Returns the transpose of the matrix

@@ -68,59 +68,83 @@ float4 psterrain_main(PS_IN input) : SV_TARGET
     float ambient = 0.35f;
     color.rgb += mesh_color * ambient;
     
+    /*
     for (int i = 0; i < light_count; i++)
+    { */
+    float bias = 0.f;
+    int cascade = 0;
+    
+    if (input.position_clip.z <= 0.90f)
+    {   
+        bias = 0.0075f;
+        cascade = 0;
+    
+    }
+    else if (input.position_clip.z <= 0.975f)
     {
-        // Find the point's coordinates in the light view
-        float4 lightview_coords = toLightView(input.world_position, light_instances[i].m_view, light_instances[i].m_projection);
+        bias = 0.0125f;
+        cascade = 1;
+    }
+    else
+    {
+        bias = 0.01f;
+        cascade = 2;
+    }
         
-        if (-1 <= lightview_coords.x && lightview_coords.x <= 1)
+        
+    LightData light = light_instances[cascade];
+    
+        // Find the point's coordinates in the light view
+    float4 lightview_coords = toLightView(input.world_position, light.m_view, light.m_projection);
+        
+    if (-1 <= lightview_coords.x && lightview_coords.x <= 1)
+    {
+        if (-1 <= lightview_coords.y && lightview_coords.y <= 1)
         {
-            if (-1 <= lightview_coords.y && lightview_coords.y <= 1)
-            {   
                 // Check if the point's depth exceeds that of the light's view
                 // If sampled depth is < depth, the light cannot see the point, so it provides
                 // no contribution to the color at that point (point is in shadow). 
                 // We add a small offset 0.01 in the step() function to avoid precision errors
-                float cur_depth = lightview_coords.z;
+            float cur_depth = lightview_coords.z;
                 
-                float map_x = light_instances[i].tex_x;
-                float map_y = light_instances[i].tex_y;
-                float map_width = light_instances[i].tex_width;
-                float map_height = light_instances[i].tex_height;
+            float map_x = light.tex_x;
+            float map_y = light.tex_y;
+            float map_width = light.tex_width;
+            float map_height = light.tex_height;
                 
-                float2 shadowmap_coords = float2((lightview_coords.x + 1) / 2.f, (-lightview_coords.y + 1) / 2.f);
-                shadowmap_coords = float2(shadowmap_coords.x * map_width + map_x, shadowmap_coords.y * map_height + map_y);
+            float2 shadowmap_coords = float2((lightview_coords.x + 1) / 2.f, (-lightview_coords.y + 1) / 2.f);
+            shadowmap_coords = float2(shadowmap_coords.x * map_width + map_x, shadowmap_coords.y * map_height + map_y);
                 
-                float sampled_depth = shadow_atlas.Sample(shadowmap_sampler, shadowmap_coords).r;
-                float shadow_factor = step(cur_depth, sampled_depth + 0.01f);
+            float sampled_depth = shadow_atlas.Sample(shadowmap_sampler, shadowmap_coords).r;
+            float shadow_factor = step(cur_depth, sampled_depth + bias);
                         
                 // --- Calculate vectors necessary for lighting ---
                 // 1) Normal at Point 
-                float3 normal = normalize(input.normal);
+            float3 normal = normalize(input.normal);
                                 
                 // 2) Light --> Point Direction & Distance
-                float3 light_direction = input.world_position - light_instances[i].position;
-                float light_distance = length(light_direction);
-                light_direction = light_direction / light_distance;
+            float3 light_direction = input.world_position - light.position;
+            float light_distance = length(light_direction);
+            light_direction = light_direction / light_distance;
                 
                 // 3) Point --> View Direction
-                float3 view_direction = view_world_position - input.world_position;
-                view_direction = normalize(view_direction);
+            float3 view_direction = view_world_position - input.world_position;
+            view_direction = normalize(view_direction);
                 
                 // 4) Reflected Light --> Point Direction Across Surface Normal
-                float3 light_direction_reflected = light_direction - 2 * dot(light_direction, normal) * normal;
-                light_direction_reflected = normalize(light_direction_reflected);
+            float3 light_direction_reflected = light_direction - 2 * dot(light_direction, normal) * normal;
+            light_direction_reflected = normalize(light_direction_reflected);
                             
                 // --- Diffuse Contribution ---
                 // See how close the normal is to the direction to the light.
                 // Flip the light direction since it points from light --> surface
-                float diffuseContribution = max(0, dot(-light_direction, normal));
+            float diffuseContribution = max(0, dot(-light_direction, normal));
                 
                 // Contribution from the material (0 -> 1, 1 meaning perfect reflection; 0.5: kinda okay)
                 // diffuseContribution *= 0.65f;
                 
                 // --- Specular Contribution ---
-                float specularContribution = 0;
+            float specularContribution = 0;
                 // Compare how close the view direction is to the reflected light direction.
                 // float specularContribution = max(0, dot(view_direction, light_direction_reflected));
                 
@@ -129,25 +153,26 @@ float4 psterrain_main(PS_IN input) : SV_TARGET
                 
                 // --- Attenuation Factor ---
                 // If not the sun, factor in attenuation (distance to light)
-                float attenuationContribution = 1;
+            float attenuationContribution = 1;
 
-                if (i != 0)
-                    attenuationContribution = 1 / (1 + 0.1 * light_distance);
+                // if (i != 0)
+                //    attenuationContribution = 1 / (1 + 0.1 * light_distance);
                 
-                float3 light_color = light_instances[i].color;
+            float3 light_color = light.color;
                 
-                float3 combined_color = (mesh_color * light_color);
-                float totalContribution = shadow_factor * attenuationContribution * (diffuseContribution + specularContribution);
-                color.rgb += float3(totalContribution * combined_color);
+            float3 combined_color = (mesh_color * light_color);
+            float totalContribution = shadow_factor * attenuationContribution * (diffuseContribution + specularContribution);
+            color.rgb += float3(totalContribution * combined_color);
 
-            }
         }
     }
+    /*
+    }*/
     
     // Tone Mapping (ToneMap.hlsli):
     // Each color channel can have an intensity in the range [0, infty). We need to "tone map" it,
     // by passing it into a function that will map this to the [0, 255] RGB range.
-    color = tone_map(color, light_count);
+    // color = tone_map(color, light_count);
     
     return color;
 }

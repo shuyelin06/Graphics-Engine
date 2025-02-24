@@ -16,6 +16,8 @@ class Matrix3 {
     Matrix3();
     Matrix3(float, float, float, float, float, float, float, float, float);
 
+    Vector3 column(int index) const;
+
     Matrix3 transpose() const;
     Matrix3 inverse() const;
 

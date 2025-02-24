@@ -118,8 +118,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     // Create Object Hierarchy
     Object& parent_object = scene_graph.createObject();
 
-    Object& sun_light = parent_object.createChild();
-    visual_system.bindShadowLightObject(&sun_light);
+    /*Object& sun_light = parent_object.createChild();
+    visual_system.bindShadowLightObject(&sun_light);*/
 
     /* Object& child2 = parent_object.createChild();
      AssetObject* asset2 = visual_system.bindAssetObject(&child2, "Capybara");
@@ -192,12 +192,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         
 
         // child2.getTransform().offsetRotation(Vector3::PositiveY(), PI / 20);
-        sun_light.getTransform().setViewDirection(Vector3(0, -0.25f, 0.75f));
-        Vector3 position =
-            visual_system.getCamera().getTransform()->getPosition() +
-            sun_light.getTransform().backward() * 75; // 75 OG
-        sun_light.getTransform().setPosition(position.x, position.y,
-                                             position.z);
+        //sun_light.getTransform().setViewDirection(Vector3(0, -0.25f, 0.75f));
+        //Vector3 position =
+        //    visual_system.getCamera().getTransform()->getPosition() +
+        //    sun_light.getTransform().backward() * 25; // 75 OG
+        //sun_light.getTransform().setPosition(position.x, position.y,
+        //                                     position.z);
 
         // Submit Object Render Requests
         scene_graph.updateAndRenderObjects();

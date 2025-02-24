@@ -51,8 +51,11 @@ class Transform {
     Matrix4 rotationMatrix(void) const;
     Matrix4 translationMatrix(void) const;
 
+    static Matrix4 GenerateTranslationMatrix(const Vector3& position);
     static Matrix4 GenerateTranslationMatrix(float x, float y, float z);
+
     static Matrix4 GenerateRotationMatrix(const Vector3& axis, float theta);
+    static Matrix4 GenerateRotationMatrix(const Quaternion& quaternion);
 };
 } // namespace Math
 } // namespace Engine

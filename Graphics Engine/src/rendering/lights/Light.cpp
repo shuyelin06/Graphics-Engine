@@ -4,14 +4,31 @@
 
 namespace Engine {
 namespace Graphics {
+// ToD3D11:
+// Convert a ShadowMapViewport to the D3D11 structure
+D3D11_VIEWPORT ShadowMapViewport::toD3D11() const {
+    D3D11_VIEWPORT viewport = {};
+    viewport.TopLeftX = x;
+    viewport.TopLeftY = y;
+    viewport.Width = width;
+    viewport.Height = height;
+    viewport.MinDepth = 0.0f;
+    viewport.MaxDepth = 1.0f;
+
+    return viewport;
+}
+
 // Constructor:
 // Initializes a texture resource for use in the shadow mapping. The
 // device is needed to intialize
 ShadowLight::ShadowLight(const ShadowMapViewport& view_port) {
+    m_world = Matrix4::Identity();
+    m_projection = Matrix4::Identity();
+
     color = Color(1.0f, 1.0f, 1.0f);
     shadow_viewport = view_port;
 
-    setOrthogonalMatrix(200.f, 1.0f, 5.0f, 200.f);
+    setOrthogonalFrustum(200.f, 1.0f, 5.0f, 500.f);
 }
 
 ShadowLight::~ShadowLight() = default;
@@ -23,11 +40,44 @@ const ShadowMapViewport& ShadowLight::getShadowmapViewport() const {
     return shadow_viewport;
 }
 
+const Matrix4& ShadowLight::getWorldMatrix(void) const { return m_world; }
+const Matrix4& ShadowLight::getFrustumMatrix(void) const {
+    return m_projection;
+}
+
+Vector3 ShadowLight::getPosition(void) const { return m_world.column(3).xyz(); }
+
+// --- Setters ---
+// SetPosition:
+// Updates the last column of the local to world matrix to reflect the change
+// in position
+void ShadowLight::setPosition(const Vector3& position) {
+    m_world.setColumn(3, Vector4(position, 1.f));
+}
+
+// SetRotation:
+// Updates the first 3 columns of the local to world matrix to reflect the
+// change in rotation
+void ShadowLight::setRotation(const Quaternion& rotation) {
+    const Matrix3 m_rotation = rotation.rotationMatrix3();
+    m_world.setColumn(0, Vector4(m_rotation.column(0), 0.f));
+    m_world.setColumn(1, Vector4(m_rotation.column(1), 0.f));
+    m_world.setColumn(2, Vector4(m_rotation.column(2), 0.f));
+}
+
+// SetWorldMatrix:
+// Sets the light's world matrix
+void ShadowLight::setWorldMatrix(const Matrix4& matrix) { m_world = matrix; }
+
+// SetColor:
+// Updates the light's color/.
+void ShadowLight::setColor(const Color& _color) { color = _color; }
+
 // SetProjectionMatrix:
 // Sets the light's projection matrix to be orthogonal or perspective,
 // with given parameters
-void ShadowLight::setOrthogonalMatrix(float size_y, float aspect_ratio,
-                                      float z_near, float z_far) {
+void ShadowLight::setOrthogonalFrustum(float size_y, float aspect_ratio,
+                                       float z_near, float z_far) {
     m_projection = Matrix4();
 
     const float size_x = size_y * aspect_ratio;
@@ -38,8 +88,8 @@ void ShadowLight::setOrthogonalMatrix(float size_y, float aspect_ratio,
     m_projection[3][3] = 1;
     m_projection[3][2] = -(z_near) / (z_far - z_near);
 }
-void ShadowLight::setPerspectiveMatrix(float fov_y, float aspect_ratio,
-                                       float z_near, float z_far) {
+void ShadowLight::setPerspectiveFrustum(float fov_y, float aspect_ratio,
+                                        float z_near, float z_far) {
     m_projection = Matrix4();
 
     const float fov_factor = cosf(fov_y / 2.f) / sinf(fov_y / 2.f);
@@ -49,12 +99,6 @@ void ShadowLight::setPerspectiveMatrix(float fov_y, float aspect_ratio,
     m_projection[2][2] = z_far / (z_far - z_near);
     m_projection[2][3] = 1;
     m_projection[3][2] = (z_near * z_far) / (z_near - z_far);
-}
-
-// GetProjectionMatrix:
-// Generates and returns the projection matrix
-const Matrix4& ShadowLight::getProjectionMatrix(void) const {
-    return m_projection;
 }
 
 } // namespace Graphics

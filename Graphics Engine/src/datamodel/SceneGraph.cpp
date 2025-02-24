@@ -124,7 +124,7 @@ void Scene::updateAndRenderTerrain() {}
 // Update and cache object transforms in the SceneGraph, and submit
 // render requests for each.
 void Scene::updateAndRenderObjects() {
-    Matrix4 identity = Matrix4::identity();
+    Matrix4 identity = Matrix4::Identity();
 
     for (Object* object : objects)
         updateAndRenderObjects(object, identity);

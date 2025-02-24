@@ -22,9 +22,12 @@ class Matrix4 {
     Matrix4(float, float, float, float, float, float, float, float, float,
             float, float, float, float, float, float, float);
 
-    static Matrix4 identity();
+    static Matrix4 Identity();
 
     float (*getRawData(void))[4];
+    
+    Vector4 column(int col) const;
+    void setColumn(int col, const Vector4& column);
 
     Matrix4 transpose() const;
     Matrix4 inverse() const;

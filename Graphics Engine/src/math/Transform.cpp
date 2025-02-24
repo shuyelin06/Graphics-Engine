@@ -182,12 +182,24 @@ Matrix4 Transform::translationMatrix(void) const {
                                      position_local.z);
 }
 
-Matrix4 Transform::GenerateTranslationMatrix(float x, float y, float z) {
-    return Matrix4(1, 0, 0, x, 0, 1, 0, y, 0, 0, 1, z, 0, 0, 0, 1);
+Matrix4 Transform::GenerateTranslationMatrix(const Vector3& position) {
+    return GenerateTranslationMatrix(position.x, position.y, position.z);
 }
+
+Matrix4 Transform::GenerateTranslationMatrix(float x, float y, float z) {
+    return Matrix4(1, 0, 0, x, // Row 1
+                   0, 1, 0, y, // Row 2
+                   0, 0, 1, z, // Row 3
+                   0, 0, 0, 1);
+}
+
 Matrix4 Transform::GenerateRotationMatrix(const Vector3& axis, float theta) {
     const Quaternion rotation = Quaternion::RotationAroundAxis(axis, theta);
     return rotation.rotationMatrix4();
+}
+
+Matrix4 Transform::GenerateRotationMatrix(const Quaternion& quaternion) {
+    return quaternion.rotationMatrix4();
 }
 
 } // namespace Math

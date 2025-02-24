@@ -4,10 +4,28 @@ namespace Engine {
 namespace Graphics {
 LightManager::LightManager(TextureAtlas* atlas) : shadow_lights() {
     shadow_atlas = atlas;
+
+    // Create sun light
+    ShadowLight* lights[SUN_NUM_CASCADES];
+
+    for (int i = 0; i < SUN_NUM_CASCADES; i++) {
+        ShadowLight* light = createShadowLight(QUALITY_1);
+        lights[i] = light;
+    }
+
+    sun_light = new SunLight(lights);
+}
+
+// Update:
+// Updates the light manager. Uses the camera frustum to figure out what
+// lights need to be updated, and which lights need to be used in the rendering
+// pipeline.
+void LightManager::update(const CameraFrustum& camera_frustum) {
+    sun_light->updateSunCascades(camera_frustum);
 }
 
 // GetShadowAtlas:
-// Returns the shadow atlas. 
+// Returns the shadow atlas.
 const Texture* LightManager::getAtlasTexture(void) const {
     return shadow_atlas->getTexture();
 }
@@ -39,7 +57,6 @@ LightManager::normalizeViewport(const ShadowMapViewport viewport) const {
     return output;
 }
 
-
 // CreateShadowLight:
 // Creates and returns a shadowed light that can be used in the
 // rendering engine.
@@ -50,7 +67,7 @@ ShadowLight* LightManager::createShadowLight(ShadowMapQuality quality) {
         shadow_atlas->getAllocation(alloc_index);
 
     // Initialize and return our light
-    ShadowMapViewport shadow_viewport = {}; 
+    ShadowMapViewport shadow_viewport = {};
     shadow_viewport.x = allocation.x;
     shadow_viewport.y = allocation.y;
     shadow_viewport.width = allocation.width;
@@ -58,7 +75,7 @@ ShadowLight* LightManager::createShadowLight(ShadowMapQuality quality) {
 
     ShadowLight* light = new ShadowLight(shadow_viewport);
     shadow_lights.push_back(light);
-    
+
     return light;
 }
 

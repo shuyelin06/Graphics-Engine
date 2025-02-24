@@ -104,7 +104,7 @@ void VisualSystem::initialize() {
     texture_manager = new TextureManager(device);
 
     TextureAtlas* shadow_atlas = new TextureAtlas(
-        texture_manager->createShadowTexture("ShadowAtlas", 1024, 1024));
+        texture_manager->createShadowTexture("ShadowAtlas", 512, 512));
     light_manager = new LightManager(shadow_atlas);
 
     texture_manager->createDepthTexture("DepthStencilMain", width, height);
@@ -208,7 +208,8 @@ int generateTreeMeshHelper(MeshBuilder& builder,
             Quaternion::RotationAroundAxis(Vector3::PositiveX(), -PI / 2);
         direction = rotation_offset.rotationMatrix3() * direction;
 
-        const Vector3 next_pos = position + direction * tree.trunk_data.trunk_length;
+        const Vector3 next_pos =
+            position + direction * tree.trunk_data.trunk_length;
 
         builder.setColor(Color(150.f / 255.f, 75.f / 255.f, 0));
         builder.addTube(position, next_pos, tree.trunk_data.trunk_thickess, 5);
@@ -218,7 +219,8 @@ int generateTreeMeshHelper(MeshBuilder& builder,
 
     case BRANCH: {
         const Vector2 new_rotation =
-            rotation + Vector2(tree.branch_data.branch_angle_phi, tree.branch_data.branch_angle_theta);
+            rotation + Vector2(tree.branch_data.branch_angle_phi,
+                               tree.branch_data.branch_angle_theta);
 
         const int next_index = generateTreeMeshHelper(
             builder, grammar, index + 1, position, new_rotation);
@@ -279,7 +281,7 @@ void VisualSystem::renderPrepare() {
         if (tree_asset == nullptr) {
             Object* obj = new Object();
             obj->getTransform().setPosition(0, 50.f, 0);
-            obj->updateLocalMatrix(Matrix4::identity());
+            obj->updateLocalMatrix(Matrix4::Identity());
 
             tree_asset = new AssetObject(obj, new Asset(builder->generate()));
             obj->setVisualObject(tree_asset);
@@ -308,7 +310,6 @@ void VisualSystem::renderPrepare() {
     renderable_assets.resize(head);
 
     // Check and remove any visual terrain objects that are no longer valid
-    // Check and remove any visual objects that are no longer valid
     head = 0;
     for (int i = 0; i < terrain_chunks.size(); i++) {
         if (!terrain_chunks[i]->markedForDestruction()) {
@@ -320,6 +321,11 @@ void VisualSystem::renderPrepare() {
         }
     }
     terrain_chunks.resize(head);
+
+    // Update my light data from the datamodel.
+    for (ShadowLightObject* shadow_light : shadow_lights)
+        shadow_light->pullDatamodelData();
+    light_manager->update(camera.getFrustum());
 
     for (const AssetObject* object : renderable_assets) {
         const Asset* asset = object->getAsset();
@@ -334,7 +340,7 @@ void VisualSystem::renderPrepare() {
     for (const VisualTerrain* terrain : terrain_chunks) {
         ShadowCaster shadowCaster;
         shadowCaster.mesh = terrain->terrain_mesh;
-        shadowCaster.m_localToWorld = Matrix4();
+        shadowCaster.m_localToWorld = Matrix4::Identity();
         shadow_casters.push_back(shadowCaster);
 
         RenderableTerrain renderableTerrain;
@@ -367,29 +373,24 @@ void VisualSystem::performShadowPass() {
     context->ClearDepthStencilView(shadow_texture->depth_view,
                                    D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-    for (ShadowLightObject* light_obj : shadow_lights) {
+    const std::vector<ShadowLight*> shadow_lights =
+        light_manager->getShadowLights();
+    for (ShadowLight* light : shadow_lights) {
         // Load light view and projection matrix
         vCB0->clearData();
 
-        const Matrix4 viewMatrix =
-            light_obj->object->getLocalMatrix().inverse();
-        vCB0->loadData(&viewMatrix, FLOAT4X4);
-        const Matrix4 projectionMatrix =
-            light_obj->light->getProjectionMatrix();
-        vCB0->loadData(&projectionMatrix, FLOAT4X4);
+        const Matrix4& m_world_to_local = light->getWorldMatrix().inverse();
+        vCB0->loadData(&m_world_to_local, FLOAT4X4);
+
+        const Matrix4 m_local_to_frustum = light->getFrustumMatrix();
+        vCB0->loadData(&m_local_to_frustum, FLOAT4X4);
+
+        VisualDebug::DrawFrustum(light->getWorldMatrix() *
+                                     m_local_to_frustum.inverse(),
+                                 Color::Green());
 
         // Set the light as the render target.
-        const ShadowMapViewport& shadow_viewport =
-            light_obj->light->getShadowmapViewport();
-
-        D3D11_VIEWPORT viewport = {};
-        viewport.TopLeftX = shadow_viewport.x;
-        viewport.TopLeftY = shadow_viewport.y;
-        viewport.Width = shadow_viewport.width;
-        viewport.Height = shadow_viewport.height;
-        viewport.MinDepth = 0.0f;
-        viewport.MaxDepth = 1.0f;
-
+        const D3D11_VIEWPORT viewport = light->getShadowmapViewport().toD3D11();
         context->OMSetRenderTargets(0, nullptr, shadow_texture->depth_view);
         context->RSSetViewports(1, &viewport);
 
@@ -456,7 +457,7 @@ void VisualSystem::performTerrainPass() {
 
     const Matrix4 viewMatrix = camera.getWorldToCameraMatrix();
     vCB0->loadData(&viewMatrix, FLOAT4X4);
-    const Matrix4 projectionMatrix = camera.getProjectionMatrix();
+    const Matrix4 projectionMatrix = camera.getFrustumMatrix();
     vCB0->loadData(&projectionMatrix, FLOAT4X4);
 
     // Pixel Constant Buffer 1:
@@ -469,29 +470,27 @@ void VisualSystem::performTerrainPass() {
         int lightCount = light_manager->getShadowLights().size();
         pCB1->loadData(&lightCount, INT);
 
-        for (ShadowLightObject* light_obj : shadow_lights) {
-            const Vector3& position =
-                light_obj->object->getTransform().getPosition();
+        const std::vector<ShadowLight*> shadow_lights =
+            light_manager->getShadowLights();
+        for (ShadowLight* light : shadow_lights) {
+            Vector3 position = light->getPosition();
             pCB1->loadData(&position, FLOAT3);
 
             pCB1->loadData(nullptr, FLOAT);
 
-            const Color& color = light_obj->light->getColor();
+            const Color& color = light->getColor();
             pCB1->loadData(&color, FLOAT3);
 
             pCB1->loadData(nullptr, INT);
 
-            const Matrix4 viewMatrix =
-                light_obj->object->getLocalMatrix().inverse();
-            pCB1->loadData(&viewMatrix, FLOAT4X4);
+            const Matrix4 m_world_to_local = light->getWorldMatrix().inverse();
+            pCB1->loadData(&m_world_to_local, FLOAT4X4);
 
-            const Matrix4 projectionMatrix =
-                light_obj->light->getProjectionMatrix();
-            pCB1->loadData(&projectionMatrix, FLOAT4X4);
+            const Matrix4& m_local_to_frustum = light->getFrustumMatrix();
+            pCB1->loadData(&m_local_to_frustum, FLOAT4X4);
 
             const NormalizedShadowViewport normalized_view =
-                light_manager->normalizeViewport(
-                    light_obj->light->getShadowmapViewport());
+                light_manager->normalizeViewport(light->getShadowmapViewport());
             pCB1->loadData(&normalized_view, FLOAT4);
         }
     }
@@ -581,7 +580,7 @@ void VisualSystem::performRenderPass() {
         const Matrix4 viewMatrix = camera.getWorldToCameraMatrix();
         vCB1->loadData(&viewMatrix, FLOAT4X4);
 
-        const Matrix4 projectionMatrix = camera.getProjectionMatrix();
+        const Matrix4 projectionMatrix = camera.getFrustumMatrix();
         vCB1->loadData(&projectionMatrix, FLOAT4X4);
     }
 
@@ -612,7 +611,7 @@ void VisualSystem::performRenderPass() {
             pCB1->loadData(&viewMatrix, FLOAT4X4);
 
             const Matrix4 projectionMatrix =
-                light_obj->light->getProjectionMatrix();
+                light_obj->light->getFrustumMatrix();
             pCB1->loadData(&projectionMatrix, FLOAT4X4);
 
             const NormalizedShadowViewport normalized_view =
@@ -758,7 +757,7 @@ void VisualSystem::renderDebugPoints() {
             const Matrix4 viewMatrix = camera.getWorldToCameraMatrix();
             vCB1->loadData(&viewMatrix, FLOAT4X4);
 
-            const Matrix4 projectionMatrix = camera.getProjectionMatrix();
+            const Matrix4 projectionMatrix = camera.getFrustumMatrix();
             vCB1->loadData(&projectionMatrix, FLOAT4X4);
         }
 
@@ -813,7 +812,7 @@ void VisualSystem::renderDebugLines() {
             const Matrix4 viewMatrix = camera.getWorldToCameraMatrix();
             vCB1->loadData(&viewMatrix, FLOAT4X4);
 
-            const Matrix4 projectionMatrix = camera.getProjectionMatrix();
+            const Matrix4 projectionMatrix = camera.getFrustumMatrix();
             vCB1->loadData(&projectionMatrix, FLOAT4X4);
         }
 

@@ -54,8 +54,6 @@ class MeshBuilder {
     // Add vertices and triangles to the builder. If a vertex is added,
     // the builder returns the index corresponding to that vertex.
     UINT addVertex(const Vector3& pos);
-    UINT addVertex(const MeshVertex& vertex);
-
     void addTriangle(UINT v1, UINT v2, UINT v3);
 
     // Add shapes to the builder. This makes it easy to compose objects using

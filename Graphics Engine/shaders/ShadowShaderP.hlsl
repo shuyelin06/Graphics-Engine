@@ -126,8 +126,8 @@ float4 ps_main(VS_OUT input) : SV_TARGET
                 // If not the sun, factor in attenuation (distance to light)
                 float attenuationContribution = 1;
 
-                if (i != 0)
-                    attenuationContribution = 1 / (1 + 0.1 * light_distance);
+                // if (i != 0)
+                //    attenuationContribution = 1 / (1 + 0.1 * light_distance);
                 
                 float3 light_color = light_instances[i].color;
                 

@@ -150,12 +150,6 @@ UINT MeshBuilder::addVertex(const Vector3& pos) {
     return index;
 }
 
-UINT MeshBuilder::addVertex(const MeshVertex& vertex) {
-    UINT index = vertex_buffer.size();
-    vertex_buffer.push_back(vertex);
-    return index;
-}
-
 // AddTriangle:
 // Adds a triangle to the MeshBuilder with indices specified by the parameters.
 void MeshBuilder::addTriangle(UINT v1, UINT v2, UINT v3) {
@@ -289,7 +283,7 @@ void MeshBuilder::regenerateNormals() {
         const Vector3& vertex1 = vertex_buffer[triangle.vertex1].position;
         const Vector3& vertex2 = vertex_buffer[triangle.vertex2].position;
 
-        Vector3 normal = (vertex1 - vertex0).cross(vertex2 - vertex0);
+        const Vector3 normal = (vertex1 - vertex0).cross(vertex2 - vertex0);
 
         // Add this normal's contribution for all vertices of the face
         meshNormals[triangle.vertex0] += normal;
