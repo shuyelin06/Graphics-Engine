@@ -32,6 +32,9 @@ cbuffer CB1 : register(b1)
     float3 view_world_position;
     int light_count;
     
+    float3 view_direction;
+    float padding;
+    
     LightData light_instances[10];
     
 }
@@ -68,30 +71,31 @@ float4 psterrain_main(PS_IN input) : SV_TARGET
     float ambient = 0.35f;
     color.rgb += mesh_color * ambient;
     
-    /*
-    for (int i = 0; i < light_count; i++)
-    { */
-    float bias = 0.f;
-    int cascade = 0;
+    /*for (int i = 0; i < light_count; i++)
+    {*/
+    float bias = 0.001f;
+    int cascade = -1;
     
-    if (input.position_clip.z <= 0.90f)
-    {   
-        bias = 0.0075f;
-        cascade = 0;
+    float z_coord = length(input.world_position - view_world_position);
+    z_coord = (z_coord - 5.f);
+    z_coord = z_coord / (295.f);
     
-    }
-    else if (input.position_clip.z <= 0.975f)
+    if (z_coord <= 0.10f)
     {
-        bias = 0.0125f;
+        cascade = 0;
+    }
+    else if (z_coord <= 0.25f)
+    {
         cascade = 1;
     }
     else
     {
-        bias = 0.01f;
         cascade = 2;
     }
-        
-        
+    
+    if (cascade == -1)
+        return float4(0.5f, 0.5f, 0.5f, 1.f);
+
     LightData light = light_instances[cascade];
     
         // Find the point's coordinates in the light view
@@ -123,7 +127,9 @@ float4 psterrain_main(PS_IN input) : SV_TARGET
             float3 normal = normalize(input.normal);
                                 
                 // 2) Light --> Point Direction & Distance
-            float3 light_direction = input.world_position - light.position;
+            // float3 light_direction = input.world_position - light.position;
+            // CALCULATION OF LIGHT DIRECTION IS OFF?
+            float3 light_direction = float3(0.25f, -0.75f, 0.25f);
             float light_distance = length(light_direction);
             light_direction = light_direction / light_distance;
                 
@@ -162,12 +168,12 @@ float4 psterrain_main(PS_IN input) : SV_TARGET
                 
             float3 combined_color = (mesh_color * light_color);
             float totalContribution = shadow_factor * attenuationContribution * (diffuseContribution + specularContribution);
-            color.rgb += float3(totalContribution * combined_color);
+            color.rgb += totalContribution * combined_color;
 
         }
     }
-    /*
-    }*/
+    
+    /*}*/
     
     // Tone Mapping (ToneMap.hlsli):
     // Each color channel can have an intensity in the range [0, infty). We need to "tone map" it,

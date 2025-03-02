@@ -1,5 +1,7 @@
 #include "SunLight.h"
 
+#include <assert.h>
+
 #include "../VisualDebug.h"
 #include "../core/Camera.h"
 #include "math/Compute.h"
@@ -7,97 +9,114 @@
 namespace Engine {
 namespace Graphics {
 // Note: Constructor will need to be updated if SUN_NUM_CASCADES changes
-SunLight::SunLight(ShadowLight** light_arr)
+SunLight::SunLight(ShadowLight** light_arr, int _resolution)
     : light_cascades{light_arr[0], light_arr[1], light_arr[2]} {
+    setSunDirection(Vector3(0.25f, -0.75f, 0.25f).unit());
 
-    const Vector3 direc = Vector3(0.25f, -0.75f, 0.25f).unit();
+    resolution = _resolution;
 
-    // Now, convert to spherical coordinates
-    const Vector3 spherical_coords = EulerToSpherical(direc);
-    const float theta = spherical_coords.y;
-    const float phi = spherical_coords.z;
-
-    // We can now determine our rotation quaternion from this. To convert
-    // spherical to euler, we rotate about y by theta, then z by phi.
-    const Quaternion y_rotate =
-        Quaternion::RotationAroundAxis(Vector3::PositiveY(), theta);
-    const Quaternion z_rotate =
-        Quaternion::RotationAroundAxis(Vector3::PositiveZ(), phi);
-
-    direction = z_rotate * y_rotate;
-
+    // DEBUG: Setting the light color helps us see what cascade the pixel is
+    // being shadowed from
+    /*
     light_cascades[0]->setColor(Color::Red());
     light_cascades[1]->setColor(Color::Green());
-    light_cascades[2]->setColor(Color(0,0,5));
-    // Quaternion::RotationAroundAxis(Vector3::PositiveX(), 3.14159f * 2 / 3);
+    light_cascades[2]->setColor(Color::Blue());
+    */
 }
 SunLight::~SunLight() = default;
 
 void SunLight::updateSunCascades(const CameraFrustum& camera_frustum) {
-    constexpr float EPSILON = 0.015f;
-    updateCascade(0, 0.0f, 0.90f + EPSILON, camera_frustum);
-    updateCascade(1, 0.90f - EPSILON, 0.975f + EPSILON, camera_frustum);
-    updateCascade(2, 0.975f - EPSILON, 0.999f, camera_frustum);
+    constexpr float Z_EPSILON = 0.001f;
+    constexpr float DIVISIONS[SUN_NUM_CASCADES + 1] = {0.0f, 0.1f, 0.25f, 1.0f};
+
+    for (int i = 0; i < SUN_NUM_CASCADES; i++) {
+        const float z_near = DIVISIONS[i] - Z_EPSILON;
+        const float z_far = DIVISIONS[i + 1] + Z_EPSILON;
+        updateCascade(i, z_near, z_far, camera_frustum);
+    }
 }
 
+// SetSunDirection:
+// Sets the sun's quaternion so that it points in the directional
+void SunLight::setSunDirection(const Vector3& direc) {
+    direction = Quaternion::RotationToVector(direc);
+}
+
+// UpdateCascade:
+// Updates one of the sun-light's cascades.
 void SunLight::updateCascade(int index, float min_z, float max_z,
                              const CameraFrustum& cam_frustum) {
     ShadowLight& light = *light_cascades[index];
 
-    // First, determine the division of the camera frustum we'll be operating on
+    // First, determine the division of the camera frustum we'll be operating
+    // on. We do this by transforming the normalized viewing cube to world
+    // space, and based on the min_z and max_z values, finding our near and far
+    // planes.
     Vector3 frustum_points[8] = {
-        Vector3(-1, -1, min_z), Vector3(1, -1, min_z),  Vector3(1, 1, min_z),
-        Vector3(-1, 1, min_z),  Vector3(-1, -1, max_z), Vector3(1, -1, max_z),
-        Vector3(1, 1, max_z),   Vector3(-1, 1, max_z),
+        Vector3(-1, -1, 0), Vector3(1, -1, 0), // Near Plane
+        Vector3(1, 1, 0),   Vector3(-1, 1, 0), // Near Plane
+        Vector3(-1, -1, 1), Vector3(1, -1, 1), // Far Plane
+        Vector3(1, 1, 1),   Vector3(-1, 1, 1), // Far Plane
     };
 
-    // Transform these frustum points into world space, and based on their
-    // location, choose the light's location. This is chosen as the center of
-    // the frustum points, offset by some multiple of the sun's direction.
-    
-
+    // Transform from Viewing Cube -> World Space
     for (int i = 0; i < 8; i++) {
         const Vector3 point = frustum_points[i];
         frustum_points[i] = cam_frustum.toWorldSpace(point);
     }
 
-    const Vector3 direc = direction.rotationMatrix3() * Vector3::PositiveZ();
+    // For each near / far point pair, find the direction from one to the other,
+    // and translate them so that they are z_min, z_max distance from the
+    // camera. While we do this, find the frustum center point.
+    Vector3 center_point = Vector3(0.f, 0.f, 0.f);
 
-    Vector3 light_pos = cam_frustum.getCameraPosition();
-    light_pos -= direc * (75.f + (index) * 30.f);
+    for (int i = 0; i < 4; i++) {
+        const Vector3 p_near = frustum_points[i];
+        const Vector3 p_far = frustum_points[i + 4];
+        const Vector3 v_direction = p_far - p_near;
+
+        frustum_points[i] = p_near + v_direction * min_z;
+        frustum_points[i + 4] = p_near + v_direction * max_z;
+
+        center_point += frustum_points[i];
+        center_point += frustum_points[i + 4];
+    }
+
+    center_point = center_point / 8;
+
+    // Find the furthest distance from the center point to the edges.
+    // This will define the size of our orthographic projection.
+    float radius = 0;
+
+    for (int i = 0; i < 8; i++) {
+        const float distance = (frustum_points[i] - center_point).magnitude();
+        radius = max(distance, radius);
+    }
+
+    // We add an epsilon to the projection extents to handle imprecision.
+    constexpr float EXTENT_EPSILON = 0.05f;
+    const float extent = radius * (1 + EXTENT_EPSILON);
+    light.setOrthogonalFrustum(extent, 1.f, 0.f, 500.f);
+
+    // Now, set the light position and orientation.
+    // We set the position so that it "snaps" to the nearest texel coordinate,
+    // defined by extent_radius / pixel_resolution, to avoid shadow jittering
+    const float texel_distance = extent / resolution;
+
+    const Vector3 direc = direction.rotationMatrix3() * Vector3::PositiveZ();
+    Vector3 light_pos = center_point;
+
+    // Offset so at a constant y value
+    // light_pos += direc * ((150.f - light_pos.y) / direc.y);
+    light_pos -= direc * 150.f;
+
+    // Snap to nearest texel
+    light_pos.x = ((int)(light_pos.x / texel_distance)) * texel_distance;
+    light_pos.z = ((int)(light_pos.z / texel_distance)) * texel_distance;
 
     const Matrix4 m_world = Transform::GenerateTranslationMatrix(light_pos) *
                             direction.rotationMatrix4();
     light.setWorldMatrix(m_world);
-
-    // We now want to fit our cascades's orthographic projection
-    // so that it contains all of these points.
-    // Convert the frustum points into the coordinate system relative
-    // to the sun cascade.
-    const Matrix4 m_world_to_local = light.getWorldMatrix().inverse();
-
-    for (int i = 0; i < 8; i++) {
-        Vector4 point = m_world_to_local * Vector4(frustum_points[i], 1.f);
-        point = point / point.w;
-        frustum_points[i] = point.xyz();
-    }
-
-    // Find the max x,y coordinates. We will keep the view a square to avoid any
-    // distortions in the shadowmap (which can cause artifacts)
-    float max_x = 0.f;
-    float max_y = 0.f;
-    float z_max = 0.f;
-
-    for (int i = 0; i < 8; i++) {
-        const Vector3& point = frustum_points[i];
-
-        max_x = max(max_x, abs(point.x));
-        max_y = max(max_y, abs(point.y));
-        z_max = max(z_max, abs(point.z));
-    }
-
-    // Based on these coordinates, set the shadow map projection matrix
-    light.setOrthogonalFrustum(2 * max(max_x, max_y), 1.f, -25.f, z_max + 25.f);
 }
 
 } // namespace Graphics

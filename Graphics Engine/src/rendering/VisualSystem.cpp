@@ -104,7 +104,7 @@ void VisualSystem::initialize() {
     texture_manager = new TextureManager(device);
 
     TextureAtlas* shadow_atlas = new TextureAtlas(
-        texture_manager->createShadowTexture("ShadowAtlas", 512, 512));
+        texture_manager->createShadowTexture("ShadowAtlas", 2048, 2048));
     light_manager = new LightManager(shadow_atlas);
 
     texture_manager->createDepthTexture("DepthStencilMain", width, height);
@@ -294,6 +294,13 @@ void VisualSystem::renderPrepare() {
     // tree_gen.debugDrawTree(Vector3(0, 0, 0));
     // ---
 
+    // --- TEST 2
+    static float direction[3] = {0, -0.5f, 0.25f};
+
+    ImGui::SliderFloat3("Sun Direction", direction, -1.f, 1.f);
+    light_manager->getSunLight()->setSunDirection(
+        Vector3(direction[0], direction[1], direction[2]));
+
     // Check and remove any visual objects that are no longer valid
     int head;
 
@@ -469,6 +476,10 @@ void VisualSystem::performTerrainPass() {
 
         int lightCount = light_manager->getShadowLights().size();
         pCB1->loadData(&lightCount, INT);
+
+        const Vector3 cameraView = camera.getTransform()->forward();
+        pCB1->loadData(&cameraView, FLOAT3);
+        pCB1->loadData(nullptr, FLOAT);
 
         const std::vector<ShadowLight*> shadow_lights =
             light_manager->getShadowLights();

@@ -6,14 +6,7 @@ LightManager::LightManager(TextureAtlas* atlas) : shadow_lights() {
     shadow_atlas = atlas;
 
     // Create sun light
-    ShadowLight* lights[SUN_NUM_CASCADES];
-
-    for (int i = 0; i < SUN_NUM_CASCADES; i++) {
-        ShadowLight* light = createShadowLight(QUALITY_1);
-        lights[i] = light;
-    }
-
-    sun_light = new SunLight(lights);
+    createSunLight(QUALITY_4);
 }
 
 // Update:
@@ -32,6 +25,8 @@ const Texture* LightManager::getAtlasTexture(void) const {
 
 // GetLights:
 // Returns the lights.
+SunLight* LightManager::getSunLight() { return sun_light; }
+
 ShadowLight* LightManager::getShadowLight(UINT index) {
     return shadow_lights[index];
 }
@@ -77,6 +72,20 @@ ShadowLight* LightManager::createShadowLight(ShadowMapQuality quality) {
     shadow_lights.push_back(light);
 
     return light;
+}
+
+// CreateSunLight:
+// Initializes a sun light object, which uses shadow map cascades.
+// Each cascade will have resolution given by the ShadowMapQuality parameter.
+void LightManager::createSunLight(ShadowMapQuality quality) {
+    ShadowLight* lights[SUN_NUM_CASCADES];
+
+    for (int i = 0; i < SUN_NUM_CASCADES; i++) {
+        ShadowLight* light = createShadowLight(quality);
+        lights[i] = light;
+    }
+
+    sun_light = new SunLight(lights, quality);
 }
 
 } // namespace Graphics

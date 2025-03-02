@@ -35,7 +35,7 @@ Vector3 CameraFrustum::getCameraPosition() const {
 
 // --- Camera ---
 Camera::Camera() {
-    setFrustumMatrix(1.2f, 5.f, 500.f);
+    setFrustumMatrix(1.2f, 5.f, 300.f);
     setTransform(new Transform());
 }
 Camera::~Camera() = default;

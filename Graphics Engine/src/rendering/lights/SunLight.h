@@ -19,16 +19,21 @@ class SunLight {
     ShadowLight* light_cascades[SUN_NUM_CASCADES];
 
     Quaternion direction;
+    int resolution;
 
   public:
-    SunLight(ShadowLight** light_arr);
+    SunLight(ShadowLight** light_arr, int resolution);
     ~SunLight();
+
+    // Set the sun direction
+    void setSunDirection(const Vector3& direction);
 
     // Given the camera frustum, updates the sun's cascades
     void updateSunCascades(const CameraFrustum& cam_frustum);
 
   private:
-    void updateCascade(int index, float min_z, float max_z, const CameraFrustum& cam_frustum);
+    void updateCascade(int index, float min_z, float max_z,
+                       const CameraFrustum& cam_frustum);
 };
 
 } // namespace Graphics

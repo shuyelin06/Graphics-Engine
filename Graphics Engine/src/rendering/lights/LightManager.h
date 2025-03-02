@@ -13,6 +13,7 @@ enum ShadowMapQuality {
     QUALITY_1 = 128,
     QUALITY_2 = 256,
     QUALITY_3 = 512,
+    QUALITY_4 = 1024,
     QUALITY_DEFAULT = QUALITY_1
 };
 
@@ -43,8 +44,8 @@ class LightManager {
     void update(const CameraFrustum& camera_frustum);
 
     const Texture* getAtlasTexture(void) const;
-    
-    // Return Shadow Lights 
+
+    // Return Shadow Lights
     SunLight* getSunLight();
 
     ShadowLight* getShadowLight(UINT index);
@@ -55,6 +56,9 @@ class LightManager {
 
     // Light creation
     ShadowLight* createShadowLight(ShadowMapQuality quality);
+
+  private:
+    void createSunLight(ShadowMapQuality quality);
 };
 
 } // namespace Graphics
