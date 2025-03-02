@@ -1,39 +1,11 @@
 #include "ToneMap.hlsli"
 
 SamplerState mesh_sampler : register(s0);
-SamplerState shadowmap_sampler : register(s1);
-
-// Mesh Data
 Texture2D mesh_texture : register(t0);
 
+// Lighting:
 // Illumination (Global + Local)
-struct LightData
-{
-    float3 position;
-    float pad0;
-    
-    float3 color;
-    float pad1;
-    
-    float4x4 m_view;
-    float4x4 m_projection;
-    
-    float tex_x;
-    float tex_y;
-    float tex_width;
-    float tex_height;
-};
-
-Texture2D shadow_atlas : register(t1);
-
-cbuffer CB1 : register(b1)
-{
-    float3 view_world_position;
-    int light_count;
-    
-    LightData light_instances[10];
-    
-}
+#include "Lighting.hlsli"
 
 /* Vertex Shader Output (Pixel Shader Input) */
 struct VS_OUT
@@ -58,6 +30,25 @@ float4 ps_main(VS_OUT input) : SV_TARGET
     // FORCE USAGE OF MESH TEXTURE?
     float3 mesh_color = input.color;
     
+     // Compute vectors for lighting that can be reused
+    float3 normal = normalize(input.normal);
+    
+    // --- Sun Light Contribution ---
+    // Compute the contribution of the sun to the point.
+    // Select the cascade that our point is in.
+    LightData light = sun_cascades[selectCascade(input.world_position)];
+    
+    // Then, select the shadow value of the point
+    float shadow_factor = shadowValue(input.world_position, light);
+                   
+    // Compute the diffuse contribution. Flip the sun direction since it points from 
+    // the light -> surface.
+    float diffuse_factor = max(0, dot(-sun_direction, normal));
+    
+    float cascade_contribution = shadow_factor * diffuse_factor;
+    color.rgb += cascade_contribution * (mesh_color * light.color);
+    
+    /*
     for (int i = 0; i < light_count; i++)
     {
         // Check if the point is in shadow or not. 
@@ -138,11 +129,12 @@ float4 ps_main(VS_OUT input) : SV_TARGET
             }
         }
     }
+    */
     
     // Tone Mapping (ToneMap.hlsli):
     // Each color channel can have an intensity in the range [0, infty). We need to "tone map" it,
     // by passing it into a function that will map this to the [0, 255] RGB range.
-    color = tone_map(color, light_count);
+    // color = tone_map(color, light_count);
     
     return color;
 }

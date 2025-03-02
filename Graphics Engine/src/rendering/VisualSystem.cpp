@@ -467,13 +467,12 @@ void VisualSystem::performTerrainPass() {
     const Matrix4 projectionMatrix = camera.getFrustumMatrix();
     vCB0->loadData(&projectionMatrix, FLOAT4X4);
 
-    // Pixel Constant Buffer 1:
-    // Stores camera position, and the scene's light instances.
+    // Pixel Constant Buffer 1: Light Data
+    // Stores data that is needed for lighting / shadowing.
     pCB1->clearData();
     {
         const Vector3& cameraPosition = camera.getTransform()->getPosition();
         pCB1->loadData(&cameraPosition, FLOAT3);
-
         int lightCount = light_manager->getShadowLights().size();
         pCB1->loadData(&lightCount, INT);
 
@@ -483,7 +482,41 @@ void VisualSystem::performTerrainPass() {
 
         const std::vector<ShadowLight*> shadow_lights =
             light_manager->getShadowLights();
-        for (ShadowLight* light : shadow_lights) {
+
+        // Sun Cascade Data
+        const SunLight* sun_light = light_manager->getSunLight();
+
+        const Vector3 sun_direction = sun_light->getDirection();
+        pCB1->loadData(&sun_direction, FLOAT3);
+        pCB1->loadData(nullptr, FLOAT);
+
+        for (int i = 0; i < SUN_NUM_CASCADES; i++) {
+            ShadowLight* light = shadow_lights[i];
+
+            Vector3 position = light->getPosition();
+            pCB1->loadData(&position, FLOAT3);
+
+            pCB1->loadData(nullptr, FLOAT);
+
+            const Color& color = light->getColor();
+            pCB1->loadData(&color, FLOAT3);
+            pCB1->loadData(nullptr, INT);
+
+            const Matrix4 m_world_to_local = light->getWorldMatrix().inverse();
+            pCB1->loadData(&m_world_to_local, FLOAT4X4);
+
+            const Matrix4& m_local_to_frustum = light->getFrustumMatrix();
+            pCB1->loadData(&m_local_to_frustum, FLOAT4X4);
+
+            const NormalizedShadowViewport normalized_view =
+                light_manager->normalizeViewport(light->getShadowmapViewport());
+            pCB1->loadData(&normalized_view, FLOAT4);
+        }
+
+        // ShadowLight Data
+        for (int i = SUN_NUM_CASCADES; i < shadow_lights.size(); i++) {
+            ShadowLight* light = shadow_lights[i];
+
             Vector3 position = light->getPosition();
             pCB1->loadData(&position, FLOAT3);
 
@@ -595,45 +628,75 @@ void VisualSystem::performRenderPass() {
         vCB1->loadData(&projectionMatrix, FLOAT4X4);
     }
 
-    // Pixel Constant Buffer 1:
-    // Stores camera position, and the scene's light instances.
+    // Pixel Constant Buffer 1: Light Data
+    // Stores data that is needed for lighting / shadowing.
     pCB1->clearData();
     {
         const Vector3& cameraPosition = camera.getTransform()->getPosition();
         pCB1->loadData(&cameraPosition, FLOAT3);
-
         int lightCount = light_manager->getShadowLights().size();
         pCB1->loadData(&lightCount, INT);
 
-        for (ShadowLightObject* light_obj : shadow_lights) {
-            const Vector3& position =
-                light_obj->object->getTransform().getPosition();
+        const Vector3 cameraView = camera.getTransform()->forward();
+        pCB1->loadData(&cameraView, FLOAT3);
+        pCB1->loadData(nullptr, FLOAT);
+
+        const std::vector<ShadowLight*> shadow_lights =
+            light_manager->getShadowLights();
+
+        // Sun Cascade Data
+        const SunLight* sun_light = light_manager->getSunLight();
+
+        const Vector3 sun_direction = sun_light->getDirection();
+        pCB1->loadData(&sun_direction, FLOAT3);
+        pCB1->loadData(nullptr, FLOAT);
+
+        for (int i = 0; i < SUN_NUM_CASCADES; i++) {
+            ShadowLight* light = shadow_lights[i];
+
+            Vector3 position = light->getPosition();
             pCB1->loadData(&position, FLOAT3);
 
             pCB1->loadData(nullptr, FLOAT);
 
-            const Color& color = light_obj->light->getColor();
+            const Color& color = light->getColor();
+            pCB1->loadData(&color, FLOAT3);
+            pCB1->loadData(nullptr, INT);
+
+            const Matrix4 m_world_to_local = light->getWorldMatrix().inverse();
+            pCB1->loadData(&m_world_to_local, FLOAT4X4);
+
+            const Matrix4& m_local_to_frustum = light->getFrustumMatrix();
+            pCB1->loadData(&m_local_to_frustum, FLOAT4X4);
+
+            const NormalizedShadowViewport normalized_view =
+                light_manager->normalizeViewport(light->getShadowmapViewport());
+            pCB1->loadData(&normalized_view, FLOAT4);
+        }
+
+        // ShadowLight Data
+        for (int i = SUN_NUM_CASCADES; i < shadow_lights.size(); i++) {
+            ShadowLight* light = shadow_lights[i];
+
+            Vector3 position = light->getPosition();
+            pCB1->loadData(&position, FLOAT3);
+
+            pCB1->loadData(nullptr, FLOAT);
+
+            const Color& color = light->getColor();
             pCB1->loadData(&color, FLOAT3);
 
             pCB1->loadData(nullptr, INT);
 
-            const Matrix4 viewMatrix =
-                light_obj->object->getLocalMatrix().inverse();
-            pCB1->loadData(&viewMatrix, FLOAT4X4);
+            const Matrix4 m_world_to_local = light->getWorldMatrix().inverse();
+            pCB1->loadData(&m_world_to_local, FLOAT4X4);
 
-            const Matrix4 projectionMatrix =
-                light_obj->light->getFrustumMatrix();
-            pCB1->loadData(&projectionMatrix, FLOAT4X4);
+            const Matrix4& m_local_to_frustum = light->getFrustumMatrix();
+            pCB1->loadData(&m_local_to_frustum, FLOAT4X4);
 
             const NormalizedShadowViewport normalized_view =
-                light_manager->normalizeViewport(
-                    light_obj->light->getShadowmapViewport());
+                light_manager->normalizeViewport(light->getShadowmapViewport());
             pCB1->loadData(&normalized_view, FLOAT4);
-
-            // DEBUG
-            const Matrix4 frustumMatrix =
-                viewMatrix.inverse() * projectionMatrix.inverse();
-            // VisualDebug::DrawFrustum(frustumMatrix, Color::Green());
         }
     }
 

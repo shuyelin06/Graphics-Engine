@@ -24,6 +24,11 @@ class SunLight {
   public:
     SunLight(ShadowLight** light_arr, int resolution);
     ~SunLight();
+    
+    // Get the cascades
+    const ShadowLight* getSunCascade(int index) const;
+    
+    Vector3 getDirection() const;
 
     // Set the sun direction
     void setSunDirection(const Vector3& direction);

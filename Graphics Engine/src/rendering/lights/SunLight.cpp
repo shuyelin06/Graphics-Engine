@@ -25,6 +25,15 @@ SunLight::SunLight(ShadowLight** light_arr, int _resolution)
 }
 SunLight::~SunLight() = default;
 
+const ShadowLight* SunLight::getSunCascade(int index) const {
+    return light_cascades[index];
+}
+
+Vector3 SunLight::getDirection() const {
+    const Vector3 direc = direction.rotationMatrix3() * Vector3::PositiveZ();
+    return direc;
+}
+
 void SunLight::updateSunCascades(const CameraFrustum& camera_frustum) {
     constexpr float Z_EPSILON = 0.001f;
     constexpr float DIVISIONS[SUN_NUM_CASCADES + 1] = {0.0f, 0.1f, 0.25f, 1.0f};
