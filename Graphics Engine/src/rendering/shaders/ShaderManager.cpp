@@ -6,6 +6,8 @@
 
 #include <assert.h>
 
+constexpr bool ALLOW_CACHING = false;
+
 namespace Engine {
 namespace Graphics {
 
@@ -199,7 +201,7 @@ static ID3DBlob* CompileShaderBlob(ShaderType type, const std::string& file,
     const std::wstring cached_blob_path_w =
         std::wstring(cached_blob_path.begin(), cached_blob_path.end());
 
-    if (std::filesystem::exists(cached_blob_path)) {
+    if (std::filesystem::exists(cached_blob_path) && ALLOW_CACHING) {
         // If the blob was last modified after the shader, then it is the most
         // up-to-date blob for the shader and we don't need to recompile.
         auto blob_last_modified =

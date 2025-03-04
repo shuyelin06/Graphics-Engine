@@ -95,15 +95,9 @@ void SunLight::updateCascade(int index, float min_z, float max_z,
 
     // Find the furthest distance from the center point to the edges.
     // This will define the size of our orthographic projection.
-    float radius = 0;
-
-    for (int i = 0; i < 8; i++) {
-        const float distance = (frustum_points[i] - center_point).magnitude();
-        radius = max(distance, radius);
-    }
-
     // We add an epsilon to the projection extents to handle imprecision.
-    constexpr float EXTENT_EPSILON = 0.1f;
+    const float radius = (frustum_points[6] - frustum_points[0]).magnitude();
+    constexpr float EXTENT_EPSILON = 0.2f;
     const float extent = radius * (1 + EXTENT_EPSILON);
     light.setOrthogonalFrustum(extent, 1.f, 0.f, 500.f);
 
