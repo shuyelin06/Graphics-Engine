@@ -148,6 +148,19 @@ void ShaderManager::initialize() {
         ps->enableCB(CB1);
         pixel_shaders["ShadowShader"] = ps;
     }
+
+    // Blur:
+    // Attempt at blurring
+    {
+        VertexDataStream blur_input[1] = {SV_POSITION};
+        VertexShader* vs =
+            createVertexShader("Blur.hlsl", "vs_blur", blur_input, 1);
+        vertex_shaders["Blur"] = vs;
+
+        PixelShader* ps = createPixelShader("Blur.hlsl", "ps_blur");
+        ps->enableCB(CB0);
+        pixel_shaders["Blur"] = ps;
+    }
 }
 
 // GetVertexShader:
@@ -271,6 +284,16 @@ VertexShader* ShaderManager::createVertexShader(const std::string& filename,
                     POSITION,   0, D3D11_INPUT_PER_VERTEX_DATA,
                     0};
             break;
+
+        case SV_POSITION: {
+            desc = {"SV_POSITION",
+                    0,
+                    DXGI_FORMAT_R32G32B32A32_FLOAT,
+                    0,
+                    0,
+                    D3D11_INPUT_PER_VERTEX_DATA,
+                    0};
+        } break;
 
         // Texture Stream:
         // A buffer of (u,v) floats as texture coordinates

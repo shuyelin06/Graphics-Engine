@@ -9,8 +9,8 @@
 
 #include "core/ResourceManager.h"
 #include "core/TextureManager.h"
-#include "shaders/ShaderManager.h"
 #include "lights/LightManager.h"
+#include "shaders/ShaderManager.h"
 
 #include "VisualTerrain.h"
 #include "core/AssetObject.h"
@@ -22,8 +22,8 @@
 // imgui Includes
 #include "ImGui.h"
 
-#include "util/GPUTimer.h"
 #include "util/CPUTimer.h"
+#include "util/GPUTimer.h"
 #endif
 
 // TESTING
@@ -58,6 +58,10 @@ class VisualSystem {
     IDXGISwapChain* swap_chain;
     ID3D11RenderTargetView* render_target_view;
     D3D11_VIEWPORT viewport;
+
+    // Post-Processing Quad
+    Texture* test;
+    ID3D11Buffer* postprocess_quad;
 
     // Managers
     ShaderManager* shaderManager;
@@ -107,12 +111,17 @@ class VisualSystem {
     void performTerrainPass(); // Render Terrain
     void performRenderPass();  // Render Pass
 
+    void processBlur(); // Blur Effect
+
     void renderFinish(); // Finish Rendering
 
     void renderDebugPoints(); // DEBUG
     void renderDebugLines();  // DEBUG
 
-#if defined(_DEBUG) 
+  private:
+    void initializeFullscreenQuad();
+
+#if defined(_DEBUG)
   private:
     // Debug via ImGui
     // Frametime Tracking (CPU + GPU)
@@ -129,7 +138,6 @@ class VisualSystem {
     // Debug via VisualDebug
     ID3D11Buffer* line_vbuffer;
 #endif
-
 };
 } // namespace Graphics
 } // namespace Engine

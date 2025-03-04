@@ -109,10 +109,31 @@ void VisualSystem::initialize() {
 
     texture_manager->createDepthTexture("DepthStencilMain", width, height);
 
+    initializeFullscreenQuad();
+    test = texture_manager->createRenderTexture("RenderTarget", width, height);
+
 #if defined(_DEBUG)
     imGuiInitialize();
     imGuiPrepare(); // Pre-Prepare a Frame
 #endif
+}
+
+void VisualSystem::initializeFullscreenQuad() {
+    Vector4 fullscreen_quad[6] = {
+        // First Triangle
+        Vector4(-1, -1, 0, 1), Vector4(-1, 1, 0, 1), Vector4(1, 1, 0, 1),
+        // Second Triangle
+        Vector4(-1, -1, 0, 1), Vector4(1, 1, 0, 1), Vector4(1, -1, 0, 1)};
+
+    D3D11_BUFFER_DESC buffer_desc = {};
+    buffer_desc.ByteWidth = sizeof(fullscreen_quad);
+    buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+    buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+    D3D11_SUBRESOURCE_DATA sr_data = {};
+    sr_data.pSysMem = (void*)fullscreen_quad;
+
+    device->CreateBuffer(&buffer_desc, &sr_data, &postprocess_quad);
 }
 
 // Shutdown:
@@ -167,6 +188,8 @@ void VisualSystem::render() {
 
     performTerrainPass();
     performRenderPass();
+
+    processBlur();
 
     // ...
 #if defined(_DEBUG)
@@ -263,7 +286,7 @@ void VisualSystem::renderPrepare() {
 
     // Clear the the screen color
     float color[4] = {RGB(158.f), RGB(218.f), RGB(255.f), 1.0f};
-    context->ClearRenderTargetView(render_target_view, color);
+    context->ClearRenderTargetView(test->target_view, color);
 
     // --- TEST ---
     static TreeGenerator tree_gen = TreeGenerator();
@@ -452,7 +475,10 @@ void VisualSystem::performTerrainPass() {
     const Texture* depth_texture =
         texture_manager->getTexture("DepthStencilMain");
 
-    context->OMSetRenderTargets(1, &render_target_view,
+    // TEST
+    /*context->OMSetRenderTargets(1, &render_target_view,
+                                depth_texture->depth_view);*/
+    context->OMSetRenderTargets(1, &test->target_view,
                                 depth_texture->depth_view);
     context->ClearDepthStencilView(depth_texture->depth_view, D3D11_CLEAR_DEPTH,
                                    1.0f, 0);
@@ -611,7 +637,7 @@ void VisualSystem::performRenderPass() {
     const Texture* depth_texture =
         texture_manager->getTexture("DepthStencilMain");
 
-    context->OMSetRenderTargets(1, &render_target_view,
+    context->OMSetRenderTargets(1, &test->target_view,
                                 depth_texture->depth_view);
     /*context->ClearDepthStencilView(depth_texture->depth_view,
        D3D11_CLEAR_DEPTH, 1.0f, 0);*/
@@ -766,6 +792,48 @@ void VisualSystem::performRenderPass() {
     gpu_timer.endTimer("Render Pass");
     cpu_timer.endTimer("Render Pass");
 #endif
+}
+
+void VisualSystem::processBlur() {
+    VertexShader* vShader = shaderManager->getVertexShader("Blur");
+
+    PixelShader* pShader = shaderManager->getPixelShader("Blur");
+    CBHandle* pCB0 = pShader->getCBHandle(CB0);
+
+    // Set render target
+    Texture* depth_texture = texture_manager->getTexture("DepthStencilMain");
+    context->OMSetRenderTargets(1, &render_target_view,
+                                depth_texture->depth_view);
+    context->RSSetViewports(1, &viewport);
+
+    // Set Data
+    ID3D11SamplerState* mesh_texture_sampler = assetManager->getMeshSampler();
+    context->PSSetSamplers(0, 1, &mesh_texture_sampler);
+    context->PSSetShaderResources(0, 1, &test->shader_view);
+
+    float width = 960;
+    float height = 640;
+
+    {
+        pCB0->clearData();
+        pCB0->loadData(&width, FLOAT);
+        pCB0->loadData(&height, FLOAT);
+        pCB0->loadData(nullptr, FLOAT);
+        pCB0->loadData(nullptr, FLOAT);
+    }
+
+    // Bind full screen quad
+    UINT vertexStride = sizeof(float) * 4;
+    UINT vertexOffset = 0;
+
+    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    context->IASetVertexBuffers(0, 1, &postprocess_quad, &vertexStride,
+                                &vertexOffset);
+
+    vShader->bindShader(device, context);
+    pShader->bindShader(device, context);
+
+    context->Draw(6, 0);
 }
 
 void VisualSystem::renderFinish() {

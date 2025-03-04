@@ -26,6 +26,7 @@ class TextureManager {
     Texture* getTexture(const std::string& name);
 
     // Built-in texture generation methods
+    Texture* createRenderTexture(const std::string& name, UINT width, UINT height);
     Texture* createDepthTexture(const std::string& name, UINT width, UINT height);
     Texture* createShadowTexture(const std::string& name, UINT width, UINT height);
 

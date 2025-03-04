@@ -75,7 +75,8 @@ void Shader::updateCBResource(CBSlot slot, ID3D11Device* device,
         sr_data.SysMemSlicePitch = 0;
 
         // Create buffer
-        device->CreateBuffer(&buff_desc, &sr_data, &(constantBuffer->resource));
+        HRESULT result = device->CreateBuffer(&buff_desc, &sr_data,
+                                              &(constantBuffer->resource));
     }
     // If buffer exists, perform resource renaming to update buffer data
     // instead of creating a new buffer
