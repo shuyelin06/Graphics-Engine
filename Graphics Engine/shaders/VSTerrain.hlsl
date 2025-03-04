@@ -4,12 +4,6 @@ cbuffer PER_VIEW_DATA : register(b0)
     float4x4 m_projection;
 }
 
-cbuffer PER_MESH_DATA : register(b1)
-{
-    float3 terrain_offset;
-    float padding;
-}
-
 struct VS_IN
 {
     float3 position_local : POSITION;

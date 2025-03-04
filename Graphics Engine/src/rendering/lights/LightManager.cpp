@@ -6,7 +6,7 @@ LightManager::LightManager(TextureAtlas* atlas) : shadow_lights() {
     shadow_atlas = atlas;
 
     // Create sun light
-    createSunLight(QUALITY_4);
+    createSunLight(QUALITY_5);
 }
 
 // Update:

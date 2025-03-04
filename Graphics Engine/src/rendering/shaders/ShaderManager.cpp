@@ -86,7 +86,6 @@ void ShaderManager::initialize() {
         VertexShader* vs = createVertexShader(
             "VSTerrain.hlsl", "vsterrain_main", terrain_input, 2);
         vs->enableCB(CB0);
-        vs->enableCB(CB1);
         vertex_shaders["Terrain"] = vs;
 
         PixelShader* ps = createPixelShader("PSTerrain.hlsl", "psterrain_main");

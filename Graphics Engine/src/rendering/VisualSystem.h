@@ -8,7 +8,6 @@
 #include "Direct3D11.h"
 
 #include "core/ResourceManager.h"
-#include "core/TextureManager.h"
 #include "lights/LightManager.h"
 #include "shaders/ShaderManager.h"
 
@@ -47,26 +46,26 @@ struct RenderableTerrain {
 // Provides an interface for the application's graphics.
 class VisualSystem {
   private:
-    // Window
-    HWND window;
-
     // Direct 3D 11 Interfaces
     ID3D11Device* device;
     ID3D11DeviceContext* context;
 
-    // Main Render Targets
+    // Screen render target information
     IDXGISwapChain* swap_chain;
-    ID3D11RenderTargetView* render_target_view;
+    Texture* screen_target;
+
+    // Main render target information
+    // We render to this and apply post-processing before moving
+    // everything to the screen
+    Texture* render_target;
+    Texture* depth_stencil;
+
+    ID3D11Buffer* postprocess_quad;
     D3D11_VIEWPORT viewport;
 
-    // Post-Processing Quad
-    Texture* test;
-    ID3D11Buffer* postprocess_quad;
-
     // Managers
-    ShaderManager* shaderManager;
-    VisualResourceManager* assetManager;
-    TextureManager* texture_manager;
+    ResourceManager* resource_manager;
+    ShaderManager* shader_manager;
     LightManager* light_manager;
 
     // Main Camera:
@@ -82,17 +81,21 @@ class VisualSystem {
     std::vector<VisualTerrain*> terrain_chunks;
 
     std::vector<ShadowCaster> shadow_casters;
-    std::vector<RenderableTerrain> renderable_terrain;
+    std::vector<Mesh*> terrain_meshes;
 
   public:
-    VisualSystem(HWND _window);
+    VisualSystem();
 
     // Returns the system's camera
     const Camera& getCamera() const;
     Camera& getCamera();
 
     // Initialize Visual System
-    void initialize();
+    void initialize(HWND window);
+    
+    // Renders an entire scene
+    void render();
+    
     // Shutdown Visual System
     void shutdown();
 
@@ -101,10 +104,17 @@ class VisualSystem {
     ShadowLightObject* bindShadowLightObject(Object* object);
     VisualTerrain* bindVisualTerrain(TerrainChunk* terrain);
 
-    // Renders an entire scene
-    void render();
+  private:
+    // Initialization Stages of the Visual System
+    void initializeScreenTarget(HWND window, UINT width, UINT height);
+    void initializeRenderTarget(UINT width, UINT height);
+
+    void initializeFullscreenQuad();
+
+    void initializeManagers();
 
   private:
+    // Rendering Stages of the Visual System
     void renderPrepare(); // Prepare for Rendering
 
     void performShadowPass();  // Shadow Pass
@@ -118,9 +128,6 @@ class VisualSystem {
     void renderDebugPoints(); // DEBUG
     void renderDebugLines();  // DEBUG
 
-  private:
-    void initializeFullscreenQuad();
-
 #if defined(_DEBUG)
   private:
     // Debug via ImGui
@@ -128,7 +135,7 @@ class VisualSystem {
     GPUTimer gpu_timer;
     CPUTimer cpu_timer;
 
-    void imGuiInitialize();
+    void imGuiInitialize(HWND window);
 
     void imGuiPrepare();
     void imGuiFinish();

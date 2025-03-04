@@ -215,7 +215,6 @@
     <ClCompile Include="src\rendering\imgui\imgui_tables.cpp" />
     <ClCompile Include="src\rendering\imgui\imgui_widgets.cpp" />
     <ClCompile Include="src\deprecated\MarchingCubes.cpp" />
-    <ClCompile Include="src\rendering\core\TextureManager.cpp" />
     <ClCompile Include="src\rendering\lights\SunLight.cpp" />
     <ClCompile Include="src\rendering\util\OBJFile.cpp" />
     <ClCompile Include="src\rendering\util\PNGFile.cpp" />
@@ -293,7 +292,6 @@
     <ClInclude Include="src\rendering\lights\SunLight.h" />
     <ClInclude Include="src\rendering\shaders\Shader.h" />
     <ClInclude Include="src\rendering\shaders\ShaderManager.h" />
-    <ClInclude Include="src\rendering\core\TextureManager.h" />
     <ClInclude Include="src\rendering\util\CPUTimer.h" />
     <ClInclude Include="src\rendering\util\GPUTimer.h" />
     <ClInclude Include="src\rendering\util\OBJFile.h" />

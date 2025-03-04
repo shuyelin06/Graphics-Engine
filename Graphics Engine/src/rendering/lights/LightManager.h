@@ -14,6 +14,7 @@ enum ShadowMapQuality {
     QUALITY_2 = 256,
     QUALITY_3 = 512,
     QUALITY_4 = 1024,
+    QUALITY_5 = 2048,
     QUALITY_DEFAULT = QUALITY_1
 };
 

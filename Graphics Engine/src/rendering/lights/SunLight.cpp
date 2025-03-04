@@ -35,7 +35,7 @@ Vector3 SunLight::getDirection() const {
 }
 
 void SunLight::updateSunCascades(const CameraFrustum& camera_frustum) {
-    constexpr float Z_EPSILON = 0.001f;
+    constexpr float Z_EPSILON = 0.01f;
     constexpr float DIVISIONS[SUN_NUM_CASCADES + 1] = {0.0f, 0.1f, 0.25f, 1.0f};
 
     for (int i = 0; i < SUN_NUM_CASCADES; i++) {
@@ -103,7 +103,7 @@ void SunLight::updateCascade(int index, float min_z, float max_z,
     }
 
     // We add an epsilon to the projection extents to handle imprecision.
-    constexpr float EXTENT_EPSILON = 0.05f;
+    constexpr float EXTENT_EPSILON = 0.1f;
     const float extent = radius * (1 + EXTENT_EPSILON);
     light.setOrthogonalFrustum(extent, 1.f, 0.f, 500.f);
 
@@ -116,8 +116,8 @@ void SunLight::updateCascade(int index, float min_z, float max_z,
     Vector3 light_pos = center_point;
 
     // Offset so at a constant y value
-    // light_pos += direc * ((150.f - light_pos.y) / direc.y);
-    light_pos -= direc * 150.f;
+    light_pos += direc * ((150.f - light_pos.y) / direc.y);
+    // light_pos -= direc * 150.f;
 
     // Snap to nearest texel
     light_pos.x = ((int)(light_pos.x / texel_distance)) * texel_distance;

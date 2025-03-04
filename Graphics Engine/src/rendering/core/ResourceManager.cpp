@@ -24,16 +24,16 @@ namespace Engine {
 using namespace Math;
 
 namespace Graphics {
-VisualResourceManager::VisualResourceManager(ID3D11Device* _device,
+ResourceManager::ResourceManager(ID3D11Device* _device,
                                              ID3D11DeviceContext* _context) {
     device = _device;
     context = _context;
 }
-VisualResourceManager::~VisualResourceManager() = default;
+ResourceManager::~ResourceManager() = default;
 
 // Initialize:
 // Loads assets into the asset manager.
-void VisualResourceManager::initialize() {
+void ResourceManager::initialize() {
     // Prepare my builders
     TextureBuilder::device = device;
 
@@ -84,37 +84,37 @@ void VisualResourceManager::initialize() {
 
 // CreateMeshBuilder:
 // Creates and returns a mesh builder
-MeshBuilder* VisualResourceManager::createMeshBuilder() {
+MeshBuilder* ResourceManager::createMeshBuilder() {
     return new MeshBuilder(device);
 }
 
 // Get Resources:
 // Return resources by name.
-Asset* VisualResourceManager::getAsset(const std::string& name) {
+Asset* ResourceManager::getAsset(const std::string& name) {
     if (assets.contains(name))
         return assets[name];
     else
         return nullptr;
 }
 
-Texture* VisualResourceManager::getTexture(const std::string& name) {
+Texture* ResourceManager::getTexture(const std::string& name) {
     if (textures.contains(name))
         return textures[name];
     else
         return nullptr;
 }
 
-ID3D11SamplerState* VisualResourceManager::getShadowMapSampler() {
+ID3D11SamplerState* ResourceManager::getShadowMapSampler() {
     return shadowmap_sampler;
 }
 
-ID3D11SamplerState* VisualResourceManager::getMeshSampler() {
+ID3D11SamplerState* ResourceManager::getMeshSampler() {
     return mesh_sampler;
 }
 
 // LoadTextureFromPNG:
 // Uses the PNGFile interface to load a texture from a PNG file
-bool VisualResourceManager::LoadTextureFromPNG(TextureBuilder& builder,
+bool ResourceManager::LoadTextureFromPNG(TextureBuilder& builder,
                                                std::string path,
                                                std::string file) {
     PNGFile png_file = PNGFile(path + file);
@@ -123,7 +123,7 @@ bool VisualResourceManager::LoadTextureFromPNG(TextureBuilder& builder,
 
 // WriteTextureToPNG:
 // Uses the PNGFile interface to write a texture to a PNG file
-bool VisualResourceManager::WriteTextureToPNG(ID3D11Texture2D* texture,
+bool ResourceManager::WriteTextureToPNG(ID3D11Texture2D* texture,
                                               std::string path,
                                               std::string file) {
     PNGFile png_file = PNGFile(path + file);
@@ -132,7 +132,7 @@ bool VisualResourceManager::WriteTextureToPNG(ID3D11Texture2D* texture,
 
 // Helper parsing functions
 
-Asset* VisualResourceManager::LoadAssetFromOBJ(const std::string& path,
+Asset* ResourceManager::LoadAssetFromOBJ(const std::string& path,
                                                const std::string& objFile) {
     MeshBuilder mesh_builder = MeshBuilder(device);
     TextureBuilder texture_builder(0, 0);
@@ -143,7 +143,7 @@ Asset* VisualResourceManager::LoadAssetFromOBJ(const std::string& path,
 
 // Hard-Coded Cube Creator
 // Used in debugging
-Asset* VisualResourceManager::LoadCube(MeshBuilder& builder) {
+Asset* ResourceManager::LoadCube(MeshBuilder& builder) {
     builder.reset();
     builder.addCube(Vector3(0, 0, 0), Quaternion(), 1.f);
 
@@ -153,7 +153,7 @@ Asset* VisualResourceManager::LoadCube(MeshBuilder& builder) {
 
 // Load___Sampler:
 // Create Texture Samplers!
-ID3D11SamplerState* VisualResourceManager::LoadShadowMapSampler() {
+ID3D11SamplerState* ResourceManager::LoadShadowMapSampler() {
     ID3D11SamplerState* sampler;
 
     D3D11_SAMPLER_DESC sampler_desc = {};
@@ -175,7 +175,7 @@ ID3D11SamplerState* VisualResourceManager::LoadShadowMapSampler() {
     return sampler;
 }
 
-ID3D11SamplerState* VisualResourceManager::LoadMeshTextureSampler() {
+ID3D11SamplerState* ResourceManager::LoadMeshTextureSampler() {
     ID3D11SamplerState* sampler;
 
     D3D11_SAMPLER_DESC sampler_desc = {};

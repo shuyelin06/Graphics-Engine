@@ -16,19 +16,17 @@ namespace Graphics {
 // Constructor
 // Saves the handle to the application window and initializes the
 // system's data structures
-VisualSystem::VisualSystem(HWND _window) {
-    window = _window;
-
+VisualSystem::VisualSystem() {
     camera = Camera();
 
     device = NULL;
     context = NULL;
 
-    shaderManager = NULL;
-    assetManager = NULL;
+    shader_manager = NULL;
+    resource_manager = NULL;
 
     swap_chain = NULL;
-    render_target_view = NULL;
+    screen_target = NULL;
 }
 
 // GetCamera:
@@ -40,20 +38,48 @@ Camera& VisualSystem::getCamera() { return camera; }
 // Initialize:
 // Initializes the Visual Engine by creating the necessary Direct3D11
 // components.
-void VisualSystem::initialize() {
+void VisualSystem::initialize(HWND window) {
     HRESULT result;
 
     // Get window width and height
     RECT rect;
-
     GetClientRect(window, &rect);
-
     const UINT width = rect.right - rect.left;
     const UINT height = rect.bottom - rect.top;
 
-    // Create swap chain, device, and context.
-    // The swap chain is responsible for swapping between textures
-    // for rendering.
+    // Create my swap chain and set up its buffer as a render target. This is
+    // what will be displayed on our screen
+    initializeScreenTarget(window, width, height);
+
+    // Create another render target and depth stencil. We will render to this as
+    // an intermediate target so that we can apply post processing effects
+    initializeRenderTarget(width, height);
+
+    // Initialize my full screen quad. This will be used for post-processing
+    // effects.
+    initializeFullscreenQuad();
+
+    // Initialize each of my managers with the resources they need
+    initializeManagers();
+
+#if defined(_DEBUG)
+    imGuiInitialize(window);
+    imGuiPrepare(); // Pre-Prepare a Frame
+#endif
+}
+
+// InitializeScreenTarget:
+// Create swap chain, device, and context.
+// The swap chain is responsible for swapping between textures
+// for rendering, and the device + context give us interfaces to work with the
+// GPU.
+void VisualSystem::initializeScreenTarget(HWND window, UINT width,
+                                          UINT height) {
+    HRESULT result;
+
+    // Create my swap chain. This will let me swap between textures for
+    // rendering, so the user doesn't see the next frame while it's being
+    // rendered.
     DXGI_SWAP_CHAIN_DESC swap_chain_descriptor = {0};
 
     swap_chain_descriptor.BufferDesc.RefreshRate.Numerator = 0;
@@ -79,47 +105,97 @@ void VisualSystem::initialize() {
 
     // Create my render target with the swap chain's frame buffer. This
     // will store my output image.
-    ID3D11Texture2D* framebuffer;
+    screen_target = new Texture(width, height);
 
     result = swap_chain->GetBuffer(0, __uuidof(ID3D11Texture2D),
-                                   (void**)&framebuffer);
+                                   (void**)&screen_target->texture);
     assert(SUCCEEDED(result));
 
-    result =
-        device->CreateRenderTargetView(framebuffer, 0, &render_target_view);
+    result = device->CreateRenderTargetView(screen_target->texture, 0,
+                                            &screen_target->target_view);
     assert(SUCCEEDED(result));
 
-    framebuffer->Release(); // Free frame buffer (no longer needed)
+    screen_target->texture->Release(); // Free frame buffer (no longer needed)
 
     // Create my viewport
     viewport = {0.0f, 0.0f, (float)width, (float)height, 0.0f, 1.0f};
-
-    // Create my managers
-    assetManager = new VisualResourceManager(device, context);
-    assetManager->initialize();
-
-    shaderManager = new ShaderManager(device);
-    shaderManager->initialize();
-
-    texture_manager = new TextureManager(device);
-
-    TextureAtlas* shadow_atlas = new TextureAtlas(
-        texture_manager->createShadowTexture("ShadowAtlas", 2048, 2048));
-    light_manager = new LightManager(shadow_atlas);
-
-    texture_manager->createDepthTexture("DepthStencilMain", width, height);
-
-    initializeFullscreenQuad();
-    test = texture_manager->createRenderTexture("RenderTarget", width, height);
-
-#if defined(_DEBUG)
-    imGuiInitialize();
-    imGuiPrepare(); // Pre-Prepare a Frame
-#endif
 }
 
+// InitializeRenderTarget:
+// Initializes a render target and depth stencil we will use as an intermediate
+// render target for post processing effects
+void VisualSystem::initializeRenderTarget(UINT width, UINT height) {
+    HRESULT result;
+
+    // Create my render target texture
+    render_target = new Texture(width, height);
+
+    D3D11_TEXTURE2D_DESC tex_desc = {};
+    tex_desc.Width = width;
+    tex_desc.Height = height;
+    tex_desc.MipLevels = 1;
+    tex_desc.ArraySize = 1;
+    tex_desc.MipLevels = 1;
+    tex_desc.ArraySize = 1;
+    tex_desc.SampleDesc.Count = 1;
+    tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    tex_desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+
+    result = device->CreateTexture2D(&tex_desc, NULL, &render_target->texture);
+    assert(SUCCEEDED(result));
+
+    // Create a target view for my render target texture so we can render to it
+    result = device->CreateRenderTargetView(render_target->texture, 0,
+                                            &render_target->target_view);
+    assert(SUCCEEDED(result));
+
+    // Create a shader view for my render target texture so we can access it in
+    // the GPU
+    D3D11_SHADER_RESOURCE_VIEW_DESC resource_view_desc = {};
+    resource_view_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    resource_view_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    resource_view_desc.Texture2D.MostDetailedMip = 0;
+    resource_view_desc.Texture2D.MipLevels = 1;
+
+    result = device->CreateShaderResourceView(render_target->texture,
+                                              &resource_view_desc,
+                                              &render_target->shader_view);
+    assert(SUCCEEDED(result));
+
+    // Create another texture as a depth stencil, for z-testing
+    // Create my depth stencil which will be used for z-tests
+    // 24 Bits for Depth, 8 Bits for Stencil
+    depth_stencil = new Texture(width, height);
+
+    tex_desc.Width = width;
+    tex_desc.Height = height;
+    tex_desc.MipLevels = 1;
+    tex_desc.ArraySize = 1;
+    tex_desc.MipLevels = 1;
+    tex_desc.ArraySize = 1;
+    tex_desc.SampleDesc.Count = 1;
+    tex_desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    tex_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+
+    result = device->CreateTexture2D(&tex_desc, NULL, &depth_stencil->texture);
+    assert(SUCCEEDED(result));
+
+    // Create my depth view
+    D3D11_DEPTH_STENCIL_VIEW_DESC desc_stencil = {};
+    desc_stencil.Format =
+        DXGI_FORMAT_D24_UNORM_S8_UINT; // Same format as texture
+    desc_stencil.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
+
+    result = device->CreateDepthStencilView(
+        depth_stencil->texture, &desc_stencil, &depth_stencil->depth_view);
+    assert(SUCCEEDED(result));
+}
+
+// InitializeFullscreenQuad:
+// Creates a quad that covers the entire screen, so we can use the pixel shader
+// for post processing effects
 void VisualSystem::initializeFullscreenQuad() {
-    Vector4 fullscreen_quad[6] = {
+    const Vector4 fullscreen_quad[6] = {
         // First Triangle
         Vector4(-1, -1, 0, 1), Vector4(-1, 1, 0, 1), Vector4(1, 1, 0, 1),
         // Second Triangle
@@ -136,6 +212,70 @@ void VisualSystem::initializeFullscreenQuad() {
     device->CreateBuffer(&buffer_desc, &sr_data, &postprocess_quad);
 }
 
+// InitializeManagers:
+// Initializes different managers that the visual system uses.
+void VisualSystem::initializeManagers() {
+    HRESULT result;
+
+    resource_manager = new ResourceManager(device, context);
+    resource_manager->initialize();
+
+    shader_manager = new ShaderManager(device);
+    shader_manager->initialize();
+
+    // --- Light Manager ---
+    constexpr int ATLAS_SIZE = 4096;
+    Texture* atlas_texture = new Texture(ATLAS_SIZE, ATLAS_SIZE);
+
+    // Create my texture resource. This will have 24 Bits for R Channel (depth),
+    // 8 Bits for G Channel (stencil). The resource will be able to be accessed
+    // as a depth stencil and shader resource.
+    D3D11_TEXTURE2D_DESC tex_desc = {};
+    tex_desc.Width = ATLAS_SIZE;
+    tex_desc.Height = ATLAS_SIZE;
+    tex_desc.MipLevels = tex_desc.ArraySize = 1;
+    tex_desc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+    tex_desc.SampleDesc.Count = 1;
+    tex_desc.Usage = D3D11_USAGE_DEFAULT;
+    tex_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+    tex_desc.CPUAccessFlags = 0;
+    tex_desc.MiscFlags = 0;
+
+    result = device->CreateTexture2D(&tex_desc, NULL, &atlas_texture->texture);
+    assert(SUCCEEDED(result));
+
+    // Initialize a depth stencil view, to allow the texture to be used as a
+    // depth buffer. DXGI_FORMAT_D24_UNORM_S8_UINT specifies 24 bits for depth,
+    // 8 bits for stencil
+    D3D11_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc = {};
+    depth_stencil_view_desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    depth_stencil_view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+    depth_stencil_view_desc.Texture2D.MipSlice = 0;
+
+    result = device->CreateDepthStencilView(atlas_texture->texture,
+                                            &depth_stencil_view_desc,
+                                            &atlas_texture->depth_view);
+    assert(SUCCEEDED(result));
+
+    // Initialize a shader resource view, so that the texture data
+    // can be sampled in the shader.
+    // DXGI_FORMAT_R24_UNORM_X8_TYPELESS specifies 24 bits in the R channel
+    // UNORM (0.0f -> 1.0f), and 8 bits to be ignored
+    D3D11_SHADER_RESOURCE_VIEW_DESC shader_resource_view_description = {};
+    shader_resource_view_description.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+    shader_resource_view_description.ViewDimension =
+        D3D11_SRV_DIMENSION_TEXTURE2D;
+    shader_resource_view_description.Texture2D.MostDetailedMip = 0;
+    shader_resource_view_description.Texture2D.MipLevels = 1;
+
+    result = device->CreateShaderResourceView(atlas_texture->texture,
+                                              &shader_resource_view_description,
+                                              &atlas_texture->shader_view);
+    assert(SUCCEEDED(result));
+
+    light_manager = new LightManager(new TextureAtlas(atlas_texture));
+}
+
 // Shutdown:
 // Closes the visual system.
 void VisualSystem::shutdown() {
@@ -148,7 +288,7 @@ void VisualSystem::shutdown() {
 // Creates and returns objects in the visual system
 AssetObject* VisualSystem::bindAssetObject(Object* object,
                                            const std::string& asset_name) {
-    Asset* asset = assetManager->getAsset(asset_name);
+    Asset* asset = resource_manager->getAsset(asset_name);
     AssetObject* asset_obj = new AssetObject(object, asset);
     object->setVisualObject(asset_obj);
     renderable_assets.push_back(asset_obj);
@@ -165,7 +305,7 @@ ShadowLightObject* VisualSystem::bindShadowLightObject(Object* object) {
 
 VisualTerrain* VisualSystem::bindVisualTerrain(TerrainChunk* terrain) {
     // TEMP: Generate a triangulation of the terrain
-    MeshBuilder* builder = assetManager->createMeshBuilder();
+    MeshBuilder* builder = resource_manager->createMeshBuilder();
     VisualTerrain* visual_terrain = new VisualTerrain(terrain, builder);
 
     terrain_chunks.push_back(visual_terrain);
@@ -285,8 +425,8 @@ void VisualSystem::renderPrepare() {
 #endif
 
     // Clear the the screen color
-    float color[4] = {RGB(158.f), RGB(218.f), RGB(255.f), 1.0f};
-    context->ClearRenderTargetView(test->target_view, color);
+    render_target->clearAsRenderTarget(
+        context, Color(RGB(158.f), RGB(218.f), RGB(255.f)));
 
     // --- TEST ---
     static TreeGenerator tree_gen = TreeGenerator();
@@ -297,7 +437,7 @@ void VisualSystem::renderPrepare() {
 
         const std::vector<TreeStructure> tree = tree_gen.getTree();
 
-        MeshBuilder* builder = assetManager->createMeshBuilder();
+        MeshBuilder* builder = resource_manager->createMeshBuilder();
         generateTreeMesh(*builder, tree, Vector3(0, 0, 0));
         builder->regenerateNormals();
 
@@ -373,10 +513,7 @@ void VisualSystem::renderPrepare() {
         shadowCaster.m_localToWorld = Matrix4::Identity();
         shadow_casters.push_back(shadowCaster);
 
-        RenderableTerrain renderableTerrain;
-        renderableTerrain.mesh = terrain->terrain_mesh;
-        renderableTerrain.terrain_offset = Vector3();
-        renderable_terrain.push_back(renderableTerrain);
+        terrain_meshes.push_back(terrain->terrain_mesh);
     }
 
 #if defined(_DEBUG)
@@ -393,11 +530,11 @@ void VisualSystem::performShadowPass() {
     cpu_timer.beginTimer("Shadow Pass");
 #endif
 
-    VertexShader* vShader = shaderManager->getVertexShader("ShadowMap");
+    VertexShader* vShader = shader_manager->getVertexShader("ShadowMap");
     CBHandle* vCB0 = vShader->getCBHandle(CB0);
     CBHandle* vCB1 = vShader->getCBHandle(CB1);
 
-    PixelShader* pShader = shaderManager->getPixelShader("ShadowMap");
+    PixelShader* pShader = shader_manager->getPixelShader("ShadowMap");
 
     const Texture* shadow_texture = light_manager->getAtlasTexture();
     context->ClearDepthStencilView(shadow_texture->depth_view,
@@ -415,9 +552,9 @@ void VisualSystem::performShadowPass() {
         const Matrix4 m_local_to_frustum = light->getFrustumMatrix();
         vCB0->loadData(&m_local_to_frustum, FLOAT4X4);
 
-        VisualDebug::DrawFrustum(light->getWorldMatrix() *
+        /*VisualDebug::DrawFrustum(light->getWorldMatrix() *
                                      m_local_to_frustum.inverse(),
-                                 Color::Green());
+                                 Color::Green());*/
 
         // Set the light as the render target.
         const D3D11_VIEWPORT viewport = light->getShadowmapViewport().toD3D11();
@@ -464,23 +601,17 @@ void VisualSystem::performTerrainPass() {
     cpu_timer.beginTimer("Terrain Pass");
 #endif
 
-    VertexShader* vShader = shaderManager->getVertexShader("Terrain");
+    VertexShader* vShader = shader_manager->getVertexShader("Terrain");
     CBHandle* vCB0 = vShader->getCBHandle(CB0);
-    CBHandle* vCB1 = vShader->getCBHandle(CB1);
 
-    PixelShader* pShader = shaderManager->getPixelShader("Terrain");
+    PixelShader* pShader = shader_manager->getPixelShader("Terrain");
     CBHandle* pCB0 = pShader->getCBHandle(CB0);
     CBHandle* pCB1 = pShader->getCBHandle(CB1);
 
-    const Texture* depth_texture =
-        texture_manager->getTexture("DepthStencilMain");
-
     // TEST
-    /*context->OMSetRenderTargets(1, &render_target_view,
-                                depth_texture->depth_view);*/
-    context->OMSetRenderTargets(1, &test->target_view,
-                                depth_texture->depth_view);
-    context->ClearDepthStencilView(depth_texture->depth_view, D3D11_CLEAR_DEPTH,
+    context->OMSetRenderTargets(1, &render_target->target_view,
+                                depth_stencil->depth_view);
+    context->ClearDepthStencilView(depth_stencil->depth_view, D3D11_CLEAR_DEPTH,
                                    1.0f, 0);
     context->RSSetViewports(1, &viewport);
 
@@ -567,7 +698,7 @@ void VisualSystem::performTerrainPass() {
 
     // Load my Textures
     {
-        Texture* tex = assetManager->getTexture("TerrainGrass");
+        Texture* tex = resource_manager->getTexture("TerrainGrass");
         context->PSSetShaderResources(0, 1, &tex->shader_view);
 
         const Texture* shadow_texture = light_manager->getAtlasTexture();
@@ -577,23 +708,16 @@ void VisualSystem::performTerrainPass() {
     // Load my Samplers
     {
         ID3D11SamplerState* mesh_texture_sampler =
-            assetManager->getMeshSampler();
+            resource_manager->getMeshSampler();
         context->PSSetSamplers(0, 1, &mesh_texture_sampler);
 
         ID3D11SamplerState* shadowmap_sampler =
-            assetManager->getShadowMapSampler();
+            resource_manager->getShadowMapSampler();
         context->PSSetSamplers(1, 1, &shadowmap_sampler);
     }
 
     // TEMP
-    for (const RenderableTerrain terrain : renderable_terrain) {
-        Mesh* mesh = terrain.mesh;
-        const Vector3 offset = terrain.terrain_offset;
-
-        vCB1->clearData();
-        vCB1->loadData(&offset, FLOAT3);
-        vCB1->loadData(nullptr, FLOAT);
-
+    for (Mesh* mesh : terrain_meshes) {
         context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
         UINT buffer_stride = sizeof(float) * 3;
@@ -626,19 +750,16 @@ void VisualSystem::performRenderPass() {
     cpu_timer.beginTimer("Render Pass");
 #endif
 
-    VertexShader* vShader = shaderManager->getVertexShader("ShadowShader");
+    VertexShader* vShader = shader_manager->getVertexShader("ShadowShader");
     CBHandle* vCB1 = vShader->getCBHandle(CB1);
     CBHandle* vCB2 = vShader->getCBHandle(CB2);
 
-    PixelShader* pShader = shaderManager->getPixelShader("ShadowShader");
+    PixelShader* pShader = shader_manager->getPixelShader("ShadowShader");
     CBHandle* pCB0 = pShader->getCBHandle(CB0);
     CBHandle* pCB1 = pShader->getCBHandle(CB1);
 
-    const Texture* depth_texture =
-        texture_manager->getTexture("DepthStencilMain");
-
-    context->OMSetRenderTargets(1, &test->target_view,
-                                depth_texture->depth_view);
+    context->OMSetRenderTargets(1, &render_target->target_view,
+                                depth_stencil->depth_view);
     /*context->ClearDepthStencilView(depth_texture->depth_view,
        D3D11_CLEAR_DEPTH, 1.0f, 0);*/
     context->RSSetViewports(1, &viewport);
@@ -728,7 +849,7 @@ void VisualSystem::performRenderPass() {
 
     // Load my Textures
     {
-        Texture* tex = assetManager->getTexture("CapybaraTex");
+        Texture* tex = resource_manager->getTexture("CapybaraTex");
         context->PSSetShaderResources(0, 1, &tex->shader_view);
 
         const Texture* shadow_texture = light_manager->getAtlasTexture();
@@ -738,11 +859,11 @@ void VisualSystem::performRenderPass() {
     // Load my Samplers
     {
         ID3D11SamplerState* mesh_texture_sampler =
-            assetManager->getMeshSampler();
+            resource_manager->getMeshSampler();
         context->PSSetSamplers(0, 1, &mesh_texture_sampler);
 
         ID3D11SamplerState* shadowmap_sampler =
-            assetManager->getShadowMapSampler();
+            resource_manager->getShadowMapSampler();
         context->PSSetSamplers(1, 1, &shadowmap_sampler);
     }
 
@@ -795,30 +916,32 @@ void VisualSystem::performRenderPass() {
 }
 
 void VisualSystem::processBlur() {
-    VertexShader* vShader = shaderManager->getVertexShader("Blur");
+    VertexShader* vShader = shader_manager->getVertexShader("Blur");
 
-    PixelShader* pShader = shaderManager->getPixelShader("Blur");
+    PixelShader* pShader = shader_manager->getPixelShader("Blur");
     CBHandle* pCB0 = pShader->getCBHandle(CB0);
 
     // Set render target
-    Texture* depth_texture = texture_manager->getTexture("DepthStencilMain");
-    context->OMSetRenderTargets(1, &render_target_view,
-                                depth_texture->depth_view);
+    context->OMSetRenderTargets(1, &screen_target->target_view, nullptr);
     context->RSSetViewports(1, &viewport);
 
     // Set Data
-    ID3D11SamplerState* mesh_texture_sampler = assetManager->getMeshSampler();
+    ID3D11SamplerState* mesh_texture_sampler = resource_manager->getMeshSampler();
     context->PSSetSamplers(0, 1, &mesh_texture_sampler);
-    context->PSSetShaderResources(0, 1, &test->shader_view);
+    context->PSSetShaderResources(0, 1, &render_target->shader_view);
 
-    float width = 960;
-    float height = 640;
-
+    pCB0->clearData();
     {
-        pCB0->clearData();
-        pCB0->loadData(&width, FLOAT);
-        pCB0->loadData(&height, FLOAT);
-        pCB0->loadData(nullptr, FLOAT);
+        const float f_width = (float)screen_target->width;
+        pCB0->loadData(&f_width, FLOAT);
+        const float f_height = (float)screen_target->height;
+        pCB0->loadData(&f_height, FLOAT);
+
+        static int kernel_size = 1;
+        ImGui::SliderInt("Kernel Size", &kernel_size, 1, 15);
+        float f_kernel = (float)kernel_size;
+        pCB0->loadData(&f_kernel, FLOAT);
+
         pCB0->loadData(nullptr, FLOAT);
     }
 
@@ -841,7 +964,7 @@ void VisualSystem::renderFinish() {
     swap_chain->Present(1, 0);
 
     shadow_casters.clear();
-    renderable_terrain.clear();
+    terrain_meshes.clear();
 }
 
 void VisualSystem::renderDebugPoints() {
@@ -850,16 +973,16 @@ void VisualSystem::renderDebugPoints() {
     if (points.size() == 0)
         return;
 
-    VertexShader* vShader = shaderManager->getVertexShader("DebugPoint");
+    VertexShader* vShader = shader_manager->getVertexShader("DebugPoint");
     CBHandle* vCB0 = vShader->getCBHandle(CB0);
     CBHandle* vCB1 = vShader->getCBHandle(CB1);
 
-    PixelShader* pShader = shaderManager->getPixelShader("DebugPoint");
+    PixelShader* pShader = shader_manager->getPixelShader("DebugPoint");
 
     vShader->getCBHandle(CB0)->clearData();
     vShader->getCBHandle(CB1)->clearData();
 
-    Asset* cube = assetManager->getAsset("Cube");
+    Asset* cube = resource_manager->getAsset("Cube");
     const Mesh* mesh = cube->getMesh();
 
     ID3D11Buffer* indexBuffer = mesh->index_buffer;
@@ -916,10 +1039,10 @@ void VisualSystem::renderDebugLines() {
     if (lines.size() == 0)
         return;
 
-    VertexShader* vShader = shaderManager->getVertexShader("DebugLine");
+    VertexShader* vShader = shader_manager->getVertexShader("DebugLine");
     CBHandle* vCB1 = vShader->getCBHandle(CB1);
 
-    PixelShader* pShader = shaderManager->getPixelShader("DebugLine");
+    PixelShader* pShader = shader_manager->getPixelShader("DebugLine");
 
     vShader->getCBHandle(CB1)->clearData();
 
@@ -968,7 +1091,7 @@ void VisualSystem::renderDebugLines() {
 #if defined(_DEBUG)
 // ImGui Initialize:
 // Initializes the ImGui menu and associated data.
-void VisualSystem::imGuiInitialize() {
+void VisualSystem::imGuiInitialize(HWND window) {
     // Initialize ImGui
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();

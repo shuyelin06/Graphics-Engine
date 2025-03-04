@@ -101,8 +101,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     input_system.initialize(hwnd);
 
     // Create Visual System
-    VisualSystem visual_system = VisualSystem(hwnd);
-    visual_system.initialize();
+    VisualSystem visual_system = VisualSystem();
+    visual_system.initialize(hwnd);
 
     // Create Physics System
     PhysicsSystem physics_system = PhysicsSystem();
@@ -177,7 +177,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
             for (int i = 0; i < TERRAIN_NUM_CHUNKS; i++) {
                 for (int j = 0; j < TERRAIN_NUM_CHUNKS; j++) {
-                    TerrainChunk* chunk = scene_graph.getTerrainChunk(i,j);
+                    TerrainChunk* chunk = scene_graph.getTerrainChunk(i, j);
 
                     if (!chunk->hasVisualTerrain()) {
                         visual_system.bindVisualTerrain(chunk);
@@ -189,14 +189,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         //// TODO: THIS CODE IS WRONG
         // child2.getTransform().lookAt(
         //     visual_system.getCamera().getTransform()->getPosition());
-        
 
         // child2.getTransform().offsetRotation(Vector3::PositiveY(), PI / 20);
-        //sun_light.getTransform().setViewDirection(Vector3(0, -0.25f, 0.75f));
-        //Vector3 position =
+        // sun_light.getTransform().setViewDirection(Vector3(0, -0.25f, 0.75f));
+        // Vector3 position =
         //    visual_system.getCamera().getTransform()->getPosition() +
         //    sun_light.getTransform().backward() * 25; // 75 OG
-        //sun_light.getTransform().setPosition(position.x, position.y,
+        // sun_light.getTransform().setPosition(position.x, position.y,
         //                                     position.z);
 
         // Submit Object Render Requests
