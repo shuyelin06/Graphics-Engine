@@ -157,7 +157,7 @@ ID3D11SamplerState* VisualResourceManager::LoadShadowMapSampler() {
     ID3D11SamplerState* sampler;
 
     D3D11_SAMPLER_DESC sampler_desc = {};
-    sampler_desc.Filter = D3D11_FILTER_ANISOTROPIC;
+    sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR; // Linear Filtering for PCF
     sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
     sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
     sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;

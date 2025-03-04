@@ -98,14 +98,26 @@ float shadowValue(float3 world_position, LightData light)
             
             // Pull the depth of our point.
             float cur_depth = view_coords.z;
-            // Sample the shadow map depth.
-            float sampled_depth = shadow_atlas.Sample(shadowmap_sampler, shadowmap_coords).r;
+            // Sample the shadow map depth. We will sample in a n x n kernel around for softer shadows.
+            float depth_0 = shadow_atlas.GatherRed(shadowmap_sampler, shadowmap_coords, int2(0, 0)).x;
+            float depth_1 = shadow_atlas.GatherRed(shadowmap_sampler, shadowmap_coords, int2(1, 0)).x;
+            float depth_2 = shadow_atlas.GatherRed(shadowmap_sampler, shadowmap_coords, int2(0, 1)).x;
+            float depth_3 = shadow_atlas.GatherRed(shadowmap_sampler, shadowmap_coords, int2(1, 1)).x;
             
             // Perform a shadow test by seeing if the point's depth exceeds the depth. 
             // If sampled_depth is < depth, the light cannot see the point, so it provides
             // no contribution to the color at that point (point is in shadow). 
             // We add a bias in the test to reduce shadow acne due to imprecision.
+            shadow_value = shadow_value + step(cur_depth, depth_0 + bias);
+            shadow_value = shadow_value + step(cur_depth, depth_1 + bias);
+            shadow_value = shadow_value + step(cur_depth, depth_2 + bias);
+            shadow_value = shadow_value + step(cur_depth, depth_3 + bias);
+            shadow_value = shadow_value / 4.f;
+            
+            /*
+            float sampled_depth = shadow_atlas.Sample(shadowmap_sampler, shadowmap_coords).r;
             shadow_value = step(cur_depth, sampled_depth + bias);
+            */
         }
     }
     
