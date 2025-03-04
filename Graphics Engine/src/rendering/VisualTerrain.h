@@ -15,7 +15,9 @@ class VisualTerrain {
 
   private:
     TerrainChunk* const terrain;
+    
     Mesh* terrain_mesh;
+    std::vector<Mesh*> tree_meshes;
 
     bool markedToDestroy;
 
@@ -29,6 +31,8 @@ class VisualTerrain {
 
   private:
     Mesh* generateTerrainMesh(MeshBuilder& builder);
+    Mesh* generateTreeMesh(MeshBuilder& builder, const Vector2& location);
 };
+
 } // namespace Graphics
 } // namespace Engine

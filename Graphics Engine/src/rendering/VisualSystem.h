@@ -41,6 +41,10 @@ struct RenderableTerrain {
     Mesh* mesh;
     Vector3 terrain_offset;
 };
+struct RenderableMesh {
+    const Mesh* mesh;
+    Matrix4 m_localToWorld;
+};
 
 // VisualSystem Class:
 // Provides an interface for the application's graphics.
@@ -81,8 +85,9 @@ class VisualSystem {
     std::vector<VisualTerrain*> terrain_chunks;
 
     std::vector<ShadowCaster> shadow_casters;
+    std::vector<RenderableMesh> renderable_meshes;
     std::vector<Mesh*> terrain_meshes;
-
+    
   public:
     VisualSystem();
 

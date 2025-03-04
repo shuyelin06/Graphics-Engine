@@ -63,7 +63,7 @@ float selectCascade(float3 world_position)
 // Given data for a light and the world position of a pixel, computes the shadow value
 // of the pixel. This is a value from [0,1], indicating how "shadowed" the pixel is.
 // For hard shadowing, this value will be 0 or 1, but can be imbetween with soft shadows.
-float shadowValue(float3 world_position, LightData light)
+float shadowValue(float3 world_position, LightData light, float bias)
 {
     // Convert the position into the light's coordinates
     float4 view_coords = float4(world_position, 1.f);
@@ -79,9 +79,6 @@ float shadowValue(float3 world_position, LightData light)
     {
         if (-1.f <= view_coords.y && view_coords.y <= 1.f)
         {
-            // Bias value to reduce shadow acne. Hard coded for now. 
-            float bias = 0.01f;
-            
             // Otherwise, sample the light's shadow map to see if the pointis in shadow.
             // First, convert the coordinates of the pixel to u,v coordinates in the light shadow map.
             float2 shadowmap_coords = float2((view_coords.x + 1) / 2.f, (1.f - view_coords.y) / 2.f);
@@ -92,7 +89,7 @@ float shadowValue(float3 world_position, LightData light)
             // Pull the depth of our point.
             float cur_depth = view_coords.z;
             // Sample the shadow map depth. 
-            float depth = shadow_atlas.GatherRed(shadowmap_sampler, shadowmap_coords).x;
+            float depth = shadow_atlas.Sample(shadowmap_sampler, shadowmap_coords).x;
             
             // Perform a shadow test by seeing if the point's depth exceeds the depth. 
             // If sampled_depth is < depth, the light cannot see the point, so it provides

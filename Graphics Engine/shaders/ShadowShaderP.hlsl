@@ -39,7 +39,7 @@ float4 ps_main(VS_OUT input) : SV_TARGET
     LightData light = sun_cascades[selectCascade(input.world_position)];
     
     // Then, select the shadow value of the point
-    float shadow_factor = shadowValue(input.world_position, light);
+    float shadow_factor = shadowValue(input.world_position, light, 0.01f);
                    
     // Compute the diffuse contribution. Flip the sun direction since it points from 
     // the light -> surface.

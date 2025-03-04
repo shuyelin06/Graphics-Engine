@@ -26,10 +26,19 @@ TerrainChunk::TerrainChunk(float _world_x, float _world_z) {
 
     visual_terrain = nullptr;
 
+    // Sample the Perlin Noise to generate my height map
     for (int x = 0; x < HEIGHT_MAP_XZ_SAMPLES; x++) {
         for (int z = 0; z < HEIGHT_MAP_XZ_SAMPLES; z++) {
             reloadHeightMap(x, z);
         }
+    }
+
+    // Randomly create trees in the chunk
+    int num_trees = Random(3, 10);
+    for (int i = 0; i < num_trees; i++) {
+        const float x = Random(0.f, HEIGHT_MAP_XZ_SIZE);
+        const float z = Random(0.f, HEIGHT_MAP_XZ_SIZE);
+        tree_locations.push_back(Vector2(x, z));
     }
 }
 TerrainChunk::~TerrainChunk() {
@@ -42,6 +51,10 @@ TerrainChunk::~TerrainChunk() {
 float TerrainChunk::getX() const { return world_x; }
 float TerrainChunk::getZ() const { return world_z; }
 
+const std::vector<Vector2>& TerrainChunk::getTreeLocations() const {
+    return tree_locations;
+}
+
 // ReloadTerrainChunk:
 // Reloads a sample of the height-map by index, by calculating the x,z
 // coordinates of that sample.
@@ -53,7 +66,7 @@ void TerrainChunk::reloadHeightMap(UINT index_x, UINT index_z) {
 
     // Tuning the inputs to the noise, so that the terrain comes out smoothly.
     constexpr float ROUGHNESS = 0.0035f;
-    constexpr float OFFSET = 1000.f; 
+    constexpr float OFFSET = 1000.f;
     const float noise = PerlinNoise::octaveNoise2D(
         x * ROUGHNESS + OFFSET, z * ROUGHNESS + OFFSET, 4, 6);
     const float height = noise * HEIGHT_MAP_Y_HEIGHT;

@@ -504,14 +504,30 @@ void VisualSystem::renderPrepare() {
         shadowCaster.mesh = asset->getMesh();
         shadowCaster.m_localToWorld = object->object->getLocalMatrix();
         shadow_casters.push_back(shadowCaster);
+
+        RenderableMesh renderableMesh;
+        renderableMesh.mesh = asset->getMesh();
+        renderableMesh.m_localToWorld = object->object->getLocalMatrix();
+        renderable_meshes.push_back(renderableMesh);
     }
 
     // Parse all terrain data
     for (const VisualTerrain* terrain : terrain_chunks) {
         ShadowCaster shadowCaster;
-        shadowCaster.mesh = terrain->terrain_mesh;
         shadowCaster.m_localToWorld = Matrix4::Identity();
+
+        shadowCaster.mesh = terrain->terrain_mesh;
         shadow_casters.push_back(shadowCaster);
+
+        for (Mesh* tree_mesh : terrain->tree_meshes) {
+            shadowCaster.mesh = tree_mesh;
+            shadow_casters.push_back(shadowCaster);
+
+            RenderableMesh renderableMesh;
+            renderableMesh.mesh = tree_mesh;
+            renderableMesh.m_localToWorld = Matrix4::Identity();
+            renderable_meshes.push_back(renderableMesh);
+        }
 
         terrain_meshes.push_back(terrain->terrain_mesh);
     }
@@ -867,9 +883,8 @@ void VisualSystem::performRenderPass() {
         context->PSSetSamplers(1, 1, &shadowmap_sampler);
     }
 
-    for (const AssetObject* asset_obj : renderable_assets) {
-        Asset* asset = asset_obj->asset;
-        const Matrix4& mLocalToWorld = asset_obj->object->getLocalMatrix();
+    for (const RenderableMesh& renderable_mesh : renderable_meshes) {
+        const Matrix4& mLocalToWorld = renderable_mesh.m_localToWorld;
 
         {
             vCB2->clearData();
@@ -881,7 +896,7 @@ void VisualSystem::performRenderPass() {
         }
 
         // Load each mesh
-        const Mesh* mesh = asset->getMesh();
+        const Mesh* mesh = renderable_mesh.mesh;
 
         context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
@@ -926,7 +941,8 @@ void VisualSystem::processBlur() {
     context->RSSetViewports(1, &viewport);
 
     // Set Data
-    ID3D11SamplerState* mesh_texture_sampler = resource_manager->getMeshSampler();
+    ID3D11SamplerState* mesh_texture_sampler =
+        resource_manager->getMeshSampler();
     context->PSSetSamplers(0, 1, &mesh_texture_sampler);
     context->PSSetShaderResources(0, 1, &render_target->shader_view);
 
@@ -963,6 +979,7 @@ void VisualSystem::renderFinish() {
     // Present what we rendered to
     swap_chain->Present(1, 0);
 
+    renderable_meshes.clear();
     shadow_casters.clear();
     terrain_meshes.clear();
 }
