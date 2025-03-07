@@ -23,6 +23,7 @@ float4 psterrain_main(PS_IN input) : SV_TARGET
     float4 color = float4(0, 0, 0, 1);
        
     // Texture coordinate is the xz coordinate, scaled to some value
+    /*
     float scale = 0.1;
     
     float3 xz_color = terrain_texture.Sample(mesh_sampler, input.world_position.xz * scale).rgb;
@@ -33,8 +34,9 @@ float4 psterrain_main(PS_IN input) : SV_TARGET
     
     float3 yz_color = terrain_texture.Sample(mesh_sampler, input.world_position.yz * scale).rgb;
     float yz_contribution = abs(dot(float3(1, 0, 0), input.normal));
+    */
     
-    float3 mesh_color = xz_color * xz_contribution + xy_color * xy_contribution + yz_color * yz_contribution;
+    float3 mesh_color = float3(0.004f, 0.2f, 0.125f);
     
     // Ambient Lighting
     float ambient = 0.35f;

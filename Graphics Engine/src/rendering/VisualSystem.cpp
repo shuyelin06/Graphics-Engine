@@ -954,7 +954,7 @@ void VisualSystem::processBlur() {
         pCB0->loadData(&f_height, FLOAT);
 
         static int kernel_size = 1;
-        ImGui::SliderInt("Kernel Size", &kernel_size, 1, 15);
+        ImGui::SliderInt("Kernel Size", &kernel_size, 1, 100);
         float f_kernel = (float)kernel_size;
         pCB0->loadData(&f_kernel, FLOAT);
 
