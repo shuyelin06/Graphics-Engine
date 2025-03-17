@@ -150,17 +150,22 @@ void ShaderManager::initialize() {
         pixel_shaders["ShadowShader"] = ps;
     }
 
-    // Blur:
-    // Attempt at blurring
+    // --- Post Processing Effects ---
+    // Generic vertex shader for post process effects
     {
         VertexDataStream blur_input[1] = {SV_POSITION};
         VertexShader* vs =
-            createVertexShader("Blur.hlsl", "vs_blur", blur_input, 1);
-        vertex_shaders["Blur"] = vs;
+            createVertexShader("Sky.hlsl", "vs_sky", blur_input, 1);
+        vertex_shaders["PostProcess"] = vs;
+    }
 
-        PixelShader* ps = createPixelShader("Blur.hlsl", "ps_blur");
+    // Blur:
+    // Attempt at blurring
+    {
+        PixelShader* ps = createPixelShader("Sky.hlsl", "ps_sky");
         ps->enableCB(CB0);
-        pixel_shaders["Blur"] = ps;
+        ps->enableCB(CB1);
+        pixel_shaders["Sky"] = ps;
     }
 }
 

@@ -153,16 +153,18 @@ void VisualSystem::initializeRenderTarget(UINT width, UINT height) {
 
     // Create a shader view for my render target texture so we can access it in
     // the GPU
-    D3D11_SHADER_RESOURCE_VIEW_DESC resource_view_desc = {};
-    resource_view_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    resource_view_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-    resource_view_desc.Texture2D.MostDetailedMip = 0;
-    resource_view_desc.Texture2D.MipLevels = 1;
+    {
+        D3D11_SHADER_RESOURCE_VIEW_DESC resource_view_desc = {};
+        resource_view_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        resource_view_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+        resource_view_desc.Texture2D.MostDetailedMip = 0;
+        resource_view_desc.Texture2D.MipLevels = 1;
 
-    result = device->CreateShaderResourceView(render_target->texture,
-                                              &resource_view_desc,
-                                              &render_target->shader_view);
-    assert(SUCCEEDED(result));
+        result = device->CreateShaderResourceView(render_target->texture,
+                                                  &resource_view_desc,
+                                                  &render_target->shader_view);
+        assert(SUCCEEDED(result));
+    }
 
     // Create another texture as a depth stencil, for z-testing
     // Create my depth stencil which will be used for z-tests
@@ -176,8 +178,8 @@ void VisualSystem::initializeRenderTarget(UINT width, UINT height) {
     tex_desc.MipLevels = 1;
     tex_desc.ArraySize = 1;
     tex_desc.SampleDesc.Count = 1;
-    tex_desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    tex_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+    tex_desc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+    tex_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
 
     result = device->CreateTexture2D(&tex_desc, NULL, &depth_stencil->texture);
     assert(SUCCEEDED(result));
@@ -191,6 +193,20 @@ void VisualSystem::initializeRenderTarget(UINT width, UINT height) {
     result = device->CreateDepthStencilView(
         depth_stencil->texture, &desc_stencil, &depth_stencil->depth_view);
     assert(SUCCEEDED(result));
+
+    // Create my shader view for the depth texture
+    {
+        D3D11_SHADER_RESOURCE_VIEW_DESC resource_view_desc = {};
+        resource_view_desc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+        resource_view_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+        resource_view_desc.Texture2D.MostDetailedMip = 0;
+        resource_view_desc.Texture2D.MipLevels = 1;
+
+        result = device->CreateShaderResourceView(depth_stencil->texture,
+                                                  &resource_view_desc,
+                                                  &depth_stencil->shader_view);
+        assert(SUCCEEDED(result));
+    }
 }
 
 // InitializeFullscreenQuad:
@@ -331,7 +347,7 @@ void VisualSystem::render() {
     performTerrainPass();
     performRenderPass();
 
-    processBlur();
+    processSky();
 
     // ...
 #if defined(_DEBUG)
@@ -956,11 +972,12 @@ void VisualSystem::performRenderPass() {
 #endif
 }
 
-void VisualSystem::processBlur() {
-    VertexShader* vShader = shader_manager->getVertexShader("Blur");
+void VisualSystem::processSky() {
+    VertexShader* vShader = shader_manager->getVertexShader("PostProcess");
 
-    PixelShader* pShader = shader_manager->getPixelShader("Blur");
+    PixelShader* pShader = shader_manager->getPixelShader("Sky");
     CBHandle* pCB0 = pShader->getCBHandle(CB0);
+    CBHandle* pCB1 = pShader->getCBHandle(CB1);
 
     // Set render target
     context->OMSetRenderTargets(1, &screen_target->target_view, nullptr);
@@ -970,7 +987,9 @@ void VisualSystem::processBlur() {
     ID3D11SamplerState* mesh_texture_sampler =
         resource_manager->getMeshSampler();
     context->PSSetSamplers(0, 1, &mesh_texture_sampler);
+
     context->PSSetShaderResources(0, 1, &render_target->shader_view);
+    context->PSSetShaderResources(1, 1, &depth_stencil->shader_view);
 
     pCB0->clearData();
     {
@@ -985,6 +1004,25 @@ void VisualSystem::processBlur() {
         pCB0->loadData(&f_kernel, FLOAT);
 
         pCB0->loadData(nullptr, FLOAT);
+    }
+
+    pCB1->clearData();
+    {
+        const Matrix4 m_project_to_world =
+            (camera.getFrustumMatrix() * camera.getWorldToCameraMatrix())
+                .inverse();
+        pCB1->loadData(&m_project_to_world, FLOAT4X4);
+
+        const Vector3& sun_direction =
+            light_manager->getSunLight()->getDirection();
+        pCB1->loadData(&sun_direction, FLOAT3);
+
+        pCB1->loadData(nullptr, FLOAT);
+
+        const Vector3 cam_pos = camera.getTransform()->getPosition();
+        pCB1->loadData(&cam_pos, FLOAT3);
+
+        pCB1->loadData(nullptr, FLOAT);
     }
 
     // Bind full screen quad

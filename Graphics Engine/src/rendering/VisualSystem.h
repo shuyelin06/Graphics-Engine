@@ -124,7 +124,7 @@ class VisualSystem {
     void performTerrainPass(); // Render Terrain
     void performRenderPass();  // Render Pass
 
-    void processBlur(); // Blur Effect
+    void processSky(); // Blur Effect
 
     void renderFinish(); // Finish Rendering
 
