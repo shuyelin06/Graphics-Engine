@@ -63,6 +63,10 @@ Mesh* MeshBuilder::generate() {
     mesh->vertex_streams[COLOR] =
         createVertexStream(ExtractVertexColor, sizeof(float) * 3);
 
+    // Generate my AABB extents
+    for (const MeshVertex& vertex : vertex_buffer)
+        mesh->aabb.expandToContain(vertex.position);
+
     return mesh;
 }
 
@@ -160,7 +164,8 @@ void MeshBuilder::addTriangle(UINT v1, UINT v2, UINT v3) {
 // Generates various shapes (given parameters) and adds them to the mesh
 // builder.
 // Creates a plane with boundaries given as vertices a,b,c,d in CCW order.
-void MeshBuilder::addTriangle(const Vector3& a, const Vector3& b, const Vector3& c) {
+void MeshBuilder::addTriangle(const Vector3& a, const Vector3& b,
+                              const Vector3& c) {
     const int i0 = addVertex(a);
     const int i1 = addVertex(b);
     const int i2 = addVertex(c);
@@ -197,8 +202,8 @@ void MeshBuilder::addCube(const Vector3& center, const Quaternion& rotation,
         vertices[i] = center + m_rotation * (vertices[i] * size);
     }
 
-    // Add the faces of the cube. We need to add repeat vertices so that the normals for each face
-    // are sharp. 
+    // Add the faces of the cube. We need to add repeat vertices so that the
+    // normals for each face are sharp.
     for (int i = 0; i < 24; i += 4) {
         const int i0 = addVertex(vertices[indices[i]]);
         const int i1 = addVertex(vertices[indices[i + 1]]);
@@ -208,7 +213,6 @@ void MeshBuilder::addCube(const Vector3& center, const Quaternion& rotation,
         addTriangle(i0, i1, i2);
         addTriangle(i2, i3, i0);
     }
-
 }
 
 // AddTube:

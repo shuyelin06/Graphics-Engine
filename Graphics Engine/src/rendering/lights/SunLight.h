@@ -6,7 +6,7 @@ constexpr int SUN_NUM_CASCADES = 3;
 
 namespace Engine {
 namespace Graphics {
-class CameraFrustum;
+class Frustum;
 
 // SunLight Class:
 // Defines a light that is used as the sun in the engine.
@@ -34,11 +34,11 @@ class SunLight {
     void setSunDirection(const Vector3& direction);
 
     // Given the camera frustum, updates the sun's cascades
-    void updateSunCascades(const CameraFrustum& cam_frustum);
+    void updateSunCascades(const Frustum& cam_frustum);
 
   private:
     void updateCascade(int index, float min_z, float max_z,
-                       const CameraFrustum& cam_frustum);
+                       const Frustum& cam_frustum);
 };
 
 } // namespace Graphics

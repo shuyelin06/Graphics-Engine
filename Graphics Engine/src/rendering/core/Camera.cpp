@@ -1,5 +1,7 @@
 #include "Camera.h"
 
+#include <algorithm>
+#include <float.h>
 #include <math.h>
 
 #include "math/Compute.h"
@@ -8,31 +10,6 @@
 
 namespace Engine {
 namespace Graphics {
-// --- Camera Frustum ---
-CameraFrustum::CameraFrustum(const Camera& camera) {
-    m_world_to_frustum =
-        camera.getFrustumMatrix() * camera.getWorldToCameraMatrix();
-    m_frustum_to_world = camera.getTransform()->transformMatrix() * camera.getFrustumMatrix().inverse();
-
-    camera_pos = camera.getTransform()->getPosition();
-}
-
-Vector3 CameraFrustum::toWorldSpace(const Vector3& frustum_coords) const {
-    Vector4 transformed = m_frustum_to_world * Vector4(frustum_coords, 1.f);
-    transformed = transformed / transformed.w;
-    return transformed.xyz();
-}
-
-Vector3 CameraFrustum::toFrustumSpace(const Vector3& world_space) const {
-    Vector4 transformed = m_world_to_frustum * Vector4(world_space, 1.f);
-    transformed = transformed / transformed.w;
-    return transformed.xyz();
-}
-
-Vector3 CameraFrustum::getCameraPosition() const {
-    return camera_pos;
-}
-
 // --- Camera ---
 Camera::Camera() {
     setFrustumMatrix(1.2f, 5.f, 300.f);
@@ -47,7 +24,11 @@ Transform* Camera::getTransform() { return transform; }
 
 // GetFrustum:
 // Returns an object which can be used to query the camera frustum.
-CameraFrustum Camera::getFrustum() const { return CameraFrustum(*this); }
+Frustum Camera::frustum() const {
+    const Matrix4 m_world_to_frustum =
+        frustum_matrix * transform->transformMatrix().inverse();
+    return Frustum(m_world_to_frustum);
+}
 
 // SetTransform:
 // Sets the camera's transform to follow a particular transform.

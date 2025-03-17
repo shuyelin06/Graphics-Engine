@@ -19,6 +19,7 @@ class Vector3 {
     // Updates the contents of the current vector
     void set(const Vector3& vec); 
 
+    // Return a vector with the contents rearranged
     Vector3 xzy() const;
 
     // Normalize the vector
@@ -32,6 +33,7 @@ class Vector3 {
     Vector3 cross(const Vector3& vector) const;
     
     // Projects this vector onto another vector.
+    float scalarProjection(const Vector3& vector) const;
     Vector3 projectOnto(const Vector3& vector) const;
 
     // Returns a new vector with each x,y,z value the minimum (or maximum) of the two vectors

@@ -2,6 +2,7 @@
 
 #include "../Direct3D11.h"
 #include "../core/TextureAtlas.h"
+#include "../util/Frustum.h"
 
 #include "math/Color.h"
 #include "math/Matrix4.h"
@@ -45,6 +46,7 @@ class ShadowLight {
     const Matrix4& getFrustumMatrix(void) const;
         
     Vector3 getPosition(void) const;
+    Frustum frustum() const;
 
     // Setters
     void setPosition(const Vector3& position);

@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "AABB.h"
+#include "CollisionAABB.h"
 
 #if defined(_DEBUG) && defined(DRAW_AABB_EXTENTS)
 #define DRAW_AABB_TREE
@@ -18,7 +18,7 @@ namespace Physics {
 struct AABBNode;
 
 // ColliderPair:
-// Contains two AABBs that the AABBTree has found to be colliding 
+// Contains two AABBs that the AABBTree has found to be colliding
 // during its broadphase.
 // Can be used by the physics engine for a more precise collision
 // check and resolution.
@@ -38,7 +38,7 @@ class AABBTree {
     // directions. When AABBs leave this margin, we update them.
     float margin;
 
-    // Stores our collider pairs. 
+    // Stores our collider pairs.
     // Call computeColliderPairs() to populate.
     std::vector<ColliderPair> collider_pairs;
 

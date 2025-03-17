@@ -152,9 +152,11 @@ Vector3 Transform::down(void) const { return -up(); }
 // and translations for a given transform
 Matrix4 Transform::transformMatrix(void) const {
     // Generate the transformation matrices
-    const Matrix4 m_scale = scaleMatrix();             // Scale
-    const Matrix4 m_rotation = rotationMatrix();       // Rotation
-    const Matrix4 m_translation = translationMatrix(); // Translation
+    const Matrix4 m_scale =
+        Matrix4::T_Scale(scale.x, scale.y, scale.z);       // Scale
+    const Matrix4 m_rotation = rotation.rotationMatrix4(); // Rotation
+    const Matrix4 m_translation =
+        Matrix4::T_Translate(position_local); // Translation
 
     // Build final matrix
     // Left matrix gets precedence, as we are performing row-major
@@ -165,41 +167,16 @@ Matrix4 Transform::transformMatrix(void) const {
 // ScaleMatrix:
 // Returns the scale matrix for the transform
 Matrix4 Transform::scaleMatrix(void) const {
-    return Matrix4(scale.x, 0, 0, 0, 0, scale.y, 0, 0, 0, 0, scale.z, 0, 0, 0,
-                   0, 1);
+    return Matrix4(scale.x, 0, 0, 0, // R1
+                   0, scale.y, 0, 0, // R2
+                   0, 0, scale.z, 0, // R3
+                   0, 0, 0, 1);      // R4
 };
 
 // RotationMatrix:
 // Returns the rotation matrix for the transform
 Matrix4 Transform::rotationMatrix(void) const {
     return rotation.rotationMatrix4();
-}
-
-// TranslationMatrix:
-// Returns the translation matrix for the transform
-Matrix4 Transform::translationMatrix(void) const {
-    return GenerateTranslationMatrix(position_local.x, position_local.y,
-                                     position_local.z);
-}
-
-Matrix4 Transform::GenerateTranslationMatrix(const Vector3& position) {
-    return GenerateTranslationMatrix(position.x, position.y, position.z);
-}
-
-Matrix4 Transform::GenerateTranslationMatrix(float x, float y, float z) {
-    return Matrix4(1, 0, 0, x, // Row 1
-                   0, 1, 0, y, // Row 2
-                   0, 0, 1, z, // Row 3
-                   0, 0, 0, 1);
-}
-
-Matrix4 Transform::GenerateRotationMatrix(const Vector3& axis, float theta) {
-    const Quaternion rotation = Quaternion::RotationAroundAxis(axis, theta);
-    return rotation.rotationMatrix4();
-}
-
-Matrix4 Transform::GenerateRotationMatrix(const Quaternion& quaternion) {
-    return quaternion.rotationMatrix4();
 }
 
 } // namespace Math

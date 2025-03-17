@@ -6,6 +6,8 @@ namespace Engine {
 namespace Datamodel {
 
 Scene::Scene() : objects(), terrain(), terrain_helper() {
+    noise_func = new PerlinNoise(0);
+
     center_chunk_x = INT_MIN, center_chunk_z = INT_MIN;
 }
 Scene::~Scene() {
@@ -43,11 +45,42 @@ float Scene::sampleTerrainHeight(float x, float z) const {
         return FLT_MIN;
 
     const TerrainChunk* chunk = terrain[x_index][z_index];
-    
+
     if (chunk == nullptr)
         return FLT_MIN;
 
     return chunk->sampleTerrainHeight(x, z);
+}
+
+// SeedTerrain:
+// Seeds the Perlin Noise function for terraing generation
+void Scene::seedTerrain(unsigned int seed) {
+    if (noise_func != nullptr)
+        delete noise_func;
+    noise_func = new PerlinNoise(seed);
+}
+
+// ReloadTerrain:
+// Force reload all terrain chunks based on the scene configuration.
+// Good for debugging
+void Scene::reloadTerrain() {
+    // Iterate through and replace every terrain chunk with a new=
+    // chunk
+    for (int i = 0; i < TERRAIN_NUM_CHUNKS; i++) {
+        for (int j = 0; j < TERRAIN_NUM_CHUNKS; j++) {
+            // Free memory for old chunks
+            if (terrain[i][j] != nullptr)
+                delete terrain[i][j];
+
+            // Create new chunks
+            const float chunk_x = (i - TERRAIN_CHUNK_EXTENT + center_chunk_x) *
+                                  HEIGHT_MAP_XZ_SIZE;
+            const float chunk_z = (j - TERRAIN_CHUNK_EXTENT + center_chunk_z) *
+                                  HEIGHT_MAP_XZ_SIZE;
+
+            terrain_helper[i][j] = new TerrainChunk(chunk_x, chunk_z);
+        }
+    }
 }
 
 // --- Scene Updating ---

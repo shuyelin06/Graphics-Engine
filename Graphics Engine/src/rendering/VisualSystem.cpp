@@ -7,6 +7,8 @@
 
 #include "datamodel/Object.h"
 
+#include "util/Frustum.h"
+
 #define RGB(rgb) ((rgb) / 255.f)
 
 #include "datamodel/TreeGenerator.h"
@@ -418,7 +420,7 @@ void generateTreeMesh(MeshBuilder& builder,
 
 // RenderPrepare:
 // Prepares the engine for rendering, by processing all render requests and
-// clearing the screen.
+// clearing the screen
 void VisualSystem::renderPrepare() {
 #if defined(_DEBUG)
     cpu_timer.beginTimer("Render Prepare");
@@ -427,42 +429,6 @@ void VisualSystem::renderPrepare() {
     // Clear the the screen color
     render_target->clearAsRenderTarget(
         context, Color(RGB(158.f), RGB(218.f), RGB(255.f)));
-
-    // --- TEST ---
-    static TreeGenerator tree_gen = TreeGenerator();
-    static AssetObject* tree_asset = nullptr;
-
-    if (ImGui::Button("Regenerate")) {
-        tree_gen.generateTree();
-
-        const std::vector<TreeStructure> tree = tree_gen.getTree();
-
-        MeshBuilder* builder = resource_manager->createMeshBuilder();
-        generateTreeMesh(*builder, tree, Vector3(0, 0, 0));
-        builder->regenerateNormals();
-
-        if (tree_asset == nullptr) {
-            Object* obj = new Object();
-            obj->getTransform().setPosition(0, 50.f, 0);
-            obj->updateLocalMatrix(Matrix4::Identity());
-
-            tree_asset = new AssetObject(obj, new Asset(builder->generate()));
-            obj->setVisualObject(tree_asset);
-            renderable_assets.push_back(tree_asset);
-        } else {
-            tree_asset->asset = new Asset(builder->generate());
-        }
-    }
-
-    // tree_gen.debugDrawTree(Vector3(0, 0, 0));
-    // ---
-
-    // --- TEST 2
-    static float direction[3] = {0, -0.5f, 0.25f};
-
-    ImGui::SliderFloat3("Sun Direction", direction, -1.f, 1.f);
-    light_manager->getSunLight()->setSunDirection(
-        Vector3(direction[0], direction[1], direction[2]));
 
     // Check and remove any visual objects that are no longer valid
     int head;
@@ -492,10 +458,57 @@ void VisualSystem::renderPrepare() {
     }
     terrain_chunks.resize(head);
 
-    // Update my light data from the datamodel.
+    // --- TESTING ENVIRONMENT ---
+    // --- TEST ---
+    static TreeGenerator tree_gen = TreeGenerator();
+    static AssetObject* tree_asset = nullptr;
+
+    if (ImGui::Button("Regenerate")) {
+        tree_gen.generateTree();
+
+        const std::vector<TreeStructure> tree = tree_gen.getTree();
+
+        MeshBuilder* builder = resource_manager->createMeshBuilder();
+        generateTreeMesh(*builder, tree, Vector3(0, 0, 0));
+        builder->regenerateNormals();
+
+        if (tree_asset == nullptr) {
+            Object* obj = new Object();
+            obj->getTransform().setPosition(0, 50.f, 0);
+            obj->updateLocalMatrix(Matrix4::Identity());
+
+            tree_asset = new AssetObject(obj, new Asset(builder->generate()));
+            obj->setVisualObject(tree_asset);
+            renderable_assets.push_back(tree_asset);
+        } else {
+            tree_asset->asset = new Asset(builder->generate());
+        }
+    }
+
+    // tree_gen.debugDrawTree(Vector3(0, 0, 0));
+    // ---
+
+    // --- TEST 2: Sun
+    static float direction[3] = {0, -0.5f, 0.25f};
+    ImGui::SliderFloat3("Sun Direction", direction, -1.f, 1.f);
+    light_manager->updateSunDirection(
+        Vector3(direction[0], direction[1], direction[2]));
+
+    // Pull information from the datamodel
+    // - Pull asset local -> world matrices from the datamodel
+    // - Pull light data from the datamodel.
+    for (AssetObject* asset_object : renderable_assets)
+        asset_object->pullDatamodelData();
     for (ShadowLightObject* shadow_light : shadow_lights)
         shadow_light->pullDatamodelData();
-    light_manager->update(camera.getFrustum());
+    light_manager->updateSunCascades(camera.frustum());
+
+    static bool enable = true;
+    ImGui::Checkbox("Disable Frustum Culling", &enable);
+    const Frustum cam_frustum = camera.frustum();
+
+    // Prepare managers for data
+    light_manager->resetShadowCasters();
 
     for (const AssetObject* object : renderable_assets) {
         const Asset* asset = object->getAsset();
@@ -503,12 +516,15 @@ void VisualSystem::renderPrepare() {
         ShadowCaster shadowCaster;
         shadowCaster.mesh = asset->getMesh();
         shadowCaster.m_localToWorld = object->object->getLocalMatrix();
-        shadow_casters.push_back(shadowCaster);
+        light_manager->addShadowCaster(shadowCaster);
 
-        RenderableMesh renderableMesh;
-        renderableMesh.mesh = asset->getMesh();
-        renderableMesh.m_localToWorld = object->object->getLocalMatrix();
-        renderable_meshes.push_back(renderableMesh);
+        if (enable || cam_frustum.intersectsOBB(
+                          OBB(asset->getMesh()->aabb, Matrix4::Identity()))) {
+            RenderableMesh renderableMesh;
+            renderableMesh.mesh = asset->getMesh();
+            renderableMesh.m_localToWorld = object->object->getLocalMatrix();
+            renderable_meshes.push_back(renderableMesh);
+        }
     }
 
     // Parse all terrain data
@@ -517,20 +533,26 @@ void VisualSystem::renderPrepare() {
         shadowCaster.m_localToWorld = Matrix4::Identity();
 
         shadowCaster.mesh = terrain->terrain_mesh;
-        shadow_casters.push_back(shadowCaster);
+        light_manager->addShadowCaster(shadowCaster);
 
         for (Mesh* tree_mesh : terrain->tree_meshes) {
             shadowCaster.mesh = tree_mesh;
-            shadow_casters.push_back(shadowCaster);
+            light_manager->addShadowCaster(shadowCaster);
 
-            RenderableMesh renderableMesh;
-            renderableMesh.mesh = tree_mesh;
-            renderableMesh.m_localToWorld = Matrix4::Identity();
-            renderable_meshes.push_back(renderableMesh);
+            if (enable || cam_frustum.intersectsOBB(
+                              OBB(tree_mesh->aabb, Matrix4::Identity()))) {
+                RenderableMesh renderableMesh;
+                renderableMesh.mesh = tree_mesh;
+                renderableMesh.m_localToWorld = Matrix4::Identity();
+                renderable_meshes.push_back(renderableMesh);
+            }
         }
 
         terrain_meshes.push_back(terrain->terrain_mesh);
     }
+
+    // Cluster shadows
+    light_manager->clusterShadowCasters();
 
 #if defined(_DEBUG)
     cpu_timer.endTimer("Render Prepare");
@@ -556,29 +578,34 @@ void VisualSystem::performShadowPass() {
     context->ClearDepthStencilView(shadow_texture->depth_view,
                                    D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-    const std::vector<ShadowLight*> shadow_lights =
-        light_manager->getShadowLights();
-    for (ShadowLight* light : shadow_lights) {
+    const std::vector<ShadowLight*>& lights = light_manager->getShadowLights();
+    const std::vector<ShadowCluster>& clusters =
+        light_manager->getShadowClusters();
+    const std::vector<UINT>& casters = light_manager->getShadowClusterIndices();
+    const std::vector<ShadowCaster>& shadow_casters =
+        light_manager->getShadowCasters();
+
+    for (const ShadowCluster& cluster : clusters) {
+        ShadowLight* light = lights[cluster.light_index];
+
         // Load light view and projection matrix
         vCB0->clearData();
 
         const Matrix4& m_world_to_local = light->getWorldMatrix().inverse();
         vCB0->loadData(&m_world_to_local, FLOAT4X4);
-
         const Matrix4 m_local_to_frustum = light->getFrustumMatrix();
         vCB0->loadData(&m_local_to_frustum, FLOAT4X4);
-
-        /*VisualDebug::DrawFrustum(light->getWorldMatrix() *
-                                     m_local_to_frustum.inverse(),
-                                 Color::Green());*/
 
         // Set the light as the render target.
         const D3D11_VIEWPORT viewport = light->getShadowmapViewport().toD3D11();
         context->OMSetRenderTargets(0, nullptr, shadow_texture->depth_view);
         context->RSSetViewports(1, &viewport);
 
-        // For each asset, load its mesh
-        for (const ShadowCaster& caster : shadow_casters) {
+        // Run the shadow pass for every asset in the light's view
+        for (int i = 0; i < cluster.caster_offset; i++) {
+            const ShadowCaster caster =
+                shadow_casters[casters[cluster.caster_start + i]];
+
             const Mesh* mesh = caster.mesh;
             const Matrix4& mLocalToWorld = caster.m_localToWorld;
 
@@ -980,7 +1007,6 @@ void VisualSystem::renderFinish() {
     swap_chain->Present(1, 0);
 
     renderable_meshes.clear();
-    shadow_casters.clear();
     terrain_meshes.clear();
 }
 

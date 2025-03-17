@@ -1,6 +1,8 @@
 #include "Matrix4.h"
 #include "Matrix3.h"
 
+#include "Quaternion.h"
+
 namespace Engine {
 namespace Math {
 // Constructors:
@@ -24,14 +26,15 @@ Matrix4::Matrix4(float c1, float c2, float c3, float c4, float c5, float c6,
            {c3, c7, c11, c15},
            {c4, c8, c12, c16}} {}
 
-// Identity
-// Returns the 4x4 identity matrix
-Matrix4 Matrix4::Identity() {
-    return Matrix4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
-}
-
 /* --- Matrix Operations --- */
 float (*Matrix4::getRawData(void))[4] { return data; }
+
+// Entry:
+// Get and set entries of the matrix.
+float Matrix4::entry(int row, int col) const { return data[col][row]; }
+void Matrix4::setEntry(int row, int col, float value) {
+    data[col][row] = value;
+}
 
 // Column:
 // Get and set columns of the matrix
@@ -203,6 +206,37 @@ Matrix4 Matrix4::operator/(const float c) const {
             new_matrix[col][row] = data[col][row] / c;
 
     return new_matrix;
+}
+
+// Matrix Generation:
+// Static methods for generating matrices
+Matrix4 Matrix4::Identity() {
+    return Matrix4(1, 0, 0, 0,  // Row 1
+                   0, 1, 0, 0,  // Row 2
+                   0, 0, 1, 0,  // Row 3
+                   0, 0, 0, 1); // Row 4
+}
+
+Matrix4 Matrix4::T_Scale(float x_scale, float y_scale, float z_scale) {
+    return Matrix4(x_scale, 0, 0, 0, // R1
+                   0, y_scale, 0, 0, // R2
+                   0, 0, z_scale, 0, // R3
+                   0, 0, 0, 1);      // R4
+}
+
+Matrix4 Matrix4::T_Rotate(const Vector3& axis, float theta) {
+    const Quaternion rotation = Quaternion::RotationAroundAxis(axis, theta);
+    return rotation.rotationMatrix4();
+}
+
+Matrix4 Matrix4::T_Translate(const Vector3& position) {
+    return T_Translate(position.x, position.y, position.z);
+}
+Matrix4 Matrix4::T_Translate(float x, float y, float z) {
+    return Matrix4(1, 0, 0, x,  // Row 1
+                   0, 1, 0, y,  // Row 2
+                   0, 0, 1, z,  // Row 3
+                   0, 0, 0, 1); // Row 4
 }
 
 } // Namespace Math

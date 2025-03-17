@@ -4,6 +4,7 @@
 
 #include "../VisualDebug.h"
 #include "../core/Camera.h"
+#include "../util/Frustum.h"
 #include "math/Compute.h"
 
 namespace Engine {
@@ -34,7 +35,7 @@ Vector3 SunLight::getDirection() const {
     return direc;
 }
 
-void SunLight::updateSunCascades(const CameraFrustum& camera_frustum) {
+void SunLight::updateSunCascades(const Frustum& camera_frustum) {
     constexpr float Z_EPSILON = 0.01f;
     constexpr float DIVISIONS[SUN_NUM_CASCADES + 1] = {0.0f, 0.1f, 0.25f, 1.0f};
 
@@ -54,7 +55,7 @@ void SunLight::setSunDirection(const Vector3& direc) {
 // UpdateCascade:
 // Updates one of the sun-light's cascades.
 void SunLight::updateCascade(int index, float min_z, float max_z,
-                             const CameraFrustum& cam_frustum) {
+                             const Frustum& cam_frustum) {
     ShadowLight& light = *light_cascades[index];
 
     // First, determine the division of the camera frustum we'll be operating
@@ -117,8 +118,8 @@ void SunLight::updateCascade(int index, float min_z, float max_z,
     light_pos.x = ((int)(light_pos.x / texel_distance)) * texel_distance;
     light_pos.z = ((int)(light_pos.z / texel_distance)) * texel_distance;
 
-    const Matrix4 m_world = Transform::GenerateTranslationMatrix(light_pos) *
-                            direction.rotationMatrix4();
+    const Matrix4 m_world =
+        Matrix4::T_Translate(light_pos) * direction.rotationMatrix4();
     light.setWorldMatrix(m_world);
 }
 

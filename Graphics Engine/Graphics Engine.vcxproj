@@ -172,7 +172,9 @@
     <ClCompile Include="src\datamodel\TreeGenerator.cpp" />
     <ClCompile Include="src\input\components\MovementHandler.cpp" />
     <ClCompile Include="src\input\InputFrame.cpp" />
-    <ClCompile Include="src\physics\collisions\AABB.cpp" />
+    <ClCompile Include="src\math\AABB.cpp" />
+    <ClCompile Include="src\math\OBB.cpp" />
+    <ClCompile Include="src\physics\collisions\CollisionAABB.cpp" />
     <ClCompile Include="src\math\ConvexHull.cpp" />
     <ClCompile Include="src\physics\collisions\CollisionObject.cpp" />
     <ClCompile Include="src\physics\collisions\GJK.cpp" />
@@ -216,6 +218,7 @@
     <ClCompile Include="src\rendering\imgui\imgui_widgets.cpp" />
     <ClCompile Include="src\deprecated\MarchingCubes.cpp" />
     <ClCompile Include="src\rendering\lights\SunLight.cpp" />
+    <ClCompile Include="src\rendering\util\Frustum.cpp" />
     <ClCompile Include="src\rendering\util\OBJFile.cpp" />
     <ClCompile Include="src\rendering\util\PNGFile.cpp" />
     <ClCompile Include="src\rendering\shaders\Shader.cpp" />
@@ -243,7 +246,9 @@
     <ClInclude Include="src\datamodel\TreeGenerator.h" />
     <ClInclude Include="src\input\InputFrame.h" />
     <ClInclude Include="src\input\SymbolData.h" />
-    <ClInclude Include="src\physics\collisions\AABB.h" />
+    <ClInclude Include="src\math\AABB.h" />
+    <ClInclude Include="src\math\OBB.h" />
+    <ClInclude Include="src\physics\collisions\CollisionAABB.h" />
     <ClInclude Include="src\math\ConvexHull.h" />
     <ClInclude Include="src\physics\collisions\CollisionObject.h" />
     <ClInclude Include="src\physics\collisions\GJK.h" />
@@ -293,6 +298,7 @@
     <ClInclude Include="src\rendering\shaders\Shader.h" />
     <ClInclude Include="src\rendering\shaders\ShaderManager.h" />
     <ClInclude Include="src\rendering\util\CPUTimer.h" />
+    <ClInclude Include="src\rendering\util\Frustum.h" />
     <ClInclude Include="src\rendering\util\GPUTimer.h" />
     <ClInclude Include="src\rendering\util\OBJFile.h" />
     <ClInclude Include="src\rendering\util\PNGFile.h" />

@@ -12,6 +12,7 @@ class AssetObject : public VisualObject {
 
   private:
     Asset* asset;
+    Matrix4 m_local_to_world;
 
     AssetObject(Object* object, Asset* mesh);
 
@@ -19,6 +20,13 @@ class AssetObject : public VisualObject {
     ~AssetObject();
 
     const Asset* getAsset() const;
+    const Matrix4& getLocalToWorldMatrix() const;
+
+    Vector3 getPosition() const;
+    Quaternion getRotation() const;
+
+    // Pulls the object transform
+    void pullDatamodelData();
 };
 
 } // namespace Graphics

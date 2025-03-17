@@ -47,6 +47,12 @@ const Matrix4& ShadowLight::getFrustumMatrix(void) const {
 
 Vector3 ShadowLight::getPosition(void) const { return m_world.column(3).xyz(); }
 
+Frustum ShadowLight::frustum() const {
+    const Matrix4 m_world_to_frustum =
+        getFrustumMatrix() * getWorldMatrix().inverse();
+    return Frustum(m_world_to_frustum);
+}
+
 // --- Setters ---
 // SetPosition:
 // Updates the last column of the local to world matrix to reflect the change

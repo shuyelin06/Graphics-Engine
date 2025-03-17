@@ -33,13 +33,11 @@ void Vector3::set(const Vector3& vec) {
     x = vec.x;
     y = vec.y;
     z = vec.z;
-} 
+}
 
 // XZY:
 // Returns a new vector with the components rearranged
-Vector3 Vector3::xzy() const {
-    return Vector3(x,z,y);
-}
+Vector3 Vector3::xzy() const { return Vector3(x, z, y); }
 
 // Magnitude:
 // Returns the vector's magnitude
@@ -76,9 +74,14 @@ Vector3 Vector3::cross(const Vector3& vector) const {
 
 // ProjectOnto:
 // Projects this vector onto another vector.
+float Vector3::scalarProjection(const Vector3& vector) const {
+    const float scalar_projection = dot(vector) / vector.dot(vector);
+    return scalar_projection;
+}
+
 Vector3 Vector3::projectOnto(const Vector3& vector) const {
-    const float dot_product = dot(vector);
-    return vector * dot_product;
+    const float scalar_projection = scalarProjection(vector);
+    return vector * scalar_projection;
 }
 
 // Min:
@@ -101,25 +104,23 @@ Vector3 Vector3::componentMax(const Vector3& vector) const {
 // Returns a new vector that is orthogonal to this vector.
 Vector3 Vector3::orthogonal() const {
     constexpr float EPSILON = 0.01f;
-    
-    Vector3 perp = Vector3(0,0,0);
+
+    Vector3 perp = Vector3(0, 0, 0);
 
     if (abs(z) > EPSILON) {
         perp.x = 1.f;
         perp.y = 1.f;
         perp.z = -(x + y) / z;
-    }
-    else if (abs(y) > EPSILON) {
+    } else if (abs(y) > EPSILON) {
         perp.x = 1.f;
         perp.y = -(x + z) / y;
         perp.z = 1.f;
-    }
-    else if (abs(x) > EPSILON) {
+    } else if (abs(x) > EPSILON) {
         perp.x = -(y + z) / x;
         perp.y = 1.f;
         perp.z = 1.f;
     }
-    
+
     return perp;
 }
 
@@ -208,10 +209,9 @@ Vector3& Vector3::operator/=(const float f) {
     return *this;
 }
 
-// * Operator (Hamming Product) 
+// * Operator (Hamming Product)
 // Takes the component wise product of the two vectors.
-Vector3 Vector3::operator*(const Vector3& v) const
-{
+Vector3 Vector3::operator*(const Vector3& v) const {
     Vector3 result;
     result.x = x * v.x;
     result.y = y * v.y;
@@ -221,8 +221,7 @@ Vector3 Vector3::operator*(const Vector3& v) const
 
 // *= Operator (Hamming)
 // Takes the compound component wise product of the two vectors.
-Vector3& Vector3::operator*=(const Vector3& v)
-{
+Vector3& Vector3::operator*=(const Vector3& v) {
     x = x * v.x;
     y = y * v.y;
     z = z * v.z;

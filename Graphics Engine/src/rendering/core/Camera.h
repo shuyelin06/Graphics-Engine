@@ -1,36 +1,15 @@
 #pragma once
 
 #include "math/Matrix4.h"
+#include "math/OBB.h"
 #include "math/Transform.h"
+
+#include "../util/Frustum.h"
 
 namespace Engine {
 using namespace Math;
 
 namespace Graphics {
-class Camera;
-
-// CameraFrustum Struct:
-// Stores data about a camera frustum that can be queried and used.
-// Used in calculations for the sun's shadow cascade.
-class CameraFrustum {
-  private:
-    // A matrix that converts world-space coordinates to the
-    // camera's frustum space (normalized unit cube) space.
-    // By D3D convention, this is space x in [-1,1],
-    // y in [-1,1], z in [0, 1]
-    Matrix4 m_world_to_frustum;
-    Matrix4 m_frustum_to_world;
-    
-    Vector3 camera_pos;
-
-  public:
-    CameraFrustum(const Camera& camera);
-
-    Vector3 toWorldSpace(const Vector3& frustum_coords) const;
-    Vector3 toFrustumSpace(const Vector3& world_space) const;
-    Vector3 getCameraPosition() const;
-};
-
 // Camera Class:
 // Represents the scene's camera, where everything
 // on the screen is rendered from the camera's point of view.
@@ -61,7 +40,7 @@ class Camera {
     const Transform* getTransform() const;
     Transform* getTransform();
 
-    CameraFrustum getFrustum() const;
+    Frustum frustum() const;
 
     // Set the camera's attributes
     void setTransform(Transform* transform);

@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include "math/PerlinNoise.h"
+
 #include "Object.h"
 #include "Terrain.h"
 
@@ -23,8 +25,9 @@ constexpr int TERRAIN_CHUNK_EXTENT = 3;
 constexpr int TERRAIN_NUM_CHUNKS = 2 * TERRAIN_CHUNK_EXTENT + 1;
 
 namespace Engine {
-namespace Datamodel {
+using namespace Math;
 
+namespace Datamodel {
 // Class SceneGraph:
 // Stores and manages all objects in the scene. Objects are stored in a
 // tree-like hierarchy, Parent <--> Children Where all children node transforms
@@ -35,6 +38,9 @@ class Scene {
   private:
     std::vector<Object*> objects;
     
+    // Random Generation
+    PerlinNoise* noise_func;
+
     // Terrain Fields
     // Center chunk of the scene. Loading is performed based on this center
     int center_chunk_x, center_chunk_z;
@@ -53,8 +59,10 @@ class Scene {
 
     // Terrain Handling
     TerrainChunk* getTerrainChunk(int x_index, int z_index) const;
-    
     float sampleTerrainHeight(float x, float z) const;
+
+    void seedTerrain(unsigned int seed); // Set the Generation Seed
+    void reloadTerrain();       // Reload all terrain
 
     // Update the center of the scene graph. Based on the center, the scene
     // graph will generate terrain chunks

@@ -67,8 +67,10 @@ void TerrainChunk::reloadHeightMap(UINT index_x, UINT index_z) {
     // Tuning the inputs to the noise, so that the terrain comes out smoothly.
     constexpr float ROUGHNESS = 0.0035f;
     constexpr float OFFSET = 1000.f;
-    const float noise = PerlinNoise::octaveNoise2D(
-        x * ROUGHNESS + OFFSET, z * ROUGHNESS + OFFSET, 4, 6);
+
+    static PerlinNoise noise_func = PerlinNoise(30);
+    const float noise = noise_func.octaveNoise2D(x * ROUGHNESS + OFFSET,
+                                                 z * ROUGHNESS + OFFSET, 4, 6);
     const float height = noise * HEIGHT_MAP_Y_HEIGHT;
 
     height_map[index_x][index_z] = height;

@@ -4,13 +4,13 @@
 #include <vector>
 
 #include "../Direct3D11.h"
-#include "VertexStreamIDs.h"
 #include "Texture.h"
+#include "VertexStreamIDs.h"
 
+#include "math/AABB.h"
 #include "math/Color.h"
 #include "math/Vector2.h"
 #include "math/Vector3.h"
-
 
 namespace Engine {
 using namespace Math;
@@ -29,21 +29,24 @@ struct Material {
     Material();
 };
 
-
-
 // Struct Mesh:
-// Specifies a mesh, which is a collection of vertices that form triangles. 
-// Vertices are stored in separate vertex streams, so that they have an easier time being
-// passed as input into shaders. 
+// Specifies a mesh, which is a collection of vertices that form triangles.
+// Vertices are stored in separate vertex streams, so that they have an easier
+// time being passed as input into shaders.
 struct Mesh {
-    // Index buffer pointing to indices in the vertex stream, to create vertices.
+    // Index buffer pointing to indices in the vertex stream, to create
+    // vertices.
     ID3D11Buffer* index_buffer;
     UINT triangle_count;
 
     // My different vertex streams
     ID3D11Buffer* vertex_streams[STREAM_COUNT];
 
-    Material* material;   
+    // AABB for the Mesh
+    Math::AABB aabb;
+
+    // -- UNUSED
+    Material* material;
 };
 
 // Asset Class

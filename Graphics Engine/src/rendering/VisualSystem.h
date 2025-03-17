@@ -33,10 +33,6 @@ namespace Engine {
 namespace Graphics {
 
 // Render Information
-struct ShadowCaster {
-    const Mesh* mesh;
-    Matrix4 m_localToWorld;
-};
 struct RenderableTerrain {
     Mesh* mesh;
     Vector3 terrain_offset;
@@ -84,10 +80,9 @@ class VisualSystem {
     std::vector<ShadowLightObject*> shadow_lights;
     std::vector<VisualTerrain*> terrain_chunks;
 
-    std::vector<ShadowCaster> shadow_casters;
     std::vector<RenderableMesh> renderable_meshes;
     std::vector<Mesh*> terrain_meshes;
-    
+
   public:
     VisualSystem();
 
@@ -97,10 +92,10 @@ class VisualSystem {
 
     // Initialize Visual System
     void initialize(HWND window);
-    
+
     // Renders an entire scene
     void render();
-    
+
     // Shutdown Visual System
     void shutdown();
 
@@ -121,7 +116,7 @@ class VisualSystem {
   private:
     // Rendering Stages of the Visual System
     void renderPrepare(); // Prepare for Rendering
-
+    
     void performShadowPass();  // Shadow Pass
     void performTerrainPass(); // Render Terrain
     void performRenderPass();  // Render Pass
