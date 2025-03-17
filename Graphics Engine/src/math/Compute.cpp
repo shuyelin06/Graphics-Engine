@@ -52,7 +52,8 @@ bool RandomExperiment(float prob_success) {
     return Random(0.0f, 1.0f) <= prob_success;
 }
 
-// Spherical to Euler Coordinate-System Conversions
+// Spherical to Euler Coordinate-System Conversions.
+// Theta is the angle on the xy-plane, phi is the angle from the z axis.
 Vector3 SphericalToEuler(const Vector3& spherical) {
     return SphericalToEuler(spherical.x, spherical.y, spherical.z);
 }

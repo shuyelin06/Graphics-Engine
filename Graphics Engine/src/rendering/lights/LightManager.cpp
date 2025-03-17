@@ -12,6 +12,18 @@ LightManager::LightManager(TextureAtlas* atlas) : shadow_lights() {
 }
 
 // --- Update ---
+// UpdateTimeOfDay:
+// Sets the sun's direction based on the time of day, in hours [0,24].
+void LightManager::updateTimeOfDay(float hours_in_day) {
+    constexpr float ANGLE_CONVERSION = 2 * 3.14159f / 24.f;
+    const float radians = (hours_in_day - 6.f) * ANGLE_CONVERSION;
+
+    const float x = cosf(radians);
+    const float y = sinf(radians);
+
+    sun_light->setSunDirection(Vector3(-x, -y, 0));
+}
+
 // UpdateSunDirection:
 // Sets the sun direction.
 void LightManager::updateSunDirection(const Vector3& direction) {

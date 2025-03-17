@@ -169,39 +169,18 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         // Update Physics System
         physics_system.update();
 
-        // Update terrain (manually)
-        if (true) {
-            const Vector3& cam_pos =
-                visual_system.getCamera().getTransform()->getPosition();
-            scene_graph.updateSceneCenter(cam_pos.x, cam_pos.z);
+        // Update Datamodel
+        scene_graph.updateObjects();
 
-            for (int i = 0; i < TERRAIN_NUM_CHUNKS; i++) {
-                for (int j = 0; j < TERRAIN_NUM_CHUNKS; j++) {
-                    TerrainChunk* chunk = scene_graph.getTerrainChunk(i, j);
+        const Vector3& cam_pos =
+            visual_system.getCamera().getTransform()->getPosition();
+        scene_graph.updateTerrainChunks(cam_pos.x, cam_pos.z);
 
-                    if (!chunk->hasVisualTerrain()) {
-                        visual_system.bindVisualTerrain(chunk);
-                    }
-                }
-            }
-        }
+        const std::vector<TerrainChunk*>& chunks = scene_graph.getNewChunks();
+        for (TerrainChunk* chunk : chunks)
+            visual_system.bindVisualTerrain(chunk);
 
-        //// TODO: THIS CODE IS WRONG
-        // child2.getTransform().lookAt(
-        //     visual_system.getCamera().getTransform()->getPosition());
-
-        // child2.getTransform().offsetRotation(Vector3::PositiveY(), PI / 20);
-        // sun_light.getTransform().setViewDirection(Vector3(0, -0.25f, 0.75f));
-        // Vector3 position =
-        //    visual_system.getCamera().getTransform()->getPosition() +
-        //    sun_light.getTransform().backward() * 25; // 75 OG
-        // sun_light.getTransform().setPosition(position.x, position.y,
-        //                                     position.z);
-
-        // Submit Object Render Requests
-        scene_graph.updateAndRenderObjects();
-        scene_graph.updateAndRenderTerrain();
-
+        // Render Objects
         visual_system.render();
 
         // Stall until enough time has elapsed for 60 frames / second

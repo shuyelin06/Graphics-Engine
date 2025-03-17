@@ -489,10 +489,9 @@ void VisualSystem::renderPrepare() {
     // ---
 
     // --- TEST 2: Sun
-    static float direction[3] = {0, -0.5f, 0.25f};
-    ImGui::SliderFloat3("Sun Direction", direction, -1.f, 1.f);
-    light_manager->updateSunDirection(
-        Vector3(direction[0], direction[1], direction[2]));
+    static float time = 15.f;
+    ImGui::SliderFloat("Time of Day: ", &time, 1.0f, 23.f);
+    light_manager->updateTimeOfDay(time);
 
     // Pull information from the datamodel
     // - Pull asset local -> world matrices from the datamodel

@@ -39,6 +39,13 @@ class Object {
     // (Cached) Local --> World Matrix
     Matrix4 m_local;
 
+    // --- TODO --- 
+    // Component Flags.
+    // Objects don't know what components are associated with them. They only
+    // store references to the component's "destroy" boolean flags, so it can signal
+    // to the component that the object is destroyed
+    // ... 
+    
     // Renderable Asset Associated with the Object
     VisualObject* visual_object;
 

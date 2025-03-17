@@ -111,8 +111,8 @@ void SunLight::updateCascade(int index, float min_z, float max_z,
     Vector3 light_pos = center_point;
 
     // Offset so at a constant y value
-    light_pos += direc * ((150.f - light_pos.y) / direc.y);
-    // light_pos -= direc * 150.f;
+    constexpr float SUN_HEIGHT = 150.f;
+    light_pos += direc * ((SUN_HEIGHT - light_pos.y) / direc.y);
 
     // Snap to nearest texel
     light_pos.x = ((int)(light_pos.x / texel_distance)) * texel_distance;

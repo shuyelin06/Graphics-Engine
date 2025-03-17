@@ -87,6 +87,7 @@ class LightManager {
     // Update the light manager
     ShadowLight* createShadowLight(ShadowMapQuality quality);
 
+    void updateTimeOfDay(float hours_in_day);
     void updateSunDirection(const Vector3& direction);
     void updateSunCascades(const Frustum& camera_frustum);
 

@@ -73,6 +73,9 @@ class VisualSystem {
     Camera camera;
 
     // Render Information:
+    // Rendering configurations
+    float time_of_day;
+
     // Vectors of rendering information that the visual system actually uses
     // for rendering. It takes the datamodel state, and processes them into
     // render information.

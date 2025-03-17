@@ -61,32 +61,38 @@ void Scene::seedTerrain(unsigned int seed) {
 }
 
 // ReloadTerrain:
-// Force reload all terrain chunks based on the scene configuration.
-// Good for debugging
+// Force reload terrain chunks .
+void Scene::reloadTerrainChunk(int x_index, int z_index) {
+    // Free the existing terrain chunk if it exists
+    if (terrain[x_index][z_index] != nullptr)
+        delete terrain[x_index][z_index];
+
+    // Calculate the chunk's world position and generate the chunk
+    const float chunk_x =
+        (x_index - TERRAIN_CHUNK_EXTENT + center_chunk_x) * HEIGHT_MAP_XZ_SIZE;
+    const float chunk_z =
+        (z_index - TERRAIN_CHUNK_EXTENT + center_chunk_z) * HEIGHT_MAP_XZ_SIZE;
+
+    TerrainChunk* chunk = new TerrainChunk(chunk_x, chunk_z);
+    terrain_helper[x_index][z_index] = chunk;
+
+    new_chunks.push_back(chunk);
+}
+
 void Scene::reloadTerrain() {
     // Iterate through and replace every terrain chunk with a new=
     // chunk
-    for (int i = 0; i < TERRAIN_NUM_CHUNKS; i++) {
-        for (int j = 0; j < TERRAIN_NUM_CHUNKS; j++) {
-            // Free memory for old chunks
-            if (terrain[i][j] != nullptr)
-                delete terrain[i][j];
-
-            // Create new chunks
-            const float chunk_x = (i - TERRAIN_CHUNK_EXTENT + center_chunk_x) *
-                                  HEIGHT_MAP_XZ_SIZE;
-            const float chunk_z = (j - TERRAIN_CHUNK_EXTENT + center_chunk_z) *
-                                  HEIGHT_MAP_XZ_SIZE;
-
-            terrain_helper[i][j] = new TerrainChunk(chunk_x, chunk_z);
-        }
-    }
+    for (int i = 0; i < TERRAIN_NUM_CHUNKS; i++)
+        for (int j = 0; j < TERRAIN_NUM_CHUNKS; j++)
+            reloadTerrainChunk(i, j);
 }
 
 // --- Scene Updating ---
 // UpdateSceneCenter:
 // Updates the scene center and loads / unloads chunks based on this center.
-void Scene::updateSceneCenter(float new_x, float new_z) {
+void Scene::updateTerrainChunks(float new_x, float new_z) {
+    new_chunks.clear();
+
     // Calculate the chunk these x,y coordinates are in.
     const int new_x_chunk = floor(new_x / HEIGHT_MAP_XZ_SIZE);
     const int new_z_chunk = floor(new_z / HEIGHT_MAP_XZ_SIZE);
@@ -140,7 +146,10 @@ void Scene::updateSceneCenter(float new_x, float new_z) {
                     (j - TERRAIN_CHUNK_EXTENT + center_chunk_z) *
                     HEIGHT_MAP_XZ_SIZE;
 
-                terrain_helper[i][j] = new TerrainChunk(chunk_x, chunk_z);
+                TerrainChunk* chunk = new TerrainChunk(chunk_x, chunk_z);
+                terrain_helper[i][j] = chunk;
+
+                new_chunks.push_back(chunk);
             }
         }
     }
@@ -149,26 +158,28 @@ void Scene::updateSceneCenter(float new_x, float new_z) {
     memcpy(terrain, terrain_helper, sizeof(terrain));
 }
 
-// UpdateAndRenderTerrain:
-// Update the terrain chunks.
-void Scene::updateAndRenderTerrain() {}
+// GetNewChunks:
+// Return the newly created terrain chunks for binding
+const std::vector<TerrainChunk*>& Scene::getNewChunks() const {
+    return new_chunks;
+}
 
 // UpdateAndRenderObjects:
 // Update and cache object transforms in the SceneGraph, and submit
 // render requests for each.
-void Scene::updateAndRenderObjects() {
+void Scene::updateObjects() {
     Matrix4 identity = Matrix4::Identity();
 
     for (Object* object : objects)
-        updateAndRenderObjects(object, identity);
+        updateObjectsHelper(object, identity);
 }
 
-void Scene::updateAndRenderObjects(Object* object, const Matrix4& m_parent) {
+void Scene::updateObjectsHelper(Object* object, const Matrix4& m_parent) {
     assert(object != nullptr);
 
     const Matrix4 m_local = object->updateLocalMatrix(m_parent);
     for (Object* child : object->getChildren())
-        updateAndRenderObjects(child, m_local);
+        updateObjectsHelper(child, m_local);
 }
 
 } // namespace Datamodel
