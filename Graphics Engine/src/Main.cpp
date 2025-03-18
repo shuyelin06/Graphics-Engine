@@ -110,10 +110,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     // Create SceneGraph
     Scene scene_graph = Scene();
+    // scene_graph.updateTerrainChunks(0.f, 0.f);
 
     // Bind Camera
     MovementHandler movementHandler(visual_system.getCamera().getTransform());
-    visual_system.getCamera().getTransform()->setPosition(0, 50.f, 0);
+    visual_system.getCamera().getTransform()->setPosition(
+        0, 100.f, 0);
 
     // Create Object Hierarchy
     Object& parent_object = scene_graph.createObject();
@@ -141,6 +143,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     PhysicsObject* p1 = physics_system.bindPhysicsObject(&child2);
     CollisionObject* c1 = physics_system.bindCollisionObject(p1, "Box");*/
 
+   
     // Begin window messaging loop
     MSG msg = {};
     bool close = false;
@@ -161,6 +164,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             if (msg.message == WM_QUIT)
                 return 0;
         }
+
+         VisualDebug::DrawPoint(Vector3(0, HEIGHT_MAP_Y_HEIGHT, 0), 2.f);
+        VisualDebug::DrawPoint(Vector3(0, 0.f, 0), 2.f);
+
 
         // Dispatch Input Data
         movementHandler.update();

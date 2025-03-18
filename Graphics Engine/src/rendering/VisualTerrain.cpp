@@ -34,16 +34,14 @@ bool VisualTerrain::markedForDestruction() const { return markedToDestroy; }
 // GenerateTerrainMesh:
 // Generates the mesh for the terrain
 Mesh* VisualTerrain::generateTerrainMesh(MeshBuilder& builder) {
-    const Vector2 XZ_MIN = Vector2(terrain->getX(), terrain->getZ());
-    const Vector2 XZ_MAX = Vector2(terrain->getX() + HEIGHT_MAP_XZ_SIZE,
-                                   terrain->getZ() + HEIGHT_MAP_XZ_SIZE);
+    builder.reset();
 
     for (int i = 0; i < SAMPLE_COUNT; i++) {
         for (int j = 0; j < SAMPLE_COUNT; j++) {
             const float x =
-                (XZ_MAX.u - XZ_MIN.u) * i / (SAMPLE_COUNT - 1) + XZ_MIN.u;
+                HEIGHT_MAP_XZ_SIZE * i / (SAMPLE_COUNT - 1) + terrain->getX();
             const float z =
-                (XZ_MAX.v - XZ_MIN.v) * j / (SAMPLE_COUNT - 1) + XZ_MIN.v;
+                HEIGHT_MAP_XZ_SIZE * j / (SAMPLE_COUNT - 1) + terrain->getZ();
 
             const float y = terrain->sampleTerrainHeight(x, z);
 

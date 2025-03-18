@@ -113,7 +113,7 @@ void VertexShader::bindShader(ID3D11Device* device,
 
     // Update buffers resources, and bind them to the pipeline
     for (int i = 0; i < CBSlot::CBCOUNT; i++) {
-        if (constantBuffers[i] != nullptr) {
+        if (constantBuffers[i] != nullptr && constantBuffers[i]->byteSize() > 0) {
             updateCBResource((CBSlot)i, device, context);
             context->VSSetConstantBuffers(i, 1,
                                           &(constantBuffers[i]->resource));

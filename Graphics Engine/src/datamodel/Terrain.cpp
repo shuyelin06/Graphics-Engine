@@ -20,7 +20,8 @@ constexpr float DISTANCE_BETWEEN_SAMPLES =
 
 namespace Engine {
 namespace Datamodel {
-TerrainChunk::TerrainChunk(float _world_x, float _world_z) {
+TerrainChunk::TerrainChunk(float _world_x, float _world_z,
+                           const PerlinNoise* noise_func) {
     world_x = _world_x;
     world_z = _world_z;
 
@@ -29,7 +30,7 @@ TerrainChunk::TerrainChunk(float _world_x, float _world_z) {
     // Sample the Perlin Noise to generate my height map
     for (int x = 0; x < HEIGHT_MAP_XZ_SAMPLES; x++) {
         for (int z = 0; z < HEIGHT_MAP_XZ_SAMPLES; z++) {
-            reloadHeightMap(x, z);
+            reloadHeightMap(x, z, noise_func);
         }
     }
 
@@ -58,27 +59,36 @@ const std::vector<Vector2>& TerrainChunk::getTreeLocations() const {
 // ReloadTerrainChunk:
 // Reloads a sample of the height-map by index, by calculating the x,z
 // coordinates of that sample.
-void TerrainChunk::reloadHeightMap(UINT index_x, UINT index_z) {
-    // For our sample index, calculate the x,z coordinates of where we want to
-    // sample.
+void TerrainChunk::reloadHeightMap(UINT index_x, UINT index_z,
+                                   const PerlinNoise* noise_func) {
+    // For our sample index, calculate the world x,z coordinates we want to
+    // sample at.
     const float x = world_x + DISTANCE_BETWEEN_SAMPLES * index_x;
     const float z = world_z + DISTANCE_BETWEEN_SAMPLES * index_z;
 
-    // Tuning the inputs to the noise, so that the terrain comes out smoothly.
-    constexpr float ROUGHNESS = 0.0035f;
-    constexpr float OFFSET = 1000.f;
+    // Sample our noise function for my elevation
+    // https://www.redblobgames.com/maps/terrain-from-noise/#elevation
+    constexpr float ROUGHNESS = 0.5f;
 
-    static PerlinNoise noise_func = PerlinNoise(30);
-    const float noise = noise_func.octaveNoise2D(x * ROUGHNESS + OFFSET,
-                                                 z * ROUGHNESS + OFFSET, 4, 6);
-    const float height = noise * HEIGHT_MAP_Y_HEIGHT;
+    float elevation = 1.f * noise_func->noise2D(0.055f * x * ROUGHNESS,
+                                                0.055f * z * ROUGHNESS) +
+                      (1 / 2.f) * noise_func->noise2D(0.035f * x * ROUGHNESS,
+                                                      0.035f * z * ROUGHNESS) +
+                      (1 / 3.f) * noise_func->noise2D(0.015f * x * ROUGHNESS,
+                                                      0.015f * z * ROUGHNESS);
+    elevation = elevation / 1.75f;
+    elevation = pow(elevation * 1.55f, 3.5f);
 
-    height_map[index_x][index_z] = height;
+    height_map[index_x][index_z] = elevation * HEIGHT_MAP_Y_HEIGHT;
 }
 
 // SampleTerrainHeight:
 // Samples the height-map at a specific x,z value. Returns -1 if the x,z
 // coordinates are outside of the terrain.
+static int Clamp(int val, int low, int high) {
+    return min(max(val, low), high);
+}
+
 float TerrainChunk::sampleTerrainHeight(float x, float z) const {
     // Returns a floating point value telling us what height map samples our
     // coordinates are between
@@ -94,18 +104,18 @@ float TerrainChunk::sampleTerrainHeight(float x, float z) const {
     // Bilinearly interpolate the height data.
     // To do this, find the x,z coordinates we are inside of our grid cell, x,z
     // in [0,1].
-    const int x0 = floor(index_x);
-    const int x1 = floor(index_x + 1);
-    const int z0 = floor(index_z);
-    const int z1 = floor(index_z + 1);
+    const int x0 = floorf(Clamp(index_x, 0, HEIGHT_MAP_XZ_SAMPLES - 1));
+    const int x1 = floorf(Clamp(index_x + 1, 0, HEIGHT_MAP_XZ_SAMPLES - 1));
+    const int z0 = floorf(Clamp(index_z, 0, HEIGHT_MAP_XZ_SAMPLES - 1));
+    const int z1 = floorf(Clamp(index_z + 1, 0, HEIGHT_MAP_XZ_SAMPLES - 1));
 
     const float height_00 = height_map[x0][z0];
     const float height_10 = height_map[x1][z0];
     const float height_01 = height_map[x0][z1];
     const float height_11 = height_map[x1][z1];
 
-    const float x_dist = index_x - x0;
-    const float z_dist = index_z - z0;
+    const float x_dist = index_x - floor(index_x);
+    const float z_dist = index_z - floor(index_z);
 
     /*const float height =
         CubicInterp(CubicInterp(height_00, height_10, x_dist),

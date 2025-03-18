@@ -73,7 +73,7 @@ void Scene::reloadTerrainChunk(int x_index, int z_index) {
     const float chunk_z =
         (z_index - TERRAIN_CHUNK_EXTENT + center_chunk_z) * HEIGHT_MAP_XZ_SIZE;
 
-    TerrainChunk* chunk = new TerrainChunk(chunk_x, chunk_z);
+    TerrainChunk* chunk = new TerrainChunk(chunk_x, chunk_z, noise_func);
     terrain_helper[x_index][z_index] = chunk;
 
     new_chunks.push_back(chunk);
@@ -146,7 +146,8 @@ void Scene::updateTerrainChunks(float new_x, float new_z) {
                     (j - TERRAIN_CHUNK_EXTENT + center_chunk_z) *
                     HEIGHT_MAP_XZ_SIZE;
 
-                TerrainChunk* chunk = new TerrainChunk(chunk_x, chunk_z);
+                TerrainChunk* chunk =
+                    new TerrainChunk(chunk_x, chunk_z, noise_func);
                 terrain_helper[i][j] = chunk;
 
                 new_chunks.push_back(chunk);

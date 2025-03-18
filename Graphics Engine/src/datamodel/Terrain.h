@@ -2,12 +2,14 @@
 
 #include <vector>
 
-#include "math/Vector3.h"
 #include "math/Vector2.h"
+#include "math/Vector3.h"
 
-constexpr float HEIGHT_MAP_XZ_SIZE = 100.f;
+#include "math/PerlinNoise.h"
+
+constexpr float HEIGHT_MAP_XZ_SIZE = 75.f;
 constexpr float HEIGHT_MAP_Y_HEIGHT = 100.f;
-constexpr int HEIGHT_MAP_XZ_SAMPLES = 75;
+constexpr int HEIGHT_MAP_XZ_SAMPLES = 100;
 
 constexpr int TERRAIN_MAX_TREES = 10;
 
@@ -41,7 +43,7 @@ class TerrainChunk {
     Graphics::VisualTerrain* visual_terrain;
 
   public:
-    TerrainChunk(float world_x, float world_z);
+    TerrainChunk(float world_x, float world_z, const PerlinNoise* noise_func);
     ~TerrainChunk();
 
     // Get properties of the terrain
@@ -60,7 +62,7 @@ class TerrainChunk {
 
   private:
     // Reload the data of a portion of the terrain chunk by index.
-    void reloadHeightMap(UINT index_x, UINT index_z);
+    void reloadHeightMap(UINT index_x, UINT index_z, const PerlinNoise* noise_func);
 };
 
 } // namespace Datamodel

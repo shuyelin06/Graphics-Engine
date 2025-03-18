@@ -6,7 +6,7 @@
 
 #include <assert.h>
 
-constexpr bool ALLOW_CACHING = false;
+constexpr bool ALLOW_CACHING = true ;
 
 namespace Engine {
 namespace Graphics {

@@ -16,12 +16,12 @@ class PerlinNoise {
   public:
     PerlinNoise(unsigned int seed);
 
-    float noise2D(float x, float y);
-    float octaveNoise2D(float x, float y, int octaves, float persistence);
+    float noise2D(float x, float y) const;
+    float octaveNoise2D(float x, float y, int octaves, float persistence) const;
 
   private:
     void seedGenerator(unsigned int seed);
-    unsigned char indexTable(int index);
+    unsigned char indexTable(int index) const;
 };
 
 } // namespace Math
