@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "Texture.h"
+#include "../core/Texture.h"
 
 namespace Engine {
 namespace Graphics {

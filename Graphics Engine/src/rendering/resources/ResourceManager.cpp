@@ -13,11 +13,9 @@
 #include "math/Vector2.h"
 #include "math/Vector3.h"
 
-#include "rendering/util/GLTFFile.h"
-#include "rendering/util/OBJFile.h"
-#include "rendering/util/PNGFile.h"
-
-#include "math/PerlinNoise.h"
+#include "GLTFFile.h"
+#include "OBJFile.h"
+#include "PNGFile.h"
 
 using namespace std;
 
@@ -42,7 +40,6 @@ void ResourceManager::initialize() {
     TextureBuilder tex_builder = TextureBuilder(10, 10);
 
     // textures[Test] = tex_builder.generate();
-
 
     // LoadTextureFromPNG(tex_builder, "data/", "test.png");
     //  textures[Test2] = tex_builder.generate();
@@ -112,6 +109,13 @@ ID3D11SamplerState* ResourceManager::getShadowMapSampler() {
 
 ID3D11SamplerState* ResourceManager::getMeshSampler() { return mesh_sampler; }
 
+// LoadAssetFromGLTF:
+// Uses the GLTFFile interface to load an asset from a GLTF file
+bool ResourceManager::LoadAssetFromGLTF(const std::string& path,
+                                        const std::string& file) {
+    GLTFFile gltf_file = GLTFFile(path + file);
+    return gltf_file.readFromFile();
+}
 // LoadTextureFromPNG:
 // Uses the PNGFile interface to load a texture from a PNG file
 bool ResourceManager::LoadTextureFromPNG(TextureBuilder& builder,

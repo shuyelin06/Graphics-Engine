@@ -7,8 +7,8 @@
 
 #include "Direct3D11.h"
 
-#include "core/ResourceManager.h"
 #include "lights/LightManager.h"
+#include "resources/ResourceManager.h"
 #include "shaders/ShaderManager.h"
 
 #include "VisualTerrain.h"
@@ -119,7 +119,7 @@ class VisualSystem {
   private:
     // Rendering Stages of the Visual System
     void renderPrepare(); // Prepare for Rendering
-    
+
     void performShadowPass();  // Shadow Pass
     void performTerrainPass(); // Render Terrain
     void performRenderPass();  // Render Pass

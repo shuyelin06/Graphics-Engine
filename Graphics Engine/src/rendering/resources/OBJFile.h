@@ -4,8 +4,9 @@
 
 #include "../Direct3D11.h"
 #include "../core/Asset.h"
-#include "../core/MeshBuilder.h"
-#include "../core/TextureBuilder.h"
+
+#include "MeshBuilder.h"
+#include "TextureBuilder.h"
 
 namespace Engine {
 namespace Graphics {

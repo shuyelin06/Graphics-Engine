@@ -4,7 +4,7 @@
 
 #include "../VisualDebug.h"
 #include "../core/Camera.h"
-#include "../util/Frustum.h"
+#include "../core/Frustum.h"
 #include "math/Compute.h"
 
 namespace Engine {

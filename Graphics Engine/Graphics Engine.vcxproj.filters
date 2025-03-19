@@ -60,7 +60,7 @@
     <ClCompile Include="src\rendering\lights\Light.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\core\ResourceManager.cpp">
+    <ClCompile Include="src\rendering\resources\ResourceManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\math\Vector2.cpp">
@@ -96,10 +96,10 @@
     <ClCompile Include="src\input\components\MovementHandler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\core\MeshBuilder.cpp">
+    <ClCompile Include="src\rendering\resources\MeshBuilder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\util\PNGFile.cpp">
+    <ClCompile Include="src\rendering\resources\PNGFile.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\datamodel\SceneGraph.cpp">
@@ -156,10 +156,10 @@
     <ClCompile Include="src\rendering\core\Texture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\core\TextureBuilder.cpp">
+    <ClCompile Include="src\rendering\resources\TextureBuilder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\util\OBJFile.cpp">
+    <ClCompile Include="src\rendering\resources\OBJFile.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\lights\LightManager.cpp">
@@ -216,10 +216,10 @@
     <ClCompile Include="src\math\OBB.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\util\Frustum.cpp">
+    <ClCompile Include="src\rendering\core\Frustum.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\util\GLTFFile.cpp">
+    <ClCompile Include="src\rendering\resources\GLTFFile.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="include\lodepng\lodepng.cpp">
@@ -272,7 +272,7 @@
     <ClInclude Include="src\rendering\lights\Light.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\core\ResourceManager.h">
+    <ClInclude Include="src\rendering\resources\ResourceManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\math\Vector2.h">
@@ -311,7 +311,7 @@
     <ClInclude Include="src\input\components\MovementHandler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\core\MeshBuilder.h">
+    <ClInclude Include="src\rendering\resources\MeshBuilder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\datamodel\SceneGraph.h">
@@ -374,13 +374,13 @@
     <ClInclude Include="src\rendering\core\Texture.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\core\TextureBuilder.h">
+    <ClInclude Include="src\rendering\resources\TextureBuilder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\util\PNGFile.h">
+    <ClInclude Include="src\rendering\resources\PNGFile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\util\OBJFile.h">
+    <ClInclude Include="src\rendering\resources\OBJFile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\lights\LightManager.h">
@@ -440,13 +440,13 @@
     <ClInclude Include="src\math\OBB.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\util\Frustum.h">
+    <ClInclude Include="src\rendering\core\Frustum.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\util\GLBFile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\util\GLTFFile.h">
+    <ClInclude Include="src\rendering\resources\GLTFFile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\Downloads\cgltf.h">

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "core/Asset.h"
-#include "core/MeshBuilder.h"
 #include "datamodel/Terrain.h"
+#include "resources/MeshBuilder.h"
 
 namespace Engine {
 using namespace Datamodel;
@@ -15,7 +15,7 @@ class VisualTerrain {
 
   private:
     TerrainChunk* const terrain;
-    
+
     Mesh* terrain_mesh;
     std::vector<Mesh*> tree_meshes;
 

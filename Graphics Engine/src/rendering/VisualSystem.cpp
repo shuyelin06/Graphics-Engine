@@ -7,7 +7,7 @@
 
 #include "datamodel/Object.h"
 
-#include "util/Frustum.h"
+#include "core/Frustum.h"
 
 #define RGB(rgb) ((rgb) / 255.f)
 

@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "../core/TextureBuilder.h"
+#include "TextureBuilder.h"
 
 namespace Engine
 {

@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "Asset.h"
+#include "../core/Asset.h"
 #include "math/Quaternion.h"
 
 namespace Engine {

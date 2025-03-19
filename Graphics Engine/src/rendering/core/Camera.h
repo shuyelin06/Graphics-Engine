@@ -4,7 +4,7 @@
 #include "math/OBB.h"
 #include "math/Transform.h"
 
-#include "../util/Frustum.h"
+#include "Frustum.h"
 
 namespace Engine {
 using namespace Math;

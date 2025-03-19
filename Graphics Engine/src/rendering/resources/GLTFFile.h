@@ -13,7 +13,7 @@ class GLTFFile {
   public:
     GLTFFile(const std::string& path);
 
-    void readFromFile();
+    bool readFromFile();
 };
 
 } // namespace Graphics

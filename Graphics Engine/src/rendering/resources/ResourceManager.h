@@ -8,7 +8,7 @@
 
 #include "../Direct3D11.h"
 
-#include "Asset.h"
+#include "../core/Asset.h"
 #include "MeshBuilder.h"
 #include "TextureBuilder.h"
 
@@ -63,6 +63,8 @@ class ResourceManager {
     // Load assets from files.
     Asset* LoadAssetFromOBJ(const std::string& path,
                             const std::string& objFile);
+
+    bool LoadAssetFromGLTF(const std::string& path, const std::string& file);
 
     bool LoadTextureFromPNG(TextureBuilder& builder, std::string path,
                             std::string png_file);
