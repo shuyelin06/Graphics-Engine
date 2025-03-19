@@ -39,6 +39,13 @@ class Object {
     // (Cached) Local --> World Matrix
     Matrix4 m_local;
 
+    // Object Tags
+    // Store information about what the object is in the rendering and
+    // physics engine.
+    uint16_t visual_tag;
+
+    uint16_t physics_tag;
+
     // --- TODO --- 
     // Component Flags.
     // Objects don't know what components are associated with them. They only

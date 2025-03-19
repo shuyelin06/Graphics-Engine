@@ -24,7 +24,9 @@ class ResourceManager {
     ID3D11Device* device;
     ID3D11DeviceContext* context;
 
-    std::unordered_map<std::string, Asset*> assets;
+    std::unordered_map<std::string, uint16_t> asset_map;
+    std::vector<Asset*> assets;
+
     std::unordered_map<std::string, Texture*> textures;
 
     ID3D11SamplerState* shadowmap_sampler;
@@ -40,8 +42,10 @@ class ResourceManager {
     // Get builders
     MeshBuilder* createMeshBuilder();
 
-    // Get an asset data by name
+    // Get an asset
     Asset* getAsset(const std::string& name);
+    Asset* getAsset(uint16_t id);
+
     // Get a texture by name
     Texture* getTexture(const std::string& name);
 
@@ -50,11 +54,15 @@ class ResourceManager {
     ID3D11SamplerState* getMeshSampler();
 
   private:
+    // Registers an asset by name, and returns it's ID
+    uint16_t registerAsset(const std::string& name, Asset* asset);
+
     // Generate a cube
     Asset* LoadCube(MeshBuilder& builder);
 
     // Load assets from files.
-    Asset* LoadAssetFromOBJ(const std::string& path, const std::string& objFile);
+    Asset* LoadAssetFromOBJ(const std::string& path,
+                            const std::string& objFile);
 
     bool LoadTextureFromPNG(TextureBuilder& builder, std::string path,
                             std::string png_file);

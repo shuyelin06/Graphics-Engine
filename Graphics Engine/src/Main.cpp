@@ -165,10 +165,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                 return 0;
         }
 
-         VisualDebug::DrawPoint(Vector3(0, HEIGHT_MAP_Y_HEIGHT, 0), 2.f);
-        VisualDebug::DrawPoint(Vector3(0, 0.f, 0), 2.f);
-
-
         // Dispatch Input Data
         movementHandler.update();
         input_system.update();
