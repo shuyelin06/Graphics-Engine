@@ -1,6 +1,11 @@
 #pragma once
 
 #include <string>
+#include <vector>
+
+#include "MeshBuilder.h"
+
+struct cgltf_accessor;
 
 namespace Engine {
 namespace Graphics {
@@ -13,7 +18,20 @@ class GLTFFile {
   public:
     GLTFFile(const std::string& path);
 
-    bool readFromFile();
+    bool readFromFile(MeshBuilder& builder);
+
+  private:
+    void parseIndices(const cgltf_accessor* accessor, std::vector<MeshTriangle>& triangles);
+
+    void parsePositions(const cgltf_accessor* accessor,
+                        std::vector<MeshVertex>& vertex_data);
+    void parseNormals(const cgltf_accessor* accessor,
+                      std::vector<MeshVertex>& vertex_data);
+    void parseTextureCoord(const cgltf_accessor* accessor,
+                           std::vector<MeshVertex>& vertex_data);
+
+    MeshVertex& createVertexAtIndex(int index,
+                                    std::vector<MeshVertex>& vertex_data);
 };
 
 } // namespace Graphics

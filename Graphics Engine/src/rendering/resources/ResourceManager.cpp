@@ -50,9 +50,6 @@ void ResourceManager::initialize() {
     LoadTextureFromPNG(tex_builder, "data/", "Capybara_BaseColor.png");
     textures["CapybaraTex"] = tex_builder.generate();
 
-    PNGFile test = PNGFile("data/Capybara_BaseColor.png");
-    test.readPNGData(tex_builder);
-
     // Create my samplers
     shadowmap_sampler = LoadShadowMapSampler();
     mesh_sampler = LoadMeshTextureSampler();
@@ -61,13 +58,16 @@ void ResourceManager::initialize() {
     MeshBuilder mesh_builder = MeshBuilder(device);
 
     GLTFFile gltf = GLTFFile("data/Testing.glb");
-    gltf.readFromFile();
+    gltf.readFromFile(mesh_builder);
+    registerAsset("TestAsset", new Asset(mesh_builder.generate()));
 
     registerAsset("Cube", LoadCube(mesh_builder));
     // Fox by Jake Blakeley [CC-BY] via Poly Pizza
     registerAsset("Fox", LoadAssetFromOBJ("data/", "model.obj"));
     // Capybara by Poly by Google [CC-BY] via Poly Pizza
     registerAsset("Capybara", LoadAssetFromOBJ("data/", "Capybara.obj"));
+
+    LoadAssetFromGLTF("data/", "Capybara.glb");
 }
 
 uint16_t ResourceManager::registerAsset(const std::string& name, Asset* asset) {
@@ -113,8 +113,9 @@ ID3D11SamplerState* ResourceManager::getMeshSampler() { return mesh_sampler; }
 // Uses the GLTFFile interface to load an asset from a GLTF file
 bool ResourceManager::LoadAssetFromGLTF(const std::string& path,
                                         const std::string& file) {
+    MeshBuilder mesh_builder = MeshBuilder(device);
     GLTFFile gltf_file = GLTFFile(path + file);
-    return gltf_file.readFromFile();
+    return gltf_file.readFromFile(mesh_builder);
 }
 // LoadTextureFromPNG:
 // Uses the PNGFile interface to load a texture from a PNG file

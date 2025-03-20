@@ -53,8 +53,15 @@ class MeshBuilder {
 
     // Add vertices and triangles to the builder. If a vertex is added,
     // the builder returns the index corresponding to that vertex.
+    UINT addVertex(const MeshVertex& vertex);
     UINT addVertex(const Vector3& pos);
     void addTriangle(UINT v1, UINT v2, UINT v3);
+    
+    UINT addVertices(const std::vector<MeshVertex>& vertices);
+    void addTriangles(const std::vector<MeshTriangle>& indices, UINT start_index);
+
+    // Return a MeshVertex from the builder (by index) for modification
+    MeshVertex& getVertex(UINT index);
 
     // Add shapes to the builder. This makes it easy to compose objects using
     // the builder. Unit cube centered around the origin

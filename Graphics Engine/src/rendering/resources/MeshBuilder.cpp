@@ -148,10 +148,23 @@ void MeshBuilder::setColor(const Color& color) { active_color = color; }
 
 // AddVertex:
 // Adds a vertex with position, texture, and norm to the MeshBuilder.
+UINT MeshBuilder::addVertex(const MeshVertex& vertex) {
+    UINT index = vertex_buffer.size();
+    vertex_buffer.push_back(vertex);
+    return index;
+}
+
 UINT MeshBuilder::addVertex(const Vector3& pos) {
     UINT index = vertex_buffer.size();
     vertex_buffer.push_back(MeshVertex(pos, active_color));
     return index;
+}
+
+UINT MeshBuilder::addVertices(const std::vector<MeshVertex>& vertices) {
+    UINT start_index = vertex_buffer.size();
+    for (const MeshVertex& vertex : vertices)
+        addVertex(vertex);
+    return start_index;
 }
 
 // AddTriangle:
@@ -159,6 +172,19 @@ UINT MeshBuilder::addVertex(const Vector3& pos) {
 void MeshBuilder::addTriangle(UINT v1, UINT v2, UINT v3) {
     index_buffer.push_back(MeshTriangle(v1, v2, v3));
 }
+
+void MeshBuilder::addTriangles(const std::vector<MeshTriangle>& indices,
+                               UINT start_index) {
+    for (const MeshTriangle& triangle : indices) {
+        addTriangle(triangle.vertex0 + start_index,
+                    triangle.vertex1 + start_index,
+                    triangle.vertex2 + start_index);
+    }
+}
+
+// GetVertex;
+// Return a MeshVertex from the builder (by index) for modification
+MeshVertex& MeshBuilder::getVertex(UINT index) { return vertex_buffer[index]; }
 
 // AddShapes:
 // Generates various shapes (given parameters) and adds them to the mesh

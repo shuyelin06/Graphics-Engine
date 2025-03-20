@@ -114,8 +114,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     // Bind Camera
     MovementHandler movementHandler(visual_system.getCamera().getTransform());
-    visual_system.getCamera().getTransform()->setPosition(
-        0, 100.f, 0);
+    visual_system.getCamera().getTransform()->setPosition(0, 100.f, 0);
 
     // Create Object Hierarchy
     Object& parent_object = scene_graph.createObject();
@@ -123,12 +122,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     /*Object& sun_light = parent_object.createChild();
     visual_system.bindShadowLightObject(&sun_light);*/
 
-    /* Object& child2 = parent_object.createChild();
-     AssetObject* asset2 = visual_system.bindAssetObject(&child2, "Capybara");
-     child2.getTransform().offsetRotation(Vector3::PositiveY(), PI);
-     child2.getTransform().setScale(5, 5, 5);
-     child2.getTransform().setPosition(Random(-2.5f, 2.5f), Random(-2.5f, 2.5f),
-                                       Random(15, 25));*/
+    /*Object& child2 = parent_object.createChild();
+      AssetObject* asset2 = visual_system.bindAssetObject(&child2, "TestAsset");
+      child2.getTransform().offsetRotation(Vector3::PositiveY(), PI);
+      child2.getTransform().setScale(5, 5, 5);
+      child2.getTransform().setPosition(Random(-2.5f, 2.5f), 100,
+                                        Random(15, 25));*/
 
     /*std::vector<Vector3> points;
     points.push_back(Vector3(-2.5, -2.5, -2.5));
@@ -143,7 +142,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     PhysicsObject* p1 = physics_system.bindPhysicsObject(&child2);
     CollisionObject* c1 = physics_system.bindCollisionObject(p1, "Box");*/
 
-   
     // Begin window messaging loop
     MSG msg = {};
     bool close = false;
