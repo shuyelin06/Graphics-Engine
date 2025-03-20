@@ -47,6 +47,7 @@ class MeshBuilder {
 
     // Generates the Mesh for use in the rendering pipeline
     Mesh* generate();
+    Mesh* generate(const Material& material);
 
     // Set the active color
     void setColor(const Color& color);

@@ -238,7 +238,6 @@
     <ClCompile Include="src\rendering\core\VertexStreamIDs.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\Downloads\cgltf.h" />
     <ClInclude Include="include\cgltf.h" />
     <ClInclude Include="include\lodepng\lodepng.h" />
     <ClInclude Include="src\datamodel\ResourceManager.h" />

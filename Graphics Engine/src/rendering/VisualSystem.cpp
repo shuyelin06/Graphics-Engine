@@ -493,11 +493,13 @@ void VisualSystem::renderPrepare() {
             obj->getTransform().setPosition(0, 50.f, 0);
             obj->updateLocalMatrix(Matrix4::Identity());
 
-            tree_asset = new AssetObject(obj, new Asset(builder->generate()));
+            tree_asset = new AssetObject(obj, new Asset());
+            tree_asset->asset->addMesh(builder->generate());
             obj->setVisualObject(tree_asset);
             renderable_assets.push_back(tree_asset);
         } else {
-            tree_asset->asset = new Asset(builder->generate());
+            tree_asset->asset = new Asset();
+            tree_asset->asset->addMesh(builder->generate());
         }
     }
 
@@ -528,17 +530,21 @@ void VisualSystem::renderPrepare() {
     for (const AssetObject* object : renderable_assets) {
         const Asset* asset = object->getAsset();
 
-        ShadowCaster shadowCaster;
-        shadowCaster.mesh = asset->getMesh();
-        shadowCaster.m_localToWorld = object->object->getLocalMatrix();
-        light_manager->addShadowCaster(shadowCaster);
+        const std::vector<Mesh*>& meshes = asset->getMeshes();
+        for (const Mesh* mesh : meshes) {
+            ShadowCaster shadowCaster;
+            shadowCaster.mesh = mesh;
+            shadowCaster.m_localToWorld = object->object->getLocalMatrix();
+            light_manager->addShadowCaster(shadowCaster);
 
-        if (enable || cam_frustum.intersectsOBB(
-                          OBB(asset->getMesh()->aabb, Matrix4::Identity()))) {
-            RenderableMesh renderableMesh;
-            renderableMesh.mesh = asset->getMesh();
-            renderableMesh.m_localToWorld = object->object->getLocalMatrix();
-            renderable_meshes.push_back(renderableMesh);
+            if (enable || cam_frustum.intersectsOBB(
+                              OBB(mesh->aabb, Matrix4::Identity()))) {
+                RenderableMesh renderableMesh;
+                renderableMesh.mesh = mesh;
+                renderableMesh.m_localToWorld =
+                    object->object->getLocalMatrix();
+                renderable_meshes.push_back(renderableMesh);
+            }
         }
     }
 
@@ -1063,7 +1069,7 @@ void VisualSystem::renderDebugPoints() {
     vShader->getCBHandle(CB1)->clearData();
 
     Asset* cube = resource_manager->getAsset("Cube");
-    const Mesh* mesh = cube->getMesh();
+    const Mesh* mesh = cube->getMesh(0);
 
     ID3D11Buffer* indexBuffer = mesh->index_buffer;
     ID3D11Buffer* vertexBuffer = mesh->vertex_streams[POSITION];

@@ -449,9 +449,6 @@
     <ClInclude Include="src\rendering\resources\GLTFFile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\Downloads\cgltf.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\cgltf.h">
       <Filter>Header Files</Filter>
     </ClInclude>

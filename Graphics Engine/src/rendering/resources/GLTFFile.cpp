@@ -13,9 +13,7 @@ namespace Engine {
 namespace Graphics {
 GLTFFile::GLTFFile(const std::string& _path) : path(_path) {}
 
-bool GLTFFile::readFromFile(MeshBuilder& builder) {
-    builder.reset();
-
+Asset* GLTFFile::readFromFile(MeshBuilder& builder) {
     cgltf_options options = {};
     cgltf_data* data = NULL;
 
@@ -23,63 +21,83 @@ bool GLTFFile::readFromFile(MeshBuilder& builder) {
     cgltf_result result = cgltf_parse_file(&options, path.c_str(), &data);
 
     if (result != cgltf_result_success)
-        return false;
+        return nullptr;
 
     result = cgltf_load_buffers(&options, data, path.c_str());
 
     // If success, interpret the content of the parser to read it into
     // data our engine can use
     if (result == cgltf_result_success) {
+        Asset* asset = new Asset();
+
         std::vector<MeshTriangle> triangle_data;
-        triangle_data.clear();
-
         std::vector<MeshVertex> vertex_data;
-        vertex_data.clear();
+        Material material;
 
-        // For now, we'll assume only 1 mesh and 1 primitive list.
-        assert(data->meshes_count == 1); // TEMP
-        const cgltf_mesh mesh = data->meshes[0];
-        assert(mesh.primitives_count == 1);
-        const cgltf_primitive prim = mesh.primitives[0];
+        assert(data->meshes_count > 0);
 
-        // Parse the attributes for my primitive.
-        for (int i = 0; i < prim.attributes_count; i++) {
-            const cgltf_attribute attr = prim.attributes[i];
-            const cgltf_attribute_type type = attr.type;
+        const uint32_t num_meshes = data->meshes_count;
+        for (int i = 0; i < num_meshes; i++) {
+            builder.reset();
 
-            switch (type) {
-            case cgltf_attribute_type_position:
-                parsePositions(attr.data, vertex_data);
-                break;
+            triangle_data.clear();
+            vertex_data.clear();
 
-            case cgltf_attribute_type_normal:
-                parseNormals(attr.data, vertex_data);
-                break;
+            const cgltf_mesh mesh = data->meshes[i];
 
-            case cgltf_attribute_type_texcoord:
-                parseTextureCoord(attr.data, vertex_data);
-                break;
+            // For now, we'll assume only 1 primitive list. Most meshes
+            // will only have one primitive anwyays.
+            assert(mesh.primitives_count == 1);
+            const cgltf_primitive prim = mesh.primitives[0];
 
-            default:
-                assert(false);
-                break;
+            // Parse the attributes for my primitive.
+            for (int i = 0; i < prim.attributes_count; i++) {
+                const cgltf_attribute attr = prim.attributes[i];
+                const cgltf_attribute_type type = attr.type;
+
+                switch (type) {
+                case cgltf_attribute_type_position:
+                    parsePositions(attr.data, vertex_data);
+                    break;
+
+                case cgltf_attribute_type_normal:
+                    parseNormals(attr.data, vertex_data);
+                    break;
+
+                case cgltf_attribute_type_texcoord:
+                    parseTextureCoord(attr.data, vertex_data);
+                    break;
+
+                default:
+                    assert(false);
+                    break;
+                }
             }
+
+            // Add the vertices to my builder
+            const UINT start_index = builder.addVertices(vertex_data);
+
+            // Parse the index buffer. Use this buffer to create our mesh
+            parseIndices(prim.indices, triangle_data);
+            builder.addTriangles(triangle_data, start_index);
+
+            // Parse the material information
+            parseMaterial(prim.material, material);
+
+            // Register mesh under the asset
+            asset->addMesh(builder.generate(material));
         }
-
-        // Add the vertices to my builder
-        const UINT start_index = builder.addVertices(vertex_data);
-
-        // Parse the index buffer. Use this buffer to create our mesh
-        parseIndices(prim.indices, triangle_data);
-        builder.addTriangles(triangle_data, start_index);
 
         // Finally, free any used memory
         cgltf_free(data);
 
-        return true;
+        return asset;
     } else
-        return false;
+        return nullptr;
 }
+
+// --- Parsing ---
+// Read the CGLTF data to extract information relevant to this engine.
 
 void GLTFFile::parseIndices(const cgltf_accessor* accessor,
                             std::vector<MeshTriangle>& triangles) {
@@ -90,6 +108,7 @@ void GLTFFile::parseIndices(const cgltf_accessor* accessor,
 
     const uint32_t num_elements = accessor->count;
     const uint32_t element_size = accessor->stride;
+    assert(element_size == 2);
 
     uint16_t i0, i1, i2;
     for (int i = 0; i < num_elements; i += 3) {
@@ -176,6 +195,19 @@ GLTFFile::createVertexAtIndex(int index, std::vector<MeshVertex>& vertex_data) {
     if (vertex_data.size() <= index)
         vertex_data.resize(index + 1);
     return vertex_data[index];
+}
+
+void GLTFFile::parseMaterial(const cgltf_material* mat_data,
+                             Material& material) {
+    if (mat_data->has_pbr_metallic_roughness) {
+        const cgltf_pbr_metallic_roughness roughness =
+            mat_data->pbr_metallic_roughness;
+
+        material.base_color = Color(roughness.base_color_factor[0],
+                                    roughness.base_color_factor[1],
+                                    roughness.base_color_factor[2]);
+        material.diffuse_factor = roughness.roughness_factor;
+    }
 }
 
 } // namespace Graphics

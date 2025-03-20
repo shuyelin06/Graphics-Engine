@@ -55,19 +55,14 @@ void ResourceManager::initialize() {
     mesh_sampler = LoadMeshTextureSampler();
 
     // Create my assets
-    MeshBuilder mesh_builder = MeshBuilder(device);
-
-    GLTFFile gltf = GLTFFile("data/Testing.glb");
-    gltf.readFromFile(mesh_builder);
-    registerAsset("TestAsset", new Asset(mesh_builder.generate()));
-
-    registerAsset("Cube", LoadCube(mesh_builder));
+    registerAsset("Cube", LoadCube());
     // Fox by Jake Blakeley [CC-BY] via Poly Pizza
     registerAsset("Fox", LoadAssetFromOBJ("data/", "model.obj"));
     // Capybara by Poly by Google [CC-BY] via Poly Pizza
     registerAsset("Capybara", LoadAssetFromOBJ("data/", "Capybara.obj"));
 
-    LoadAssetFromGLTF("data/", "Capybara.glb");
+    LoadAssetFromGLTF("TestAsset", "data/Testing.glb");
+    LoadAssetFromGLTF("Capybara", "data/Capybara.glb");
 }
 
 uint16_t ResourceManager::registerAsset(const std::string& name, Asset* asset) {
@@ -111,12 +106,20 @@ ID3D11SamplerState* ResourceManager::getMeshSampler() { return mesh_sampler; }
 
 // LoadAssetFromGLTF:
 // Uses the GLTFFile interface to load an asset from a GLTF file
-bool ResourceManager::LoadAssetFromGLTF(const std::string& path,
-                                        const std::string& file) {
+bool ResourceManager::LoadAssetFromGLTF(const std::string& asset_name,
+                                        const std::string& path) {
     MeshBuilder mesh_builder = MeshBuilder(device);
-    GLTFFile gltf_file = GLTFFile(path + file);
-    return gltf_file.readFromFile(mesh_builder);
+
+    GLTFFile gltf_file = GLTFFile(path);
+    Asset* asset = gltf_file.readFromFile(mesh_builder);
+
+    if (asset != nullptr) {
+        registerAsset(asset_name, asset);
+        return true;
+    } else
+        return false;
 }
+
 // LoadTextureFromPNG:
 // Uses the PNGFile interface to load a texture from a PNG file
 bool ResourceManager::LoadTextureFromPNG(TextureBuilder& builder,
@@ -146,11 +149,13 @@ Asset* ResourceManager::LoadAssetFromOBJ(const std::string& path,
 
 // Hard-Coded Cube Creator
 // Used in debugging
-Asset* ResourceManager::LoadCube(MeshBuilder& builder) {
-    builder.reset();
+Asset* ResourceManager::LoadCube() {
+    MeshBuilder builder = MeshBuilder(device);
     builder.addCube(Vector3(0, 0, 0), Quaternion(), 1.f);
 
-    Asset* cube = new Asset(builder.generate());
+    Asset* cube = new Asset();
+    cube->addMesh(builder.generate());
+
     return cube;
 }
 

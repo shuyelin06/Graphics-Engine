@@ -122,12 +122,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     /*Object& sun_light = parent_object.createChild();
     visual_system.bindShadowLightObject(&sun_light);*/
 
-    /*Object& child2 = parent_object.createChild();
+    Object& child2 = parent_object.createChild();
       AssetObject* asset2 = visual_system.bindAssetObject(&child2, "TestAsset");
       child2.getTransform().offsetRotation(Vector3::PositiveY(), PI);
       child2.getTransform().setScale(5, 5, 5);
       child2.getTransform().setPosition(Random(-2.5f, 2.5f), 100,
-                                        Random(15, 25));*/
+                                        Random(15, 25));
 
     /*std::vector<Vector3> points;
     points.push_back(Vector3(-2.5, -2.5, -2.5));

@@ -6,6 +6,7 @@
 #include "MeshBuilder.h"
 
 struct cgltf_accessor;
+struct cgltf_material;
 
 namespace Engine {
 namespace Graphics {
@@ -18,20 +19,27 @@ class GLTFFile {
   public:
     GLTFFile(const std::string& path);
 
-    bool readFromFile(MeshBuilder& builder);
+    Asset* readFromFile(MeshBuilder& builder);
 
   private:
-    void parseIndices(const cgltf_accessor* accessor, std::vector<MeshTriangle>& triangles);
+    // Index Buffer Parsing
+    void parseIndices(const cgltf_accessor* accessor,
+                      std::vector<MeshTriangle>& triangles);
 
+    // Vertex Buffer Parsing
     void parsePositions(const cgltf_accessor* accessor,
                         std::vector<MeshVertex>& vertex_data);
     void parseNormals(const cgltf_accessor* accessor,
                       std::vector<MeshVertex>& vertex_data);
     void parseTextureCoord(const cgltf_accessor* accessor,
                            std::vector<MeshVertex>& vertex_data);
-
+    
     MeshVertex& createVertexAtIndex(int index,
                                     std::vector<MeshVertex>& vertex_data);
+
+    // Material Parsing
+    void parseMaterial(const cgltf_material* mat_data, Material& material);
+    
 };
 
 } // namespace Graphics

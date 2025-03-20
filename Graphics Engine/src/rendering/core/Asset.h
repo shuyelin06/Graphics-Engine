@@ -20,12 +20,12 @@ typedef unsigned int UINT;
 // Struct Material:
 // Specifies renderable properties for a mesh
 struct Material {
-    Color ka; // Ambient Color
-    Color kd; // Diffuse Color
-    Color ks; // Specular Color
+    Color base_color;
 
-    std::string texture; // Texture
+    float diffuse_factor; // Roughness
 
+  public:
+    // Default material settings
     Material();
 };
 
@@ -46,7 +46,7 @@ struct Mesh {
     Math::AABB aabb;
 
     // -- UNUSED
-    Material* material;
+    Material material;
 };
 
 // Asset Class
@@ -55,17 +55,21 @@ struct Mesh {
 // compose one renderable entity.
 class Asset {
   private:
-    Mesh* mesh;
+    std::vector<Mesh*> meshes;
 
     // Extra renderable properties
     // ...
 
   public:
-    Asset(Mesh* mesh);
+    Asset();
     ~Asset();
 
+    // Asset Creation
+    void addMesh(Mesh* mesh);
+
     // Resource accessing
-    const Mesh* getMesh() const;
+    const std::vector<Mesh*>& getMeshes() const;
+    const Mesh* getMesh(int index) const;
 };
 
 } // namespace Graphics

@@ -58,13 +58,14 @@ class ResourceManager {
     uint16_t registerAsset(const std::string& name, Asset* asset);
 
     // Generate a cube
-    Asset* LoadCube(MeshBuilder& builder);
+    Asset* LoadCube();
 
     // Load assets from files.
     Asset* LoadAssetFromOBJ(const std::string& path,
                             const std::string& objFile);
 
-    bool LoadAssetFromGLTF(const std::string& path, const std::string& file);
+    bool LoadAssetFromGLTF(const std::string& asset_name,
+                           const std::string& path);
 
     bool LoadTextureFromPNG(TextureBuilder& builder, std::string path,
                             std::string png_file);

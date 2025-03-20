@@ -33,7 +33,9 @@ MeshBuilder::~MeshBuilder() = default;
 
 // Generate:
 // Generates the index and vertex buffer resources for the mesh.
-Mesh* MeshBuilder::generate() {
+Mesh* MeshBuilder::generate() { return generate(Material()); }
+
+Mesh* MeshBuilder::generate(const Material& material) {
     if (index_buffer.size() == 0 || vertex_buffer.size() == 0)
         return nullptr;
 
@@ -66,6 +68,9 @@ Mesh* MeshBuilder::generate() {
     // Generate my AABB extents
     for (const MeshVertex& vertex : vertex_buffer)
         mesh->aabb.expandToContain(vertex.position);
+
+    // Set the mesh material
+    mesh->material = material;
 
     return mesh;
 }

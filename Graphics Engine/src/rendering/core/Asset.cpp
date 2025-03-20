@@ -8,21 +8,24 @@ using namespace Math;
 namespace Graphics {
 // Material Constructor
 Material::Material() {
-    ka = Color(0.2f, 0.2f, 0.2f);
-    kd = Color(0.8f, 0.8f, 0.8f);
-    ks = Color(1.f, 1.f, 1.f);
+    base_color = Color(1, 1, 1);
 
-    texture = std::string();
+    diffuse_factor = 0.5f;
 }
 
 // Asset Class
 // Represents a collection of meshes and materials. An object
 // can register an asset to obtain a renderable entity.
-Asset::Asset(Mesh* _mesh) : mesh(_mesh) {}
+Asset::Asset() = default;
 Asset::~Asset() = default;
 
+// Create an Asset
+void Asset::addMesh(Mesh* mesh) { meshes.push_back(mesh); }
+
 // Access the meshes and materials in the asset.
-const Mesh* Asset::getMesh() const { return mesh; }
+const std::vector<Mesh*>& Asset::getMeshes() const { return meshes; }
+
+const Mesh* Asset::getMesh(int index) const { return meshes[index]; }
 
 } // namespace Graphics
 } // namespace Engine
