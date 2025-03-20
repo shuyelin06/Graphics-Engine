@@ -1,48 +1,68 @@
 #pragma once
 
+#include <vector>
+
+#include "math/Vector2.h"
 #include "math/Vector3.h"
 
-constexpr float HEIGHT_MAP_XZ_SIZE = 200.f;
+#include "math/PerlinNoise.h"
+
+constexpr float HEIGHT_MAP_XZ_SIZE = 75.f;
 constexpr float HEIGHT_MAP_Y_HEIGHT = 100.f;
+constexpr int HEIGHT_MAP_XZ_SAMPLES = 100;
 
-constexpr int HEIGHT_MAP_XZ_SAMPLES = 20;
-
-constexpr float DISTANCE_BETWEEN_SAMPLES = HEIGHT_MAP_XZ_SIZE / HEIGHT_MAP_XZ_SAMPLES;
+constexpr int TERRAIN_MAX_TREES = 10;
 
 namespace Engine {
 using namespace Math;
-namespace Datamodel {
 
+namespace Graphics {
+class VisualTerrain;
+};
+
+namespace Datamodel {
 typedef unsigned int UINT;
 
 // Terrain Class:
 // Stores a height-map representing the terrain in the engine.
-class Terrain {
+class TerrainChunk {
   private:
     // Stores the bottom x,z world coordinates for the terrain specifying the world coordinates\
     // of the terrain
     float world_x, world_z;
 
-    // 2D heightmap that stores the y height of the terrain in the X,Z directions
+    // 2D heightmap that stores the y height of the terrain in the X,Z
+    // directions
     float height_map[HEIGHT_MAP_XZ_SAMPLES][HEIGHT_MAP_XZ_SAMPLES];
 
+    // List of tree locations
+    std::vector<Vector2> tree_locations;
+
+    // Physics / Graphical Interfaces
+    // Visual Component for the Terrain
+    Graphics::VisualTerrain* visual_terrain;
+
   public:
-    Terrain(float world_x, float world_z);
-    
-    // Get the x,z coordinates on which the Terrain is based
-    float getTerrainHeight(int x_index, int z_index) const;
+    TerrainChunk(float world_x, float world_z, const PerlinNoise* noise_func);
+    ~TerrainChunk();
+
+    // Get properties of the terrain
     float getX() const;
     float getZ() const;
 
-    // Calculates and returns the x,z coordinates for a heightmap sample
-    float calculateXCoordinate(int x_index) const;
-    float calculateZCoordinate(int z_index) const;
+    const std::vector<Vector2>& getTreeLocations() const;
 
-    // Get the height of the terrain given a x,z coordinate
+    // Get the height of the terrain given a x,z coordinate. Uses bi-linear
+    // interpolation to sample this height.
     float sampleTerrainHeight(float x, float z) const;
 
-    // Reload a terrain chunk by index, and samples based on Does this by sampling
-    void reloadTerrainChunk(UINT index_x, UINT index_z);    
+    // Bind terrain to components from the visual and physics system.
+    void bindVisualTerrain(Graphics::VisualTerrain* visual_terrain);
+    bool hasVisualTerrain() const;
+
+  private:
+    // Reload the data of a portion of the terrain chunk by index.
+    void reloadHeightMap(UINT index_x, UINT index_z, const PerlinNoise* noise_func);
 };
 
 } // namespace Datamodel

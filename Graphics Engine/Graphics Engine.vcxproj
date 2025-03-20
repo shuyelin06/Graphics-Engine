@@ -140,7 +140,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>lib/zlib.lib;lib/zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>"lib\*.lib" %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
@@ -162,15 +162,20 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>lib/zlib.lib;lib/zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="include\lodepng\lodepng.cpp" />
+    <ClCompile Include="src\datamodel\RockGenerator.cpp" />
     <ClCompile Include="src\datamodel\SceneGraph.cpp" />
     <ClCompile Include="src\datamodel\Terrain.cpp" />
+    <ClCompile Include="src\datamodel\TreeGenerator.cpp" />
     <ClCompile Include="src\input\components\MovementHandler.cpp" />
     <ClCompile Include="src\input\InputFrame.cpp" />
-    <ClCompile Include="src\physics\collisions\AABB.cpp" />
+    <ClCompile Include="src\math\AABB.cpp" />
+    <ClCompile Include="src\math\OBB.cpp" />
+    <ClCompile Include="src\physics\collisions\CollisionAABB.cpp" />
     <ClCompile Include="src\math\ConvexHull.cpp" />
     <ClCompile Include="src\physics\collisions\CollisionObject.cpp" />
     <ClCompile Include="src\physics\collisions\GJK.cpp" />
@@ -199,30 +204,31 @@
     <ClCompile Include="src\rendering\core\AssetObject.cpp" />
     <ClCompile Include="src\rendering\lights\LightManager.cpp" />
     <ClCompile Include="src\rendering\lights\LightObject.cpp" />
-    <ClCompile Include="src\rendering\core\MeshBuilder.cpp" />
+    <ClCompile Include="src\rendering\resources\MeshBuilder.cpp" />
     <ClCompile Include="src\rendering\core\Camera.cpp" />
     <ClCompile Include="src\rendering\lights\Light.cpp" />
-    <ClCompile Include="src\rendering\core\ResourceManager.cpp" />
+    <ClCompile Include="src\rendering\resources\ResourceManager.cpp" />
     <ClCompile Include="src\rendering\core\Texture.cpp" />
-    <ClCompile Include="src\rendering\core\TextureBuilder.cpp" />
-    <ClCompile Include="src\rendering\imgui\imgui.cpp" />
-    <ClCompile Include="src\rendering\imgui\imgui_demo.cpp" />
-    <ClCompile Include="src\rendering\imgui\imgui_draw.cpp" />
-    <ClCompile Include="src\rendering\imgui\imgui_impl_dx11.cpp" />
-    <ClCompile Include="src\rendering\imgui\imgui_impl_win32.cpp" />
-    <ClCompile Include="src\rendering\imgui\imgui_tables.cpp" />
-    <ClCompile Include="src\rendering\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="src\rendering\resources\TextureBuilder.cpp" />
+    <ClCompile Include="include\imgui\imgui.cpp" />
+    <ClCompile Include="include\imgui\imgui_demo.cpp" />
+    <ClCompile Include="include\imgui\imgui_draw.cpp" />
+    <ClCompile Include="include\imgui\imgui_impl_dx11.cpp" />
+    <ClCompile Include="include\imgui\imgui_impl_win32.cpp" />
+    <ClCompile Include="include\imgui\imgui_tables.cpp" />
+    <ClCompile Include="include\imgui\imgui_widgets.cpp" />
     <ClCompile Include="src\deprecated\MarchingCubes.cpp" />
-    <ClCompile Include="src\rendering\core\TextureManager.cpp" />
-    <ClCompile Include="src\rendering\util\OBJFile.cpp" />
-    <ClCompile Include="src\rendering\util\PNGFile.cpp" />
+    <ClCompile Include="src\rendering\lights\SunLight.cpp" />
+    <ClCompile Include="src\rendering\core\Frustum.cpp" />
+    <ClCompile Include="src\rendering\resources\GLTFFile.cpp" />
+    <ClCompile Include="src\rendering\resources\OBJFile.cpp" />
+    <ClCompile Include="src\rendering\resources\PNGFile.cpp" />
     <ClCompile Include="src\rendering\shaders\Shader.cpp" />
     <ClCompile Include="src\rendering\shaders\ShaderManager.cpp" />
     <ClCompile Include="src\rendering\util\CPUTimer.cpp" />
     <ClCompile Include="src\rendering\util\GPUTimer.cpp" />
     <ClCompile Include="src\rendering\core\TextureAtlas.cpp" />
     <ClCompile Include="src\physics\PhysicsSystem.cpp" />
-    <ClCompile Include="src\rendering\util\_DEP_PLYParser.cpp" />
     <ClCompile Include="src\rendering\VisualDebug.cpp" />
     <ClCompile Include="src\rendering\VisualObject.cpp" />
     <ClCompile Include="src\rendering\VisualSystem.cpp" />
@@ -232,14 +238,18 @@
     <ClCompile Include="src\rendering\core\VertexStreamIDs.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\zconf.h" />
-    <ClInclude Include="include\zlib.h" />
+    <ClInclude Include="include\cgltf.h" />
+    <ClInclude Include="include\lodepng\lodepng.h" />
     <ClInclude Include="src\datamodel\ResourceManager.h" />
+    <ClInclude Include="src\datamodel\RockGenerator.h" />
     <ClInclude Include="src\datamodel\SceneGraph.h" />
     <ClInclude Include="src\datamodel\Terrain.h" />
+    <ClInclude Include="src\datamodel\TreeGenerator.h" />
     <ClInclude Include="src\input\InputFrame.h" />
     <ClInclude Include="src\input\SymbolData.h" />
-    <ClInclude Include="src\physics\collisions\AABB.h" />
+    <ClInclude Include="src\math\AABB.h" />
+    <ClInclude Include="src\math\OBB.h" />
+    <ClInclude Include="src\physics\collisions\CollisionAABB.h" />
     <ClInclude Include="src\math\ConvexHull.h" />
     <ClInclude Include="src\physics\collisions\CollisionObject.h" />
     <ClInclude Include="src\physics\collisions\GJK.h" />
@@ -251,16 +261,16 @@
     <ClInclude Include="src\rendering\lights\LightManager.h" />
     <ClInclude Include="src\rendering\lights\LightObject.h" />
     <ClInclude Include="src\rendering\core\Texture.h" />
-    <ClInclude Include="src\rendering\core\TextureBuilder.h" />
+    <ClInclude Include="src\rendering\resources\TextureBuilder.h" />
     <ClInclude Include="src\rendering\ImGui.h" />
-    <ClInclude Include="src\rendering\imgui\imconfig.h" />
-    <ClInclude Include="src\rendering\imgui\imgui.h" />
-    <ClInclude Include="src\rendering\imgui\imgui_impl_dx11.h" />
-    <ClInclude Include="src\rendering\imgui\imgui_impl_win32.h" />
-    <ClInclude Include="src\rendering\imgui\imgui_internal.h" />
-    <ClInclude Include="src\rendering\imgui\imstb_rectpack.h" />
-    <ClInclude Include="src\rendering\imgui\imstb_textedit.h" />
-    <ClInclude Include="src\rendering\imgui\imstb_truetype.h" />
+    <ClInclude Include="include\imgui\imconfig.h" />
+    <ClInclude Include="include\imgui\imgui.h" />
+    <ClInclude Include="include\imgui\imgui_impl_dx11.h" />
+    <ClInclude Include="include\imgui\imgui_impl_win32.h" />
+    <ClInclude Include="include\imgui\imgui_internal.h" />
+    <ClInclude Include="include\imgui\imstb_rectpack.h" />
+    <ClInclude Include="include\imgui\imstb_textedit.h" />
+    <ClInclude Include="include\imgui\imstb_truetype.h" />
     <ClInclude Include="src\deprecated\MarchingCubeTables.h" />
     <ClInclude Include="src\input\components\MovementHandler.h" />
     <ClInclude Include="src\math\PerlinNoise.h" />
@@ -281,17 +291,20 @@
     <ClInclude Include="src\math\Matrix4.h" />
     <ClInclude Include="src\math\Vector4.h" />
     <ClInclude Include="src\rendering\core\Asset.h" />
-    <ClInclude Include="src\rendering\core\MeshBuilder.h" />
+    <ClInclude Include="src\rendering\resources\MeshBuilder.h" />
     <ClInclude Include="src\rendering\core\Camera.h" />
     <ClInclude Include="src\rendering\lights\Light.h" />
-    <ClInclude Include="src\rendering\core\ResourceManager.h" />
+    <ClInclude Include="src\rendering\resources\ResourceManager.h" />
+    <ClInclude Include="src\rendering\lights\SunLight.h" />
     <ClInclude Include="src\rendering\shaders\Shader.h" />
     <ClInclude Include="src\rendering\shaders\ShaderManager.h" />
-    <ClInclude Include="src\rendering\core\TextureManager.h" />
     <ClInclude Include="src\rendering\util\CPUTimer.h" />
+    <ClInclude Include="src\rendering\core\Frustum.h" />
+    <ClInclude Include="src\rendering\util\GLBFile.h" />
+    <ClInclude Include="src\rendering\resources\GLTFFile.h" />
     <ClInclude Include="src\rendering\util\GPUTimer.h" />
-    <ClInclude Include="src\rendering\util\OBJFile.h" />
-    <ClInclude Include="src\rendering\util\PNGFile.h" />
+    <ClInclude Include="src\rendering\resources\OBJFile.h" />
+    <ClInclude Include="src\rendering\resources\PNGFile.h" />
     <ClInclude Include="src\rendering\core\TextureAtlas.h" />
     <ClInclude Include="src\physics\PhysicsSystem.h" />
     <ClInclude Include="src\rendering\Direct3D11.h" />

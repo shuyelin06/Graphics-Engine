@@ -29,6 +29,14 @@ float Lerp(float a, float b, float t) {
     return a * (1 - t) + b * t;
 }
 
+// CubicInterp:
+// Cubic interpolation between a,b given t
+float CubicInterp(float a, float b, float t) {
+    const float t2 = t * t;
+    const float t3 = t2 * t;
+    return (b - a + 1.5f) * t3 - 1.5f * t2 + a;
+}
+
 // Random:
 // Generates a random value within the range [low, high]
 float Random(float low, float high) {
@@ -40,8 +48,12 @@ int Random(int low, int high) {
     float rand = Random(0.0f, 1.0f);
     return low + (int)(rand * (high - low));
 }
+bool RandomExperiment(float prob_success) {
+    return Random(0.0f, 1.0f) <= prob_success;
+}
 
-// Spherical to Euler Coordinate-System Conversions
+// Spherical to Euler Coordinate-System Conversions.
+// Theta is the angle on the xy-plane, phi is the angle from the z axis.
 Vector3 SphericalToEuler(const Vector3& spherical) {
     return SphericalToEuler(spherical.x, spherical.y, spherical.z);
 }

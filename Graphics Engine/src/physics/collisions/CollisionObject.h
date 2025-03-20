@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "AABB.h"
+#include "CollisionAABB.h"
 #include "GJKSupport.h"
 #include "math/Transform.h"
 #include "math/Vector3.h"

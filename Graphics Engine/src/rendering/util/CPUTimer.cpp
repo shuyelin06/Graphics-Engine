@@ -1,9 +1,7 @@
 #include "CPUTimer.h"
 
 // imgui Includes
-#include "rendering/imgui/imgui.h"
-#include "rendering/imgui/imgui_impl_dx11.h"
-#include "rendering/imgui/imgui_impl_win32.h"
+#include "rendering/ImGui.h"
 
 namespace Engine {
 using namespace Utility;

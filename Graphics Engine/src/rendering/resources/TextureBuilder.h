@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "Texture.h"
+#include "../core/Texture.h"
 
 namespace Engine {
 namespace Graphics {
@@ -19,7 +19,7 @@ class TextureBuilder {
   private:
     // Device interface for creating GPU resources.
     // Set by ResourceManager
-    friend class VisualResourceManager;
+    friend class ResourceManager;
     static ID3D11Device* device;
 
     // Data for the texture

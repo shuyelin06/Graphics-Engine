@@ -2,9 +2,8 @@
 
 #include <assert.h>
 
-#include "rendering/core/TextureBuilder.h"
-
 #if defined(TOGGLE_ALLOCATION_VIEW)
+#include "../resources/TextureBuilder.h"
 #include "math/Compute.h"
 using namespace Engine::Math;
 #endif

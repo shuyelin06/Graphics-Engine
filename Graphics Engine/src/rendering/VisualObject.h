@@ -13,19 +13,21 @@ namespace Graphics {
 //  > Mesh information for the object
 class VisualObject {
     friend class VisualSystem;
-    friend void Object::setVisualObject(VisualObject* visual_obj);
-
+    
   protected:
     Object* const object;
 
     // Marks if the PhysicsObject should be destroyed or not
     // by the PhysicsSystem
-    bool destroy;
+    bool markedToDestroy;
 
     VisualObject(Object* object);
 
   public:
     ~VisualObject();
+
+    bool markedForDestruction() const;
+    void destroy();
 };
 
 } // namespace Graphics

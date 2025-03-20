@@ -1,3 +1,4 @@
+
 // Ensure that the UNICODE symbol is defined
 #ifndef UNICODE
 #define UNICODE
@@ -39,6 +40,7 @@
 #include "utility/Stopwatch.h"
 
 // ----- TESTING -----
+#include "datamodel/TreeGenerator.h"
 #include "physics/collisions/AABBTree.h"
 // -----
 
@@ -99,36 +101,35 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     input_system.initialize(hwnd);
 
     // Create Visual System
-    VisualSystem visual_system = VisualSystem(hwnd);
-    visual_system.initialize();
+    VisualSystem visual_system = VisualSystem();
+    visual_system.initialize(hwnd);
 
     // Create Physics System
     PhysicsSystem physics_system = PhysicsSystem();
     physics_system.initialize();
 
     // Create SceneGraph
-    SceneGraph scene_graph = SceneGraph();
+    Scene scene_graph = Scene();
+    // scene_graph.updateTerrainChunks(0.f, 0.f);
 
     // Bind Camera
     MovementHandler movementHandler(visual_system.getCamera().getTransform());
-    visual_system.getCamera().getTransform()->setPosition(0, 10, 0);
+    visual_system.getCamera().getTransform()->setPosition(0, 100.f, 0);
 
     // Create Object Hierarchy
-    visual_system.bindVisualTerrain(scene_graph.terrain);
-
     Object& parent_object = scene_graph.createObject();
 
-    Object& sun_light = parent_object.createChild();
-    visual_system.bindShadowLightObject(&sun_light);
+    /*Object& sun_light = parent_object.createChild();
+    visual_system.bindShadowLightObject(&sun_light);*/
 
     Object& child2 = parent_object.createChild();
-    AssetObject* asset2 = visual_system.bindAssetObject(&child2, "Capybara");
-    child2.getTransform().offsetRotation(Vector3::PositiveY(), PI);
-    child2.getTransform().setScale(5, 5, 5);
-    child2.getTransform().setPosition(Random(-2.5f, 2.5f), Random(-2.5f, 2.5f),
-                                      Random(15, 25));
+      AssetObject* asset2 = visual_system.bindAssetObject(&child2, "TestAsset");
+      child2.getTransform().offsetRotation(Vector3::PositiveY(), PI);
+      child2.getTransform().setScale(5, 5, 5);
+      child2.getTransform().setPosition(Random(-2.5f, 2.5f), 100,
+                                        Random(15, 25));
 
-    std::vector<Vector3> points;
+    /*std::vector<Vector3> points;
     points.push_back(Vector3(-2.5, -2.5, -2.5));
     points.push_back(Vector3(-2.5, -2.5, 2.5));
     points.push_back(Vector3(-2.5, 2.5, -2.5));
@@ -139,7 +140,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     points.push_back(Vector3(2.5, 2.5, 2.5));
     physics_system.addCollisionHull("Box", points);
     PhysicsObject* p1 = physics_system.bindPhysicsObject(&child2);
-    CollisionObject* c1 = physics_system.bindCollisionObject(p1, "Box");
+    CollisionObject* c1 = physics_system.bindCollisionObject(p1, "Box");*/
 
     // Begin window messaging loop
     MSG msg = {};
@@ -169,19 +170,18 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         // Update Physics System
         physics_system.update();
 
-        //// TODO: THIS CODE IS WRONG
-        // child2.getTransform().lookAt(
-        //     visual_system.getCamera().getTransform()->getPosition());
-        child2.getTransform().offsetRotation(Vector3::PositiveY(), PI / 20);
-        sun_light.getTransform().setViewDirection(Vector3(0, -0.25f, 0.75f));
-        Vector3 position = sun_light.getTransform().backward() * 75; // 75 OG
-        sun_light.getTransform().setPosition(position.x, position.y,
-                                             position.z);
+        // Update Datamodel
+        scene_graph.updateObjects();
 
-        // Submit Object Render Requests
-        scene_graph.updateAndRenderObjects();
-        scene_graph.updateAndRenderTerrain();
+        const Vector3& cam_pos =
+            visual_system.getCamera().getTransform()->getPosition();
+        scene_graph.updateTerrainChunks(cam_pos.x, cam_pos.z);
 
+        const std::vector<TerrainChunk*>& chunks = scene_graph.getNewChunks();
+        for (TerrainChunk* chunk : chunks)
+            visual_system.bindVisualTerrain(chunk);
+
+        // Render Objects
         visual_system.render();
 
         // Stall until enough time has elapsed for 60 frames / second

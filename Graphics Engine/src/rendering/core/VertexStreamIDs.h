@@ -16,8 +16,10 @@ enum VertexDataStream {
     COLOR = 3,
     INSTANCE_ID = 4,
     DEBUG_LINE = 5,   // Position + RGB Color; Debug Line Rendering
+    SV_POSITION = 6,
 
-    STREAM_COUNT
+    STREAM_COUNT,
+    
 };
 
 } // namespace Graphics

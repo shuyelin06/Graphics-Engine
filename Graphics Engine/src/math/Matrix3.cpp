@@ -8,6 +8,10 @@ Matrix3::Matrix3(float c1, float c2, float c3, float c4, float c5, float c6,
                  float c7, float c8, float c9)
     : data{{c1, c4, c7}, {c2, c5, c8}, {c3, c6, c9}} {}
 
+Vector3 Matrix3::column(int index) const {
+    return Vector3(data[index][0], data[index][1], data[index][2]);
+}
+
 Matrix3 Matrix3::transpose() const {
     Matrix3 new_matrix;
 

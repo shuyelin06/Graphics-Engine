@@ -8,7 +8,7 @@
 
 #include "../Direct3D11.h"
 
-#include "Asset.h"
+#include "../core/Asset.h"
 #include "MeshBuilder.h"
 #include "TextureBuilder.h"
 
@@ -19,26 +19,33 @@ namespace Graphics {
 // ResourceManager Class:
 // Manages assets for the engine. Provides methods
 // to load assets, and prepare them for rendering.
-class VisualResourceManager {
+class ResourceManager {
   private:
     ID3D11Device* device;
     ID3D11DeviceContext* context;
 
-    std::unordered_map<std::string, Asset*> assets;
+    std::unordered_map<std::string, uint16_t> asset_map;
+    std::vector<Asset*> assets;
+
     std::unordered_map<std::string, Texture*> textures;
 
     ID3D11SamplerState* shadowmap_sampler;
     ID3D11SamplerState* mesh_sampler;
 
   public:
-    VisualResourceManager(ID3D11Device* device, ID3D11DeviceContext* context);
-    ~VisualResourceManager();
+    ResourceManager(ID3D11Device* device, ID3D11DeviceContext* context);
+    ~ResourceManager();
 
     // Initialize assets
     void initialize();
 
-    // Get an asset data by name
+    // Get builders
+    MeshBuilder* createMeshBuilder();
+
+    // Get an asset
     Asset* getAsset(const std::string& name);
+    Asset* getAsset(uint16_t id);
+
     // Get a texture by name
     Texture* getTexture(const std::string& name);
 
@@ -47,11 +54,18 @@ class VisualResourceManager {
     ID3D11SamplerState* getMeshSampler();
 
   private:
+    // Registers an asset by name, and returns it's ID
+    uint16_t registerAsset(const std::string& name, Asset* asset);
+
     // Generate a cube
-    Asset* LoadCube(MeshBuilder& builder);
+    Asset* LoadCube();
 
     // Load assets from files.
-    Asset* LoadAssetFromOBJ(const std::string& path, const std::string& objFile);
+    Asset* LoadAssetFromOBJ(const std::string& path,
+                            const std::string& objFile);
+
+    bool LoadAssetFromGLTF(const std::string& asset_name,
+                           const std::string& path);
 
     bool LoadTextureFromPNG(TextureBuilder& builder, std::string path,
                             std::string png_file);

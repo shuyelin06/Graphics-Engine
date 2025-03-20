@@ -2,6 +2,8 @@
 
 #include <math.h>
 
+#include "Compute.h"
+
 namespace Engine {
 namespace Math {
 Quaternion::Quaternion() : im(0,0,0), r(1) {}
@@ -119,26 +121,25 @@ Quaternion Quaternion::RotationAroundAxis(const Vector3& axis, float theta) {
 }
 
 // RotationBetweenVectors:
-// Generate a unit quaternion representing a rotation from one vector to
-// another.
-// - We can find an axis of rotation as the cross product between the two
-// vectors
-// - We can find the angle of rotation by taking acos(dot(u,v) / ||u|| ||v||)
-Quaternion Quaternion::RotationToVector(const Vector3& from,
-                                        const Vector3& to) {
-    // TODO: Does not work the best
-    const Vector3 fromUnit = from.unit();
-    const Vector3 toUnit = to.unit();
+// Generate a unit quaternion representing a rotation that rotates +Z to some
+// vector. Does this using spherical coordinates.
+Quaternion Quaternion::RotationToVector(const Vector3& direction) {
+    const Vector3 normalized = direction.unit();
 
-    // Axis of rotation is the cross product between the two vectors
-    const Vector3 axis = -fromUnit.cross(toUnit).unit();
+    // Now, convert to spherical coordinates
+    const Vector3 spherical_coords = EulerToSpherical(direction);
+    const float theta = spherical_coords.y;
+    const float phi = spherical_coords.z;
 
-    // Angle of rotation can be derived from the formula dot(u,v) = cos(theta)
-    // ||u|| ||v||
-    const float theta =
-        atanf(fromUnit.cross(toUnit).magnitude() / fromUnit.dot(toUnit)) / 2;
+    // We can now determine our rotation quaternion from this. To convert
+    // spherical to euler, we rotate about y by theta, then z by phi.
+    const Quaternion y_rotate =
+        Quaternion::RotationAroundAxis(Vector3::PositiveY(), theta);
+    const Quaternion z_rotate =
+        Quaternion::RotationAroundAxis(Vector3::PositiveZ(), phi);
 
-    return RotationAroundAxis(axis, theta);
+    return z_rotate * y_rotate;
 }
+
 } // namespace Math
 } // namespace Engine

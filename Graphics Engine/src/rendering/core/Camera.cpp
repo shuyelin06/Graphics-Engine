@@ -1,5 +1,7 @@
 #include "Camera.h"
 
+#include <algorithm>
+#include <float.h>
 #include <math.h>
 
 #include "math/Compute.h"
@@ -8,66 +10,37 @@
 
 namespace Engine {
 namespace Graphics {
-
+// --- Camera ---
 Camera::Camera() {
-    fov = 1.2f;
-    z_near = 1.f;
-    z_far = 500.f;
-
-    transform = new Transform();
+    setFrustumMatrix(1.2f, 5.f, 300.f);
+    setTransform(new Transform());
 }
 Camera::~Camera() = default;
 
 // GetTransform:
 // Returns the camera's transform
 const Transform* Camera::getTransform() const { return transform; }
-
 Transform* Camera::getTransform() { return transform; }
 
-// GetFov:
-// Returns the camera's FOV
-float Camera::getFOV() const { return fov; }
-
-// GetZNear:
-// Returns the distance the Z-Near plane is from the camera.
-// Anything closer to the camera than this is clipped.
-float Camera::getZNear() const { return z_near; }
-
-// GetZFar:
-// Returns the distance the Z-Far plane is from the camera.
-// Anything further from the camera than this is clipped.
-float Camera::getZFar() const { return z_far; }
+// GetFrustum:
+// Returns an object which can be used to query the camera frustum.
+Frustum Camera::frustum() const {
+    const Matrix4 m_world_to_frustum =
+        frustum_matrix * transform->transformMatrix().inverse();
+    return Frustum(m_world_to_frustum);
+}
 
 // SetTransform:
 // Sets the camera's transform to follow a particular transform.
 // Can be used
 void Camera::setTransform(Transform* _transform) { transform = _transform; }
 
-// SetFOV:
-// Set's the camera's FOV. Clamped to prevent excessively wide
-// FOVs.
-void Camera::setFOV(float new_fov) {
-    fov = Clamp(new_fov, 0.5f, PI - 0.5f);
-}
-
-// SetZNear:
-// Set the distance of the Z-Near plane.
-void Camera::setZNear(float new_znear) { z_near = new_znear; }
-
-// SetZFar:
-// Set the distance of the Z-Far plane
-void Camera::setZFar(float new_zfar) { z_far = new_zfar; }
-
-// Camera -> World Matrix
-const Matrix4 Camera::getWorldToCameraMatrix(void) const {
-    return transform->transformMatrix().inverse();
-}
-
-// Camera -> Projected Space Matrix
-const Matrix4 Camera::getProjectionMatrix(void) const {
+// SetFrustuMatrix:
+// Updates the camera frustum (projection) matrix
+void Camera::setFrustumMatrix(float fov, float z_near, float z_far) {
     Matrix4 projection_matrix = Matrix4();
-    
-    float fov_factor = cosf(fov / 2.f) / sinf(fov / 2.f);
+
+    const float fov_factor = cosf(fov / 2.f) / sinf(fov / 2.f);
 
     projection_matrix[0][0] = fov_factor / ASPECT_RATIO;
     projection_matrix[1][1] = fov_factor;
@@ -75,7 +48,15 @@ const Matrix4 Camera::getProjectionMatrix(void) const {
     projection_matrix[2][3] = 1;
     projection_matrix[3][2] = (z_near * z_far) / (z_near - z_far);
 
-    return projection_matrix;
+    frustum_matrix = projection_matrix;
 }
+
+// Camera -> World Matrix
+const Matrix4 Camera::getWorldToCameraMatrix(void) const {
+    return transform->transformMatrix().inverse();
+}
+
+// Camera -> Projected Space Matrix
+const Matrix4 Camera::getFrustumMatrix(void) const { return frustum_matrix; }
 } // namespace Graphics
 } // namespace Engine

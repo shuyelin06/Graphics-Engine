@@ -4,13 +4,13 @@
 #include <vector>
 
 #include "../Direct3D11.h"
-#include "VertexStreamIDs.h"
 #include "Texture.h"
+#include "VertexStreamIDs.h"
 
+#include "math/AABB.h"
 #include "math/Color.h"
 #include "math/Vector2.h"
 #include "math/Vector3.h"
-
 
 namespace Engine {
 using namespace Math;
@@ -20,30 +20,33 @@ typedef unsigned int UINT;
 // Struct Material:
 // Specifies renderable properties for a mesh
 struct Material {
-    Color ka; // Ambient Color
-    Color kd; // Diffuse Color
-    Color ks; // Specular Color
+    Color base_color;
 
-    std::string texture; // Texture
+    float diffuse_factor; // Roughness
 
+  public:
+    // Default material settings
     Material();
 };
 
-
-
 // Struct Mesh:
-// Specifies a mesh, which is a collection of vertices that form triangles. 
-// Vertices are stored in separate vertex streams, so that they have an easier time being
-// passed as input into shaders. 
+// Specifies a mesh, which is a collection of vertices that form triangles.
+// Vertices are stored in separate vertex streams, so that they have an easier
+// time being passed as input into shaders.
 struct Mesh {
-    // Index buffer pointing to indices in the vertex stream, to create vertices.
+    // Index buffer pointing to indices in the vertex stream, to create
+    // vertices.
     ID3D11Buffer* index_buffer;
     UINT triangle_count;
 
     // My different vertex streams
     ID3D11Buffer* vertex_streams[STREAM_COUNT];
 
-    Material* material;   
+    // AABB for the Mesh
+    Math::AABB aabb;
+
+    // -- UNUSED
+    Material material;
 };
 
 // Asset Class
@@ -53,23 +56,20 @@ struct Mesh {
 class Asset {
   private:
     std::vector<Mesh*> meshes;
-    std::vector<Material*> materials;
+
+    // Extra renderable properties
+    // ...
 
   public:
     Asset();
     ~Asset();
 
-    // Resource creation
+    // Asset Creation
     void addMesh(Mesh* mesh);
-    void addMaterial(Material* material);
 
     // Resource accessing
-    std::vector<Mesh*>& getMeshes();
-    std::vector<Material*>& getMaterials();
-
-    Mesh* getMesh(int mesh_index);
-    const Mesh* getMesh(int mesh_index) const;
-    Material* getMaterial(int material_index);
+    const std::vector<Mesh*>& getMeshes() const;
+    const Mesh* getMesh(int index) const;
 };
 
 } // namespace Graphics

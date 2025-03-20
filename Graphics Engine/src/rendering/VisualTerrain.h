@@ -2,6 +2,7 @@
 
 #include "core/Asset.h"
 #include "datamodel/Terrain.h"
+#include "resources/MeshBuilder.h"
 
 namespace Engine {
 using namespace Datamodel;
@@ -13,14 +14,25 @@ class VisualTerrain {
     friend class VisualSystem;
 
   private:
-    Terrain* const terrain;
+    TerrainChunk* const terrain;
 
     Mesh* terrain_mesh;
+    std::vector<Mesh*> tree_meshes;
 
-    VisualTerrain(Terrain* terrain, Mesh* terrain_mesh);
+    bool markedToDestroy;
+
+    VisualTerrain(TerrainChunk* terrain, MeshBuilder* mesh_builder);
 
   public:
     ~VisualTerrain();
+
+    bool markedForDestruction() const;
+    void destroy();
+
+  private:
+    Mesh* generateTerrainMesh(MeshBuilder& builder);
+    Mesh* generateTreeMesh(MeshBuilder& builder, const Vector2& location);
 };
+
 } // namespace Graphics
 } // namespace Engine

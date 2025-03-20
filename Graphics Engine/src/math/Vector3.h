@@ -19,6 +19,9 @@ class Vector3 {
     // Updates the contents of the current vector
     void set(const Vector3& vec); 
 
+    // Return a vector with the contents rearranged
+    Vector3 xzy() const;
+
     // Normalize the vector
     void inplaceNormalize(); // In-Place Normalize
     Vector3 unit() const;    // Returns a Normalized Copy
@@ -30,11 +33,15 @@ class Vector3 {
     Vector3 cross(const Vector3& vector) const;
     
     // Projects this vector onto another vector.
+    float scalarProjection(const Vector3& vector) const;
     Vector3 projectOnto(const Vector3& vector) const;
 
     // Returns a new vector with each x,y,z value the minimum (or maximum) of the two vectors
     Vector3 componentMin(const Vector3& vector) const;
     Vector3 componentMax(const Vector3& vector) const;
+    
+    // Returns a new vector that is orthogonal to this vector
+    Vector3 orthogonal() const;
 
     // Vector Operations
     Vector3 operator+(const Vector3&) const; // Addition

@@ -18,9 +18,15 @@ float Clamp(float value, float low, float high);
 // 1, return b.
 float Lerp(float a, float b, float t);
 
+// Cubic Interpolation between a,b with t in [0,1]. Cubic interpolation
+// mandates that the slopes at t = 0, 1 are 0.
+float CubicInterp(float a, float b, float t);
+
 // Generates a random value within a range [low, high]
 float Random(float low, float high);
 int Random(int low, int high);
+
+bool RandomExperiment(float prob_success);
 
 // Conversions between Euler and Spherical Coordinates
 // Euler Space: (x,y,z) based on the X,Y,Z standard basis axes

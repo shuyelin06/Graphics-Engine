@@ -75,7 +75,9 @@ void Shader::updateCBResource(CBSlot slot, ID3D11Device* device,
         sr_data.SysMemSlicePitch = 0;
 
         // Create buffer
-        device->CreateBuffer(&buff_desc, &sr_data, &(constantBuffer->resource));
+        HRESULT result = device->CreateBuffer(&buff_desc, &sr_data,
+                                              &(constantBuffer->resource));
+        assert(SUCCEEDED(result));
     }
     // If buffer exists, perform resource renaming to update buffer data
     // instead of creating a new buffer
@@ -111,7 +113,7 @@ void VertexShader::bindShader(ID3D11Device* device,
 
     // Update buffers resources, and bind them to the pipeline
     for (int i = 0; i < CBSlot::CBCOUNT; i++) {
-        if (constantBuffers[i] != nullptr) {
+        if (constantBuffers[i] != nullptr && constantBuffers[i]->byteSize() > 0) {
             updateCBResource((CBSlot)i, device, context);
             context->VSSetConstantBuffers(i, 1,
                                           &(constantBuffers[i]->resource));
@@ -129,7 +131,8 @@ void PixelShader::bindShader(ID3D11Device* device,
 
     // Update buffers resources, and bind them to the pipeline
     for (int i = 0; i < CBSlot::CBCOUNT; i++) {
-        if (constantBuffers[i] != nullptr) {
+        if (constantBuffers[i] != nullptr &&
+            constantBuffers[i]->byteSize() > 0) {
             updateCBResource((CBSlot)i, device, context);
             context->PSSetConstantBuffers(i, 1,
                                           &(constantBuffers[i]->resource));

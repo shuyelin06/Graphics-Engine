@@ -36,11 +36,12 @@ static char* ParseToken(char** line, const char* delimiter);
 static int ParseUInt(char** line, const char* delimiter);
 static float ParseFloat(char** line, const char* delimiter);
 
-static void ParseMaterials(const std::string& path, const std::string& material_file,
-                           OBJData& data);
+static void ParseMaterials(const std::string& path,
+                           const std::string& material_file, OBJData& data);
 
 Asset* OBJFile::readAssetFromFile(MeshBuilder& mesh_builder,
                                   TextureBuilder& tex_builder) {
+                                  /*
     // Open target file with file reader
     TextFileReader fileReader = TextFileReader(path + file_name);
 
@@ -145,10 +146,9 @@ Asset* OBJFile::readAssetFromFile(MeshBuilder& mesh_builder,
                         // Parse texture index
                         int vtIndex;
                         if (fileReader.readInt(&vtIndex, '/'))
-                            newVertex.textureCoord =
-                                data.textureCoords[vtIndex - 1];
+                            newVertex.tex = data.textureCoords[vtIndex - 1];
                         else
-                            newVertex.textureCoord = Vector2(-1, -1);
+                            newVertex.tex = Vector2(-1, -1);
 
                         // Parse normal index
                         int vnIndex;
@@ -157,9 +157,7 @@ Asset* OBJFile::readAssetFromFile(MeshBuilder& mesh_builder,
                         else
                             newVertex.normal = Vector3(0, 0, 0);
 
-                        vertexIndex = mesh_builder.addVertex(
-                            newVertex.position, newVertex.textureCoord,
-                            newVertex.normal);
+                        vertexIndex = mesh_builder.addVertex(newVertex);
                         vertexMap[vertexData] = vertexIndex;
                     }
 
@@ -200,6 +198,10 @@ Asset* OBJFile::readAssetFromFile(MeshBuilder& mesh_builder,
     }
 
     return data.asset;
+*/
+
+    // TODO: Broken
+    return nullptr;
 }
 
 // Parses a material (or materials), and registers them
@@ -208,6 +210,7 @@ Asset* OBJFile::readAssetFromFile(MeshBuilder& mesh_builder,
 // given will be the one used.
 void ParseMaterials(const std::string& path, const std::string& material_file,
                     OBJData& data) {
+    /*
     // Open target file with file reader
     TextFileReader fileReader = TextFileReader(path + material_file);
 
@@ -258,6 +261,7 @@ void ParseMaterials(const std::string& path, const std::string& material_file,
 
         fileReader.popBlock();
     }
+    */
 }
 
 // Helper parser functions. Given a pointer to a

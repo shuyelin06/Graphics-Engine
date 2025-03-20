@@ -1,6 +1,5 @@
 #include "VisualDebug.h"
 
-#include "_VertexStreamIDs_.h"
 #include <assert.h>
 
 namespace Engine {

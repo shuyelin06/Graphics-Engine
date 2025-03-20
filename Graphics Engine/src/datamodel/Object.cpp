@@ -92,7 +92,7 @@ const VisualObject* Object::getVisualObject() const { return visual_object; }
 // Change the current visual object. If needed, marks the old visual object for destruction.
 void Object::setVisualObject(VisualObject* visual_obj) {
     if (visual_object != nullptr)
-        visual_object->destroy = true;
+        visual_object->destroy();
     visual_object = visual_obj;
 }
 

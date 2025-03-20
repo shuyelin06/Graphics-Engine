@@ -6,6 +6,8 @@
 
 #include <assert.h>
 
+constexpr bool ALLOW_CACHING = true ;
+
 namespace Engine {
 namespace Graphics {
 
@@ -86,7 +88,6 @@ void ShaderManager::initialize() {
         VertexShader* vs = createVertexShader(
             "VSTerrain.hlsl", "vsterrain_main", terrain_input, 2);
         vs->enableCB(CB0);
-        vs->enableCB(CB1);
         vertex_shaders["Terrain"] = vs;
 
         PixelShader* ps = createPixelShader("PSTerrain.hlsl", "psterrain_main");
@@ -136,7 +137,7 @@ void ShaderManager::initialize() {
     // Shadow:
     // Draws a mesh with dynamic lights enabled
     {
-        VertexDataStream shadow_input[3] = {POSITION, TEXTURE, NORMAL};
+        VertexDataStream shadow_input[3] = {POSITION, NORMAL, COLOR};
         VertexShader* vs = createVertexShader("ShadowShaderV.hlsl", "vs_main",
                                               shadow_input, 3);
         vs->enableCB(CB1);
@@ -147,6 +148,24 @@ void ShaderManager::initialize() {
         ps->enableCB(CB0); // Global Illumination
         ps->enableCB(CB1);
         pixel_shaders["ShadowShader"] = ps;
+    }
+
+    // --- Post Processing Effects ---
+    // Generic vertex shader for post process effects
+    {
+        VertexDataStream blur_input[1] = {SV_POSITION};
+        VertexShader* vs =
+            createVertexShader("Sky.hlsl", "vs_sky", blur_input, 1);
+        vertex_shaders["PostProcess"] = vs;
+    }
+
+    // Blur:
+    // Attempt at blurring
+    {
+        PixelShader* ps = createPixelShader("Sky.hlsl", "ps_sky");
+        ps->enableCB(CB0);
+        ps->enableCB(CB1);
+        pixel_shaders["Sky"] = ps;
     }
 }
 
@@ -187,7 +206,7 @@ static ID3DBlob* CompileShaderBlob(ShaderType type, const std::string& file,
     const std::wstring cached_blob_path_w =
         std::wstring(cached_blob_path.begin(), cached_blob_path.end());
 
-    if (std::filesystem::exists(cached_blob_path)) {
+    if (std::filesystem::exists(cached_blob_path) && ALLOW_CACHING) {
         // If the blob was last modified after the shader, then it is the most
         // up-to-date blob for the shader and we don't need to recompile.
         auto blob_last_modified =
@@ -271,6 +290,16 @@ VertexShader* ShaderManager::createVertexShader(const std::string& filename,
                     POSITION,   0, D3D11_INPUT_PER_VERTEX_DATA,
                     0};
             break;
+
+        case SV_POSITION: {
+            desc = {"SV_POSITION",
+                    0,
+                    DXGI_FORMAT_R32G32B32A32_FLOAT,
+                    0,
+                    0,
+                    D3D11_INPUT_PER_VERTEX_DATA,
+                    0};
+        } break;
 
         // Texture Stream:
         // A buffer of (u,v) floats as texture coordinates

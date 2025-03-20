@@ -31,6 +31,13 @@ class Vector2 {
 
     // Returns some vector orthogonal to this vector
     Vector2 orthogonal() const;
+
+    // Vector Operations
+    Vector2 operator+(const Vector2&) const; // Addition
+    Vector2& operator+=(const Vector2&);     // Compound (In-Place) Addition
+    Vector2 operator-(const Vector2&) const; // Subtraction
+    Vector2& operator-=(const Vector2&);     // Compound (In-Place) Subtraction
+    Vector2 operator-() const;               // Negation
 };
 } // namespace Math
 } // namespace Engine

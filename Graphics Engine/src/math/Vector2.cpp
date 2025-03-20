@@ -37,5 +37,45 @@ Vector2 Vector2::orthogonal() const {
     return Vector2(y, -x);
 }
 
+// + Operator:
+// Returns a new vector which is the summation of
+// this vector and another vector
+Vector2 Vector2::operator+(const Vector2& vec) const {
+    Vector2 vector;
+    vector.x = x + vec.x;
+    vector.y = y + vec.y;
+    return vector;
+}
+
+// += Operator
+// Adds a vector's x,y,z values to this vector
+// in-place
+Vector2& Vector2::operator+=(const Vector2& vec) {
+    x += vec.x;
+    y += vec.y;
+    return *this;
+}
+
+// - Operator
+// Returns a new vector which is the result of this vector
+// subtracted with another vector
+Vector2 Vector2::operator-(const Vector2& vec) const {
+    return Vector2(x - vec.x, y - vec.y);
+}
+
+// -= Operator
+// Subtracts another vector's x,y,z values from this vector
+// in-place
+Vector2& Vector2::operator-=(const Vector2& vec) {
+    x -= vec.x;
+    y -= vec.y;
+    return *this;
+}
+
+// - Operator (Negate)
+// Returns a new vector which is the negation of this vector's
+// x,y,z values
+Vector2 Vector2::operator-() const { return Vector2(-x, -y); }
+
 } // namespace Math
 } // namespace Engine

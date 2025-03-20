@@ -1,24 +1,32 @@
 #pragma once
 
-#include "rendering/VisualObject.h"
 #include "Asset.h"
+#include "rendering/VisualObject.h"
 
 namespace Engine {
 namespace Graphics {
-// AssetObject Class:
+// MeshObject Class:
 // Denotes an asset in the engine, that can be rendered.
 class AssetObject : public VisualObject {
     friend class VisualSystem;
 
   private:
     Asset* asset;
+    Matrix4 m_local_to_world;
 
-    AssetObject(Object* object, Asset* asset);
+    AssetObject(Object* object, Asset* mesh);
 
   public:
     ~AssetObject();
-    
-    const Asset* getAsset();
+
+    const Asset* getAsset() const;
+    const Matrix4& getLocalToWorldMatrix() const;
+
+    Vector3 getPosition() const;
+    Quaternion getRotation() const;
+
+    // Pulls the object transform
+    void pullDatamodelData();
 };
 
 } // namespace Graphics

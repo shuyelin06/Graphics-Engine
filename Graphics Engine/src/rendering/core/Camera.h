@@ -1,7 +1,10 @@
 #pragma once
 
 #include "math/Matrix4.h"
+#include "math/OBB.h"
 #include "math/Transform.h"
+
+#include "Frustum.h"
 
 namespace Engine {
 using namespace Math;
@@ -24,6 +27,11 @@ class Camera {
     // Transform
     Transform* transform;
 
+    // Frustum Matrix
+    // Projects camera space coordiantes into the normalized 
+    // unit cube from [-1,1] x [-1,1] x [0,1]
+    Matrix4 frustum_matrix;
+
   public:
     Camera();
     ~Camera();
@@ -32,22 +40,17 @@ class Camera {
     const Transform* getTransform() const;
     Transform* getTransform();
 
-    float getFOV() const;
-    float getZNear() const;
-    float getZFar() const;
+    Frustum frustum() const;
 
     // Set the camera's attributes
     void setTransform(Transform* transform);
-
-    void setFOV(float new_fov);
-    void setZNear(float new_znear);
-    void setZFar(float new_zfar);
+    void setFrustumMatrix(float fov, float z_near, float z_far);
 
     // World -> Camera Matrix
     const Matrix4 getWorldToCameraMatrix(void) const;
 
     // Camera -> Projected Space Matrix
-    const Matrix4 getProjectionMatrix(void) const;
+    const Matrix4 getFrustumMatrix(void) const;
 };
 } // namespace Graphics
 } // namespace Engine
