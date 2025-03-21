@@ -33,6 +33,10 @@ ResourceManager::~ResourceManager() = default;
 // Initialize:
 // Loads assets into the asset manager.
 void ResourceManager::initialize() {
+    // Create my samplers
+    shadowmap_sampler = LoadShadowMapSampler();
+    mesh_sampler = LoadMeshTextureSampler();
+
     // Prepare my builders
     TextureBuilder::device = device;
 
@@ -44,15 +48,12 @@ void ResourceManager::initialize() {
     // LoadTextureFromPNG(tex_builder, "data/", "test.png");
     //  textures[Test2] = tex_builder.generate();
 
+    /*
     LoadTextureFromPNG(tex_builder, "data/", "grass.png");
     textures["TerrainGrass"] = tex_builder.generate();
 
     LoadTextureFromPNG(tex_builder, "data/", "Capybara_BaseColor.png");
     textures["CapybaraTex"] = tex_builder.generate();
-
-    // Create my samplers
-    shadowmap_sampler = LoadShadowMapSampler();
-    mesh_sampler = LoadMeshTextureSampler();
 
     // Create my assets
     registerAsset("Cube", LoadCube());
@@ -60,9 +61,12 @@ void ResourceManager::initialize() {
     registerAsset("Fox", LoadAssetFromOBJ("data/", "model.obj"));
     // Capybara by Poly by Google [CC-BY] via Poly Pizza
     registerAsset("Capybara", LoadAssetFromOBJ("data/", "Capybara.obj"));
+    */
 
     LoadAssetFromGLTF("TestAsset", "data/Testing.glb");
     LoadAssetFromGLTF("Capybara", "data/Capybara.glb");
+
+    LoadAssetFromGLTF("TexturedCube", "data/TexturedCube.glb");
 }
 
 uint16_t ResourceManager::registerAsset(const std::string& name, Asset* asset) {
@@ -109,9 +113,10 @@ ID3D11SamplerState* ResourceManager::getMeshSampler() { return mesh_sampler; }
 bool ResourceManager::LoadAssetFromGLTF(const std::string& asset_name,
                                         const std::string& path) {
     MeshBuilder mesh_builder = MeshBuilder(device);
+    TextureBuilder tex_builder = TextureBuilder(1, 1);
 
     GLTFFile gltf_file = GLTFFile(path);
-    Asset* asset = gltf_file.readFromFile(mesh_builder);
+    Asset* asset = gltf_file.readFromFile(mesh_builder, tex_builder);
 
     if (asset != nullptr) {
         registerAsset(asset_name, asset);

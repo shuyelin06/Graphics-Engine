@@ -20,6 +20,7 @@ typedef unsigned int UINT;
 // Struct Material:
 // Specifies renderable properties for a mesh
 struct Material {
+    Texture* base_color_tex;
     Color base_color;
 
     float diffuse_factor; // Roughness

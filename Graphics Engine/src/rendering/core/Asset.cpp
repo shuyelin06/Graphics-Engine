@@ -8,6 +8,7 @@ using namespace Math;
 namespace Graphics {
 // Material Constructor
 Material::Material() {
+    base_color_tex = nullptr;
     base_color = Color(1, 1, 1);
 
     diffuse_factor = 0.5f;

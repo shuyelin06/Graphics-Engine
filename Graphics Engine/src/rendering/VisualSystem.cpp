@@ -475,6 +475,9 @@ void VisualSystem::renderPrepare() {
     terrain_chunks.resize(head);
 
     // --- TESTING ENVIRONMENT ---
+    Asset* cube = resource_manager->getAsset("Capybara");
+    cube->getMesh(0)->material.base_color_tex->displayImGui();
+
     // --- TEST ---
     static TreeGenerator tree_gen = TreeGenerator();
     static AssetObject* tree_asset = nullptr;
@@ -762,8 +765,8 @@ void VisualSystem::performTerrainPass() {
 
     // Load my Textures
     {
-        Texture* tex = resource_manager->getTexture("TerrainGrass");
-        context->PSSetShaderResources(0, 1, &tex->shader_view);
+        // Texture* tex = resource_manager->getTexture("TerrainGrass");
+        // context->PSSetShaderResources(0, 1, &tex->shader_view);
 
         const Texture* shadow_texture = light_manager->getAtlasTexture();
         context->PSSetShaderResources(1, 1, &shadow_texture->shader_view);
@@ -814,18 +817,16 @@ void VisualSystem::performRenderPass() {
     cpu_timer.beginTimer("Render Pass");
 #endif
 
-    VertexShader* vShader = shader_manager->getVertexShader("ShadowShader");
+    VertexShader* vShader = shader_manager->getVertexShader("TexturedMesh");
     CBHandle* vCB1 = vShader->getCBHandle(CB1);
     CBHandle* vCB2 = vShader->getCBHandle(CB2);
 
-    PixelShader* pShader = shader_manager->getPixelShader("ShadowShader");
+    PixelShader* pShader = shader_manager->getPixelShader("TexturedMesh");
     CBHandle* pCB0 = pShader->getCBHandle(CB0);
     CBHandle* pCB1 = pShader->getCBHandle(CB1);
 
     context->OMSetRenderTargets(1, &render_target->target_view,
                                 depth_stencil->depth_view);
-    /*context->ClearDepthStencilView(depth_texture->depth_view,
-       D3D11_CLEAR_DEPTH, 1.0f, 0);*/
     context->RSSetViewports(1, &viewport);
 
     // Vertex Constant Buffer 1:
@@ -913,9 +914,6 @@ void VisualSystem::performRenderPass() {
 
     // Load my Textures
     {
-        Texture* tex = resource_manager->getTexture("CapybaraTex");
-        context->PSSetShaderResources(0, 1, &tex->shader_view);
-
         const Texture* shadow_texture = light_manager->getAtlasTexture();
         context->PSSetShaderResources(1, 1, &shadow_texture->shader_view);
     }
@@ -932,6 +930,16 @@ void VisualSystem::performRenderPass() {
     }
 
     for (const RenderableMesh& renderable_mesh : renderable_meshes) {
+        const Mesh* mesh = renderable_mesh.mesh;
+        const Material mat = mesh->material;
+
+        // FOR NOW: IGNORE MESHES WITHOHOUT BASE COLOR TEX
+        if (mat.base_color_tex == nullptr)
+            continue;
+
+        Texture* tex = mat.base_color_tex;
+        context->PSSetShaderResources(0, 1, &tex->shader_view);
+
         const Matrix4& mLocalToWorld = renderable_mesh.m_localToWorld;
 
         {
@@ -944,8 +952,6 @@ void VisualSystem::performRenderPass() {
         }
 
         // Load each mesh
-        const Mesh* mesh = renderable_mesh.mesh;
-
         context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
         ID3D11Buffer* buffer;
@@ -957,11 +963,17 @@ void VisualSystem::performRenderPass() {
         buffer = mesh->vertex_streams[POSITION];
         context->IASetVertexBuffers(POSITION, 1, &buffer, &stride, &offset);
 
+        stride = sizeof(float) * 2;
+        offset = 0;
+
+        buffer = mesh->vertex_streams[TEXTURE];
+        context->IASetVertexBuffers(TEXTURE, 1, &buffer, &stride, &offset);
+
+        stride = sizeof(float) * 3;
+        offset = 0;
+
         buffer = mesh->vertex_streams[NORMAL];
         context->IASetVertexBuffers(NORMAL, 1, &buffer, &stride, &offset);
-
-        buffer = mesh->vertex_streams[COLOR];
-        context->IASetVertexBuffers(COLOR, 1, &buffer, &stride, &offset);
 
         context->IASetIndexBuffer(mesh->index_buffer, DXGI_FORMAT_R32_UINT, 0);
 

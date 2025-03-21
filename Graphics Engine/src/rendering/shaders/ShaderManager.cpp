@@ -6,7 +6,7 @@
 
 #include <assert.h>
 
-constexpr bool ALLOW_CACHING = true ;
+constexpr bool ALLOW_CACHING = true;
 
 namespace Engine {
 namespace Graphics {
@@ -148,6 +148,22 @@ void ShaderManager::initialize() {
         ps->enableCB(CB0); // Global Illumination
         ps->enableCB(CB1);
         pixel_shaders["ShadowShader"] = ps;
+    }
+
+    // Shadow (Textured):
+    // Draws a mesh with dynamic lights enabled
+    {
+        VertexDataStream shadow_input[3] = {POSITION, TEXTURE, NORMAL};
+        VertexShader* vs = createVertexShader("V_TexturedMesh.hlsl", "vs_main",
+                                              shadow_input, 3);
+        vs->enableCB(CB1);
+        vs->enableCB(CB2);
+        vertex_shaders["TexturedMesh"] = vs;
+
+        PixelShader* ps = createPixelShader("P_TexturedMesh.hlsl", "ps_main");
+        ps->enableCB(CB0); // Global Illumination
+        ps->enableCB(CB1);
+        pixel_shaders["TexturedMesh"] = ps;
     }
 
     // --- Post Processing Effects ---

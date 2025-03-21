@@ -9,11 +9,14 @@
 #define CGLTF_IMPLEMENTATION
 #include "cgltf.h"
 
+#include "lodepng/lodepng.h"
+
 namespace Engine {
 namespace Graphics {
 GLTFFile::GLTFFile(const std::string& _path) : path(_path) {}
 
-Asset* GLTFFile::readFromFile(MeshBuilder& builder) {
+Asset* GLTFFile::readFromFile(MeshBuilder& mesh_builder,
+                              TextureBuilder& tex_builder) {
     cgltf_options options = {};
     cgltf_data* data = NULL;
 
@@ -38,10 +41,11 @@ Asset* GLTFFile::readFromFile(MeshBuilder& builder) {
 
         const uint32_t num_meshes = data->meshes_count;
         for (int i = 0; i < num_meshes; i++) {
-            builder.reset();
+            mesh_builder.reset();
 
             triangle_data.clear();
             vertex_data.clear();
+            material = Material();
 
             const cgltf_mesh mesh = data->meshes[i];
 
@@ -75,17 +79,17 @@ Asset* GLTFFile::readFromFile(MeshBuilder& builder) {
             }
 
             // Add the vertices to my builder
-            const UINT start_index = builder.addVertices(vertex_data);
+            const UINT start_index = mesh_builder.addVertices(vertex_data);
 
             // Parse the index buffer. Use this buffer to create our mesh
             parseIndices(prim.indices, triangle_data);
-            builder.addTriangles(triangle_data, start_index);
+            mesh_builder.addTriangles(triangle_data, start_index);
 
             // Parse the material information
-            parseMaterial(prim.material, material);
+            parseMaterial(prim.material, material, tex_builder);
 
             // Register mesh under the asset
-            asset->addMesh(builder.generate(material));
+            asset->addMesh(mesh_builder.generate(material));
         }
 
         // Finally, free any used memory
@@ -197,16 +201,59 @@ GLTFFile::createVertexAtIndex(int index, std::vector<MeshVertex>& vertex_data) {
     return vertex_data[index];
 }
 
-void GLTFFile::parseMaterial(const cgltf_material* mat_data,
-                             Material& material) {
+void GLTFFile::parseMaterial(const cgltf_material* mat_data, Material& material,
+                             TextureBuilder& tex_builder) {
     if (mat_data->has_pbr_metallic_roughness) {
         const cgltf_pbr_metallic_roughness roughness =
             mat_data->pbr_metallic_roughness;
 
-        material.base_color = Color(roughness.base_color_factor[0],
-                                    roughness.base_color_factor[1],
-                                    roughness.base_color_factor[2]);
+        // Base Color
+        if (roughness.base_color_texture.texture != nullptr) {
+            parseBaseColorTex(roughness.base_color_texture.texture,
+                              tex_builder);
+            
+            material.base_color_tex = tex_builder.generate();
+        } else {
+            material.base_color = Color(roughness.base_color_factor[0],
+                                        roughness.base_color_factor[1],
+                                        roughness.base_color_factor[2]);
+        }
+
+        // Diffuse Factor
         material.diffuse_factor = roughness.roughness_factor;
+    }
+}
+
+void GLTFFile::parseBaseColorTex(const cgltf_texture* tex,
+                                 TextureBuilder& tex_builder) {
+    const cgltf_image* image = tex->image;
+    const cgltf_buffer_view* view = image->buffer_view;
+
+    // Use lodepng to read the PNG data
+    std::vector<unsigned char> png_data;
+
+    const uint8_t* buffer = ((uint8_t*)view->buffer->data) + view->offset;
+    const uint64_t num_bytes = view->size;
+
+    png_data.resize(num_bytes);
+    memcpy(&png_data[0], buffer, num_bytes);
+
+    unsigned int width, height;
+    std::vector<unsigned char> pixel_data;
+    unsigned int error = lodepng::decode(pixel_data, width, height, png_data);
+    assert(!error);
+
+    tex_builder.reset(width, height);
+
+    for (int row = 0; row < height; row++) {
+        for (int col = 0; col < width; col++) {
+            const int index = (row * width + col) * 4;
+            const TextureColor color =
+                TextureColor(pixel_data[index + 0], pixel_data[index + 1],
+                             pixel_data[index + 2], pixel_data[index + 3]);
+
+            tex_builder.setColor(col, row, color);
+        }
     }
 }
 

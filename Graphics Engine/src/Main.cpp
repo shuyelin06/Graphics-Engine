@@ -123,7 +123,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     visual_system.bindShadowLightObject(&sun_light);*/
 
     Object& child2 = parent_object.createChild();
-      AssetObject* asset2 = visual_system.bindAssetObject(&child2, "TestAsset");
+      AssetObject* asset2 = visual_system.bindAssetObject(&child2, "Capybara");
       child2.getTransform().offsetRotation(Vector3::PositiveY(), PI);
       child2.getTransform().setScale(5, 5, 5);
       child2.getTransform().setPosition(Random(-2.5f, 2.5f), 100,
