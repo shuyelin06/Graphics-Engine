@@ -3,6 +3,14 @@
 SamplerState mesh_sampler : register(s0);
 Texture2D mesh_texture : register(t0);
 
+cbuffer CB0_MATERIAL_INFO : register(b0)
+{
+    float tex_x;
+    float tex_y;
+    float tex_width;
+    float tex_height;
+}
+
 // Lighting:
 // Illumination (Global + Local)
 #include "Lighting.hlsli"
@@ -25,7 +33,8 @@ float4 ps_main(VS_OUT input) : SV_TARGET
     float4 color = float4(0, 0, 0, 1);
        
     // FORCE USAGE OF MESH TEXTURE?
-    float3 mesh_color = mesh_texture.Sample(mesh_sampler, input.tex_coord); // TODO
+    float2 uv = float2(input.tex_coord.x * tex_width + tex_x, input.tex_coord.y * tex_height + tex_y);
+    float3 mesh_color = mesh_texture.Sample(mesh_sampler, uv); // TODO
     
     // Ambient Lighting
     color.rgb += mesh_color * 0.1f;

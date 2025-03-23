@@ -12,7 +12,13 @@ namespace Graphics {
 Texture::Texture(UINT _width, UINT _height) {
     width = _width;
     height = _height;
+
+    texture = nullptr;
+    shader_view = nullptr;
+    depth_view = nullptr;
+    target_view = nullptr;
 }
+
 Texture::~Texture() {
     if (texture != nullptr)
         texture->Release();

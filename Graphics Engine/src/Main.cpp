@@ -163,6 +163,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                 return 0;
         }
 
+        child2.getTransform().offsetRotation(Vector3::PositiveY(), PI / 10);
+
         // Dispatch Input Data
         movementHandler.update();
         input_system.update();

@@ -225,6 +225,12 @@
     <ClCompile Include="include\lodepng\lodepng.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="include\cgltf\cgltf.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="include\stb\stb_image.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\math\Vector3.h">
@@ -449,10 +455,13 @@
     <ClInclude Include="src\rendering\resources\GLTFFile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\cgltf.h">
+    <ClInclude Include="include\cgltf\cgltf.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\lodepng\lodepng.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\stb\stb_image.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

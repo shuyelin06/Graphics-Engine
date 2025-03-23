@@ -21,7 +21,7 @@ class GLTFFile {
   public:
     GLTFFile(const std::string& path);
 
-    Asset* readFromFile(MeshBuilder& mesh_builder, TextureBuilder& tex_builder);
+    Asset* readFromFile(MeshBuilder& mesh_builder, AtlasBuilder& tex_builder);
 
   private:
     // Index Buffer Parsing
@@ -41,10 +41,9 @@ class GLTFFile {
 
     // Material Parsing
     void parseMaterial(const cgltf_material* mat_data, Material& material,
-                       TextureBuilder& tex_builder);
+                       AtlasBuilder& tex_builder);
 
-    void parseBaseColorTex(const cgltf_texture* tex,
-                           TextureBuilder& tex_builder);
+    const AtlasAllocation& parseBaseColorTex(const cgltf_texture* tex, AtlasBuilder& tex_builder);
 };
 
 } // namespace Graphics

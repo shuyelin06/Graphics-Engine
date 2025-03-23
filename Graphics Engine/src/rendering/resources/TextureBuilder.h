@@ -3,11 +3,10 @@
 #include <vector>
 
 #include "../core/Texture.h"
+#include "../core/TextureAtlas.h"
 
 namespace Engine {
 namespace Graphics {
-// TextureBuilder Class:
-// Provides an interface for building Textures manually.
 struct TextureColor {
     uint8_t r;
     uint8_t g;
@@ -15,16 +14,19 @@ struct TextureColor {
     uint8_t a;
 };
 
+// TextureBuilder Class:
+// Provides an interface for building textures manually.
+// Pixels should be loaded in the range [0,255].
+// The texture builder only supports the building of 8-bit RGBA channels.
 class TextureBuilder {
-  private:
+  protected:
     // Device interface for creating GPU resources.
     // Set by ResourceManager
     friend class ResourceManager;
     static ID3D11Device* device;
 
     // Data for the texture
-    unsigned int pixel_width;
-    unsigned int pixel_height;
+    Texture* texture_resource;
 
     std::vector<TextureColor> data;
 
@@ -43,6 +45,42 @@ class TextureBuilder {
 
     // Resets the builder
     void reset(unsigned int width, unsigned int height);
+};
+
+// AtlasBuilder Class:
+// An extended texture builder class, that supports writing to texture atlases.
+// Can be used to build atlases of multiple textures together (reduce the total
+// number of draw calls).
+class AtlasBuilder : public TextureBuilder {
+  private:
+    using TextureBuilder::reset;
+
+  protected:
+    TextureAtlas* atlas;
+    const AtlasAllocation* cur_region;
+
+  public:
+    // The constructor here sets the atlas size. This CANNOT be changed
+    // after initialization
+    AtlasBuilder(UINT atlas_width, UINT atlas_height);
+    ~AtlasBuilder();
+
+    // Generates the texture for the atlas and returns the atlas.
+    TextureAtlas* generate();
+
+    // Get the atlas size
+    UINT getAtlasWidth() const;
+    UINT getAtlasHeight() const;
+
+    // Allocate a new region on the atlas
+    const AtlasAllocation& allocateRegion(UINT tex_width, UINT tex_height);
+
+    // Sets the color for a particular pixel relative to the current allocation
+    // region
+    void setColor(UINT x, UINT y, const TextureColor& rgba);
+
+    // Clears the allocation region with an RGBA color
+    void clear(const TextureColor& rgba);
 };
 
 } // namespace Graphics

@@ -27,10 +27,10 @@ class ResourceManager {
     std::unordered_map<std::string, uint16_t> asset_map;
     std::vector<Asset*> assets;
 
-    std::unordered_map<std::string, Texture*> textures;
-
     ID3D11SamplerState* shadowmap_sampler;
     ID3D11SamplerState* mesh_sampler;
+
+    TextureAtlas* color_atlas;
 
   public:
     ResourceManager(ID3D11Device* device, ID3D11DeviceContext* context);
@@ -46,8 +46,7 @@ class ResourceManager {
     Asset* getAsset(const std::string& name);
     Asset* getAsset(uint16_t id);
 
-    // Get a texture by name
-    Texture* getTexture(const std::string& name);
+    const Texture* getColorAtlas();
 
     // Get a sampler by name
     ID3D11SamplerState* getShadowMapSampler();
@@ -65,7 +64,8 @@ class ResourceManager {
                             const std::string& objFile);
 
     bool LoadAssetFromGLTF(const std::string& asset_name,
-                           const std::string& path);
+                           const std::string& path,
+                           AtlasBuilder& tex_builder);
 
     bool LoadTextureFromPNG(TextureBuilder& builder, std::string path,
                             std::string png_file);

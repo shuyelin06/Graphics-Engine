@@ -40,33 +40,26 @@ void ResourceManager::initialize() {
     // Prepare my builders
     TextureBuilder::device = device;
 
-    // Create my textures
-    TextureBuilder tex_builder = TextureBuilder(10, 10);
+    // Stores an atlas of material colors to avoid the need for rebinds later
+    AtlasBuilder atlas_builder = AtlasBuilder(4096, 4096);
 
-    // textures[Test] = tex_builder.generate();
+    // --- Load Assets Here ---
+    // Currently supported: GLTF
 
-    // LoadTextureFromPNG(tex_builder, "data/", "test.png");
-    //  textures[Test2] = tex_builder.generate();
-
-    /*
-    LoadTextureFromPNG(tex_builder, "data/", "grass.png");
-    textures["TerrainGrass"] = tex_builder.generate();
-
-    LoadTextureFromPNG(tex_builder, "data/", "Capybara_BaseColor.png");
-    textures["CapybaraTex"] = tex_builder.generate();
-
-    // Create my assets
-    registerAsset("Cube", LoadCube());
-    // Fox by Jake Blakeley [CC-BY] via Poly Pizza
-    registerAsset("Fox", LoadAssetFromOBJ("data/", "model.obj"));
+    LoadAssetFromGLTF("TestAsset", "data/Testing.glb", atlas_builder);
     // Capybara by Poly by Google [CC-BY] via Poly Pizza
-    registerAsset("Capybara", LoadAssetFromOBJ("data/", "Capybara.obj"));
-    */
+    LoadAssetFromGLTF("Capybara", "data/Capybara.glb", atlas_builder);
 
-    LoadAssetFromGLTF("TestAsset", "data/Testing.glb");
-    LoadAssetFromGLTF("Capybara", "data/Capybara.glb");
+    LoadAssetFromGLTF("TexturedCube", "data/TexturedCube.glb", atlas_builder);
 
-    LoadAssetFromGLTF("TexturedCube", "data/TexturedCube.glb");
+    // Dingus the cat by alwayshasbean [CC-BY] via Poly Pizza
+    // LoadAssetFromGLTF("Dingus", "data/Dingus the cat.glb", atlas_builder);
+
+    // Fox by Quaternius
+    // TODO: Add animation support
+    // LoadAssetFromGLTF("Fox", "data/Fox.glb");
+
+    color_atlas = atlas_builder.generate();
 }
 
 uint16_t ResourceManager::registerAsset(const std::string& name, Asset* asset) {
@@ -95,11 +88,8 @@ Asset* ResourceManager::getAsset(const std::string& name) {
 
 Asset* ResourceManager::getAsset(uint16_t id) { return assets[id]; }
 
-Texture* ResourceManager::getTexture(const std::string& name) {
-    if (textures.contains(name))
-        return textures[name];
-    else
-        return nullptr;
+const Texture* ResourceManager::getColorAtlas() {
+    return color_atlas->getTexture();
 }
 
 ID3D11SamplerState* ResourceManager::getShadowMapSampler() {
@@ -111,9 +101,9 @@ ID3D11SamplerState* ResourceManager::getMeshSampler() { return mesh_sampler; }
 // LoadAssetFromGLTF:
 // Uses the GLTFFile interface to load an asset from a GLTF file
 bool ResourceManager::LoadAssetFromGLTF(const std::string& asset_name,
-                                        const std::string& path) {
+                                        const std::string& path,
+                                        AtlasBuilder& tex_builder) {
     MeshBuilder mesh_builder = MeshBuilder(device);
-    TextureBuilder tex_builder = TextureBuilder(1, 1);
 
     GLTFFile gltf_file = GLTFFile(path);
     Asset* asset = gltf_file.readFromFile(mesh_builder, tex_builder);

@@ -53,9 +53,10 @@ class TextureAtlas {
     TextureAtlas(Texture* texture);
     ~TextureAtlas();
 
-    void initialize();
-
+    // Modify or retrieve the base texture
     const Texture* getTexture() const;
+
+    void setTexture(Texture* texture);
 
     // Use a 2D Rectangle Packing algorithm to pack the
     // allocated textures tightly.

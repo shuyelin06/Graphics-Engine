@@ -17,11 +17,15 @@ using namespace Math;
 namespace Graphics {
 typedef unsigned int UINT;
 
+// Normalized [0,1] coordinates into the material texture.
+struct TextureRegion {
+    float x, y, width, height;
+};
+
 // Struct Material:
 // Specifies renderable properties for a mesh
 struct Material {
-    Texture* base_color_tex;
-    Color base_color;
+    TextureRegion tex_region;
 
     float diffuse_factor; // Roughness
 

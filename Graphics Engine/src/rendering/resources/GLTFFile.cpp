@@ -1,22 +1,23 @@
 #include "GLTFFile.h"
 
+#include <assert.h>
 #include <vector>
 
 #include "MeshBuilder.h"
 
 // The GLTFFile uses the cgltf library to read GLTF files.
 // See https://github.com/jkuhlmann/cgltf
-#define CGLTF_IMPLEMENTATION
-#include "cgltf.h"
+#include "cgltf/cgltf.h"
 
-#include "lodepng/lodepng.h"
+// The GLTFFile uses the STB library to read image files
+#include "stb/stb_image.h"
 
 namespace Engine {
 namespace Graphics {
 GLTFFile::GLTFFile(const std::string& _path) : path(_path) {}
 
 Asset* GLTFFile::readFromFile(MeshBuilder& mesh_builder,
-                              TextureBuilder& tex_builder) {
+                              AtlasBuilder& tex_builder) {
     cgltf_options options = {};
     cgltf_data* data = NULL;
 
@@ -202,48 +203,61 @@ GLTFFile::createVertexAtIndex(int index, std::vector<MeshVertex>& vertex_data) {
 }
 
 void GLTFFile::parseMaterial(const cgltf_material* mat_data, Material& material,
-                             TextureBuilder& tex_builder) {
+                             AtlasBuilder& tex_builder) {
     if (mat_data->has_pbr_metallic_roughness) {
         const cgltf_pbr_metallic_roughness roughness =
             mat_data->pbr_metallic_roughness;
 
         // Base Color
+        AtlasAllocation alloc;
+
         if (roughness.base_color_texture.texture != nullptr) {
-            parseBaseColorTex(roughness.base_color_texture.texture,
-                              tex_builder);
-            
-            material.base_color_tex = tex_builder.generate();
+            alloc = parseBaseColorTex(roughness.base_color_texture.texture,
+                                      tex_builder);
         } else {
-            material.base_color = Color(roughness.base_color_factor[0],
-                                        roughness.base_color_factor[1],
-                                        roughness.base_color_factor[2]);
+            alloc = tex_builder.allocateRegion(1, 1);
+
+            TextureColor color;
+            color.r = roughness.base_color_factor[0];
+            color.g = roughness.base_color_factor[1];
+            color.b = roughness.base_color_factor[2];
+            color.a = 1.f;
+
+            tex_builder.setColor(0, 0, color);
         }
+
+        TextureRegion region;
+        region.x = float(alloc.x) / float(alloc.width);
+        region.y = float(alloc.y) / float(alloc.height);
+        region.width = float(alloc.width) / tex_builder.getAtlasWidth();
+        region.height = float(alloc.height) / tex_builder.getAtlasHeight();
+
+        material.tex_region = region;
 
         // Diffuse Factor
         material.diffuse_factor = roughness.roughness_factor;
     }
 }
 
-void GLTFFile::parseBaseColorTex(const cgltf_texture* tex,
-                                 TextureBuilder& tex_builder) {
+const AtlasAllocation& GLTFFile::parseBaseColorTex(const cgltf_texture* tex,
+                                                   AtlasBuilder& tex_builder) {
     const cgltf_image* image = tex->image;
     const cgltf_buffer_view* view = image->buffer_view;
 
-    // Use lodepng to read the PNG data
-    std::vector<unsigned char> png_data;
-
+    // Retrieve raw data
     const uint8_t* buffer = ((uint8_t*)view->buffer->data) + view->offset;
     const uint64_t num_bytes = view->size;
 
-    png_data.resize(num_bytes);
-    memcpy(&png_data[0], buffer, num_bytes);
+    // Parse file, forcing 4 channels (RGBA).
+    int width, height;
+    int num_channels;
 
-    unsigned int width, height;
-    std::vector<unsigned char> pixel_data;
-    unsigned int error = lodepng::decode(pixel_data, width, height, png_data);
-    assert(!error);
+    stbi_uc* pixel_data = stbi_load_from_memory(buffer, num_bytes, &width,
+                                                &height, &num_channels, 4);
+    assert(pixel_data != nullptr);
 
-    tex_builder.reset(width, height);
+    // Load thes 4 channels into our texture
+    const AtlasAllocation& alloc = tex_builder.allocateRegion(width, height);
 
     for (int row = 0; row < height; row++) {
         for (int col = 0; col < width; col++) {
@@ -255,6 +269,11 @@ void GLTFFile::parseBaseColorTex(const cgltf_texture* tex,
             tex_builder.setColor(col, row, color);
         }
     }
+
+    // Free allocated memory
+    stbi_image_free(pixel_data);
+
+    return alloc;
 }
 
 } // namespace Graphics

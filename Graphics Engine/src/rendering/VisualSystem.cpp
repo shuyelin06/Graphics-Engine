@@ -475,9 +475,7 @@ void VisualSystem::renderPrepare() {
     terrain_chunks.resize(head);
 
     // --- TESTING ENVIRONMENT ---
-    Asset* cube = resource_manager->getAsset("Capybara");
-    cube->getMesh(0)->material.base_color_tex->displayImGui();
-
+    //
     // --- TEST ---
     static TreeGenerator tree_gen = TreeGenerator();
     static AssetObject* tree_asset = nullptr;
@@ -929,19 +927,27 @@ void VisualSystem::performRenderPass() {
         context->PSSetSamplers(1, 1, &shadowmap_sampler);
     }
 
+    const Texture* color_tex = resource_manager->getColorAtlas();
+    context->PSSetShaderResources(0, 1, &color_tex->shader_view);
+
+    color_tex->displayImGui();
+
     for (const RenderableMesh& renderable_mesh : renderable_meshes) {
         const Mesh* mesh = renderable_mesh.mesh;
         const Material mat = mesh->material;
 
-        // FOR NOW: IGNORE MESHES WITHOHOUT BASE COLOR TEX
-        if (mat.base_color_tex == nullptr)
-            continue;
+        // Pixel CB0: Mesh Material Data
+        pCB0->clearData();
+        {
+            const TextureRegion& region = mat.tex_region;
+            pCB0->loadData(&region.x, FLOAT);
+            pCB0->loadData(&region.y, FLOAT);
+            pCB0->loadData(&region.width, FLOAT);
+            pCB0->loadData(&region.height, FLOAT);
+        }
 
-        Texture* tex = mat.base_color_tex;
-        context->PSSetShaderResources(0, 1, &tex->shader_view);
-
+        // Vertex CB2: Transform matrices
         const Matrix4& mLocalToWorld = renderable_mesh.m_localToWorld;
-
         {
             vCB2->clearData();
             // Load mesh vertex transformation matrix
@@ -1016,11 +1022,7 @@ void VisualSystem::processSky() {
         const float f_height = (float)screen_target->height;
         pCB0->loadData(&f_height, FLOAT);
 
-        static int kernel_size = 1;
-        ImGui::SliderInt("Kernel Size", &kernel_size, 1, 100);
-        float f_kernel = (float)kernel_size;
-        pCB0->loadData(&f_kernel, FLOAT);
-
+        pCB0->loadData(nullptr, FLOAT);
         pCB0->loadData(nullptr, FLOAT);
     }
 

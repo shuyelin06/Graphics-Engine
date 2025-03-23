@@ -166,7 +166,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="include\cgltf\cgltf.cpp" />
     <ClCompile Include="include\lodepng\lodepng.cpp" />
+    <ClCompile Include="include\stb\stb_image.cpp" />
     <ClCompile Include="src\datamodel\RockGenerator.cpp" />
     <ClCompile Include="src\datamodel\SceneGraph.cpp" />
     <ClCompile Include="src\datamodel\Terrain.cpp" />
@@ -238,8 +240,9 @@
     <ClCompile Include="src\rendering\core\VertexStreamIDs.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\cgltf.h" />
+    <ClInclude Include="include\cgltf\cgltf.h" />
     <ClInclude Include="include\lodepng\lodepng.h" />
+    <ClInclude Include="include\stb\stb_image.h" />
     <ClInclude Include="src\datamodel\ResourceManager.h" />
     <ClInclude Include="src\datamodel\RockGenerator.h" />
     <ClInclude Include="src\datamodel\SceneGraph.h" />

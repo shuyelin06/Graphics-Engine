@@ -23,23 +23,21 @@ AtlasAllocation::AtlasAllocation(UINT _x, UINT _y, UINT _w, UINT _h) {
 // Returns the pixel area of the allocated region
 UINT AtlasAllocation::area() const { return width * height; }
 
-TextureAtlas::TextureAtlas(Texture* _texture)
-    : allocations(), open_regions() {
+TextureAtlas::TextureAtlas(Texture* _texture) : allocations(), open_regions() {
     texture = _texture;
 
-    open_regions.push_back(AtlasAllocation(0, 0, texture->width, texture->height));
+    open_regions.push_back(
+        AtlasAllocation(0, 0, texture->width, texture->height));
 }
 TextureAtlas::~TextureAtlas() = default;
-
-// Initialize:
-// Generates the GPU texture resource
-void TextureAtlas::initialize() {
-
-}
 
 // GetTexture:
 // Returns the texture stored by the atlas
 const Texture* TextureAtlas::getTexture() const { return texture; }
+
+// SetTexture:
+// Modifies the texture stored by the atlas
+void TextureAtlas::setTexture(Texture* _texture) { texture = _texture; }
 
 // GetAllocation:
 // Returns the allocation for a texture
