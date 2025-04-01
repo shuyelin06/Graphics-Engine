@@ -10,6 +10,7 @@
 #include "lights/LightManager.h"
 #include "resources/ResourceManager.h"
 #include "shaders/ShaderManager.h"
+#include "shaders/PipelineManager.h"
 
 #include "VisualTerrain.h"
 #include "core/AssetObject.h"
@@ -65,8 +66,8 @@ class VisualSystem {
 
     // Managers
     ResourceManager* resource_manager;
-    ShaderManager* shader_manager;
     LightManager* light_manager;
+    PipelineManager* pipeline_manager;
 
     // Main Camera:
     // The scene is rendered from this camera

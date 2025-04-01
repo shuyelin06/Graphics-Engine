@@ -21,7 +21,9 @@ class Transform {
     
     // Get and set the transform properties
     const Vector3& getPosition() const;
+
     void setPosition(float x, float y, float z);
+    void setPosition(const Vector3& pos);
     void offsetPosition(float x, float y, float z);
     void offsetPosition(const Vector3& offset);
 
@@ -34,6 +36,7 @@ class Transform {
 
     const Vector3& getScale() const;
     void setScale(float x, float y, float z);
+    void setScale(const Vector3& scale);
     void offsetScale(float x, float y, float z);
 
     // Get directional vectors based on the rotation

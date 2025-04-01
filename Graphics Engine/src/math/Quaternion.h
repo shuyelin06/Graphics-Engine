@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Vector3.h"
 #include "Matrix3.h"
 #include "Matrix4.h"
+#include "Vector3.h"
 
 namespace Engine {
 namespace Math {
@@ -22,11 +22,15 @@ class Quaternion {
     // Real component
     float r;
 
-    // Other quaternions can only be constructed through static
-    // methods, to ensure that they stay unit.
+  public:
+    // Work with raw quaternion data.
+    // ONLY USE THIS IF YOU ARE SURE YOU KNOW
+    // WHAT YOU ARE DOING. 
     Quaternion(const Vector3& im, float real);
 
-  public:
+    const Vector3& getIm() const;
+    float getR() const;
+
     // Creates the identity quaternion
     Quaternion();
 
@@ -46,10 +50,14 @@ class Quaternion {
     // Identity Quaternion
     static Quaternion Identity();
 
+    // Spherical Interpolation
+    static Quaternion Slerp(const Quaternion& a, const Quaternion& b, float time);
+
     // Generate a unit quaternion representing a rotation around a given axis
     static Quaternion RotationAroundAxis(const Vector3& axis, float theta);
 
-    // Generate a unit quaternion representing a rotation that rotates +Z to some direction
+    // Generate a unit quaternion representing a rotation that rotates +Z to
+    // some direction
     static Quaternion RotationToVector(const Vector3& direction);
 };
 } // namespace Math

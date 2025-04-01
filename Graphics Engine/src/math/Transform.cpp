@@ -28,6 +28,10 @@ void Transform::setPosition(float x, float y, float z) {
     position_local.z = z;
 }
 
+void Transform::setPosition(const Vector3& pos) {
+    setPosition(pos.x, pos.y, pos.z);
+}
+
 // OffsetPosition:
 // Changes the transform's position by adding given values to it
 void Transform::offsetPosition(float x, float y, float z) {
@@ -100,6 +104,10 @@ void Transform::setScale(float x, float y, float z) {
     scale.x = x;
     scale.y = y;
     scale.z = z;
+}
+
+void Transform::setScale(const Vector3& scale) {
+    setScale(scale.x, scale.y, scale.z);
 }
 
 // OffsetScale:

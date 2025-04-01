@@ -24,8 +24,8 @@ VisualSystem::VisualSystem() {
     device = NULL;
     context = NULL;
 
-    shader_manager = NULL;
     resource_manager = NULL;
+    pipeline_manager = NULL;
 
     swap_chain = NULL;
     screen_target = NULL;
@@ -238,8 +238,7 @@ void VisualSystem::initializeManagers() {
     resource_manager = new ResourceManager(device, context);
     resource_manager->initialize();
 
-    shader_manager = new ShaderManager(device);
-    shader_manager->initialize();
+    pipeline_manager = new PipelineManager(device, context);
 
     // --- Light Manager ---
     constexpr int ATLAS_SIZE = 4096;
@@ -346,6 +345,229 @@ void VisualSystem::render() {
 
     performTerrainPass();
     performRenderPass();
+
+    // TEST
+    pipeline_manager->bindVertexShader("SkinnedMesh");
+    pipeline_manager->bindPixelShader("TexturedMesh");
+
+    context->OMSetRenderTargets(1, &render_target->target_view,
+                                depth_stencil->depth_view);
+    context->RSSetViewports(1, &viewport);
+
+    // Vertex Constant Buffer 1:
+    // Stores the camera view and projection matrices
+    {
+        CBHandle* vCB1 = pipeline_manager->getVertexCB(CB1);
+        vCB1->clearData();
+
+        const Matrix4 viewMatrix = camera.getWorldToCameraMatrix();
+        vCB1->loadData(&viewMatrix, FLOAT4X4);
+
+        const Matrix4 projectionMatrix = camera.getFrustumMatrix();
+        vCB1->loadData(&projectionMatrix, FLOAT4X4);
+
+        pipeline_manager->bindVertexCB(CB1);
+    }
+
+    // Pixel Constant Buffer 1: Light Data
+    // Stores data that is needed for lighting / shadowing.
+    {
+        CBHandle* pCB1 = pipeline_manager->getPixelCB(CB1);
+        pCB1->clearData();
+
+        const Vector3& cameraPosition = camera.getTransform()->getPosition();
+        pCB1->loadData(&cameraPosition, FLOAT3);
+        int lightCount = light_manager->getShadowLights().size();
+        pCB1->loadData(&lightCount, INT);
+
+        const Vector3 cameraView = camera.getTransform()->forward();
+        pCB1->loadData(&cameraView, FLOAT3);
+        pCB1->loadData(nullptr, FLOAT);
+
+        const std::vector<ShadowLight*> shadow_lights =
+            light_manager->getShadowLights();
+
+        // Sun Cascade Data
+        const SunLight* sun_light = light_manager->getSunLight();
+
+        const Vector3 sun_direction = sun_light->getDirection();
+        pCB1->loadData(&sun_direction, FLOAT3);
+        pCB1->loadData(nullptr, FLOAT);
+
+        for (int i = 0; i < SUN_NUM_CASCADES; i++) {
+            ShadowLight* light = shadow_lights[i];
+
+            Vector3 position = light->getPosition();
+            pCB1->loadData(&position, FLOAT3);
+
+            pCB1->loadData(nullptr, FLOAT);
+
+            const Color& color = light->getColor();
+            pCB1->loadData(&color, FLOAT3);
+            pCB1->loadData(nullptr, INT);
+
+            const Matrix4 m_world_to_local = light->getWorldMatrix().inverse();
+            pCB1->loadData(&m_world_to_local, FLOAT4X4);
+
+            const Matrix4& m_local_to_frustum = light->getFrustumMatrix();
+            pCB1->loadData(&m_local_to_frustum, FLOAT4X4);
+
+            const NormalizedShadowViewport normalized_view =
+                light_manager->normalizeViewport(light->getShadowmapViewport());
+            pCB1->loadData(&normalized_view, FLOAT4);
+        }
+
+        // ShadowLight Data
+        for (int i = SUN_NUM_CASCADES; i < shadow_lights.size(); i++) {
+            ShadowLight* light = shadow_lights[i];
+
+            Vector3 position = light->getPosition();
+            pCB1->loadData(&position, FLOAT3);
+
+            pCB1->loadData(nullptr, FLOAT);
+
+            const Color& color = light->getColor();
+            pCB1->loadData(&color, FLOAT3);
+
+            pCB1->loadData(nullptr, INT);
+
+            const Matrix4 m_world_to_local = light->getWorldMatrix().inverse();
+            pCB1->loadData(&m_world_to_local, FLOAT4X4);
+
+            const Matrix4& m_local_to_frustum = light->getFrustumMatrix();
+            pCB1->loadData(&m_local_to_frustum, FLOAT4X4);
+
+            const NormalizedShadowViewport normalized_view =
+                light_manager->normalizeViewport(light->getShadowmapViewport());
+            pCB1->loadData(&normalized_view, FLOAT4);
+        }
+
+        pipeline_manager->bindPixelCB(CB1);
+    }
+
+    // Load my Textures
+    {
+        const Texture* shadow_texture = light_manager->getAtlasTexture();
+        context->PSSetShaderResources(1, 1, &shadow_texture->shader_view);
+    }
+
+    // Load my Samplers
+    {
+        ID3D11SamplerState* mesh_texture_sampler =
+            resource_manager->getMeshSampler();
+        context->PSSetSamplers(0, 1, &mesh_texture_sampler);
+
+        ID3D11SamplerState* shadowmap_sampler =
+            resource_manager->getShadowMapSampler();
+        context->PSSetSamplers(1, 1, &shadowmap_sampler);
+    }
+
+    const Texture* color_tex = resource_manager->getColorAtlas();
+    context->PSSetShaderResources(0, 1, &color_tex->shader_view);
+
+    color_tex->displayImGui();
+
+    Asset* fox = resource_manager->getAsset("Fox");
+    static float time = 0.0f;
+    time += 0.01f;
+    time = time - (int)time;
+    fox->applyAnimationAtTime(0, time);
+
+    const std::vector<Mesh*>& meshes = fox->getMeshes();
+    for (const Mesh* mesh : meshes) {
+        const Material mat = mesh->material;
+
+        // Pixel CB0: Mesh Material Data
+
+        {
+            CBHandle* pCB0 = pipeline_manager->getPixelCB(CB0);
+            pCB0->clearData();
+
+            const TextureRegion& region = mat.tex_region;
+            pCB0->loadData(&region.x, FLOAT);
+            pCB0->loadData(&region.y, FLOAT);
+            pCB0->loadData(&region.width, FLOAT);
+            pCB0->loadData(&region.height, FLOAT);
+
+            pipeline_manager->bindPixelCB(CB0);
+        }
+
+        // Vertex CB2: Transform matrices
+        const Matrix4& mLocalToWorld = Matrix4::T_Translate(0, 75, 0);
+        {
+            CBHandle* vCB2 = pipeline_manager->getVertexCB(CB2);
+            vCB2->clearData();
+            // Load mesh vertex transformation matrix
+            vCB2->loadData(&mLocalToWorld, FLOAT4X4);
+            // Load mesh normal transformation matrix
+            Matrix4 normalTransform = mLocalToWorld.inverse().transpose();
+            vCB2->loadData(&(normalTransform), FLOAT4X4);
+
+            pipeline_manager->bindVertexCB(CB2);
+        }
+
+        // Vertex CB3: Joint Matrices
+        {
+            CBHandle* vCB3 = pipeline_manager->getVertexCB(CB3);
+            vCB3->clearData();
+
+            const std::vector<SkinJoint>& skin = fox->getSkinJoints();
+            for (int i = 0; i < skin.size(); i++) {
+                // SUPER INEFFICIENT RN
+                const Matrix4 skin_matrix =
+                    skin[i].getTransform(skin[i].node) * skin[i].m_inverse_bind;
+                const Matrix4 skin_normal_matrix =
+                    skin_matrix.inverse().transpose();
+
+                vCB3->loadData(&skin_matrix, FLOAT4X4);
+                vCB3->loadData(&skin_normal_matrix, FLOAT4X4);
+            }
+
+            pipeline_manager->bindVertexCB(CB3);
+        }
+
+        // Load each mesh
+        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        ID3D11Buffer* buffer;
+        UINT stride, offset;
+
+        stride = sizeof(float) * 3;
+        offset = 0;
+
+        buffer = mesh->vertex_streams[POSITION];
+        context->IASetVertexBuffers(POSITION, 1, &buffer, &stride, &offset);
+
+        stride = sizeof(float) * 2;
+        offset = 0;
+
+        buffer = mesh->vertex_streams[TEXTURE];
+        context->IASetVertexBuffers(TEXTURE, 1, &buffer, &stride, &offset);
+
+        stride = sizeof(float) * 3;
+        offset = 0;
+
+        buffer = mesh->vertex_streams[NORMAL];
+        context->IASetVertexBuffers(NORMAL, 1, &buffer, &stride, &offset);
+
+        stride = sizeof(float) * 4;
+        offset = 0;
+
+        buffer = mesh->vertex_streams[JOINTS];
+        context->IASetVertexBuffers(JOINTS, 1, &buffer, &stride, &offset);
+
+        stride = sizeof(float) * 4;
+        offset = 0;
+
+        buffer = mesh->vertex_streams[WEIGHTS];
+        context->IASetVertexBuffers(WEIGHTS, 1, &buffer, &stride, &offset);
+
+        context->IASetIndexBuffer(mesh->index_buffer, DXGI_FORMAT_R32_UINT, 0);
+
+        UINT numIndices = mesh->triangle_count * 3;
+        context->DrawIndexed(numIndices, 0, 0);
+    }
+    // ---
 
     processSky();
 
@@ -590,11 +812,8 @@ void VisualSystem::performShadowPass() {
     cpu_timer.beginTimer("Shadow Pass");
 #endif
 
-    VertexShader* vShader = shader_manager->getVertexShader("ShadowMap");
-    CBHandle* vCB0 = vShader->getCBHandle(CB0);
-    CBHandle* vCB1 = vShader->getCBHandle(CB1);
-
-    PixelShader* pShader = shader_manager->getPixelShader("ShadowMap");
+    pipeline_manager->bindVertexShader("ShadowMap");
+    pipeline_manager->bindPixelShader("ShadowMap");
 
     const Texture* shadow_texture = light_manager->getAtlasTexture();
     context->ClearDepthStencilView(shadow_texture->depth_view,
@@ -611,12 +830,17 @@ void VisualSystem::performShadowPass() {
         ShadowLight* light = lights[cluster.light_index];
 
         // Load light view and projection matrix
-        vCB0->clearData();
+        {
+            CBHandle* vCB0 = pipeline_manager->getVertexCB(CB0);
+            vCB0->clearData();
 
-        const Matrix4& m_world_to_local = light->getWorldMatrix().inverse();
-        vCB0->loadData(&m_world_to_local, FLOAT4X4);
-        const Matrix4 m_local_to_frustum = light->getFrustumMatrix();
-        vCB0->loadData(&m_local_to_frustum, FLOAT4X4);
+            const Matrix4& m_world_to_local = light->getWorldMatrix().inverse();
+            vCB0->loadData(&m_world_to_local, FLOAT4X4);
+            const Matrix4 m_local_to_frustum = light->getFrustumMatrix();
+            vCB0->loadData(&m_local_to_frustum, FLOAT4X4);
+
+            pipeline_manager->bindVertexCB(CB0);
+        }
 
         // Set the light as the render target.
         const D3D11_VIEWPORT viewport = light->getShadowmapViewport().toD3D11();
@@ -631,8 +855,12 @@ void VisualSystem::performShadowPass() {
             const Mesh* mesh = caster.mesh;
             const Matrix4& mLocalToWorld = caster.m_localToWorld;
 
-            vCB1->clearData();
-            vCB1->loadData(&mLocalToWorld, FLOAT4X4);
+            {
+                CBHandle* vCB1 = pipeline_manager->getVertexCB(CB1);
+                vCB1->clearData();
+                vCB1->loadData(&mLocalToWorld, FLOAT4X4);
+                pipeline_manager->bindVertexCB(CB1);
+            }
 
             ID3D11Buffer* index_buffer = mesh->index_buffer;
             ID3D11Buffer* position_stream = mesh->vertex_streams[POSITION];
@@ -646,9 +874,6 @@ void VisualSystem::performShadowPass() {
             context->IASetVertexBuffers(POSITION, 1, &position_stream,
                                         &vertexStride, &vertexOffset);
             context->IASetIndexBuffer(index_buffer, DXGI_FORMAT_R32_UINT, 0);
-
-            vShader->bindShader(device, context);
-            pShader->bindShader(device, context);
 
             context->DrawIndexed(num_indices, 0, 0);
         }
@@ -666,12 +891,8 @@ void VisualSystem::performTerrainPass() {
     cpu_timer.beginTimer("Terrain Pass");
 #endif
 
-    VertexShader* vShader = shader_manager->getVertexShader("Terrain");
-    CBHandle* vCB0 = vShader->getCBHandle(CB0);
-
-    PixelShader* pShader = shader_manager->getPixelShader("Terrain");
-    CBHandle* pCB0 = pShader->getCBHandle(CB0);
-    CBHandle* pCB1 = pShader->getCBHandle(CB1);
+    pipeline_manager->bindVertexShader("Terrain");
+    pipeline_manager->bindPixelShader("Terrain");
 
     // TEST
     context->OMSetRenderTargets(1, &render_target->target_view,
@@ -682,17 +903,24 @@ void VisualSystem::performTerrainPass() {
 
     // Vertex Constant Buffer 0:
     // Stores the camera view and projection matrices
-    vCB0->clearData();
+    {
+        CBHandle* vCB0 = pipeline_manager->getVertexCB(CB0);
+        vCB0->clearData();
 
-    const Matrix4 viewMatrix = camera.getWorldToCameraMatrix();
-    vCB0->loadData(&viewMatrix, FLOAT4X4);
-    const Matrix4 projectionMatrix = camera.getFrustumMatrix();
-    vCB0->loadData(&projectionMatrix, FLOAT4X4);
+        const Matrix4 viewMatrix = camera.getWorldToCameraMatrix();
+        vCB0->loadData(&viewMatrix, FLOAT4X4);
+        const Matrix4 projectionMatrix = camera.getFrustumMatrix();
+        vCB0->loadData(&projectionMatrix, FLOAT4X4);
+
+        pipeline_manager->bindVertexCB(CB0);
+    }
 
     // Pixel Constant Buffer 1: Light Data
     // Stores data that is needed for lighting / shadowing.
-    pCB1->clearData();
     {
+        CBHandle* pCB1 = pipeline_manager->getPixelCB(CB1);
+        pCB1->clearData();
+
         const Vector3& cameraPosition = camera.getTransform()->getPosition();
         pCB1->loadData(&cameraPosition, FLOAT3);
         int lightCount = light_manager->getShadowLights().size();
@@ -759,6 +987,8 @@ void VisualSystem::performTerrainPass() {
                 light_manager->normalizeViewport(light->getShadowmapViewport());
             pCB1->loadData(&normalized_view, FLOAT4);
         }
+
+        pipeline_manager->bindPixelCB(CB1);
     }
 
     // Load my Textures
@@ -796,9 +1026,6 @@ void VisualSystem::performTerrainPass() {
 
         context->IASetIndexBuffer(mesh->index_buffer, DXGI_FORMAT_R32_UINT, 0);
 
-        vShader->bindShader(device, context);
-        pShader->bindShader(device, context);
-
         UINT numIndices = mesh->triangle_count * 3;
         context->DrawIndexed(numIndices, 0, 0);
     }
@@ -815,13 +1042,8 @@ void VisualSystem::performRenderPass() {
     cpu_timer.beginTimer("Render Pass");
 #endif
 
-    VertexShader* vShader = shader_manager->getVertexShader("TexturedMesh");
-    CBHandle* vCB1 = vShader->getCBHandle(CB1);
-    CBHandle* vCB2 = vShader->getCBHandle(CB2);
-
-    PixelShader* pShader = shader_manager->getPixelShader("TexturedMesh");
-    CBHandle* pCB0 = pShader->getCBHandle(CB0);
-    CBHandle* pCB1 = pShader->getCBHandle(CB1);
+    pipeline_manager->bindVertexShader("TexturedMesh");
+    pipeline_manager->bindPixelShader("TexturedMesh");
 
     context->OMSetRenderTargets(1, &render_target->target_view,
                                 depth_stencil->depth_view);
@@ -829,19 +1051,25 @@ void VisualSystem::performRenderPass() {
 
     // Vertex Constant Buffer 1:
     // Stores the camera view and projection matrices
-    vCB1->clearData();
     {
+        CBHandle* vCB1 = pipeline_manager->getVertexCB(CB1);
+        vCB1->clearData();
+
         const Matrix4 viewMatrix = camera.getWorldToCameraMatrix();
         vCB1->loadData(&viewMatrix, FLOAT4X4);
 
         const Matrix4 projectionMatrix = camera.getFrustumMatrix();
         vCB1->loadData(&projectionMatrix, FLOAT4X4);
+
+        pipeline_manager->bindVertexCB(CB1);
     }
 
     // Pixel Constant Buffer 1: Light Data
     // Stores data that is needed for lighting / shadowing.
-    pCB1->clearData();
     {
+        CBHandle* pCB1 = pipeline_manager->getPixelCB(CB1);
+        pCB1->clearData();
+
         const Vector3& cameraPosition = camera.getTransform()->getPosition();
         pCB1->loadData(&cameraPosition, FLOAT3);
         int lightCount = light_manager->getShadowLights().size();
@@ -908,6 +1136,8 @@ void VisualSystem::performRenderPass() {
                 light_manager->normalizeViewport(light->getShadowmapViewport());
             pCB1->loadData(&normalized_view, FLOAT4);
         }
+
+        pipeline_manager->bindPixelCB(CB1);
     }
 
     // Load my Textures
@@ -937,24 +1167,30 @@ void VisualSystem::performRenderPass() {
         const Material mat = mesh->material;
 
         // Pixel CB0: Mesh Material Data
-        pCB0->clearData();
         {
+            CBHandle* pCB0 = pipeline_manager->getPixelCB(CB0);
+            pCB0->clearData();
+
             const TextureRegion& region = mat.tex_region;
             pCB0->loadData(&region.x, FLOAT);
             pCB0->loadData(&region.y, FLOAT);
             pCB0->loadData(&region.width, FLOAT);
             pCB0->loadData(&region.height, FLOAT);
+
+            pipeline_manager->bindPixelCB(CB0);
         }
 
         // Vertex CB2: Transform matrices
         const Matrix4& mLocalToWorld = renderable_mesh.m_localToWorld;
         {
+            CBHandle* vCB2 = pipeline_manager->getVertexCB(CB2);
             vCB2->clearData();
             // Load mesh vertex transformation matrix
             vCB2->loadData(&mLocalToWorld, FLOAT4X4);
             // Load mesh normal transformation matrix
             Matrix4 normalTransform = mLocalToWorld.inverse().transpose();
             vCB2->loadData(&(normalTransform), FLOAT4X4);
+            pipeline_manager->bindVertexCB(CB2);
         }
 
         // Load each mesh
@@ -983,9 +1219,6 @@ void VisualSystem::performRenderPass() {
 
         context->IASetIndexBuffer(mesh->index_buffer, DXGI_FORMAT_R32_UINT, 0);
 
-        vShader->bindShader(device, context);
-        pShader->bindShader(device, context);
-
         UINT numIndices = mesh->triangle_count * 3;
         context->DrawIndexed(numIndices, 0, 0);
     }
@@ -997,11 +1230,8 @@ void VisualSystem::performRenderPass() {
 }
 
 void VisualSystem::processSky() {
-    VertexShader* vShader = shader_manager->getVertexShader("PostProcess");
-
-    PixelShader* pShader = shader_manager->getPixelShader("Sky");
-    CBHandle* pCB0 = pShader->getCBHandle(CB0);
-    CBHandle* pCB1 = pShader->getCBHandle(CB1);
+    pipeline_manager->bindVertexShader("PostProcess");
+    pipeline_manager->bindPixelShader("Sky");
 
     // Set render target
     context->OMSetRenderTargets(1, &screen_target->target_view, nullptr);
@@ -1015,8 +1245,10 @@ void VisualSystem::processSky() {
     context->PSSetShaderResources(0, 1, &render_target->shader_view);
     context->PSSetShaderResources(1, 1, &depth_stencil->shader_view);
 
-    pCB0->clearData();
     {
+        CBHandle* pCB0 = pipeline_manager->getPixelCB(CB0);
+        pCB0->clearData();
+
         const float f_width = (float)screen_target->width;
         pCB0->loadData(&f_width, FLOAT);
         const float f_height = (float)screen_target->height;
@@ -1024,10 +1256,14 @@ void VisualSystem::processSky() {
 
         pCB0->loadData(nullptr, FLOAT);
         pCB0->loadData(nullptr, FLOAT);
+
+        pipeline_manager->bindPixelCB(CB0);
     }
 
-    pCB1->clearData();
     {
+        CBHandle* pCB1 = pipeline_manager->getPixelCB(CB1);
+        pCB1->clearData();
+
         const Matrix4 m_project_to_world =
             (camera.getFrustumMatrix() * camera.getWorldToCameraMatrix())
                 .inverse();
@@ -1043,6 +1279,8 @@ void VisualSystem::processSky() {
         pCB1->loadData(&cam_pos, FLOAT3);
 
         pCB1->loadData(nullptr, FLOAT);
+
+        pipeline_manager->bindPixelCB(CB1);
     }
 
     // Bind full screen quad
@@ -1052,9 +1290,6 @@ void VisualSystem::processSky() {
     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     context->IASetVertexBuffers(0, 1, &postprocess_quad, &vertexStride,
                                 &vertexOffset);
-
-    vShader->bindShader(device, context);
-    pShader->bindShader(device, context);
 
     context->Draw(6, 0);
 }
@@ -1073,14 +1308,8 @@ void VisualSystem::renderDebugPoints() {
     if (points.size() == 0)
         return;
 
-    VertexShader* vShader = shader_manager->getVertexShader("DebugPoint");
-    CBHandle* vCB0 = vShader->getCBHandle(CB0);
-    CBHandle* vCB1 = vShader->getCBHandle(CB1);
-
-    PixelShader* pShader = shader_manager->getPixelShader("DebugPoint");
-
-    vShader->getCBHandle(CB0)->clearData();
-    vShader->getCBHandle(CB1)->clearData();
+    pipeline_manager->bindVertexShader("DebugPoint");
+    pipeline_manager->bindPixelShader("DebugPoint");
 
     Asset* cube = resource_manager->getAsset("Cube");
     const Mesh* mesh = cube->getMesh(0);
@@ -1097,13 +1326,16 @@ void VisualSystem::renderDebugPoints() {
                                 &vertexOffset);
     context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
-    vShader->bindShader(device, context);
-    pShader->bindShader(device, context);
-
     const int numPoints = points.size();
 
     // Load data into the constant buffer handle, while removing points
     // which are expired
+    CBHandle* vCB0 = pipeline_manager->getVertexCB(CB0);
+    CBHandle* vCB1 = pipeline_manager->getVertexCB(CB1);
+
+    vCB0->clearData();
+    vCB1->clearData();
+
     for (int i = 0; i < points.size(); i++) {
         PointData& data = points[i];
         vCB0->loadData(&data.position, FLOAT3);
@@ -1111,6 +1343,7 @@ void VisualSystem::renderDebugPoints() {
         vCB0->loadData(&data.color, FLOAT3);
         vCB0->loadData(nullptr, FLOAT);
     }
+    pipeline_manager->bindVertexCB(CB0);
 
     points.clear();
 
@@ -1125,9 +1358,7 @@ void VisualSystem::renderDebugPoints() {
             const Matrix4 projectionMatrix = camera.getFrustumMatrix();
             vCB1->loadData(&projectionMatrix, FLOAT4X4);
         }
-
-        vShader->bindShader(device, context);
-        pShader->bindShader(device, context);
+        pipeline_manager->bindVertexCB(CB1);
 
         context->DrawIndexedInstanced(numIndices, numPoints, 0, 0, 1);
     }
@@ -1139,12 +1370,12 @@ void VisualSystem::renderDebugLines() {
     if (lines.size() == 0)
         return;
 
-    VertexShader* vShader = shader_manager->getVertexShader("DebugLine");
-    CBHandle* vCB1 = vShader->getCBHandle(CB1);
+    pipeline_manager->bindVertexShader("DebugLine");
+    CBHandle* vCB1 = pipeline_manager->getVertexCB(CB1);
 
-    PixelShader* pShader = shader_manager->getPixelShader("DebugLine");
+    pipeline_manager->bindPixelShader("DebugLine");
 
-    vShader->getCBHandle(CB1)->clearData();
+    vCB1->clearData();
 
     // Load line data into a vertex buffer
     if (line_vbuffer != nullptr)
@@ -1180,9 +1411,7 @@ void VisualSystem::renderDebugLines() {
             const Matrix4 projectionMatrix = camera.getFrustumMatrix();
             vCB1->loadData(&projectionMatrix, FLOAT4X4);
         }
-
-        vShader->bindShader(device, context);
-        pShader->bindShader(device, context);
+        pipeline_manager->bindVertexCB(CB1);
 
         context->Draw(numLines, 0);
     }

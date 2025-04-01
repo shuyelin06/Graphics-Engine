@@ -96,7 +96,7 @@
     <ClCompile Include="src\input\components\MovementHandler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\resources\MeshBuilder.cpp">
+    <ClCompile Include="src\rendering\resources\AssetBuilder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\resources\PNGFile.cpp">
@@ -231,6 +231,9 @@
     <ClCompile Include="include\stb\stb_image.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\rendering\shaders\PipelineManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\math\Vector3.h">
@@ -317,7 +320,7 @@
     <ClInclude Include="src\input\components\MovementHandler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\resources\MeshBuilder.h">
+    <ClInclude Include="src\rendering\resources\AssetBuilder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\datamodel\SceneGraph.h">
@@ -462,6 +465,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\stb\stb_image.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rendering\shaders\PipelineManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

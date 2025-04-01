@@ -246,5 +246,10 @@ Vector3 Vector3::VectorMax() { return Vector3(FLT_MAX, FLT_MAX, FLT_MAX); }
 
 Vector3 Vector3::VectorMin() { return Vector3(-FLT_MAX, -FLT_MAX, -FLT_MAX); }
 
+Vector3 Vector3::Lerp(const Vector3& a, const Vector3& b, float time) {
+    const Vector3 offset = (b - a) * time;
+    return a + offset;
+}
+
 } // Namespace Math
 } // Namespace Engine

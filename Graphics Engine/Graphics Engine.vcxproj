@@ -206,7 +206,7 @@
     <ClCompile Include="src\rendering\core\AssetObject.cpp" />
     <ClCompile Include="src\rendering\lights\LightManager.cpp" />
     <ClCompile Include="src\rendering\lights\LightObject.cpp" />
-    <ClCompile Include="src\rendering\resources\MeshBuilder.cpp" />
+    <ClCompile Include="src\rendering\resources\AssetBuilder.cpp" />
     <ClCompile Include="src\rendering\core\Camera.cpp" />
     <ClCompile Include="src\rendering\lights\Light.cpp" />
     <ClCompile Include="src\rendering\resources\ResourceManager.cpp" />
@@ -225,6 +225,7 @@
     <ClCompile Include="src\rendering\resources\GLTFFile.cpp" />
     <ClCompile Include="src\rendering\resources\OBJFile.cpp" />
     <ClCompile Include="src\rendering\resources\PNGFile.cpp" />
+    <ClCompile Include="src\rendering\shaders\PipelineManager.cpp" />
     <ClCompile Include="src\rendering\shaders\Shader.cpp" />
     <ClCompile Include="src\rendering\shaders\ShaderManager.cpp" />
     <ClCompile Include="src\rendering\util\CPUTimer.cpp" />
@@ -294,11 +295,12 @@
     <ClInclude Include="src\math\Matrix4.h" />
     <ClInclude Include="src\math\Vector4.h" />
     <ClInclude Include="src\rendering\core\Asset.h" />
-    <ClInclude Include="src\rendering\resources\MeshBuilder.h" />
+    <ClInclude Include="src\rendering\resources\AssetBuilder.h" />
     <ClInclude Include="src\rendering\core\Camera.h" />
     <ClInclude Include="src\rendering\lights\Light.h" />
     <ClInclude Include="src\rendering\resources\ResourceManager.h" />
     <ClInclude Include="src\rendering\lights\SunLight.h" />
+    <ClInclude Include="src\rendering\shaders\PipelineManager.h" />
     <ClInclude Include="src\rendering\shaders\Shader.h" />
     <ClInclude Include="src\rendering\shaders\ShaderManager.h" />
     <ClInclude Include="src\rendering\util\CPUTimer.h" />

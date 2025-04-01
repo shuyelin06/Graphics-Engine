@@ -30,6 +30,8 @@ enum CBDataFormat {
 };
 
 class CBHandle {
+    friend class PipelineManager;
+
     friend class Shader;
     friend class VertexShader;
     friend class PixelShader;
@@ -84,7 +86,7 @@ class Shader {
 };
 
 class VertexShader : public Shader {
-  private:
+  public:
     ID3D11VertexShader* shader;
     ID3D11InputLayout* layout;
 
@@ -98,7 +100,7 @@ class VertexShader : public Shader {
 };
 
 class PixelShader : public Shader {
-  private:
+  public:
     ID3D11PixelShader* shader;
 
   public:

@@ -2,7 +2,7 @@
 
 #include "core/Asset.h"
 #include "datamodel/Terrain.h"
-#include "resources/MeshBuilder.h"
+#include "resources/AssetBuilder.h"
 
 namespace Engine {
 using namespace Datamodel;

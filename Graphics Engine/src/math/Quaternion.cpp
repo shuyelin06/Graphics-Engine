@@ -6,15 +6,17 @@
 
 namespace Engine {
 namespace Math {
-Quaternion::Quaternion() : im(0,0,0), r(1) {}
-
-// Vector Constructor:
-// Creates a quaternion with given imaginary vector
-// and real value component
+// Raw Quaternion Methods
 Quaternion::Quaternion(const Vector3& _im, float _r) {
     im = _im;
     r = _r;
 }
+
+const Vector3& Quaternion::getIm() const { return im; }
+float Quaternion::getR() const { return r; }
+
+// Normal Quaternion Methods
+Quaternion::Quaternion() : im(0, 0, 0), r(1) {}
 
 // Norm:
 // Calculates and returns the conjugate's norm
@@ -113,11 +115,58 @@ Quaternion& Quaternion::operator*=(const Quaternion& qhat) {
 // and real component equal to 1
 Quaternion Quaternion::Identity() { return Quaternion(Vector3(0, 0, 0), 1); }
 
+// Slerp:
+// Performs a spherical interpolation between two quaternions.
+Quaternion Quaternion::Slerp(const Quaternion& a_in, const Quaternion& b_in,
+                             float time) {
+    // Slerp by
+    // https://github.khronos.org/glTF-Tutorials/gltfTutorial/gltfTutorial_007_Animations.html
+    float dot_prod = a_in.im.dot(b_in.im) + a_in.r * b_in.r;
+
+    const Quaternion a = a_in;
+    Quaternion b = b_in;
+
+    // Make sure we take the shortest path in case dot Product is negative
+    if (dot_prod < 0.0f) {
+        b = Quaternion(-b.im, -b.r);
+        dot_prod = -dot_prod;
+    }
+
+    // If the two quaternions are too close to each other, just linear
+    // interpolate between the 4D vector
+    if (dot_prod > 0.9995f) {
+        Quaternion output =
+            Quaternion(a.im + (b.im - a.im) * time, a.r + (b.r - a.r) * time);
+
+        const float length = output.norm();
+
+        output.im /= length;
+        output.r /= length;
+
+        return output;
+    }
+
+    // perform the spherical linear interpolation
+    const float theta_0 = acosf(dot_prod);
+    const float theta = time * theta_0;
+
+    const float sin_theta = sinf(theta);
+    const float sin_theta_0 = sinf(theta_0);
+
+    const float scale_a = cosf(theta) - dot_prod * sin_theta / sin_theta_0;
+    const float scale_b = sin_theta / sin_theta_0;
+
+    const Quaternion output = Quaternion(a.im * scale_a + b.im * scale_b,
+                                         a.r * scale_a + b.r * scale_b);
+    return output;
+}
+
 // RotationAroundAxis:
 // Generate a unit quaternion representing a rotation around a given axis
 Quaternion Quaternion::RotationAroundAxis(const Vector3& axis, float theta) {
+    const Vector3 normalized = axis.unit();
     const float radians = theta / 2;
-    return Quaternion(axis * sinf(radians), cosf(radians));
+    return Quaternion(normalized * sinf(radians), cosf(radians));
 }
 
 // RotationBetweenVectors:

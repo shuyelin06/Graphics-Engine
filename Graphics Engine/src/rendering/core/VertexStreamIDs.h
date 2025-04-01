@@ -15,11 +15,14 @@ enum VertexDataStream {
     NORMAL = 2,   // 3D Normal Direction (3 Floats)
     COLOR = 3,
     INSTANCE_ID = 4,
-    DEBUG_LINE = 5,   // Position + RGB Color; Debug Line Rendering
+    DEBUG_LINE = 5, // Position + RGB Color; Debug Line Rendering
     SV_POSITION = 6,
+    // Skinning Properties
+    JOINTS = 7,  // 4D Integer Vector of Node Indices (4 Integers)
+    WEIGHTS = 8, // 4D Vector of Skin Weights (4 Floats)
 
     STREAM_COUNT,
-    
+
 };
 
 } // namespace Graphics

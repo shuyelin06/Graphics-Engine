@@ -153,6 +153,17 @@ void ShaderManager::initialize() {
     // Shadow (Textured):
     // Draws a mesh with dynamic lights enabled
     {
+        VertexDataStream input[5] = {POSITION, TEXTURE, NORMAL, JOINTS,
+                                     WEIGHTS};
+        VertexShader* vs = createVertexShader("V_SkinnedTexturedMesh.hlsl",
+                                              "vs_main", input, 5);
+        vs->enableCB(CB1);
+        vs->enableCB(CB2);
+        vs->enableCB(CB3);
+        vertex_shaders["SkinnedMesh"] = vs;
+    }
+
+    {
         VertexDataStream shadow_input[3] = {POSITION, TEXTURE, NORMAL};
         VertexShader* vs = createVertexShader("V_TexturedMesh.hlsl", "vs_main",
                                               shadow_input, 3);
@@ -350,6 +361,22 @@ VertexShader* ShaderManager::createVertexShader(const std::string& filename,
                     INSTANCE_ID,
                     0,
                     D3D11_INPUT_PER_VERTEX_DATA,
+                    0};
+            break;
+
+        // Joints ID Stream:
+        // A buffer of integers, which index a joint array for the asset.
+        // This array tells us what joints influence a mesh in an asset.
+        case JOINTS:
+            desc = {"JOINTS", 0, DXGI_FORMAT_R32G32B32A32_FLOAT,
+                    JOINTS,   0, D3D11_INPUT_PER_VERTEX_DATA,
+                    0};
+            break;
+        // Weights ID Stream:
+        // A buffer of floats, telling us how much a joint influences a vertex.
+        case WEIGHTS:
+            desc = {"WEIGHTS", 0, DXGI_FORMAT_R32G32B32A32_FLOAT,
+                    WEIGHTS,   0, D3D11_INPUT_PER_VERTEX_DATA,
                     0};
             break;
 

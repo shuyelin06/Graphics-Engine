@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "MeshBuilder.h"
+#include "AssetBuilder.h"
 #include "TextureBuilder.h"
 
 struct cgltf_accessor;
@@ -24,26 +24,11 @@ class GLTFFile {
     Asset* readFromFile(MeshBuilder& mesh_builder, AtlasBuilder& tex_builder);
 
   private:
-    // Index Buffer Parsing
-    void parseIndices(const cgltf_accessor* accessor,
-                      std::vector<MeshTriangle>& triangles);
-
-    // Vertex Buffer Parsing
-    void parsePositions(const cgltf_accessor* accessor,
-                        std::vector<MeshVertex>& vertex_data);
-    void parseNormals(const cgltf_accessor* accessor,
-                      std::vector<MeshVertex>& vertex_data);
-    void parseTextureCoord(const cgltf_accessor* accessor,
-                           std::vector<MeshVertex>& vertex_data);
-
-    MeshVertex& createVertexAtIndex(int index,
-                                    std::vector<MeshVertex>& vertex_data);
-
     // Material Parsing
     void parseMaterial(const cgltf_material* mat_data, Material& material,
                        AtlasBuilder& tex_builder);
-
-    const AtlasAllocation& parseBaseColorTex(const cgltf_texture* tex, AtlasBuilder& tex_builder);
+    const AtlasAllocation& parseBaseColorTex(const cgltf_texture* tex,
+                                             AtlasBuilder& tex_builder);
 };
 
 } // namespace Graphics

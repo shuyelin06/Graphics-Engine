@@ -69,6 +69,8 @@ class Vector3 {
 
     static Vector3 VectorMax();
     static Vector3 VectorMin();
+
+    static Vector3 Lerp(const Vector3& a, const Vector3& b, float time);
 };
 
 } // Namespace Math

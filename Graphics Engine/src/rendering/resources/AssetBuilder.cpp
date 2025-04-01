@@ -1,4 +1,4 @@
-#include "MeshBuilder.h"
+#include "AssetBuilder.h"
 
 #include <assert.h>
 
@@ -6,7 +6,17 @@
 
 namespace Engine {
 namespace Graphics {
-MeshVertex::MeshVertex() = default;
+MeshVertex::MeshVertex() {
+    position = Vector3();
+    normal = Vector3();
+
+    tex = Vector2(0.5, 0.5f);
+
+    color = Color::White();
+
+    joints = Vector4();
+    weights = Vector4();
+}
 MeshVertex::MeshVertex(const Vector3& _position, const Color& _color) {
     position = _position;
     color = _color;
@@ -17,7 +27,19 @@ MeshVertex::MeshVertex(const MeshVertex& vertex) {
     tex = vertex.tex;
     normal = vertex.normal;
     color = vertex.color;
+
+    joints = vertex.joints;
+    weights = vertex.weights;
 }
+
+void* MeshVertex::AddressPosition(MeshVertex& vertex) {
+    return &vertex.position;
+}
+void* MeshVertex::AddressNormal(MeshVertex& vertex) { return &vertex.normal; }
+void* MeshVertex::AddressTexture(MeshVertex& vertex) { return &vertex.tex; }
+void* MeshVertex::AddressColor(MeshVertex& vertex) { return &vertex.color; }
+void* MeshVertex::AddressJoints(MeshVertex& vertex) { return &vertex.joints; }
+void* MeshVertex::AddressWeights(MeshVertex& vertex) { return &vertex.weights; }
 
 MeshTriangle::MeshTriangle(UINT v0, UINT v1, UINT v2) {
     vertex0 = v0;
@@ -57,13 +79,18 @@ Mesh* MeshBuilder::generate(const Material& material) {
 
     // Create each of my vertex streams
     mesh->vertex_streams[POSITION] =
-        createVertexStream(ExtractVertexPosition, sizeof(float) * 3);
+        createVertexStream(MeshVertex::AddressPosition, sizeof(Vector3));
     mesh->vertex_streams[TEXTURE] =
-        createVertexStream(ExtractVertexTexture, sizeof(float) * 2);
+        createVertexStream(MeshVertex::AddressTexture, sizeof(Vector2));
     mesh->vertex_streams[NORMAL] =
-        createVertexStream(ExtractVertexNormal, sizeof(float) * 3);
+        createVertexStream(MeshVertex::AddressNormal, sizeof(Vector3));
     mesh->vertex_streams[COLOR] =
-        createVertexStream(ExtractVertexColor, sizeof(float) * 3);
+        createVertexStream(MeshVertex::AddressColor, sizeof(Color));
+    // TEMP
+    mesh->vertex_streams[JOINTS] =
+        createVertexStream(MeshVertex::AddressJoints, sizeof(Vector4));
+    mesh->vertex_streams[WEIGHTS] =
+        createVertexStream(MeshVertex::AddressWeights, sizeof(Vector4));
 
     // Generate my AABB extents
     for (const MeshVertex& vertex : vertex_buffer)
@@ -80,27 +107,20 @@ Mesh* MeshBuilder::generate(const Material& material) {
 // Builds this by using a function that, given the MeshVertex, writes
 // element_size bytes of data to output (assumed to be the same size). This
 // function could extract position, normals, or a combination of data.
-ID3D11Buffer* MeshBuilder::createVertexStream(
-    void (*data_parser)(const MeshVertex& vertex, uint8_t* output),
-    UINT element_size) {
+ID3D11Buffer* MeshBuilder::createVertexStream(void* (*addressor)(MeshVertex&),
+                                              UINT byte_size) {
     const UINT NUM_VERTICES = vertex_buffer.size();
-
-    // Will store my per-vertex data
-    uint8_t* data_element = new uint8_t[element_size];
 
     // Iterate through each vertex, and extract the data from it.
     // Write this data to a vector which we will use to generate our vertex
     // stream.
     std::vector<uint8_t> stream_data;
-    stream_data.reserve(NUM_VERTICES * element_size);
+    stream_data.resize(NUM_VERTICES * byte_size);
 
     for (int i = 0; i < vertex_buffer.size(); i++) {
-        // Pull my vertex data
-        (*data_parser)(vertex_buffer[i], data_element);
-
-        // Add my vertex data to the stream
-        for (int j = 0; j < element_size; j++)
-            stream_data.push_back(data_element[j]);
+        // Copy my data to the stream
+        void* address = (*addressor)(vertex_buffer[i]);
+        memcpy(&stream_data[i * byte_size], address, byte_size);
     }
 
     // Generate a buffer for this data stream
@@ -109,7 +129,7 @@ ID3D11Buffer* MeshBuilder::createVertexStream(
     D3D11_BUFFER_DESC buff_desc = {};
     D3D11_SUBRESOURCE_DATA sr_data = {0};
 
-    buff_desc.ByteWidth = NUM_VERTICES * element_size;
+    buff_desc.ByteWidth = NUM_VERTICES * byte_size;
     buff_desc.Usage = D3D11_USAGE_DEFAULT;
     buff_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
@@ -117,8 +137,6 @@ ID3D11Buffer* MeshBuilder::createVertexStream(
 
     device->CreateBuffer(&buff_desc, &sr_data, &buffer_handle);
     assert(buffer_handle != nullptr);
-
-    delete[] data_element;
 
     return buffer_handle;
 }

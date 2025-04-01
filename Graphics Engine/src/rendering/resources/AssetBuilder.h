@@ -12,22 +12,34 @@ namespace Graphics {
 // buffer. The vertex buffer stores all vertices in the mesh, and the index
 // buffer references these vertices by index to create triangles for the mesh.
 struct MeshVertex {
+    // Basic Properties
     Vector3 position;
-
-    Vector2 tex;
-
     Vector3 normal;
+
+    // Additional PBR Information
+    Vector2 tex;
     Color color;
+
+    // Skinning Properties
+    Vector4 joints;
+    Vector4 weights;
 
     MeshVertex();
     MeshVertex(const Vector3& position, const Color& color);
     MeshVertex(const MeshVertex& vertex);
+
+    static void* AddressPosition(MeshVertex& vertex);
+    static void* AddressNormal(MeshVertex& vertex);
+    static void* AddressTexture(MeshVertex& vertex);
+    static void* AddressColor(MeshVertex& vertex);
+    static void* AddressJoints(MeshVertex& vertex);
+    static void* AddressWeights(MeshVertex& vertex);
 };
 
 struct MeshTriangle {
-    UINT vertex0;
-    UINT vertex1;
-    UINT vertex2;
+    uint32_t vertex0;
+    uint32_t vertex1;
+    uint32_t vertex2;
 
     MeshTriangle(UINT v0, UINT v1, UINT v2);
 };
@@ -57,9 +69,10 @@ class MeshBuilder {
     UINT addVertex(const MeshVertex& vertex);
     UINT addVertex(const Vector3& pos);
     void addTriangle(UINT v1, UINT v2, UINT v3);
-    
+
     UINT addVertices(const std::vector<MeshVertex>& vertices);
-    void addTriangles(const std::vector<MeshTriangle>& indices, UINT start_index);
+    void addTriangles(const std::vector<MeshTriangle>& indices,
+                      UINT start_index);
 
     // Return a MeshVertex from the builder (by index) for modification
     MeshVertex& getVertex(UINT index);
@@ -78,9 +91,8 @@ class MeshBuilder {
     void reset();
 
   private:
-    ID3D11Buffer* createVertexStream(void (*data_parser)(const MeshVertex&,
-                                                         uint8_t* output),
-                                     UINT element_size);
+    ID3D11Buffer* createVertexStream(void* (*addressor)(MeshVertex&),
+                                     UINT byte_size);
 
     static void ExtractVertexPosition(const MeshVertex& vertex,
                                       uint8_t* output);
