@@ -32,13 +32,11 @@ enum CBDataFormat {
 class CBHandle {
     friend class PipelineManager;
 
-    friend class Shader;
-    friend class VertexShader;
-    friend class PixelShader;
-
   private:
     std::vector<uint8_t> data;
     ID3D11Buffer* resource;
+
+    UINT buffer_size;
 
   public:
     CBHandle();
@@ -63,53 +61,19 @@ class CBHandle {
 //    - Pixel Shader
 // Shaders can be bound to the graphics pipeline, and
 // can have data passed into their constant buffers.
-class Shader {
-  protected:
-    CBHandle* constantBuffers[CBSlot::CBCOUNT];
-
-  public:
-    Shader();
-    ~Shader();
-
-    // Constant Buffer Management
-    void enableCB(CBSlot slot);
-    CBHandle* getCBHandle(CBSlot slot);
-
-    // Pipeline Management
-    virtual void bindShader(ID3D11Device* device,
-                            ID3D11DeviceContext* context) = 0;
-
-  protected:
-    // Updates the GPU resource for the constant buffer
-    void updateCBResource(CBSlot slot, ID3D11Device* device,
-                          ID3D11DeviceContext* context);
-};
-
-class VertexShader : public Shader {
-  public:
+struct VertexShader {
     ID3D11VertexShader* shader;
     ID3D11InputLayout* layout;
 
-  public:
     VertexShader(ID3D11VertexShader* shader, ID3D11InputLayout* layout);
     ~VertexShader();
-
-    // Binds the vertex shader to the pipeline with its constant buffers
-    void bindShader(ID3D11Device* device,
-                    ID3D11DeviceContext* context) override;
 };
 
-class PixelShader : public Shader {
-  public:
+struct PixelShader {
     ID3D11PixelShader* shader;
 
-  public:
     PixelShader(ID3D11PixelShader* shader);
     ~PixelShader();
-
-    // Binds the pixel shader to the pipeline with its constant buffers
-    void bindShader(ID3D11Device* device,
-                    ID3D11DeviceContext* context) override;
 };
 
 } // namespace Graphics

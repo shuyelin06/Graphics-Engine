@@ -27,6 +27,7 @@ class PipelineManager {
 
   public:
     PipelineManager(ID3D11Device* device, ID3D11DeviceContext* context);
+    ~PipelineManager();
 
     // Accessors
     CBHandle* getVertexCB(CBSlot slot) const;

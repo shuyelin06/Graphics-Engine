@@ -346,229 +346,6 @@ void VisualSystem::render() {
     performTerrainPass();
     performRenderPass();
 
-    // TEST
-    pipeline_manager->bindVertexShader("SkinnedMesh");
-    pipeline_manager->bindPixelShader("TexturedMesh");
-
-    context->OMSetRenderTargets(1, &render_target->target_view,
-                                depth_stencil->depth_view);
-    context->RSSetViewports(1, &viewport);
-
-    // Vertex Constant Buffer 1:
-    // Stores the camera view and projection matrices
-    {
-        CBHandle* vCB1 = pipeline_manager->getVertexCB(CB1);
-        vCB1->clearData();
-
-        const Matrix4 viewMatrix = camera.getWorldToCameraMatrix();
-        vCB1->loadData(&viewMatrix, FLOAT4X4);
-
-        const Matrix4 projectionMatrix = camera.getFrustumMatrix();
-        vCB1->loadData(&projectionMatrix, FLOAT4X4);
-
-        pipeline_manager->bindVertexCB(CB1);
-    }
-
-    // Pixel Constant Buffer 1: Light Data
-    // Stores data that is needed for lighting / shadowing.
-    {
-        CBHandle* pCB1 = pipeline_manager->getPixelCB(CB1);
-        pCB1->clearData();
-
-        const Vector3& cameraPosition = camera.getTransform()->getPosition();
-        pCB1->loadData(&cameraPosition, FLOAT3);
-        int lightCount = light_manager->getShadowLights().size();
-        pCB1->loadData(&lightCount, INT);
-
-        const Vector3 cameraView = camera.getTransform()->forward();
-        pCB1->loadData(&cameraView, FLOAT3);
-        pCB1->loadData(nullptr, FLOAT);
-
-        const std::vector<ShadowLight*> shadow_lights =
-            light_manager->getShadowLights();
-
-        // Sun Cascade Data
-        const SunLight* sun_light = light_manager->getSunLight();
-
-        const Vector3 sun_direction = sun_light->getDirection();
-        pCB1->loadData(&sun_direction, FLOAT3);
-        pCB1->loadData(nullptr, FLOAT);
-
-        for (int i = 0; i < SUN_NUM_CASCADES; i++) {
-            ShadowLight* light = shadow_lights[i];
-
-            Vector3 position = light->getPosition();
-            pCB1->loadData(&position, FLOAT3);
-
-            pCB1->loadData(nullptr, FLOAT);
-
-            const Color& color = light->getColor();
-            pCB1->loadData(&color, FLOAT3);
-            pCB1->loadData(nullptr, INT);
-
-            const Matrix4 m_world_to_local = light->getWorldMatrix().inverse();
-            pCB1->loadData(&m_world_to_local, FLOAT4X4);
-
-            const Matrix4& m_local_to_frustum = light->getFrustumMatrix();
-            pCB1->loadData(&m_local_to_frustum, FLOAT4X4);
-
-            const NormalizedShadowViewport normalized_view =
-                light_manager->normalizeViewport(light->getShadowmapViewport());
-            pCB1->loadData(&normalized_view, FLOAT4);
-        }
-
-        // ShadowLight Data
-        for (int i = SUN_NUM_CASCADES; i < shadow_lights.size(); i++) {
-            ShadowLight* light = shadow_lights[i];
-
-            Vector3 position = light->getPosition();
-            pCB1->loadData(&position, FLOAT3);
-
-            pCB1->loadData(nullptr, FLOAT);
-
-            const Color& color = light->getColor();
-            pCB1->loadData(&color, FLOAT3);
-
-            pCB1->loadData(nullptr, INT);
-
-            const Matrix4 m_world_to_local = light->getWorldMatrix().inverse();
-            pCB1->loadData(&m_world_to_local, FLOAT4X4);
-
-            const Matrix4& m_local_to_frustum = light->getFrustumMatrix();
-            pCB1->loadData(&m_local_to_frustum, FLOAT4X4);
-
-            const NormalizedShadowViewport normalized_view =
-                light_manager->normalizeViewport(light->getShadowmapViewport());
-            pCB1->loadData(&normalized_view, FLOAT4);
-        }
-
-        pipeline_manager->bindPixelCB(CB1);
-    }
-
-    // Load my Textures
-    {
-        const Texture* shadow_texture = light_manager->getAtlasTexture();
-        context->PSSetShaderResources(1, 1, &shadow_texture->shader_view);
-    }
-
-    // Load my Samplers
-    {
-        ID3D11SamplerState* mesh_texture_sampler =
-            resource_manager->getMeshSampler();
-        context->PSSetSamplers(0, 1, &mesh_texture_sampler);
-
-        ID3D11SamplerState* shadowmap_sampler =
-            resource_manager->getShadowMapSampler();
-        context->PSSetSamplers(1, 1, &shadowmap_sampler);
-    }
-
-    const Texture* color_tex = resource_manager->getColorAtlas();
-    context->PSSetShaderResources(0, 1, &color_tex->shader_view);
-
-    color_tex->displayImGui();
-
-    Asset* fox = resource_manager->getAsset("Fox");
-    static float time = 0.0f;
-    time += 0.01f;
-    time = time - (int)time;
-    fox->applyAnimationAtTime(0, time);
-
-    const std::vector<Mesh*>& meshes = fox->getMeshes();
-    for (const Mesh* mesh : meshes) {
-        const Material mat = mesh->material;
-
-        // Pixel CB0: Mesh Material Data
-
-        {
-            CBHandle* pCB0 = pipeline_manager->getPixelCB(CB0);
-            pCB0->clearData();
-
-            const TextureRegion& region = mat.tex_region;
-            pCB0->loadData(&region.x, FLOAT);
-            pCB0->loadData(&region.y, FLOAT);
-            pCB0->loadData(&region.width, FLOAT);
-            pCB0->loadData(&region.height, FLOAT);
-
-            pipeline_manager->bindPixelCB(CB0);
-        }
-
-        // Vertex CB2: Transform matrices
-        const Matrix4& mLocalToWorld = Matrix4::T_Translate(0, 75, 0);
-        {
-            CBHandle* vCB2 = pipeline_manager->getVertexCB(CB2);
-            vCB2->clearData();
-            // Load mesh vertex transformation matrix
-            vCB2->loadData(&mLocalToWorld, FLOAT4X4);
-            // Load mesh normal transformation matrix
-            Matrix4 normalTransform = mLocalToWorld.inverse().transpose();
-            vCB2->loadData(&(normalTransform), FLOAT4X4);
-
-            pipeline_manager->bindVertexCB(CB2);
-        }
-
-        // Vertex CB3: Joint Matrices
-        {
-            CBHandle* vCB3 = pipeline_manager->getVertexCB(CB3);
-            vCB3->clearData();
-
-            const std::vector<SkinJoint>& skin = fox->getSkinJoints();
-            for (int i = 0; i < skin.size(); i++) {
-                // SUPER INEFFICIENT RN
-                const Matrix4 skin_matrix =
-                    skin[i].getTransform(skin[i].node) * skin[i].m_inverse_bind;
-                const Matrix4 skin_normal_matrix =
-                    skin_matrix.inverse().transpose();
-
-                vCB3->loadData(&skin_matrix, FLOAT4X4);
-                vCB3->loadData(&skin_normal_matrix, FLOAT4X4);
-            }
-
-            pipeline_manager->bindVertexCB(CB3);
-        }
-
-        // Load each mesh
-        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-        ID3D11Buffer* buffer;
-        UINT stride, offset;
-
-        stride = sizeof(float) * 3;
-        offset = 0;
-
-        buffer = mesh->vertex_streams[POSITION];
-        context->IASetVertexBuffers(POSITION, 1, &buffer, &stride, &offset);
-
-        stride = sizeof(float) * 2;
-        offset = 0;
-
-        buffer = mesh->vertex_streams[TEXTURE];
-        context->IASetVertexBuffers(TEXTURE, 1, &buffer, &stride, &offset);
-
-        stride = sizeof(float) * 3;
-        offset = 0;
-
-        buffer = mesh->vertex_streams[NORMAL];
-        context->IASetVertexBuffers(NORMAL, 1, &buffer, &stride, &offset);
-
-        stride = sizeof(float) * 4;
-        offset = 0;
-
-        buffer = mesh->vertex_streams[JOINTS];
-        context->IASetVertexBuffers(JOINTS, 1, &buffer, &stride, &offset);
-
-        stride = sizeof(float) * 4;
-        offset = 0;
-
-        buffer = mesh->vertex_streams[WEIGHTS];
-        context->IASetVertexBuffers(WEIGHTS, 1, &buffer, &stride, &offset);
-
-        context->IASetIndexBuffer(mesh->index_buffer, DXGI_FORMAT_R32_UINT, 0);
-
-        UINT numIndices = mesh->triangle_count * 3;
-        context->DrawIndexed(numIndices, 0, 0);
-    }
-    // ---
-
     processSky();
 
     // ...
@@ -753,21 +530,17 @@ void VisualSystem::renderPrepare() {
     for (const AssetObject* object : renderable_assets) {
         const Asset* asset = object->getAsset();
 
+        RenderableAsset renderable_asset;
+        renderable_asset.asset = asset;
+        renderable_asset.m_localToWorld = object->object->getLocalMatrix();
+        renderable_meshes.push_back(renderable_asset);
+
         const std::vector<Mesh*>& meshes = asset->getMeshes();
         for (const Mesh* mesh : meshes) {
             ShadowCaster shadowCaster;
             shadowCaster.mesh = mesh;
             shadowCaster.m_localToWorld = object->object->getLocalMatrix();
             light_manager->addShadowCaster(shadowCaster);
-
-            if (enable || cam_frustum.intersectsOBB(
-                              OBB(mesh->aabb, Matrix4::Identity()))) {
-                RenderableMesh renderableMesh;
-                renderableMesh.mesh = mesh;
-                renderableMesh.m_localToWorld =
-                    object->object->getLocalMatrix();
-                renderable_meshes.push_back(renderableMesh);
-            }
         }
     }
 
@@ -785,10 +558,11 @@ void VisualSystem::renderPrepare() {
 
             if (enable || cam_frustum.intersectsOBB(
                               OBB(tree_mesh->aabb, Matrix4::Identity()))) {
-                RenderableMesh renderableMesh;
+                // Temp disabled
+                /*RenderableAsset renderableMesh;
                 renderableMesh.mesh = tree_mesh;
                 renderableMesh.m_localToWorld = Matrix4::Identity();
-                renderable_meshes.push_back(renderableMesh);
+                renderable_meshes.push_back(renderableMesh);*/
             }
         }
 
@@ -1042,7 +816,6 @@ void VisualSystem::performRenderPass() {
     cpu_timer.beginTimer("Render Pass");
 #endif
 
-    pipeline_manager->bindVertexShader("TexturedMesh");
     pipeline_manager->bindPixelShader("TexturedMesh");
 
     context->OMSetRenderTargets(1, &render_target->target_view,
@@ -1162,65 +935,123 @@ void VisualSystem::performRenderPass() {
 
     color_tex->displayImGui();
 
-    for (const RenderableMesh& renderable_mesh : renderable_meshes) {
-        const Mesh* mesh = renderable_mesh.mesh;
-        const Material mat = mesh->material;
+    // Testing for animations
+    static float time = 0.0f;
+    time += 0.01f;
+    time = time - (int)time;
 
-        // Pixel CB0: Mesh Material Data
-        {
-            CBHandle* pCB0 = pipeline_manager->getPixelCB(CB0);
-            pCB0->clearData();
+    for (const RenderableAsset& renderable_asset : renderable_meshes) {
+        const Asset* asset = renderable_asset.asset;
+        const std::vector<Mesh*>& meshes = asset->getMeshes();
 
-            const TextureRegion& region = mat.tex_region;
-            pCB0->loadData(&region.x, FLOAT);
-            pCB0->loadData(&region.y, FLOAT);
-            pCB0->loadData(&region.width, FLOAT);
-            pCB0->loadData(&region.height, FLOAT);
+        if (asset->isSkinned()) {
+            pipeline_manager->bindVertexShader("SkinnedMesh");
+            asset->applyAnimationAtTime(1, time);
+        } else
+            pipeline_manager->bindVertexShader("TexturedMesh");
 
-            pipeline_manager->bindPixelCB(CB0);
+        for (const Mesh* mesh : meshes) {
+
+            const Material mat = mesh->material;
+
+            // Pixel CB0: Mesh Material Data
+            {
+                CBHandle* pCB0 = pipeline_manager->getPixelCB(CB0);
+                pCB0->clearData();
+
+                const TextureRegion& region = mat.tex_region;
+                pCB0->loadData(&region.x, FLOAT);
+                pCB0->loadData(&region.y, FLOAT);
+                pCB0->loadData(&region.width, FLOAT);
+                pCB0->loadData(&region.height, FLOAT);
+
+                pipeline_manager->bindPixelCB(CB0);
+            }
+
+            // Vertex CB2: Transform matrices
+            const Matrix4& mLocalToWorld = renderable_asset.m_localToWorld;
+            {
+                CBHandle* vCB2 = pipeline_manager->getVertexCB(CB2);
+                vCB2->clearData();
+                // Load mesh vertex transformation matrix
+                vCB2->loadData(&mLocalToWorld, FLOAT4X4);
+                // Load mesh normal transformation matrix
+                Matrix4 normalTransform = mLocalToWorld.inverse().transpose();
+                vCB2->loadData(&(normalTransform), FLOAT4X4);
+                pipeline_manager->bindVertexCB(CB2);
+            }
+
+            // Skinning
+            if (asset->isSkinned()) {
+                // Vertex CB3: Joint Matrices
+                {
+                    CBHandle* vCB3 = pipeline_manager->getVertexCB(CB3);
+                    vCB3->clearData();
+
+                    const std::vector<SkinJoint>& skin = asset->getSkinJoints();
+                    for (int i = 0; i < skin.size(); i++) {
+                        // SUPER INEFFICIENT RN
+                        const Matrix4 skin_matrix =
+                            skin[i].getTransform(skin[i].node) *
+                            skin[i].m_inverse_bind;
+                        const Matrix4 skin_normal_matrix =
+                            skin_matrix.inverse().transpose();
+
+                        vCB3->loadData(&skin_matrix, FLOAT4X4);
+                        vCB3->loadData(&skin_normal_matrix, FLOAT4X4);
+                    }
+
+                    pipeline_manager->bindVertexCB(CB3);
+                }
+            }
+
+            // Load each mesh
+            context->IASetPrimitiveTopology(
+                D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+            ID3D11Buffer* buffer;
+            UINT stride, offset;
+
+            stride = sizeof(float) * 3;
+            offset = 0;
+
+            buffer = mesh->vertex_streams[POSITION];
+            context->IASetVertexBuffers(POSITION, 1, &buffer, &stride, &offset);
+
+            stride = sizeof(float) * 2;
+            offset = 0;
+
+            buffer = mesh->vertex_streams[TEXTURE];
+            context->IASetVertexBuffers(TEXTURE, 1, &buffer, &stride, &offset);
+
+            stride = sizeof(float) * 3;
+            offset = 0;
+
+            buffer = mesh->vertex_streams[NORMAL];
+            context->IASetVertexBuffers(NORMAL, 1, &buffer, &stride, &offset);
+
+            if (asset->isSkinned()) {
+                stride = sizeof(float) * 4;
+                offset = 0;
+
+                buffer = mesh->vertex_streams[JOINTS];
+                context->IASetVertexBuffers(JOINTS, 1, &buffer, &stride,
+                                            &offset);
+
+                stride = sizeof(float) * 4;
+                offset = 0;
+
+                buffer = mesh->vertex_streams[WEIGHTS];
+                context->IASetVertexBuffers(WEIGHTS, 1, &buffer, &stride,
+                                            &offset);
+            }
+
+            context->IASetIndexBuffer(mesh->index_buffer, DXGI_FORMAT_R32_UINT,
+                                      0);
+
+            UINT numIndices = mesh->triangle_count * 3;
+            context->DrawIndexed(numIndices, 0, 0);
         }
-
-        // Vertex CB2: Transform matrices
-        const Matrix4& mLocalToWorld = renderable_mesh.m_localToWorld;
-        {
-            CBHandle* vCB2 = pipeline_manager->getVertexCB(CB2);
-            vCB2->clearData();
-            // Load mesh vertex transformation matrix
-            vCB2->loadData(&mLocalToWorld, FLOAT4X4);
-            // Load mesh normal transformation matrix
-            Matrix4 normalTransform = mLocalToWorld.inverse().transpose();
-            vCB2->loadData(&(normalTransform), FLOAT4X4);
-            pipeline_manager->bindVertexCB(CB2);
-        }
-
-        // Load each mesh
-        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-        ID3D11Buffer* buffer;
-        UINT stride, offset;
-
-        stride = sizeof(float) * 3;
-        offset = 0;
-
-        buffer = mesh->vertex_streams[POSITION];
-        context->IASetVertexBuffers(POSITION, 1, &buffer, &stride, &offset);
-
-        stride = sizeof(float) * 2;
-        offset = 0;
-
-        buffer = mesh->vertex_streams[TEXTURE];
-        context->IASetVertexBuffers(TEXTURE, 1, &buffer, &stride, &offset);
-
-        stride = sizeof(float) * 3;
-        offset = 0;
-
-        buffer = mesh->vertex_streams[NORMAL];
-        context->IASetVertexBuffers(NORMAL, 1, &buffer, &stride, &offset);
-
-        context->IASetIndexBuffer(mesh->index_buffer, DXGI_FORMAT_R32_UINT, 0);
-
-        UINT numIndices = mesh->triangle_count * 3;
-        context->DrawIndexed(numIndices, 0, 0);
     }
 
 #if defined(_DEBUG)

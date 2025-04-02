@@ -190,7 +190,7 @@ class Asset {
 
     // Asset Modification
     // Apply run-time modifications to the asset
-    void applyAnimationAtTime(UINT animation_index, float time);
+    void applyAnimationAtTime(UINT animation_index, float time) const;
 
     // Asset Accessing.
     // Retrieve data from the asset for rendering

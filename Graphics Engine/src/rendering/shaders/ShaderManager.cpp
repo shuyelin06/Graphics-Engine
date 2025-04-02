@@ -6,7 +6,7 @@
 
 #include <assert.h>
 
-constexpr bool ALLOW_CACHING = true;
+constexpr bool ALLOW_CACHING = false;
 
 namespace Engine {
 namespace Graphics {
@@ -62,138 +62,79 @@ class ShaderIncludeHandler : public ID3DInclude {
 ShaderManager::ShaderManager(ID3D11Device* _device) { device = _device; }
 ShaderManager::~ShaderManager() = default;
 
-// Initialize:
-// Creates and configures all of the shaders usable by the engine.
-void ShaderManager::initialize() {
+// InitializeShaders:
+// Creates all of the shaders usable by the engine. To create a shader, populate
+// the ShaderConfig struct with data, and pass in an array of "pins" (defines).
+// We can use pins to make one shader file usable for multiple different input
+// types or configurations. Pass in NULL if there are no pins.
+// For vertex shaders, an additional array of input layouts is needed.
+struct ShaderConfig {
+    std::string shader_name; // Name of Shader in Engine
+
+    std::string source_file; // Source File
+    std::string entry_point; // Entrypoint Name
+
+    bool use_pins;
+};
+
+void ShaderManager::initializeShaders() {
     // ShadowMap Shader:
     // A very simple shader that takes vertex triangle data, as well as matrix
     // transforms and writes them to a light's shadow map (depth buffer).
-    {
-        VertexDataStream shadow_map_input[] = {POSITION};
-        VertexShader* vs = createVertexShader("ShadowMap.hlsl", "vs_main",
-                                              shadow_map_input, 1);
-        vs->enableCB(CB0);
-        vs->enableCB(CB1);
-        vertex_shaders["ShadowMap"] = vs;
+    input_layout_arr = {POSITION};
+    createVertexShader({"ShadowMap", "ShadowMap.hlsl", "vs_main"});
 
-        PixelShader* ps = createPixelShader("ShadowMap.hlsl", "ps_main");
-        pixel_shaders["ShadowMap"] = ps;
-    }
+    createPixelShader({"ShadowMap", "ShadowMap.hlsl", "ps_main"});
 
     // Terrain Shader:
     // Handles rendering of the scene's terrain. Done in a separate shader than
     // the meshes as terrain is procedurally textured with a tri-planar mapping
-    {
-        VertexDataStream terrain_input[] = {POSITION, NORMAL};
-        VertexShader* vs = createVertexShader(
-            "VSTerrain.hlsl", "vsterrain_main", terrain_input, 2);
-        vs->enableCB(CB0);
-        vertex_shaders["Terrain"] = vs;
+    input_layout_arr = {POSITION, NORMAL};
+    createVertexShader({"Terrain", "VSTerrain.hlsl", "vsterrain_main"});
 
-        PixelShader* ps = createPixelShader("PSTerrain.hlsl", "psterrain_main");
-        ps->enableCB(CB0); // Global Illumination
-        ps->enableCB(CB1);
-        pixel_shaders["Terrain"] = ps;
-    }
+    createPixelShader({"Terrain", "PSTerrain.hlsl", "psterrain_main"});
 
     // DebugPoint:
     // Uses instancing to draw colored points in the scene. Only available if
     // the debug flag is flipped.
-    {
-        VertexDataStream debug_point_input[2] = {POSITION, INSTANCE_ID};
-        VertexShader* vs = createVertexShader("DebugPointRenderer.hlsl",
-                                              "vs_main", debug_point_input, 2);
-        vs->enableCB(CB0);
-        vs->enableCB(CB1);
-        vertex_shaders["DebugPoint"] = vs;
+    input_layout_arr = {POSITION, INSTANCE_ID};
+    createVertexShader({"DebugPoint", "DebugPointRenderer.hlsl", "vs_main"});
 
-        PixelShader* ps =
-            createPixelShader("DebugPointRenderer.hlsl", "ps_main");
-        pixel_shaders["DebugPoint"] = ps;
-    }
+    createPixelShader({"DebugPoint", "DebugPointRenderer.hlsl", "ps_main"});
 
     // DebugLine:
     // Uses instancing to draw colored lines in the scene. Only available if the
     // debug flag is flipped.
-    {
-        VertexDataStream debug_line_input[1] = {DEBUG_LINE};
-        VertexShader* vs = createVertexShader("DebugLineRenderer.hlsl",
-                                              "vs_main", debug_line_input, 1);
-        vs->enableCB(CB1);
-        vertex_shaders["DebugLine"] = vs;
+    input_layout_arr = {DEBUG_LINE};
+    createVertexShader({"DebugLine", "DebugLineRenderer.hlsl", "vs_main"});
 
-        PixelShader* ps =
-            createPixelShader("DebugLineRenderer.hlsl", "ps_main");
-        pixel_shaders["DebugLine"] = ps;
-    }
-
-    /*vertexShaders[VSDefault] =
-        createVertexShader("VertexShader.hlsl", "vs_main", XYZ | TEX | NORMAL);
-    vertexShaders[VSDefault]->enableCB(CB1);
-    vertexShaders[VSDefault]->enableCB(CB2);
-    pixelShaders[PSDefault] = createPixelShader("PixelShader.hlsl",
-    "ps_main");*/
+    createPixelShader({"DebugLine", "DebugLineRenderer.hlsl", "ps_main"});
 
     // Shadow:
     // Draws a mesh with dynamic lights enabled
-    {
-        VertexDataStream shadow_input[3] = {POSITION, NORMAL, COLOR};
-        VertexShader* vs = createVertexShader("ShadowShaderV.hlsl", "vs_main",
-                                              shadow_input, 3);
-        vs->enableCB(CB1);
-        vs->enableCB(CB2);
-        vertex_shaders["ShadowShader"] = vs;
-
-        PixelShader* ps = createPixelShader("ShadowShaderP.hlsl", "ps_main");
-        ps->enableCB(CB0); // Global Illumination
-        ps->enableCB(CB1);
-        pixel_shaders["ShadowShader"] = ps;
-    }
+    input_layout_arr = {POSITION, NORMAL, COLOR};
+    createVertexShader({"ShadowShader", "ShadowShaderV.hlsl", "vs_main"});
+    createPixelShader({"ShadowShader", "ShadowShaderP.hlsl", "ps_main"});
 
     // Shadow (Textured):
     // Draws a mesh with dynamic lights enabled
-    {
-        VertexDataStream input[5] = {POSITION, TEXTURE, NORMAL, JOINTS,
-                                     WEIGHTS};
-        VertexShader* vs = createVertexShader("V_SkinnedTexturedMesh.hlsl",
-                                              "vs_main", input, 5);
-        vs->enableCB(CB1);
-        vs->enableCB(CB2);
-        vs->enableCB(CB3);
-        vertex_shaders["SkinnedMesh"] = vs;
-    }
+    input_layout_arr = {POSITION, TEXTURE, NORMAL};
+    createVertexShader({"TexturedMesh", "V_TexturedMesh.hlsl", "vs_main"});
 
-    {
-        VertexDataStream shadow_input[3] = {POSITION, TEXTURE, NORMAL};
-        VertexShader* vs = createVertexShader("V_TexturedMesh.hlsl", "vs_main",
-                                              shadow_input, 3);
-        vs->enableCB(CB1);
-        vs->enableCB(CB2);
-        vertex_shaders["TexturedMesh"] = vs;
+    input_layout_arr = {POSITION, TEXTURE, NORMAL, JOINTS, WEIGHTS};
+    pins_arr = {"SKINNED_MESH"};
+    createVertexShader({"SkinnedMesh", "V_TexturedMesh.hlsl", "vs_main", true});
 
-        PixelShader* ps = createPixelShader("P_TexturedMesh.hlsl", "ps_main");
-        ps->enableCB(CB0); // Global Illumination
-        ps->enableCB(CB1);
-        pixel_shaders["TexturedMesh"] = ps;
-    }
+    createPixelShader({"TexturedMesh", "P_TexturedMesh.hlsl", "ps_main"});
 
     // --- Post Processing Effects ---
     // Generic vertex shader for post process effects
-    {
-        VertexDataStream blur_input[1] = {SV_POSITION};
-        VertexShader* vs =
-            createVertexShader("Sky.hlsl", "vs_sky", blur_input, 1);
-        vertex_shaders["PostProcess"] = vs;
-    }
+    input_layout_arr = {SV_POSITION};
+    createVertexShader({"PostProcess", "Sky.hlsl", "vs_sky"});
 
     // Blur:
     // Attempt at blurring
-    {
-        PixelShader* ps = createPixelShader("Sky.hlsl", "ps_sky");
-        ps->enableCB(CB0);
-        ps->enableCB(CB1);
-        pixel_shaders["Sky"] = ps;
-    }
+    createPixelShader({"Sky", "Sky.hlsl", "ps_sky"});
 }
 
 // GetVertexShader:
@@ -219,17 +160,22 @@ PixelShader* ShaderManager::getPixelShader(const std::string& name) {
 // CompileShaderBlob:
 // Compiles a file into a shader blob. Used in the creation of vertex
 // and pixel shaders.
-enum ShaderType { Vertex, Pixel };
-static ID3DBlob* CompileShaderBlob(ShaderType type, const std::string& file,
-                                   const char* entry) {
+ID3DBlob* ShaderManager::compileShaderBlob(ShaderType type,
+                                           const ShaderConfig& config) {
     ID3DBlob* compiled_blob = NULL;
 
     // Generate path to shader file
-    const std::string shader_path = shader_folder + file;
+    const std::string shader_path = shader_folder + config.source_file;
     const std::wstring shader_path_w =
         std::wstring(shader_path.begin(), shader_path.end());
 
-    const std::string cached_blob_path = cache_folder + file + "--" + entry;
+    std::string cached_blob_path =
+        cache_folder + config.source_file + "--" + config.entry_point;
+    if (config.use_pins) {
+        for (const std::string& pin : pins_arr) {
+            cached_blob_path += ", " + pin;
+        }
+    }
     const std::wstring cached_blob_path_w =
         std::wstring(cached_blob_path.begin(), cached_blob_path.end());
 
@@ -265,12 +211,34 @@ static ID3DBlob* CompileShaderBlob(ShaderType type, const std::string& file,
         break;
     }
 
-    // Compile blob
+    // Parse the pins. These are defines that can enable / disable portions of
+    // the shader code.
+    D3D_SHADER_MACRO* macros = NULL;
+
+    if (config.use_pins) {
+        shader_macros.clear();
+
+        const std::vector<std::string>& pins = pins_arr;
+        for (const std::string& pin : pins) {
+            D3D_SHADER_MACRO macro;
+            macro.Name = pin.c_str();
+            macro.Definition = NULL;
+            shader_macros.push_back(macro);
+        }
+
+        shader_macros.push_back({NULL, NULL});
+        macros = shader_macros.data();
+    }
+
     ID3DBlob* error_blob = NULL;
 
-    HRESULT result = D3DCompileFromFile(
-        shader_path_w.c_str(), nullptr, include_settings, entry,
-        compiler_target, flags, 0, &compiled_blob, &error_blob);
+    // Compile blob
+    HRESULT result =
+        D3DCompileFromFile(shader_path_w.c_str(), macros, include_settings,
+                           config.entry_point.c_str(), compiler_target, flags,
+                           0, &compiled_blob, &error_blob);
+
+    delete include_settings;
 
     // Error handling
     if (FAILED(result)) {
@@ -292,12 +260,9 @@ static ID3DBlob* CompileShaderBlob(ShaderType type, const std::string& file,
     return compiled_blob;
 }
 
-VertexShader* ShaderManager::createVertexShader(const std::string& filename,
-                                                const char* entrypoint,
-                                                VertexDataStream* input_data,
-                                                UINT input_data_size) {
+void ShaderManager::createVertexShader(const ShaderConfig& config) {
     // Obtain shader blob
-    ID3DBlob* shader_blob = CompileShaderBlob(Vertex, filename, entrypoint);
+    ID3DBlob* shader_blob = compileShaderBlob(Vertex, config);
 
     // Create input layout for vertex shader. We do this by parsing the streams
     // that the shader will use into the corresponding input data format.
@@ -305,8 +270,7 @@ VertexShader* ShaderManager::createVertexShader(const std::string& filename,
 
     std::vector<D3D11_INPUT_ELEMENT_DESC> input_desc;
 
-    for (UINT i = 0; i < input_data_size; i++) {
-        const VertexDataStream stream = input_data[i];
+    for (const VertexDataStream& stream : input_layout_arr) {
         D3D11_INPUT_ELEMENT_DESC desc;
 
         switch (stream) {
@@ -415,15 +379,15 @@ VertexShader* ShaderManager::createVertexShader(const std::string& filename,
     // Free shader blob memory
     shader_blob->Release();
 
-    return new VertexShader(vertexShader, inputLayout);
+    VertexShader* v_shader = new VertexShader(vertexShader, inputLayout);
+    vertex_shaders[config.shader_name] = v_shader;
 }
 
 // CreatePixelShader:
 // Creates a pixel shader and adds it to the array of pixel shaders
-PixelShader* ShaderManager::createPixelShader(const std::string& filename,
-                                              const char* entrypoint) {
+void ShaderManager::createPixelShader(const ShaderConfig& config) {
     // Obtain shader blob
-    ID3DBlob* shader_blob = CompileShaderBlob(Pixel, filename, entrypoint);
+    ID3DBlob* shader_blob = compileShaderBlob(Pixel, config);
 
     // Create pixel shader
     ID3D11PixelShader* pixelShader = NULL;
@@ -437,7 +401,8 @@ PixelShader* ShaderManager::createPixelShader(const std::string& filename,
     // Free shader blob memory
     shader_blob->Release();
 
-    return new PixelShader(pixelShader);
+    PixelShader* p_shader = new PixelShader(pixelShader);
+    pixel_shaders[config.shader_name] = p_shader;
 }
 
 } // namespace Graphics

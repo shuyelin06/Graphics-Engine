@@ -36,6 +36,7 @@ TerrainChunk::TerrainChunk(float _world_x, float _world_z,
 
     // Randomly create trees in the chunk
     int num_trees = Random(3, 10);
+    num_trees = 0;
     for (int i = 0; i < num_trees; i++) {
         const float x = Random(0.f, HEIGHT_MAP_XZ_SIZE);
         const float z = Random(0.f, HEIGHT_MAP_XZ_SIZE);

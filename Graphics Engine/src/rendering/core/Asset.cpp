@@ -216,7 +216,7 @@ UINT Asset::addAnimation(Animation* animation) {
 }
 
 // Modify an Asset
-void Asset::applyAnimationAtTime(UINT animation_index, float time) {
+void Asset::applyAnimationAtTime(UINT animation_index, float time) const {
     const Animation* animation = animations[animation_index];
 
     animation->updateTransformsforTime(time);

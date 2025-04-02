@@ -38,8 +38,8 @@ struct RenderableTerrain {
     Mesh* mesh;
     Vector3 terrain_offset;
 };
-struct RenderableMesh {
-    const Mesh* mesh;
+struct RenderableAsset {
+    const Asset* asset;
     Matrix4 m_localToWorld;
 };
 
@@ -84,7 +84,7 @@ class VisualSystem {
     std::vector<ShadowLightObject*> shadow_lights;
     std::vector<VisualTerrain*> terrain_chunks;
 
-    std::vector<RenderableMesh> renderable_meshes;
+    std::vector<RenderableAsset> renderable_meshes;
     std::vector<Mesh*> terrain_meshes;
 
   public:

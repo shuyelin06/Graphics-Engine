@@ -122,13 +122,20 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     /*Object& sun_light = parent_object.createChild();
     visual_system.bindShadowLightObject(&sun_light);*/
 
-    Object& child2 = parent_object.createChild();
-      AssetObject* asset2 = visual_system.bindAssetObject(&child2, "Capybara");
-      child2.getTransform().offsetRotation(Vector3::PositiveY(), PI);
-      child2.getTransform().setScale(5, 5, 5);
-      child2.getTransform().setPosition(Random(-2.5f, 2.5f), 100,
-                                        Random(15, 25));
+    {
+        Object& child2 = parent_object.createChild();
+        AssetObject* asset2 = visual_system.bindAssetObject(&child2, "Man");
+        child2.getTransform().setScale(5, 5, 5);
+        child2.getTransform().setPosition(Random(-2.5f, 2.5f), 100,
+                                          Random(15, 25));
+    }
 
+    {
+        Object& child = parent_object.createChild();
+        AssetObject* asset2 = visual_system.bindAssetObject(&child, "Fox");
+        child.getTransform().setScale(5, 5, 5);
+        child.getTransform().setPosition(0, 75, 0);
+    }
     /*std::vector<Vector3> points;
     points.push_back(Vector3(-2.5, -2.5, -2.5));
     points.push_back(Vector3(-2.5, -2.5, 2.5));
@@ -162,8 +169,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             if (msg.message == WM_QUIT)
                 return 0;
         }
-
-        child2.getTransform().offsetRotation(Vector3::PositiveY(), PI / 10);
 
         // Dispatch Input Data
         movementHandler.update();

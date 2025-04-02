@@ -50,14 +50,17 @@ void ResourceManager::initialize() {
     // Capybara by Poly by Google [CC-BY] via Poly Pizza
     LoadAssetFromGLTF("Capybara", "data/Capybara.glb", atlas_builder);
 
-    // LoadAssetFromGLTF("TexturedCube", "data/TexturedCube.glb", atlas_builder);
+    // LoadAssetFromGLTF("TexturedCube", "data/TexturedCube.glb",
+    // atlas_builder);
 
     // Dingus the cat by alwayshasbean [CC-BY] via Poly Pizza
-    //LoadAssetFromGLTF("Dingus", "data/Dingus the cat.glb", atlas_builder);
+    // LoadAssetFromGLTF("Dingus", "data/Dingus the cat.glb", atlas_builder);
 
     // Fox by Quaternius
-    // TODO: Add animation support
     LoadAssetFromGLTF("Fox", "data/Fox.glb", atlas_builder);
+
+    // Man by Quaternius
+    LoadAssetFromGLTF("Man", "data/Man.glb", atlas_builder);
 
     color_atlas = atlas_builder.generate();
 }

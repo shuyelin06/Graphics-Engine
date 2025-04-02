@@ -9,13 +9,22 @@ PipelineManager::PipelineManager(ID3D11Device* _device,
     : device(_device), context(_context) {
     // Initialize my shader manager
     shader_manager = new ShaderManager(device);
-    shader_manager->initialize();
+    shader_manager->initializeShaders();
 
     // Initialize my constant buffer handles
     for (int i = 0; i < CBSlot::CBCOUNT; i++) {
         vcb_handles[i] = new CBHandle();
         pcb_handles[i] = new CBHandle();
     }
+}
+
+PipelineManager::~PipelineManager() {
+    for (int i = 0; i < CBSlot::CBCOUNT; i++) {
+        delete vcb_handles[i];
+        delete pcb_handles[i];
+    }
+
+    delete shader_manager;
 }
 
 // --- Accessors ---
@@ -34,11 +43,13 @@ bool PipelineManager::bindVertexShader(const std::string& vs_name) {
 
     // Check if shader exists
     if (vs_active == nullptr)
-        return false;
+        assert(false);
 
     // Bind shader and input layout
     context->IASetInputLayout(vs_active->layout);
     context->VSSetShader(vs_active->shader, NULL, 0);
+
+    return true;
 }
 
 bool PipelineManager::bindPixelShader(const std::string& ps_name) {
@@ -46,10 +57,12 @@ bool PipelineManager::bindPixelShader(const std::string& ps_name) {
 
     // Check if shader exists
     if (ps_active == nullptr)
-        return false;
+        assert(false);
 
     // Bind shader
     context->PSSetShader(ps_active->shader, NULL, 0);
+
+    return true;
 }
 
 void PipelineManager::bindVertexCB(CBSlot slot) {
@@ -79,8 +92,13 @@ void PipelineManager::updateCBData(CBHandle* constantBuffer) {
     if (constantBuffer->byteSize() == 0)
         return;
 
-    // If the buffer resource has never been created before, create one
-    if (constantBuffer->resource == nullptr) {
+    // If the buffer resource has never been created before, or the current
+    // resource is too small for mapping / unmapping, create a new one.
+    if (constantBuffer->resource == nullptr ||
+        constantBuffer->byteSize() > constantBuffer->buffer_size) {
+        if (constantBuffer->resource != nullptr)
+            constantBuffer->resource->Release();
+
         // Create buffer to allow dynamic usage, i.e. accessible by
         // GPU read and CPU write. We opt for this usage so that we can update
         // the resource on the fly when needed.
@@ -100,6 +118,8 @@ void PipelineManager::updateCBData(CBHandle* constantBuffer) {
         HRESULT result = device->CreateBuffer(&buff_desc, &sr_data,
                                               &(constantBuffer->resource));
         assert(SUCCEEDED(result));
+
+        constantBuffer->buffer_size = constantBuffer->byteSize();
     }
     // If buffer exists, perform resource renaming to update buffer data
     // instead of creating a new buffer
