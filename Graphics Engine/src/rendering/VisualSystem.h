@@ -129,9 +129,6 @@ class VisualSystem {
 
     void renderFinish(); // Finish Rendering
 
-    void renderDebugPoints(); // DEBUG
-    void renderDebugLines();  // DEBUG
-
 #if defined(_DEBUG)
   private:
     // Debug via ImGui
@@ -148,6 +145,9 @@ class VisualSystem {
 
     // Debug via VisualDebug
     ID3D11Buffer* line_vbuffer;
+
+    void renderDebugPoints(); // DEBUG
+    void renderDebugLines();  // DEBUG
 #endif
 };
 } // namespace Graphics

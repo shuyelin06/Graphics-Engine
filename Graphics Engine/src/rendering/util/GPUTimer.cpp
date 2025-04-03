@@ -100,7 +100,9 @@ void GPUTimer::displayTimes() {
         frame_time = float(end - begin) / float(tsDisjoint.Frequency) * 1000.0f;
 
         // Display to ImGui
+#if defined(_DEBUG)
         ImGui::Text("(GPU) %s: %f ms", name.c_str(), frame_time);
+#endif
     }
 }
 

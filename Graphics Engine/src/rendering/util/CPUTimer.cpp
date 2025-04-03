@@ -33,8 +33,8 @@ void CPUTimer::beginTimer(std::string name) {
 }
 
 void CPUTimer::endTimer(std::string name) {
-    if (cpu_timers.contains(name)) 
-        cpu_timers[name]->duration = (float) cpu_timers[name]->timer.Duration();
+    if (cpu_timers.contains(name))
+        cpu_timers[name]->duration = (float)cpu_timers[name]->timer.Duration();
 }
 
 // DisplayTimes:
@@ -45,7 +45,9 @@ void CPUTimer::displayTimes() {
         std::string name = pair.first;
         float duration = pair.second->duration;
 
+#if defined(_DEBUG)
         ImGui::Text("(CPU) %s: %f ms", name.c_str(), duration);
+#endif
     }
 }
 

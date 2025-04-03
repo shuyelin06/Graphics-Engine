@@ -476,6 +476,7 @@ void VisualSystem::renderPrepare() {
     // --- TESTING ENVIRONMENT ---
     //
     // --- TEST ---
+#if defined(_DEBUG)
     static TreeGenerator tree_gen = TreeGenerator();
     static AssetObject* tree_asset = nullptr;
 
@@ -510,6 +511,7 @@ void VisualSystem::renderPrepare() {
     static float time = 15.f;
     ImGui::SliderFloat("Time of Day: ", &time, 1.0f, 23.f);
     light_manager->updateTimeOfDay(time);
+#endif
 
     // Pull information from the datamodel
     // - Pull asset local -> world matrices from the datamodel
@@ -521,7 +523,9 @@ void VisualSystem::renderPrepare() {
     light_manager->updateSunCascades(camera.frustum());
 
     static bool enable = true;
+#if defined(_DEBUG)
     ImGui::Checkbox("Disable Frustum Culling", &enable);
+#endif
     const Frustum cam_frustum = camera.frustum();
 
     // Prepare managers for data
@@ -933,7 +937,9 @@ void VisualSystem::performRenderPass() {
     const Texture* color_tex = resource_manager->getColorAtlas();
     context->PSSetShaderResources(0, 1, &color_tex->shader_view);
 
+#if defined(_DEBUG)
     color_tex->displayImGui();
+#endif
 
     // Testing for animations
     static float time = 0.0f;
@@ -1133,6 +1139,7 @@ void VisualSystem::renderFinish() {
     terrain_meshes.clear();
 }
 
+#if defined(_DEBUG)
 void VisualSystem::renderDebugPoints() {
     std::vector<PointData>& points = VisualDebug::points;
 
@@ -1248,7 +1255,6 @@ void VisualSystem::renderDebugLines() {
     }
 }
 
-#if defined(_DEBUG)
 // ImGui Initialize:
 // Initializes the ImGui menu and associated data.
 void VisualSystem::imGuiInitialize(HWND window) {

@@ -69,7 +69,9 @@ void PhysicsSystem::update() {
     for (PhysicsObject* obj : objects) {
         if (obj->collider != nullptr) {
             obj->collider->updateBroadphaseAABB();
+#if defined(_DEBUG)
             obj->collider->debugDrawCollider();
+#endif
         }
     }
 
@@ -80,7 +82,9 @@ void PhysicsSystem::update() {
         broadphase_tree.computeColliderPairs();
 
     // DEBUG:
+#if defined(_DEBUG)
     broadphase_tree.debugDrawTree();
+#endif
 
     // Collision Test:
     // For each pair, check that their colliders are actually intersecting.
