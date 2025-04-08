@@ -21,9 +21,7 @@ struct TextureColor {
 class TextureBuilder {
   protected:
     // Device interface for creating GPU resources.
-    // Set by ResourceManager
-    friend class ResourceManager;
-    static ID3D11Device* device;
+    ID3D11Device* device;
 
     // Data for the texture
     Texture* texture_resource;
@@ -31,7 +29,7 @@ class TextureBuilder {
     std::vector<TextureColor> data;
 
   public:
-    TextureBuilder(UINT _width, UINT _height);
+    TextureBuilder(UINT _width, UINT _height, ID3D11Device* _device);
     ~TextureBuilder();
 
     // Generates the renderable texture
@@ -62,7 +60,7 @@ class AtlasBuilder : public TextureBuilder {
   public:
     // The constructor here sets the atlas size. This CANNOT be changed
     // after initialization
-    AtlasBuilder(UINT atlas_width, UINT atlas_height);
+    AtlasBuilder(UINT atlas_width, UINT atlas_height, ID3D11Device* _evice);
     ~AtlasBuilder();
 
     // Generates the texture for the atlas and returns the atlas.

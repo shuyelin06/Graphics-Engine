@@ -152,23 +152,24 @@ UINT TextureAtlas::allocateTexture(UINT tex_width, UINT tex_height) {
 
 #if defined(TOGGLE_ALLOCATION_VIEW)
 Texture* TextureAtlas::getAllocationView() {
-    TextureBuilder builder = TextureBuilder(texture->width, texture->height);
+    /* TextureBuilder builder = TextureBuilder(texture->width, texture->height);
 
-    for (const AtlasAllocation& alloc : allocations) {
-        TextureColor color;
-        color.r = Random(0, 255);
-        color.g = Random(0, 255);
-        color.b = Random(0, 255);
-        color.a = 255;
+     for (const AtlasAllocation& alloc : allocations) {
+         TextureColor color;
+         color.r = Random(0, 255);
+         color.g = Random(0, 255);
+         color.b = Random(0, 255);
+         color.a = 255;
 
-        for (int x = 0; x < alloc.width; x++) {
-            for (int y = 0; y < alloc.height; y++) {
-                builder.setColor(x + alloc.x, y + alloc.y, color);
-            }
-        }
-    }
+         for (int x = 0; x < alloc.width; x++) {
+             for (int y = 0; y < alloc.height; y++) {
+                 builder.setColor(x + alloc.x, y + alloc.y, color);
+             }
+         }
+     }
 
-    return builder.generate();
+     return builder.generate();*/
+    return nullptr;
 }
 #endif
 } // namespace Graphics

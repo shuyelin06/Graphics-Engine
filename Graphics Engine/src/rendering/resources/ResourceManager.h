@@ -27,6 +27,9 @@ class ResourceManager {
     std::unordered_map<std::string, uint16_t> asset_map;
     std::vector<Asset*> assets;
 
+    std::unordered_map<std::string, uint16_t> texture_map;
+    std::vector<Texture*> textures;
+
     ID3D11SamplerState* shadowmap_sampler;
     ID3D11SamplerState* mesh_sampler;
 
@@ -37,7 +40,7 @@ class ResourceManager {
     ~ResourceManager();
 
     // Initialize assets
-    void initialize();
+    void initializeResources();
 
     // Get builders
     MeshBuilder* createMeshBuilder();
@@ -45,6 +48,9 @@ class ResourceManager {
     // Get an asset
     Asset* getAsset(const std::string& name);
     Asset* getAsset(uint16_t id);
+
+    Texture* getTexture(const std::string& name);
+    Texture* getTexture(uint16_t id);
 
     const Texture* getColorAtlas();
 
@@ -57,18 +63,15 @@ class ResourceManager {
     uint16_t registerAsset(const std::string& name, Asset* asset);
 
     // Generate a cube
-    Asset* LoadCube();
+    bool LoadCube(MeshBuilder& builder);
 
     // Load assets from files.
-    Asset* LoadAssetFromOBJ(const std::string& path,
-                            const std::string& objFile);
-
     bool LoadAssetFromGLTF(const std::string& asset_name,
-                           const std::string& path,
+                           const std::string& path, MeshBuilder& mesh_builder,
                            AtlasBuilder& tex_builder);
 
-    bool LoadTextureFromPNG(TextureBuilder& builder, std::string path,
-                            std::string png_file);
+    bool LoadTextureFromPNG(const std::string& tex_name,
+                            const std::string& path, TextureBuilder& builder);
     bool WriteTextureToPNG(ID3D11Texture2D* texture, std::string path,
                            std::string file);
 

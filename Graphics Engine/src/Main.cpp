@@ -124,8 +124,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     {
         Object& child2 = parent_object.createChild();
-        AssetObject* asset2 = visual_system.bindAssetObject(&child2, "Man");
-        child2.getTransform().setScale(5, 5, 5);
+        AssetObject* asset2 = visual_system.bindAssetObject(&child2, "Tree");
+        child2.getTransform().setScale(1, 1, 1);
         child2.getTransform().setPosition(Random(-2.5f, 2.5f), 100,
                                           Random(15, 25));
     }

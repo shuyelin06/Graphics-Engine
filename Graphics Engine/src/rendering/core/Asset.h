@@ -70,6 +70,9 @@ struct Node {
     Node* parent;
     std::vector<Node*> children;
 
+    // Tracks whether or not the node's transform has been updated already
+    bool update_flag;
+
     Node();
     Node(const Transform& transform);
 };

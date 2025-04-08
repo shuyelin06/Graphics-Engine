@@ -223,7 +223,6 @@
     <ClCompile Include="src\rendering\lights\SunLight.cpp" />
     <ClCompile Include="src\rendering\core\Frustum.cpp" />
     <ClCompile Include="src\rendering\resources\GLTFFile.cpp" />
-    <ClCompile Include="src\rendering\resources\OBJFile.cpp" />
     <ClCompile Include="src\rendering\resources\PNGFile.cpp" />
     <ClCompile Include="src\rendering\shaders\PipelineManager.cpp" />
     <ClCompile Include="src\rendering\shaders\Shader.cpp" />
@@ -308,7 +307,6 @@
     <ClInclude Include="src\rendering\util\GLBFile.h" />
     <ClInclude Include="src\rendering\resources\GLTFFile.h" />
     <ClInclude Include="src\rendering\util\GPUTimer.h" />
-    <ClInclude Include="src\rendering\resources\OBJFile.h" />
     <ClInclude Include="src\rendering\resources\PNGFile.h" />
     <ClInclude Include="src\rendering\core\TextureAtlas.h" />
     <ClInclude Include="src\physics\PhysicsSystem.h" />

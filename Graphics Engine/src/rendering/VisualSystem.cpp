@@ -236,7 +236,7 @@ void VisualSystem::initializeManagers() {
     HRESULT result;
 
     resource_manager = new ResourceManager(device, context);
-    resource_manager->initialize();
+    resource_manager->initializeResources();
 
     pipeline_manager = new PipelineManager(device, context);
 

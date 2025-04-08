@@ -14,7 +14,6 @@
 #include "math/Vector3.h"
 
 #include "GLTFFile.h"
-#include "OBJFile.h"
 #include "PNGFile.h"
 
 using namespace std;
@@ -32,23 +31,24 @@ ResourceManager::~ResourceManager() = default;
 
 // Initialize:
 // Loads assets into the asset manager.
-void ResourceManager::initialize() {
+void ResourceManager::initializeResources() {
     // Create my samplers
     shadowmap_sampler = LoadShadowMapSampler();
     mesh_sampler = LoadMeshTextureSampler();
 
-    // Prepare my builders
-    TextureBuilder::device = device;
-
     // Stores an atlas of material colors to avoid the need for rebinds later
-    AtlasBuilder atlas_builder = AtlasBuilder(4096, 4096);
+    AtlasBuilder atlas_builder = AtlasBuilder(4096, 4096, device);
+    MeshBuilder mesh_builder = MeshBuilder(device);
 
     // --- Load Assets Here ---
+    LoadCube(mesh_builder);
+
     // Currently supported: GLTF
 
     // LoadAssetFromGLTF("TestAsset", "data/Testing.glb", atlas_builder);
     // Capybara by Poly by Google [CC-BY] via Poly Pizza
-    LoadAssetFromGLTF("Capybara", "data/Capybara.glb", atlas_builder);
+    LoadAssetFromGLTF("Capybara", "data/Capybara.glb", mesh_builder,
+                      atlas_builder);
 
     // LoadAssetFromGLTF("TexturedCube", "data/TexturedCube.glb",
     // atlas_builder);
@@ -57,10 +57,13 @@ void ResourceManager::initialize() {
     // LoadAssetFromGLTF("Dingus", "data/Dingus the cat.glb", atlas_builder);
 
     // Fox by Quaternius
-    LoadAssetFromGLTF("Fox", "data/Fox.glb", atlas_builder);
+    LoadAssetFromGLTF("Fox", "data/Fox.glb", mesh_builder, atlas_builder);
 
     // Man by Quaternius
-    LoadAssetFromGLTF("Man", "data/Man.glb", atlas_builder);
+    LoadAssetFromGLTF("Man", "data/Man.glb", mesh_builder, atlas_builder);
+
+    // Tree
+    LoadAssetFromGLTF("Tree", "data/Tree.glb", mesh_builder, atlas_builder);
 
     color_atlas = atlas_builder.generate();
 }
@@ -91,6 +94,14 @@ Asset* ResourceManager::getAsset(const std::string& name) {
 
 Asset* ResourceManager::getAsset(uint16_t id) { return assets[id]; }
 
+Texture* ResourceManager::getTexture(const std::string& name) {
+    if (texture_map.contains(name))
+        return getTexture(texture_map[name]);
+    else
+        return nullptr;
+}
+Texture* ResourceManager::getTexture(uint16_t id) { return textures[id]; }
+
 const Texture* ResourceManager::getColorAtlas() {
     return color_atlas->getTexture();
 }
@@ -105,9 +116,9 @@ ID3D11SamplerState* ResourceManager::getMeshSampler() { return mesh_sampler; }
 // Uses the GLTFFile interface to load an asset from a GLTF file
 bool ResourceManager::LoadAssetFromGLTF(const std::string& asset_name,
                                         const std::string& path,
+                                        MeshBuilder& mesh_builder,
                                         AtlasBuilder& tex_builder) {
-    MeshBuilder mesh_builder = MeshBuilder(device);
-
+    mesh_builder.reset();
     GLTFFile gltf_file = GLTFFile(path);
     Asset* asset = gltf_file.readFromFile(mesh_builder, tex_builder);
 
@@ -120,10 +131,21 @@ bool ResourceManager::LoadAssetFromGLTF(const std::string& asset_name,
 
 // LoadTextureFromPNG:
 // Uses the PNGFile interface to load a texture from a PNG file
-bool ResourceManager::LoadTextureFromPNG(TextureBuilder& builder,
-                                         std::string path, std::string file) {
-    PNGFile png_file = PNGFile(path + file);
-    return png_file.readPNGData(builder);
+bool ResourceManager::LoadTextureFromPNG(const std::string& tex_name,
+                                         const std::string& path,
+                                         TextureBuilder& builder) {
+    PNGFile png_file = PNGFile(path);
+    png_file.readPNGData(builder);
+    Texture* tex = builder.generate();
+
+    if (tex != nullptr) {
+        const uint16_t index = textures.size();
+        textures.push_back(tex);
+        texture_map[tex_name] = index;
+
+        return true;
+    } else
+        return false;
 }
 
 // WriteTextureToPNG:
@@ -134,27 +156,17 @@ bool ResourceManager::WriteTextureToPNG(ID3D11Texture2D* texture,
     return png_file.writePNGData(device, context, texture);
 }
 
-// Helper parsing functions
-
-Asset* ResourceManager::LoadAssetFromOBJ(const std::string& path,
-                                         const std::string& objFile) {
-    MeshBuilder mesh_builder = MeshBuilder(device);
-    TextureBuilder texture_builder(0, 0);
-
-    OBJFile obj_file = OBJFile(path, objFile);
-    return obj_file.readAssetFromFile(mesh_builder, texture_builder);
-}
-
 // Hard-Coded Cube Creator
 // Used in debugging
-Asset* ResourceManager::LoadCube() {
-    MeshBuilder builder = MeshBuilder(device);
+bool ResourceManager::LoadCube(MeshBuilder& builder) {
+    builder.reset();
+
     builder.addCube(Vector3(0, 0, 0), Quaternion(), 1.f);
 
     Asset* cube = new Asset();
     cube->addMesh(builder.generate());
 
-    return cube;
+    return registerAsset("Cube", cube);
 }
 
 // Load___Sampler:

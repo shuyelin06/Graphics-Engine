@@ -4,10 +4,10 @@
 
 namespace Engine {
 namespace Graphics {
+TextureBuilder::TextureBuilder(UINT _width, UINT _height,
+                               ID3D11Device* _device) {
+    device = _device;
 
-ID3D11Device* TextureBuilder::device = nullptr;
-
-TextureBuilder::TextureBuilder(UINT _width, UINT _height) {
     texture_resource = new Texture(_width, _height);
 
     data.resize(_width * _height);
@@ -87,8 +87,9 @@ void TextureBuilder::reset(unsigned int _width, unsigned int _height) {
 }
 
 // --- Atlas Builder ---
-AtlasBuilder::AtlasBuilder(UINT atlas_width, UINT atlas_height)
-    : TextureBuilder(atlas_width, atlas_height) {
+AtlasBuilder::AtlasBuilder(UINT atlas_width, UINT atlas_height,
+                           ID3D11Device* device)
+    : TextureBuilder(atlas_width, atlas_height, device) {
     // Initialize my texture atlas
     atlas = new TextureAtlas(texture_resource);
 
