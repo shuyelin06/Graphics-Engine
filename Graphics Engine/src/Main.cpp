@@ -41,7 +41,7 @@
 
 // ----- TESTING -----
 #include "datamodel/TreeGenerator.h"
-#include "physics/collisions/AABBTree.h"
+#include "datamodel/bvh/BVH.h"
 // -----
 
 using namespace Engine;
@@ -148,6 +148,22 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     physics_system.addCollisionHull("Box", points);
     PhysicsObject* p1 = physics_system.bindPhysicsObject(&child2);
     CollisionObject* c1 = physics_system.bindCollisionObject(p1, "Box");*/
+    BVH bvh = BVH();
+    std::vector<Triangle> triangles;
+    for (int i = 0; i < 3; i++) {
+        const Vector3 v0 = Vector3(Random(-10.f, 10.f), Random(-10.f, 10.f),
+                                   Random(-10.f, 10.f));
+        const Vector3 v1 = Vector3(Random(-10.f, 10.f), Random(-10.f, 10.f),
+                                   Random(-10.f, 10.f));
+        const Vector3 v2 = Vector3(Random(-10.f, 10.f), Random(-10.f, 10.f),
+                                   Random(-10.f, 10.f));
+
+        triangles.push_back(Triangle(v0, v1, v2));
+    }
+    bvh.build(triangles);
+
+    Vector3 ray_origin;
+    Vector3 ray_direction = Vector3(0, -1, 0);
 
     // Begin window messaging loop
     MSG msg = {};
@@ -169,6 +185,51 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             if (msg.message == WM_QUIT)
                 return 0;
         }
+
+        static float o_arr[3] = {0.f, 0.f, 0.f};
+        static float d_arr[3] = {0.f, -1.f, 0.f};
+        ImGui::SliderFloat3("Origin", o_arr, -25.f, 25.f);
+        ImGui::SliderFloat3("Direction", d_arr, -1.f, 1.f);
+
+        ray_origin = Vector3(o_arr[0], o_arr[1], o_arr[2]);
+        ray_direction = Vector3(d_arr[0], d_arr[1], d_arr[2]);
+        ray_direction = ray_direction.unit();
+
+        if (ImGui::Button("New BVH")) {
+            std::vector<Triangle> triangles;
+            for (int i = 0; i < 55; i++) {
+                const float extent = 5.f;
+                const Vector3 center =
+                    Vector3(Random(-50.f, 50.f), Random(-50.f, 50.f),
+                            Random(-50.f, 50.f));
+                const Vector3 v0 = center + Vector3(Random(-extent, extent),
+                                                    Random(-extent, extent),
+                                                    Random(-extent, extent));
+                const Vector3 v1 = center + Vector3(Random(-extent, extent),
+                                                    Random(-extent, extent),
+                                                    Random(-extent, extent));
+                const Vector3 v2 = center + Vector3(Random(-extent, extent),
+                                                    Random(-extent, extent),
+                                                    Random(-extent, extent));
+
+                triangles.push_back(Triangle(v0, v1, v2));
+            }
+            bvh.build(triangles);
+        }
+
+        BVHRayCast cast = bvh.raycast(ray_origin, ray_direction);
+        if (cast.hit) {
+            VisualDebug::DrawLine(ray_origin,
+                                  ray_origin + ray_direction * cast.t,
+                                  Color::Green());
+            VisualDebug::DrawPoint(ray_origin + ray_direction * cast.t, 2.5f,
+                                   Color ::Green());
+        } else {
+            VisualDebug::DrawLine(
+                ray_origin, ray_origin + ray_direction * 100.f, Color::Red());
+        }
+
+        bvh.debugDrawBVH();
 
         // Dispatch Input Data
         movementHandler.update();

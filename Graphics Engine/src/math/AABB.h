@@ -16,6 +16,7 @@ class AABB {
 
     // Return information about the AABB
     float volume() const;
+    float area() const;
 
     const Vector3& getMin() const;
     const Vector3& getMax() const;

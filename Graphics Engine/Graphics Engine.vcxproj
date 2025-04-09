@@ -169,6 +169,7 @@
     <ClCompile Include="include\cgltf\cgltf.cpp" />
     <ClCompile Include="include\lodepng\lodepng.cpp" />
     <ClCompile Include="include\stb\stb_image.cpp" />
+    <ClCompile Include="src\datamodel\bvh\BVH.cpp" />
     <ClCompile Include="src\datamodel\RockGenerator.cpp" />
     <ClCompile Include="src\datamodel\SceneGraph.cpp" />
     <ClCompile Include="src\datamodel\Terrain.cpp" />
@@ -243,6 +244,7 @@
     <ClInclude Include="include\cgltf\cgltf.h" />
     <ClInclude Include="include\lodepng\lodepng.h" />
     <ClInclude Include="include\stb\stb_image.h" />
+    <ClInclude Include="src\datamodel\bvh\BVH.h" />
     <ClInclude Include="src\datamodel\ResourceManager.h" />
     <ClInclude Include="src\datamodel\RockGenerator.h" />
     <ClInclude Include="src\datamodel\SceneGraph.h" />

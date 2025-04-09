@@ -12,6 +12,10 @@ float AABB::volume() const {
     const Vector3 difference = maximum - minimum;
     return fabsf(difference.x * difference.y * difference.z);
 }
+float AABB::area() const {
+    const Vector3 diff = maximum - minimum;
+    return 2 * (diff.x * diff.y + diff.x * diff.z + diff.y * diff.z);
+}
 const Vector3& AABB::getMin() const { return minimum; }
 const Vector3& AABB::getMax() const { return maximum; }
 

@@ -34,7 +34,7 @@ class CollisionObject : public GJKSupportFunc {
     const Transform* transform;
 
     // An AABB of the collision hull, after being transformed.
-    AABB broadphase_aabb;
+    CollisionAABB broadphase_aabb;
 
   private:
     CollisionObject(PhysicsObject* phys_obj, const Transform* transform,

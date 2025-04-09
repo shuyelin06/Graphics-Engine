@@ -231,6 +231,9 @@
     <ClCompile Include="src\rendering\shaders\PipelineManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\datamodel\bvh\BVH.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\math\Vector3.h">
@@ -462,6 +465,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\shaders\PipelineManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\datamodel\bvh\BVH.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

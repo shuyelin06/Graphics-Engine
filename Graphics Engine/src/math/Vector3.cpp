@@ -124,6 +124,18 @@ Vector3 Vector3::orthogonal() const {
     return perp;
 }
 
+// [] Operator:
+// Access a component of the vector by index
+float Vector3::operator[](int axis) const {
+    if (axis == 0)
+        return x;
+    else if (axis == 1)
+        return y;
+    else if (axis == 2)
+        return z;
+    return 0;
+}
+
 // + Operator:
 // Returns a new vector which is the summation of
 // this vector and another vector

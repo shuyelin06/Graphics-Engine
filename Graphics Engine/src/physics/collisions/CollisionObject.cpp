@@ -12,7 +12,7 @@ CollisionObject::CollisionObject(PhysicsObject* phys_obj,
     : collision_hull(hull), transform(_transform) {
     phys_object = phys_obj;
 
-    broadphase_aabb = AABB();
+    broadphase_aabb = CollisionAABB();
     broadphase_aabb.collider = this;
 }
 CollisionObject::~CollisionObject() = default;
@@ -57,7 +57,7 @@ const Vector3 CollisionObject::furthestPoint(const Vector3& direction) const {
 // Updates the AABB extents to encompass the translated convex hull,
 // so that it can be used in the broadphase collision pass.
 void CollisionObject::updateBroadphaseAABB(void) {
-    broadphase_aabb = AABB();
+    broadphase_aabb = CollisionAABB();
 
     const Matrix4 m_transform = transform->transformMatrix();
 
