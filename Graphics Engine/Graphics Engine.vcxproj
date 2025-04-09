@@ -170,9 +170,8 @@
     <ClCompile Include="include\lodepng\lodepng.cpp" />
     <ClCompile Include="include\stb\stb_image.cpp" />
     <ClCompile Include="src\datamodel\bvh\BVH.cpp" />
-    <ClCompile Include="src\datamodel\RockGenerator.cpp" />
     <ClCompile Include="src\datamodel\SceneGraph.cpp" />
-    <ClCompile Include="src\datamodel\Terrain.cpp" />
+    <ClCompile Include="src\datamodel\terrain\Terrain.cpp" />
     <ClCompile Include="src\datamodel\TreeGenerator.cpp" />
     <ClCompile Include="src\input\components\MovementHandler.cpp" />
     <ClCompile Include="src\input\InputFrame.cpp" />
@@ -220,7 +219,7 @@
     <ClCompile Include="include\imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="include\imgui\imgui_tables.cpp" />
     <ClCompile Include="include\imgui\imgui_widgets.cpp" />
-    <ClCompile Include="src\deprecated\MarchingCubes.cpp" />
+    <ClCompile Include="src\datamodel\terrain\MarchingCube.cpp" />
     <ClCompile Include="src\rendering\lights\SunLight.cpp" />
     <ClCompile Include="src\rendering\core\Frustum.cpp" />
     <ClCompile Include="src\rendering\resources\GLTFFile.cpp" />
@@ -246,9 +245,9 @@
     <ClInclude Include="include\stb\stb_image.h" />
     <ClInclude Include="src\datamodel\bvh\BVH.h" />
     <ClInclude Include="src\datamodel\ResourceManager.h" />
-    <ClInclude Include="src\datamodel\RockGenerator.h" />
     <ClInclude Include="src\datamodel\SceneGraph.h" />
-    <ClInclude Include="src\datamodel\Terrain.h" />
+    <ClInclude Include="src\datamodel\terrain\MarchingCube.h" />
+    <ClInclude Include="src\datamodel\terrain\Terrain.h" />
     <ClInclude Include="src\datamodel\TreeGenerator.h" />
     <ClInclude Include="src\input\InputFrame.h" />
     <ClInclude Include="src\input\SymbolData.h" />
@@ -276,7 +275,7 @@
     <ClInclude Include="include\imgui\imstb_rectpack.h" />
     <ClInclude Include="include\imgui\imstb_textedit.h" />
     <ClInclude Include="include\imgui\imstb_truetype.h" />
-    <ClInclude Include="src\deprecated\MarchingCubeTables.h" />
+    <ClInclude Include="src\datamodel\terrain\MarchingCubeTables.h" />
     <ClInclude Include="src\input\components\MovementHandler.h" />
     <ClInclude Include="src\math\PerlinNoise.h" />
     <ClInclude Include="src\math\Transform.h" />

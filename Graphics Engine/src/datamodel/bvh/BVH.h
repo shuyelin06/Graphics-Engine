@@ -76,7 +76,7 @@ struct BVHNode {
 struct BVHRayCast {
     bool hit;
 
-    UINT hit_triangle;
+    BVHTriangle* hit_triangle;
     float t;
 };
 
@@ -96,7 +96,9 @@ class BVH {
     ~BVH();
 
     // Build the BVH
-    void build(const std::vector<Triangle>& triangles);
+    void addBVHTriangle(const Triangle& triangle, void* metadata);
+    void build();
+    void reset();
 
     // Raycast into the BVH to find the first BVHTriangle
     // hit. Returns the index of this triangle, or -1 on no hit.

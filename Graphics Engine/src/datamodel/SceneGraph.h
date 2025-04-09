@@ -5,7 +5,7 @@
 #include "math/PerlinNoise.h"
 
 #include "Object.h"
-#include "Terrain.h"
+#include "terrain/Terrain.h"
 
 // Stores the number of terrain chunks past the center chunk we will maintain.
 /*

@@ -1,3 +1,5 @@
+#include "MarchingCube.h"
+
 #include <assert.h>
 
 #include <cmath>
@@ -6,115 +8,12 @@
 #include "MarchingCubeTables.h"
 #include "math/Compute.h"
 #include "math/Matrix3.h"
-#include "math/Triangle.h"
 
 constexpr float FLT_EPSILON = 0.0001f;
 
 namespace Engine {
 using namespace Math;
-namespace Deprecated {
-
-// MarchingCube Class:
-// Represents a cube with float values at each of its 8 vertices. These float
-// values can be positive or negative, and we assume that a surface exists where
-// these values are 0 (after linearly interpolating the vertex values across the
-// entire cube). This class implements the marching cubes algorithm to generate
-// a non-ambiguous triangulation for a surface approximating where these values
-// are 0.
-class MarchingCube {
-  private:
-    // Data is given in order of the vertex id mapping shown above
-    float vertexData[8];
-
-    // Output fields
-    Triangle* output_triangulation;
-    int* output_num_triangles;
-
-  public:
-    MarchingCube();
-    ~MarchingCube();
-
-    void updateData(float a1, float a2, float a3, float a4, float a5, float a6,
-                    float a7, float a8);
-    void generateSurface(Triangle* triangle_output, int* num_triangles);
-
-  private:
-    void createTriangles(const char* edgeList, char numberTriangles);
-
-    Vector3 generateVertexOnEdge(char edgeID);
-
-    bool testFaceAmbiguity(char faceID);
-    bool testInternalAmbiguity(char caseID, char configID, char subConfigID,
-                               char sign);
-
-    char computeVertexMask();
-};
-
-// GenerateTerrainAsset:
-// For a given terrain chunk, we will generate the mesh for it using Marching
-// Cubes.
-/*
-Mesh* GenerateTerrainMesh(MeshBuilder& builder,
-                                        TerrainData data) {
-    builder.reset();
-
-    MarchingCube marchingCube;
-    Triangle triangulation[10];
-    int num_triangles;
-
-    for (int i = 0; i < TERRAIN_CHUNK_X_SAMPLES - 1; i++) {
-        for (int j = 0; j < TERRAIN_CHUNK_Y_SAMPLES - 1; j++) {
-            for (int k = 0; k < TERRAIN_CHUNK_Z_SAMPLES - 1; k++) {
-                // Load data into a marching cube
-                marchingCube.updateData(
-                    data.sample(i, j, k), data.sample(i + 1, j, k),
-                    data.sample(i + 1, j + 1, k), data.sample(i, j + 1, k),
-                    data.sample(i, j, k + 1), data.sample(i + 1, j, k + 1),
-                    data.sample(i + 1, j + 1, k + 1),
-                    data.sample(i, j + 1, k + 1));
-
-                // Generate triangulation for this cube
-                marchingCube.generateSurface(triangulation, &num_triangles);
-
-                // Scale and transform to voxel location
-                const float x_scale =
-                    TERRAIN_SIZE / (TERRAIN_CHUNK_X_SAMPLES - 1);
-                const float z_scale =
-                    TERRAIN_SIZE / (TERRAIN_CHUNK_Z_SAMPLES - 1);
-                const float y_scale = TERRAIN_HEIGHT / TERRAIN_CHUNK_Y_SAMPLES;
-
-                Vector3 offset = Vector3(i, j, k);
-                Vector3 scale = Vector3(x_scale, y_scale, z_scale);
-
-                for (int tri_index = 0; tri_index < num_triangles;
-                     tri_index++) {
-                    const Triangle& triangle = triangulation[tri_index];
-
-                    MeshVertex meshVertex;
-
-                    // Flip orientation of triangle
-                    UINT v0 =
-                        builder.addVertex((triangle.vertex(0) + offset) * scale,
-                                          Vector2(), Vector3());
-                    UINT v1 =
-                        builder.addVertex((triangle.vertex(2) + offset) * scale,
-                                          Vector2(), Vector3());
-                    UINT v2 =
-                        builder.addVertex((triangle.vertex(1) + offset) * scale,
-                                          Vector2(), Vector3());
-
-                    builder.addTriangle(v0, v1, v2);
-                }
-            }
-        }
-    }
-
-    builder.regenerateNormals();
-
-    return builder.generate();
-}
-*/
-
+namespace Datamodel {
 // -------------------------------------------------------------
 // Terrain Generation using an adapted version of Lewiner, et. al's
 // 3D Marching Cubes implementation.
@@ -977,5 +876,70 @@ char MarchingCube::computeVertexMask() {
     return mask;
 }
 
-} // namespace Graphics
+} // namespace Datamodel
 } // namespace Engine
+
+// GenerateTerrainAsset:
+// For a given terrain chunk, we will generate the mesh for it using Marching
+// Cubes.
+/*
+Mesh* GenerateTerrainMesh(MeshBuilder& builder,
+                                        TerrainData data) {
+    builder.reset();
+
+    MarchingCube marchingCube;
+    Triangle triangulation[10];
+    int num_triangles;
+
+    for (int i = 0; i < TERRAIN_CHUNK_X_SAMPLES - 1; i++) {
+        for (int j = 0; j < TERRAIN_CHUNK_Y_SAMPLES - 1; j++) {
+            for (int k = 0; k < TERRAIN_CHUNK_Z_SAMPLES - 1; k++) {
+                // Load data into a marching cube
+                marchingCube.updateData(
+                    data.sample(i, j, k), data.sample(i + 1, j, k),
+                    data.sample(i + 1, j + 1, k), data.sample(i, j + 1, k),
+                    data.sample(i, j, k + 1), data.sample(i + 1, j, k + 1),
+                    data.sample(i + 1, j + 1, k + 1),
+                    data.sample(i, j + 1, k + 1));
+
+                // Generate triangulation for this cube
+                marchingCube.generateSurface(triangulation, &num_triangles);
+
+                // Scale and transform to voxel location
+                const float x_scale =
+                    TERRAIN_SIZE / (TERRAIN_CHUNK_X_SAMPLES - 1);
+                const float z_scale =
+                    TERRAIN_SIZE / (TERRAIN_CHUNK_Z_SAMPLES - 1);
+                const float y_scale = TERRAIN_HEIGHT / TERRAIN_CHUNK_Y_SAMPLES;
+
+                Vector3 offset = Vector3(i, j, k);
+                Vector3 scale = Vector3(x_scale, y_scale, z_scale);
+
+                for (int tri_index = 0; tri_index < num_triangles;
+                     tri_index++) {
+                    const Triangle& triangle = triangulation[tri_index];
+
+                    MeshVertex meshVertex;
+
+                    // Flip orientation of triangle
+                    UINT v0 =
+                        builder.addVertex((triangle.vertex(0) + offset) * scale,
+                                          Vector2(), Vector3());
+                    UINT v1 =
+                        builder.addVertex((triangle.vertex(2) + offset) * scale,
+                                          Vector2(), Vector3());
+                    UINT v2 =
+                        builder.addVertex((triangle.vertex(1) + offset) * scale,
+                                          Vector2(), Vector3());
+
+                    builder.addTriangle(v0, v1, v2);
+                }
+            }
+        }
+    }
+
+    builder.regenerateNormals();
+
+    return builder.generate();
+}
+*/

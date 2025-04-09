@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/Asset.h"
-#include "datamodel/Terrain.h"
+#include "datamodel/terrain/Terrain.h"
 #include "resources/AssetBuilder.h"
 
 namespace Engine {

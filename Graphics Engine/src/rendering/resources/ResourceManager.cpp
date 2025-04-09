@@ -9,7 +9,7 @@
 
 #include <assert.h>
 
-#include "datamodel/Terrain.h"
+#include "datamodel/terrain/Terrain.h"
 #include "math/Vector2.h"
 #include "math/Vector3.h"
 

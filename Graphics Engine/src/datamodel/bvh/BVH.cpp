@@ -16,26 +16,17 @@ BVH::~BVH() = default;
 
 // Build:
 // Given an array of triangles, builds the BVH.
-void BVH::build(const std::vector<Triangle>& triangles) {
-    // Reset all fields
-    node_pool.clear();
-    triangle_pool.clear();
-    triangle_indices.clear();
+void BVH::addBVHTriangle(const Triangle& tri_data, void* metadata) {
+    BVHTriangle triangle;
+    triangle.triangle = tri_data;
+    triangle.center = tri_data.center();
+    triangle.metadata = metadata; // TODO: UNUSED
 
-    // First, load our array of triangles into the BVH's triangle pool,
-    // and add their index to triangle_indices.
-    // We use triangle_indices as we'll need to swap around triangles
-    // later (and only swapping their indices is more efficient)
-    for (const Triangle& tri_data : triangles) {
-        BVHTriangle triangle;
-        triangle.triangle = tri_data;
-        triangle.center = tri_data.center();
-        triangle.metadata = nullptr; // TODO: UNUSED
+    triangle_indices.push_back(triangle_pool.size());
+    triangle_pool.push_back(triangle);
+}
 
-        triangle_indices.push_back(triangle_pool.size());
-        triangle_pool.push_back(triangle);
-    }
-
+void BVH::build() {
     // Now, create a root node for our BVH. This node will contain all
     // of our triangles.
     const UINT root_index = allocateNode();
@@ -48,6 +39,15 @@ void BVH::build(const std::vector<Triangle>& triangles) {
     // Recursively subdivide our BVH using the
     // Surface Area Heuristic (SAH)
     subdivide(root_index);
+}
+
+// Reset:
+// Resets a BVH completely
+void BVH::reset() {
+    // Reset all fields
+    node_pool.clear();
+    triangle_pool.clear();
+    triangle_indices.clear();
 }
 
 // Subdivide:
@@ -213,7 +213,7 @@ BVHRayCast BVH::raycast(const Vector3& origin, const Vector3& direction) {
         ray_cast.hit = false;
     else {
         ray_cast.hit = true;
-        ray_cast.hit_triangle = i_hit_triangle;
+        ray_cast.hit_triangle = &triangle_pool[i_hit_triangle];
         ray_cast.t = ray.t;
     }
 
@@ -246,7 +246,7 @@ int BVH::raycastHelper(BVHRay& ray, UINT node_index) {
                 triangle_pool[triangle_indices[node.tri_first + i]]
                     .intersected = true;
 #endif
-                result = i;
+                result = triangle_indices[node.tri_first + i];
             }
         }
     } else {

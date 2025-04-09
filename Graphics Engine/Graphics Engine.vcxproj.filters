@@ -48,7 +48,7 @@
     <ClCompile Include="src\math\Transform.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\datamodel\Terrain.cpp">
+    <ClCompile Include="src\datamodel\terrain\Terrain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\VisualDebug.cpp">
@@ -108,7 +108,7 @@
     <ClCompile Include="src\math\PerlinNoise.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\deprecated\MarchingCubes.cpp">
+    <ClCompile Include="src\datamodel\terrain\MarchingCube.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\core\VertexStreamIDs.h">
@@ -201,9 +201,6 @@
     <ClCompile Include="src\datamodel\TreeGenerator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\datamodel\RockGenerator.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\rendering\lights\SunLight.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -269,7 +266,7 @@
     <ClInclude Include="src\math\Transform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\datamodel\Terrain.h">
+    <ClInclude Include="src\datamodel\terrain\Terrain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\VisualDebug.h">
@@ -299,7 +296,7 @@
     <ClInclude Include="src\math\Color.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\deprecated\MarchingCubeTables.h">
+    <ClInclude Include="src\datamodel\terrain\MarchingCubeTables.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\math\Quaternion.h">
@@ -434,9 +431,6 @@
     <ClInclude Include="src\datamodel\TreeGenerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\datamodel\RockGenerator.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\rendering\lights\SunLight.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -468,6 +462,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\datamodel\bvh\BVH.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\datamodel\terrain\MarchingCube.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

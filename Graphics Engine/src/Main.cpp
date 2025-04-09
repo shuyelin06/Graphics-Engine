@@ -158,12 +158,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         const Vector3 v2 = Vector3(Random(-10.f, 10.f), Random(-10.f, 10.f),
                                    Random(-10.f, 10.f));
 
-        triangles.push_back(Triangle(v0, v1, v2));
+        bvh.addBVHTriangle(Triangle(v0, v1, v2), nullptr);
     }
-    bvh.build(triangles);
+    bvh.build();
 
     Vector3 ray_origin;
     Vector3 ray_direction = Vector3(0, -1, 0);
+
+    PerlinNoise noise_func = PerlinNoise(3);
 
     // Begin window messaging loop
     MSG msg = {};
@@ -186,6 +188,33 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                 return 0;
         }
 
+        static float x_cen, y_cen, z_cen;
+        static float size = 7.5f;
+        static float real_freq = 0.055f; // 0.155
+        ImGui::SliderFloat("Noise X", &x_cen, -100, 100);
+        ImGui::SliderFloat("Noise Y", &y_cen, -100, 100);
+        ImGui::SliderFloat("Noise Z", &z_cen, -100, 100);
+
+        ImGui::SliderFloat("Size", &size, 0.0001f, 7.5f);
+        ImGui::SliderFloat("Freq", &real_freq, 0.000001f, 0.5f);
+        for (int x = -10; x < 10; x++) {
+            for (int y = -10; y < 10; y++) {
+                for (int z = -10; z < 10; z++) {
+                    const float val = noise_func.noise3D(
+                        real_freq * (x_cen + x), real_freq * (y_cen + y),
+                        real_freq * (z_cen + z));
+
+                    if (val < 0.375f) {
+
+                        VisualDebug::DrawPoint(
+                            Vector3(size * (x + x_cen), size * (y + y_cen),
+                                    size * (z + z_cen)),
+                            1.0f + 1.5f * val, Color(val, val, val));
+                    }
+                }
+            }
+        }
+
         static float o_arr[3] = {0.f, 0.f, 0.f};
         static float d_arr[3] = {0.f, -1.f, 0.f};
         ImGui::SliderFloat3("Origin", o_arr, -25.f, 25.f);
@@ -196,6 +225,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         ray_direction = ray_direction.unit();
 
         if (ImGui::Button("New BVH")) {
+            bvh.reset();
+
             std::vector<Triangle> triangles;
             for (int i = 0; i < 55; i++) {
                 const float extent = 5.f;
@@ -212,9 +243,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                                                     Random(-extent, extent),
                                                     Random(-extent, extent));
 
-                triangles.push_back(Triangle(v0, v1, v2));
+                bvh.addBVHTriangle(Triangle(v0, v1, v2), nullptr);
             }
-            bvh.build(triangles);
+            bvh.build();
         }
 
         BVHRayCast cast = bvh.raycast(ray_origin, ray_direction);
