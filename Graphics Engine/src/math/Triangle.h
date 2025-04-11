@@ -7,6 +7,8 @@ namespace Math {
 // Triangle Class:
 // Defines a triangle with 3 points: v0, v1, v2.
 // Triangles are defined to have a counter clock-wise winding order.
+// Triangles will ONLY have the data attributes for its 3 vertices.
+// If more attributes need to be stored, they should be stored in a wrapper class.
 class Triangle {
   private:
     Vector3 vertices[3];

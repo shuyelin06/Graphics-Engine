@@ -12,7 +12,7 @@ namespace Engine {
 namespace Graphics {
 // --- Camera ---
 Camera::Camera() {
-    setFrustumMatrix(1.2f, 5.f, 300.f);
+    setFrustumMatrix(1.2f, 5.f, 200.f);
     setTransform(new Transform());
 }
 Camera::~Camera() = default;

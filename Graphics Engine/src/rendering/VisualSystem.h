@@ -9,8 +9,8 @@
 
 #include "lights/LightManager.h"
 #include "resources/ResourceManager.h"
-#include "shaders/ShaderManager.h"
 #include "shaders/PipelineManager.h"
+#include "shaders/ShaderManager.h"
 
 #include "VisualTerrain.h"
 #include "core/AssetObject.h"
@@ -82,10 +82,10 @@ class VisualSystem {
     // render information.
     std::vector<AssetObject*> renderable_assets;
     std::vector<ShadowLightObject*> shadow_lights;
-    std::vector<VisualTerrain*> terrain_chunks;
+
+    VisualTerrain* terrain_interface;
 
     std::vector<RenderableAsset> renderable_meshes;
-    std::vector<Mesh*> terrain_meshes;
 
   public:
     VisualSystem();
@@ -106,7 +106,7 @@ class VisualSystem {
     // Create objects in the visual system
     AssetObject* bindAssetObject(Object* object, const std::string& asset_name);
     ShadowLightObject* bindShadowLightObject(Object* object);
-    VisualTerrain* bindVisualTerrain(TerrainChunk* terrain);
+    VisualTerrain* bindVisualTerrain(const Terrain* terrain);
 
   private:
     // Initialization Stages of the Visual System

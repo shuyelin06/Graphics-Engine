@@ -1,5 +1,7 @@
 #include "VisualTerrain.h"
 
+#include <assert.h>
+
 #include "datamodel/TreeGenerator.h"
 #include "math/Compute.h"
 
@@ -9,76 +11,129 @@ namespace Engine {
 using namespace Datamodel;
 
 namespace Graphics {
-VisualTerrain::VisualTerrain(TerrainChunk* _terrain, MeshBuilder* mesh_builder)
-    : terrain(_terrain) {
-    terrain_mesh = generateTerrainMesh(*mesh_builder);
+VisualTerrain::VisualTerrain(const Terrain* _terrain) : terrain(_terrain) {
+    center_x = center_y = center_z = INT_MIN;
 
-    for (const Vector2& tree_loc : terrain->getTreeLocations()) {
-        tree_meshes.push_back(generateTreeMesh(*mesh_builder, tree_loc));
-    }
-
-    markedToDestroy = false;
+    // These size are NOT to be changed. They're coded to match the size of
+    // the 3D array in Terrain, but given as a vector so the VisualSystem has an
+    // easier time reading the data.
+    chunk_meshes.resize(TERRAIN_CHUNK_COUNT * TERRAIN_CHUNK_COUNT *
+                        TERRAIN_CHUNK_COUNT);
+    chunk_meshes_helper.resize(TERRAIN_CHUNK_COUNT * TERRAIN_CHUNK_COUNT *
+                               TERRAIN_CHUNK_COUNT);
 }
-
 VisualTerrain::~VisualTerrain() {
-    delete terrain_mesh;
-
-    for (Mesh* tree : tree_meshes)
-        delete tree;
+    for (int i = 0; i < chunk_meshes.size(); i++)
+        if (chunk_meshes[i] != nullptr)
+            delete chunk_meshes[i];
 }
-
-void VisualTerrain::destroy() { markedToDestroy = true; }
-
-bool VisualTerrain::markedForDestruction() const { return markedToDestroy; }
 
 // GenerateTerrainMesh:
 // Generates the mesh for the terrain
-Mesh* VisualTerrain::generateTerrainMesh(MeshBuilder& builder) {
-    builder.reset();
+void VisualTerrain::updateTerrainMeshes(MeshBuilder& builder) {
+    // Do nothing if nothing has changed.
+    bool same_center = center_x == terrain->getCenterChunkX() &&
+                       center_y == terrain->getCenterChunkY() &&
+                       center_z == terrain->getCenterChunkZ();
 
-    for (int i = 0; i < SAMPLE_COUNT; i++) {
-        for (int j = 0; j < SAMPLE_COUNT; j++) {
-            const float x =
-                HEIGHT_MAP_XZ_SIZE * i / (SAMPLE_COUNT - 1) + terrain->getX();
-            const float z =
-                HEIGHT_MAP_XZ_SIZE * j / (SAMPLE_COUNT - 1) + terrain->getZ();
+    if (same_center)
+        return;
 
-            const float y = terrain->sampleTerrainHeight(x, z);
+    // Similar to terrain, we will store a mesh for every chunk, and on update,
+    // shift our references so we only generate meshes for new chunks.
+    const int old_center_x = center_x;
+    const int old_center_y = center_y;
+    const int old_center_z = center_z;
 
-            builder.addVertex(Vector3(x, y, z));
+    center_x = terrain->getCenterChunkX();
+    center_y = terrain->getCenterChunkY();
+    center_z = terrain->getCenterChunkZ();
+
+    // Iterate and find which chunk meshes can be reused
+    std::memset(&chunk_meshes_helper[0], 0,
+                chunk_meshes_helper.size() * sizeof(Mesh*));
+
+    for (int i = 0; i < TERRAIN_CHUNK_COUNT; i++) {
+        for (int j = 0; j < TERRAIN_CHUNK_COUNT; j++) {
+            for (int k = 0; k < TERRAIN_CHUNK_COUNT; k++) {
+                // Find our chunk index on x,z
+                const int old_index_x = i + center_x - old_center_x;
+                const int old_index_y = j + center_y - old_center_y;
+                const int old_index_z = k + center_z - old_center_z;
+
+                const bool in_x_bounds =
+                    0 <= old_index_x && old_index_x < TERRAIN_CHUNK_COUNT;
+                const bool in_y_bounds =
+                    0 <= old_index_y && old_index_y < TERRAIN_CHUNK_COUNT;
+                const bool in_z_bounds =
+                    0 <= old_index_z && old_index_z < TERRAIN_CHUNK_COUNT;
+
+                if (in_x_bounds && in_y_bounds && in_z_bounds) {
+                    chunk_meshes_helper[index3DVector(i, j, k)] =
+                        chunk_meshes[index3DVector(old_index_x, old_index_y,
+                                                   old_index_z)];
+                    chunk_meshes[index3DVector(old_index_x, old_index_y,
+                                               old_index_z)] = nullptr;
+                }
+            }
         }
     }
 
-    for (int i = 0; i < SAMPLE_COUNT; i++) {
-        for (int j = 0; j < SAMPLE_COUNT; j++) {
-            const int v0 = i * SAMPLE_COUNT + j;
-            const int v1 = (i + 1) * SAMPLE_COUNT + j;
-            const int v2 = i * SAMPLE_COUNT + (j + 1);
-            const int v3 = (i - 1) * SAMPLE_COUNT + j;
-            const int v4 = i * SAMPLE_COUNT + (j - 1);
+    // Now, iterate through and
+    // 1) Create new meshes that need to be created
+    // 2) Destroy old meshes too far from our center
+    const std::vector<ChunkTriangle>& triangle_pool =
+        terrain->getTrianglePool();
 
-            // NE triangle
-            if (i < SAMPLE_COUNT - 1 && j < SAMPLE_COUNT - 1)
-                builder.addTriangle(v0, v2, v1);
+    for (int i = 0; i < TERRAIN_CHUNK_COUNT; i++) {
+        for (int j = 0; j < TERRAIN_CHUNK_COUNT; j++) {
+            for (int k = 0; k < TERRAIN_CHUNK_COUNT; k++) {
+                const int index = index3DVector(i, j, k);
 
-            // NW triangle
-            if (i > 0 && j < SAMPLE_COUNT - 1)
-                builder.addTriangle(v0, v3, v2);
+                // Free memory for old chunks
+                if (chunk_meshes[index] != nullptr)
+                    delete chunk_meshes[index];
 
-            // SW triangle
-            if (i > 0 && j > 0)
-                builder.addTriangle(v0, v4, v3);
+                // Create new chunks
+                if (chunk_meshes_helper[index] == nullptr) {
+                    builder.reset();
 
-            // SE triangle
-            if (i < SAMPLE_COUNT - 1 && j > 0)
-                builder.addTriangle(v0, v1, v4);
+                    const Chunk* chunk = terrain->getChunk(i, j, k);
+                    for (int tri = 0; tri < chunk->triangle_count; tri++) {
+                        const ChunkTriangle& data =
+                            triangle_pool[tri + chunk->triangle_start];
+                        assert(data.valid);
+
+                        const Triangle& triangle = data.triangle;
+                        builder.addTriangle(triangle.vertex(0),
+                                            triangle.vertex(1),
+                                            triangle.vertex(2));
+                    }
+
+                    builder.regenerateNormals();
+
+                    chunk_meshes_helper[index] = builder.generate();
+                }
+            }
         }
     }
 
-    builder.regenerateNormals();
-    return builder.generate();
+    // Copy our helper array to the actual terrain array
+    std::copy(chunk_meshes_helper.begin(), chunk_meshes_helper.end(),
+              chunk_meshes.begin());
 }
 
+// GetTerrainMesh:
+// Returns the terrain's mesh
+const std::vector<Mesh*>& VisualTerrain::getTerrainMeshes() {
+    return chunk_meshes;
+}
+
+int VisualTerrain::index3DVector(int x, int j, int k) {
+    return k + TERRAIN_CHUNK_COUNT * (j + TERRAIN_CHUNK_COUNT * x);
+}
+
+/*
 static int generateTreeMeshHelper(MeshBuilder& builder,
                                   const std::vector<TreeStructure>& grammar,
                                   int index, const Vector3& position,
@@ -155,6 +210,7 @@ Mesh* VisualTerrain::generateTreeMesh(MeshBuilder& builder,
 
     return builder.generate();
 }
+*/
 
 } // namespace Graphics
 } // namespace Engine

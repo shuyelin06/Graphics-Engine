@@ -320,15 +320,12 @@ ShadowLightObject* VisualSystem::bindShadowLightObject(Object* object) {
     return light_obj;
 }
 
-VisualTerrain* VisualSystem::bindVisualTerrain(TerrainChunk* terrain) {
-    // TEMP: Generate a triangulation of the terrain
-    MeshBuilder* builder = resource_manager->createMeshBuilder();
-    VisualTerrain* visual_terrain = new VisualTerrain(terrain, builder);
+VisualTerrain* VisualSystem::bindVisualTerrain(const Terrain* terrain) {
+    if (terrain_interface != nullptr)
+        delete terrain_interface;
+    terrain_interface = new VisualTerrain(terrain);
 
-    terrain_chunks.push_back(visual_terrain);
-    terrain->bindVisualTerrain(visual_terrain);
-
-    return visual_terrain;
+    return terrain_interface;
 }
 
 // Render:
@@ -460,19 +457,6 @@ void VisualSystem::renderPrepare() {
     }
     renderable_assets.resize(head);
 
-    // Check and remove any visual terrain objects that are no longer valid
-    head = 0;
-    for (int i = 0; i < terrain_chunks.size(); i++) {
-        if (!terrain_chunks[i]->markedForDestruction()) {
-            terrain_chunks[head] = terrain_chunks[i];
-            head++;
-        } else {
-            delete terrain_chunks[i];
-            terrain_chunks[i] = nullptr;
-        }
-    }
-    terrain_chunks.resize(head);
-
     // --- TESTING ENVIRONMENT ---
     //
     // --- TEST ---
@@ -548,29 +532,17 @@ void VisualSystem::renderPrepare() {
         }
     }
 
-    // Parse all terrain data
-    for (const VisualTerrain* terrain : terrain_chunks) {
-        ShadowCaster shadowCaster;
-        shadowCaster.m_localToWorld = Matrix4::Identity();
+    // Generate my terrain mesh
+    MeshBuilder* builder = resource_manager->createMeshBuilder();
+    terrain_interface->updateTerrainMeshes(*builder);
 
-        shadowCaster.mesh = terrain->terrain_mesh;
-        light_manager->addShadowCaster(shadowCaster);
-
-        for (Mesh* tree_mesh : terrain->tree_meshes) {
-            shadowCaster.mesh = tree_mesh;
-            light_manager->addShadowCaster(shadowCaster);
-
-            if (enable || cam_frustum.intersectsOBB(
-                              OBB(tree_mesh->aabb, Matrix4::Identity()))) {
-                // Temp disabled
-                /*RenderableAsset renderableMesh;
-                renderableMesh.mesh = tree_mesh;
-                renderableMesh.m_localToWorld = Matrix4::Identity();
-                renderable_meshes.push_back(renderableMesh);*/
-            }
-        }
-
-        terrain_meshes.push_back(terrain->terrain_mesh);
+    // Load it for shadows
+    const std::vector<Mesh*>& terrain_meshes =
+        terrain_interface->getTerrainMeshes();
+    for (Mesh* terrain_mesh : terrain_meshes) {
+        ShadowCaster terrain_shadow;
+        terrain_shadow.m_localToWorld = Matrix4::Identity();
+        terrain_shadow.mesh = terrain_mesh;
     }
 
     // Cluster shadows
@@ -790,7 +762,12 @@ void VisualSystem::performTerrainPass() {
     }
 
     // TEMP
+    const std::vector<Mesh*>& terrain_meshes =
+        terrain_interface->getTerrainMeshes();
     for (Mesh* mesh : terrain_meshes) {
+        if (mesh == nullptr)
+            continue;
+
         context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
         UINT buffer_stride = sizeof(float) * 3;
@@ -807,7 +784,6 @@ void VisualSystem::performTerrainPass() {
         UINT numIndices = mesh->triangle_count * 3;
         context->DrawIndexed(numIndices, 0, 0);
     }
-
 #if defined(_DEBUG)
     gpu_timer.endTimer("Terrain Pass");
     cpu_timer.endTimer("Terrain Pass");
@@ -1136,7 +1112,6 @@ void VisualSystem::renderFinish() {
     swap_chain->Present(1, 0);
 
     renderable_meshes.clear();
-    terrain_meshes.clear();
 }
 
 #if defined(_DEBUG)

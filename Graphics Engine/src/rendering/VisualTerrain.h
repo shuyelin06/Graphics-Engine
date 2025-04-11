@@ -11,27 +11,31 @@ namespace Graphics {
 // VisualTerrain Class:
 // Stores rendering information for a terrain chunk.
 class VisualTerrain {
-    friend class VisualSystem;
-
   private:
-    TerrainChunk* const terrain;
+    const Terrain* const terrain;
 
-    Mesh* terrain_mesh;
-    std::vector<Mesh*> tree_meshes;
+    // Stores my terrain meshes, in a format modeling our terrain.
+    std::vector<Mesh*> chunk_meshes;
+    std::vector<Mesh*> chunk_meshes_helper; // Used for copying data
 
-    bool markedToDestroy;
-
-    VisualTerrain(TerrainChunk* terrain, MeshBuilder* mesh_builder);
+    // Tracks the terrain center to determine if a mesh
+    // update is needed
+    int center_x, center_y, center_z;
 
   public:
+    VisualTerrain(const Terrain* terrain);
     ~VisualTerrain();
 
-    bool markedForDestruction() const;
-    void destroy();
+    // Update the visual terrain's meshes by pulling the terrain's data
+    void updateTerrainMeshes(MeshBuilder& builder);
+
+    // Return the current meshes for rendering.
+    const std::vector<Mesh*>& getTerrainMeshes();
 
   private:
-    Mesh* generateTerrainMesh(MeshBuilder& builder);
-    Mesh* generateTreeMesh(MeshBuilder& builder, const Vector2& location);
+    // Given index i,j,k returns the index in the vector
+    // corresponding to what we would get if we had a 3D array
+    int index3DVector(int i, int j, int k);
 };
 
 } // namespace Graphics

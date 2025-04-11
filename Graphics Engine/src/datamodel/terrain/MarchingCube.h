@@ -29,7 +29,7 @@ class MarchingCube {
     void updateData(float a1, float a2, float a3, float a4, float a5, float a6,
                     float a7, float a8);
     // Stream the triangulation of the data to the parameter output.
-    // Expected that this output consists of 10 triangles or more.
+    // Expected that this output consists of 12 triangles or more.
     void generateSurface(Triangle* triangle_output, int* num_triangles);
 
   private:

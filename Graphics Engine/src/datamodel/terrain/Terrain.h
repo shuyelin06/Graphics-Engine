@@ -2,67 +2,91 @@
 
 #include <vector>
 
+#include "math/Triangle.h"
+
 #include "math/Vector2.h"
 #include "math/Vector3.h"
 
 #include "math/PerlinNoise.h"
 
-constexpr float HEIGHT_MAP_XZ_SIZE = 75.f;
-constexpr float HEIGHT_MAP_Y_HEIGHT = 100.f;
-constexpr int HEIGHT_MAP_XZ_SAMPLES = 100;
+// --- EDITABLE PARAMETERS ---
+// Chunk Size
+constexpr float TERRAIN_CHUNK_SIZE = 50.f;
+// Samples Per Chunk (must be >= 2)
+// Chunk will share the data values along their borders,
+// so a higher sample count will mean less memory is wasted.
+constexpr int TERRAIN_CHUNK_SAMPLES = 5;
+// # Chunks out that will be loaded at once.
+constexpr int TERRAIN_CHUNK_EXTENT = 5;
+// ---
 
-constexpr int TERRAIN_MAX_TREES = 10;
+// # Chunks in 1 dimension
+constexpr int TERRAIN_CHUNK_COUNT = 2 * TERRAIN_CHUNK_EXTENT + 1;
 
 namespace Engine {
 using namespace Math;
-
-namespace Graphics {
-class VisualTerrain;
-};
 
 namespace Datamodel {
 typedef unsigned int UINT;
 
 // Terrain Class:
-// Stores a height-map representing the terrain in the engine.
-class TerrainChunk {
+// Represents the terrain in a scene. Internally achieves this by
+// storing terrain chunks as 3D grids of data, where the surface exists
+// where 0 is (when interpolating the data across space).
+struct Chunk {
+    // Stores the chunk's data in its 8 corners.
+    // These are given in order 000, 100, 110, 010, 001, 101, 111, 011 (xyz)
+    float data[TERRAIN_CHUNK_SAMPLES][TERRAIN_CHUNK_SAMPLES]
+              [TERRAIN_CHUNK_SAMPLES];
+
+    // Stores what triangles in the triangle_pool belong to this chunk
+    UINT triangle_start, triangle_count;
+};
+
+struct ChunkTriangle {
+    Triangle triangle;
+    bool valid;
+};
+
+class Terrain {
   private:
-    // Stores the bottom x,z world coordinates for the terrain specifying the world coordinates\
-    // of the terrain
-    float world_x, world_z;
+    // Perlin Noise Generator
+    PerlinNoise noise_func;
 
-    // 2D heightmap that stores the y height of the terrain in the X,Z
-    // directions
-    float height_map[HEIGHT_MAP_XZ_SAMPLES][HEIGHT_MAP_XZ_SAMPLES];
+    // "Pointers" (indices) to the chunk pool, storing the active chunks
+    // (centered around some position in space).
+    int center_x, center_y, center_z; // Chunk Index Coordinates
+    Chunk* chunks[TERRAIN_CHUNK_COUNT][TERRAIN_CHUNK_COUNT]
+                 [TERRAIN_CHUNK_COUNT];
+    // Temporary array used when the chunks are being updated
+    Chunk* chunks_helper[TERRAIN_CHUNK_COUNT][TERRAIN_CHUNK_COUNT]
+                        [TERRAIN_CHUNK_COUNT];
 
-    // List of tree locations
-    std::vector<Vector2> tree_locations;
-
-    // Physics / Graphical Interfaces
-    // Visual Component for the Terrain
-    Graphics::VisualTerrain* visual_terrain;
+    // Triangle Pool
+    // All triangles owned by the terrain's chunks
+    std::vector<ChunkTriangle> triangle_pool;
+    std::vector<ChunkTriangle> triangle_pool_helper;
 
   public:
-    TerrainChunk(float world_x, float world_z, const PerlinNoise* noise_func);
-    ~TerrainChunk();
+    Terrain();
+    ~Terrain();
 
-    // Get properties of the terrain
-    float getX() const;
-    float getZ() const;
+    // Accessors
+    const std::vector<ChunkTriangle>& getTrianglePool() const;
 
-    const std::vector<Vector2>& getTreeLocations() const;
+    int getCenterChunkX() const;
+    int getCenterChunkY() const;
+    int getCenterChunkZ() const;
 
-    // Get the height of the terrain given a x,z coordinate. Uses bi-linear
-    // interpolation to sample this height.
-    float sampleTerrainHeight(float x, float z) const;
+    const Chunk* getChunk(int x_i, int y_i, int z_i) const;
 
-    // Bind terrain to components from the visual and physics system.
-    void bindVisualTerrain(Graphics::VisualTerrain* visual_terrain);
-    bool hasVisualTerrain() const;
+    // Reload terrain chunks based on a new center (x,y,z) in\
+    // world coordinates.
+    void reloadTerrain(float x, float y, float z);
 
   private:
-    // Reload the data of a portion of the terrain chunk by index.
-    void reloadHeightMap(UINT index_x, UINT index_z, const PerlinNoise* noise_func);
+    void loadChunk(int index_x, int index_y, int index_z, bool direct_load);
+    void unloadChunk(int index_x, int index_y, int index_z);
 };
 
 } // namespace Datamodel

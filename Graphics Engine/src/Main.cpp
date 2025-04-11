@@ -110,6 +110,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     // Create SceneGraph
     Scene scene_graph = Scene();
+
+    // Bind Terrain
+    visual_system.bindVisualTerrain(scene_graph.getTerrain());
+
     // scene_graph.updateTerrainChunks(0.f, 0.f);
 
     // Bind Camera
@@ -121,33 +125,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     /*Object& sun_light = parent_object.createChild();
     visual_system.bindShadowLightObject(&sun_light);*/
-
-    {
-        Object& child2 = parent_object.createChild();
-        AssetObject* asset2 = visual_system.bindAssetObject(&child2, "Tree");
-        child2.getTransform().setScale(1, 1, 1);
-        child2.getTransform().setPosition(Random(-2.5f, 2.5f), 100,
-                                          Random(15, 25));
-    }
-
     {
         Object& child = parent_object.createChild();
         AssetObject* asset2 = visual_system.bindAssetObject(&child, "Fox");
         child.getTransform().setScale(5, 5, 5);
         child.getTransform().setPosition(0, 75, 0);
     }
-    /*std::vector<Vector3> points;
-    points.push_back(Vector3(-2.5, -2.5, -2.5));
-    points.push_back(Vector3(-2.5, -2.5, 2.5));
-    points.push_back(Vector3(-2.5, 2.5, -2.5));
-    points.push_back(Vector3(-2.5, 2.5, 2.5));
-    points.push_back(Vector3(2.5, -2.5, -2.5));
-    points.push_back(Vector3(2.5, -2.5, 2.5));
-    points.push_back(Vector3(2.5, 2.5, -2.5));
-    points.push_back(Vector3(2.5, 2.5, 2.5));
-    physics_system.addCollisionHull("Box", points);
-    PhysicsObject* p1 = physics_system.bindPhysicsObject(&child2);
-    CollisionObject* c1 = physics_system.bindCollisionObject(p1, "Box");*/
+
     BVH bvh = BVH();
     std::vector<Triangle> triangles;
     for (int i = 0; i < 3; i++) {
@@ -186,33 +170,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
             if (msg.message == WM_QUIT)
                 return 0;
-        }
-
-        static float x_cen, y_cen, z_cen;
-        static float size = 7.5f;
-        static float real_freq = 0.055f; // 0.155
-        ImGui::SliderFloat("Noise X", &x_cen, -100, 100);
-        ImGui::SliderFloat("Noise Y", &y_cen, -100, 100);
-        ImGui::SliderFloat("Noise Z", &z_cen, -100, 100);
-
-        ImGui::SliderFloat("Size", &size, 0.0001f, 7.5f);
-        ImGui::SliderFloat("Freq", &real_freq, 0.000001f, 0.5f);
-        for (int x = -10; x < 10; x++) {
-            for (int y = -10; y < 10; y++) {
-                for (int z = -10; z < 10; z++) {
-                    const float val = noise_func.noise3D(
-                        real_freq * (x_cen + x), real_freq * (y_cen + y),
-                        real_freq * (z_cen + z));
-
-                    if (val < 0.375f) {
-
-                        VisualDebug::DrawPoint(
-                            Vector3(size * (x + x_cen), size * (y + y_cen),
-                                    size * (z + z_cen)),
-                            1.0f + 1.5f * val, Color(val, val, val));
-                    }
-                }
-            }
         }
 
         static float o_arr[3] = {0.f, 0.f, 0.f};
@@ -274,12 +231,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
         const Vector3& cam_pos =
             visual_system.getCamera().getTransform()->getPosition();
-        scene_graph.updateTerrainChunks(cam_pos.x, cam_pos.z);
+        scene_graph.updateTerrainChunks(cam_pos.x, cam_pos.y, cam_pos.z);
 
-        const std::vector<TerrainChunk*>& chunks = scene_graph.getNewChunks();
-        for (TerrainChunk* chunk : chunks)
-            visual_system.bindVisualTerrain(chunk);
-
+        ImGui::Text("Camera Position: %f %f %f", cam_pos.x, cam_pos.y,
+                    cam_pos.z);
         // Render Objects
         visual_system.render();
 
