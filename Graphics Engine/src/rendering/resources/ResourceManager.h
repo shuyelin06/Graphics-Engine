@@ -4,8 +4,6 @@
 #include <string>
 #include <unordered_map>
 
-#include "datamodel/SceneGraph.h"
-
 #include "../Direct3D11.h"
 
 #include "../core/Asset.h"
@@ -13,7 +11,6 @@
 #include "TextureBuilder.h"
 
 namespace Engine {
-using namespace Datamodel;
 namespace Graphics {
 
 // ResourceManager Class:

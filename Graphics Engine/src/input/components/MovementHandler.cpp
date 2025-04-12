@@ -42,7 +42,7 @@ void MovementHandler::update() {
     // position.
     // Normalize movement vector and offset position
     if (movementVector.magnitude() != 0) {
-        constexpr float MOVEMENT_SPEED = 3.f;
+        constexpr float MOVEMENT_SPEED = 0.5f;
 
         movementVector.inplaceNormalize();
         movementVector *= MOVEMENT_SPEED;

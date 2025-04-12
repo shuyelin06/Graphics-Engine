@@ -36,7 +36,7 @@ float4 psterrain_main(PS_IN input) : SV_TARGET
     float yz_contribution = abs(dot(float3(1, 0, 0), input.normal));
     */
     
-    float3 mesh_color = float3(0.004f, 0.2f, 0.125f);
+    float3 mesh_color = float3(0.823f, 0.705f, 0.549f);
     
     // Ambient Lighting
     float ambient = 0.35f;
@@ -51,8 +51,9 @@ float4 psterrain_main(PS_IN input) : SV_TARGET
     LightData light = sun_cascades[selectCascade(input.world_position)];
     
     // Then, select the shadow value of the point
-    float shadow_factor = shadowValue(input.world_position, light, 0.01f);
-                   
+    // float shadow_factor = shadowValue(input.world_position, light, 0.01f);
+    float shadow_factor = 1.f;
+    
     // Compute the diffuse contribution. Flip the sun direction since it points from 
     // the light -> surface.
     float diffuse_factor = max(0, dot(-sun_direction, normal));

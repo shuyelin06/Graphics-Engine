@@ -122,34 +122,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     // Create Object Hierarchy
     Object& parent_object = scene_graph.createObject();
-
-    /*Object& sun_light = parent_object.createChild();
-    visual_system.bindShadowLightObject(&sun_light);*/
-    {
-        Object& child = parent_object.createChild();
-        AssetObject* asset2 = visual_system.bindAssetObject(&child, "Fox");
-        child.getTransform().setScale(5, 5, 5);
-        child.getTransform().setPosition(0, 75, 0);
-    }
-
-    BVH bvh = BVH();
-    std::vector<Triangle> triangles;
-    for (int i = 0; i < 3; i++) {
-        const Vector3 v0 = Vector3(Random(-10.f, 10.f), Random(-10.f, 10.f),
-                                   Random(-10.f, 10.f));
-        const Vector3 v1 = Vector3(Random(-10.f, 10.f), Random(-10.f, 10.f),
-                                   Random(-10.f, 10.f));
-        const Vector3 v2 = Vector3(Random(-10.f, 10.f), Random(-10.f, 10.f),
-                                   Random(-10.f, 10.f));
-
-        bvh.addBVHTriangle(Triangle(v0, v1, v2), nullptr);
-    }
-    bvh.build();
-
-    Vector3 ray_origin;
-    Vector3 ray_direction = Vector3(0, -1, 0);
-
-    PerlinNoise noise_func = PerlinNoise(3);
+    
+    // --- TESTING ENVIRONMENT
+    // ---
 
     // Begin window messaging loop
     MSG msg = {};
@@ -171,53 +146,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             if (msg.message == WM_QUIT)
                 return 0;
         }
-
-        static float o_arr[3] = {0.f, 0.f, 0.f};
-        static float d_arr[3] = {0.f, -1.f, 0.f};
-        ImGui::SliderFloat3("Origin", o_arr, -25.f, 25.f);
-        ImGui::SliderFloat3("Direction", d_arr, -1.f, 1.f);
-
-        ray_origin = Vector3(o_arr[0], o_arr[1], o_arr[2]);
-        ray_direction = Vector3(d_arr[0], d_arr[1], d_arr[2]);
-        ray_direction = ray_direction.unit();
-
-        if (ImGui::Button("New BVH")) {
-            bvh.reset();
-
-            std::vector<Triangle> triangles;
-            for (int i = 0; i < 55; i++) {
-                const float extent = 5.f;
-                const Vector3 center =
-                    Vector3(Random(-50.f, 50.f), Random(-50.f, 50.f),
-                            Random(-50.f, 50.f));
-                const Vector3 v0 = center + Vector3(Random(-extent, extent),
-                                                    Random(-extent, extent),
-                                                    Random(-extent, extent));
-                const Vector3 v1 = center + Vector3(Random(-extent, extent),
-                                                    Random(-extent, extent),
-                                                    Random(-extent, extent));
-                const Vector3 v2 = center + Vector3(Random(-extent, extent),
-                                                    Random(-extent, extent),
-                                                    Random(-extent, extent));
-
-                bvh.addBVHTriangle(Triangle(v0, v1, v2), nullptr);
-            }
-            bvh.build();
-        }
-
-        BVHRayCast cast = bvh.raycast(ray_origin, ray_direction);
-        if (cast.hit) {
-            VisualDebug::DrawLine(ray_origin,
-                                  ray_origin + ray_direction * cast.t,
-                                  Color::Green());
-            VisualDebug::DrawPoint(ray_origin + ray_direction * cast.t, 2.5f,
-                                   Color ::Green());
-        } else {
-            VisualDebug::DrawLine(
-                ray_origin, ray_origin + ray_direction * 100.f, Color::Red());
-        }
-
-        bvh.debugDrawBVH();
 
         // Dispatch Input Data
         movementHandler.update();

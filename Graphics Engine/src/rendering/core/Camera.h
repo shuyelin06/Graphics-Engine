@@ -37,6 +37,9 @@ class Camera {
     ~Camera();
 
     // Get the camera's attributes
+    float getZNear() const;
+    float getZFar() const;
+
     const Transform* getTransform() const;
     Transform* getTransform();
 

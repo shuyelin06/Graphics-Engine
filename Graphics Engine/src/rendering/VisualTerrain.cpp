@@ -1,11 +1,20 @@
 #include "VisualTerrain.h"
 
 #include <assert.h>
+#include <unordered_map>
 
-#include "datamodel/TreeGenerator.h"
-#include "math/Compute.h"
+// Hash Function for Vector3
+// Hash Function for Vector3
+template <> struct std::hash<Engine::Math::Vector3> {
+    std::size_t operator()(const Engine::Math::Vector3& k) const {
+        // https://stackoverflow.com/questions/5928725/hashing-2d-3d-and-nd-vectors
+        uint32_t hash = std::_Bit_cast<uint32_t, float>(k.x) * 73856093 ^
+                        std::_Bit_cast<uint32_t, float>(k.y) * 19349663 ^
+                        std::_Bit_cast<uint32_t, float>(k.z) * 83492791;
 
-constexpr int SAMPLE_COUNT = 20;
+        return hash % SIZE_MAX;
+    }
+};
 
 namespace Engine {
 using namespace Datamodel;
@@ -82,8 +91,9 @@ void VisualTerrain::updateTerrainMeshes(MeshBuilder& builder) {
     // Now, iterate through and
     // 1) Create new meshes that need to be created
     // 2) Destroy old meshes too far from our center
-    const std::vector<ChunkTriangle>& triangle_pool =
-        terrain->getTrianglePool();
+    const std::vector<Triangle>& triangle_pool = terrain->getTrianglePool();
+
+    std::unordered_map<Vector3, UINT> vertex_map;
 
     for (int i = 0; i < TERRAIN_CHUNK_COUNT; i++) {
         for (int j = 0; j < TERRAIN_CHUNK_COUNT; j++) {
@@ -96,18 +106,46 @@ void VisualTerrain::updateTerrainMeshes(MeshBuilder& builder) {
 
                 // Create new chunks
                 if (chunk_meshes_helper[index] == nullptr) {
+                    vertex_map.clear();
                     builder.reset();
 
                     const Chunk* chunk = terrain->getChunk(i, j, k);
                     for (int tri = 0; tri < chunk->triangle_count; tri++) {
-                        const ChunkTriangle& data =
+                        const Triangle& triangle =
                             triangle_pool[tri + chunk->triangle_start];
-                        assert(data.valid);
 
-                        const Triangle& triangle = data.triangle;
-                        builder.addTriangle(triangle.vertex(0),
-                                            triangle.vertex(1),
-                                            triangle.vertex(2));
+                        const Vector3 v0 = triangle.vertex(0);
+                        const Vector3 v1 = triangle.vertex(1);
+                        const Vector3 v2 = triangle.vertex(2);
+
+                        // When generating our triangles, we will try to reuse
+                        // vertices that have already been added, so that we can
+                        // get smooth normals.
+                        UINT i0;
+                        if (vertex_map.contains(v0))
+                            i0 = vertex_map[v0];
+                        else {
+                            i0 = builder.addVertex(v0);
+                            vertex_map[v0] = i0;
+                        }
+
+                        UINT i1;
+                        if (vertex_map.contains(v1))
+                            i1 = vertex_map[v1];
+                        else {
+                            i1 = builder.addVertex(v1);
+                            vertex_map[v1] = i1;
+                        }
+
+                        UINT i2;
+                        if (vertex_map.contains(v2))
+                            i2 = vertex_map[v2];
+                        else {
+                            i2 = builder.addVertex(v2);
+                            vertex_map[v2] = i2;
+                        }
+
+                        builder.addTriangle(i0, i1, i2);
                     }
 
                     builder.regenerateNormals();

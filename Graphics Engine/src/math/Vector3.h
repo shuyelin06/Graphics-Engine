@@ -63,6 +63,8 @@ class Vector3 {
     Vector3&
     operator*=(const Vector3&); // Compound Hamming (Component-Wise) Product
 
+    bool operator==(const Vector3& vec) const; // Equality -- Used in Hashing
+
     // Static Vector Operations
     static Vector3 PositiveX();
     static Vector3 PositiveY();

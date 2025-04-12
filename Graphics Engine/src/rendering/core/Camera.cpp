@@ -12,13 +12,16 @@ namespace Engine {
 namespace Graphics {
 // --- Camera ---
 Camera::Camera() {
-    setFrustumMatrix(1.2f, 5.f, 200.f);
+    setFrustumMatrix(1.2f, 5.f, 500.f);
     setTransform(new Transform());
 }
 Camera::~Camera() = default;
 
-// GetTransform:
-// Returns the camera's transform
+// --- Accessors ---
+float Camera::getZNear() const { return z_near; }
+
+float Camera::getZFar() const { return z_far; }
+
 const Transform* Camera::getTransform() const { return transform; }
 Transform* Camera::getTransform() { return transform; }
 
@@ -37,7 +40,10 @@ void Camera::setTransform(Transform* _transform) { transform = _transform; }
 
 // SetFrustuMatrix:
 // Updates the camera frustum (projection) matrix
-void Camera::setFrustumMatrix(float fov, float z_near, float z_far) {
+void Camera::setFrustumMatrix(float fov, float _z_near, float _z_far) {
+    z_near = _z_near;
+    z_far = _z_far;
+
     Matrix4 projection_matrix = Matrix4();
 
     const float fov_factor = cosf(fov / 2.f) / sinf(fov / 2.f);

@@ -2,20 +2,10 @@
 
 #include <assert.h>
 
-#include <map>
-
 #include "MarchingCube.h"
 
-#include "rendering/VisualTerrain.h"
-
-#include "math/Compute.h"
-#include "math/Matrix3.h"
 #include "math/PerlinNoise.h"
 #include "math/Triangle.h"
-
-#if defined(TERRAIN_DEBUG)
-#include "rendering/VisualDebug.h"
-#endif
 
 namespace Engine {
 namespace Datamodel {
@@ -43,7 +33,7 @@ Terrain::~Terrain() {
 }
 
 // --- Accessors ---
-const std::vector<ChunkTriangle>& Terrain::getTrianglePool() const {
+const std::vector<Triangle>& Terrain::getTrianglePool() const {
     return triangle_pool;
 }
 
@@ -96,8 +86,8 @@ void Terrain::reloadTerrain(float x, float y, float z) {
                 const bool in_z_bounds =
                     0 <= old_index_z && old_index_z < TERRAIN_CHUNK_COUNT;
 
-                // We've found that the chunk for the new (i,j,k) index can be reused. 
-                // Copy the chunk over so we can reuse it.
+                // We've found that the chunk for the new (i,j,k) index can be
+                // reused. Copy the chunk over so we can reuse it.
                 if (in_x_bounds && in_y_bounds && in_z_bounds) {
                     chunks_helper[i][j][k] =
                         chunks[old_index_x][old_index_y][old_index_z];
@@ -109,7 +99,8 @@ void Terrain::reloadTerrain(float x, float y, float z) {
 
     // Now, iterate through and
     // 1) Destroy old chunks too far from our center
-    // 2) For chunks we can reuse, copy their triangles to the new triangle pool.
+    // 2) For chunks we can reuse, copy their triangles to the new triangle
+    // pool.
     //    We need to do this so we can free the triangles from deleted chunks
     //    (which will shift the triangle_starts of existing chunks).
     triangle_pool_helper.clear();
@@ -189,7 +180,7 @@ void Terrain::loadChunk(int index_x, int index_y, int index_z,
 
                 // --- NOISE SAMPLING ---
                 constexpr float SURFACE = 0.375f;
-                constexpr float FREQ = 0.01f;
+                constexpr float FREQ = 0.0075f;
 
                 const float val = noise_func.noise3D(
                     FREQ * sample_x, FREQ * sample_y, FREQ * sample_z);
@@ -229,12 +220,8 @@ void Terrain::loadChunk(int index_x, int index_y, int index_z,
                 // they correspond to this chunk's world space position.
                 assert(num_triangles <= 12);
                 for (int tri = 0; tri < num_triangles; tri++) {
-                    ChunkTriangle chunk_tri;
+                    Triangle triangle = triangles[tri];
 
-                    chunk_tri.triangle = triangles[tri];
-                    chunk_tri.valid = true;
-
-                    Triangle& triangle = chunk_tri.triangle;
                     triangle.vertex(0).set(
                         (triangle.vertex(0) + Vector3(i, j, k)) * CHUNK_OFFSET +
                         Vector3(x, y, z));
@@ -245,7 +232,7 @@ void Terrain::loadChunk(int index_x, int index_y, int index_z,
                         (triangle.vertex(2) + Vector3(i, j, k)) * CHUNK_OFFSET +
                         Vector3(x, y, z));
 
-                    triangle_pool.push_back(chunk_tri);
+                    triangle_pool.push_back(triangle);
                 }
 
                 chunk->triangle_count += num_triangles;

@@ -140,7 +140,7 @@ void VisualSystem::initializeRenderTarget(UINT width, UINT height) {
     tex_desc.MipLevels = 1;
     tex_desc.ArraySize = 1;
     tex_desc.SampleDesc.Count = 1;
-    tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
     tex_desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 
     result = device->CreateTexture2D(&tex_desc, NULL, &render_target->texture);
@@ -155,7 +155,7 @@ void VisualSystem::initializeRenderTarget(UINT width, UINT height) {
     // the GPU
     {
         D3D11_SHADER_RESOURCE_VIEW_DESC resource_view_desc = {};
-        resource_view_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        resource_view_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
         resource_view_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
         resource_view_desc.Texture2D.MostDetailedMip = 0;
         resource_view_desc.Texture2D.MipLevels = 1;
@@ -343,7 +343,7 @@ void VisualSystem::render() {
     performTerrainPass();
     performRenderPass();
 
-    processSky();
+    processUnderwater();
 
     // ...
 #if defined(_DEBUG)
@@ -1042,15 +1042,19 @@ void VisualSystem::performRenderPass() {
 #endif
 }
 
-void VisualSystem::processSky() {
+void VisualSystem::processUnderwater() {
+#if defined(_DEBUG)
+    gpu_timer.beginTimer("Underwater Pass");
+#endif
+
     pipeline_manager->bindVertexShader("PostProcess");
-    pipeline_manager->bindPixelShader("Sky");
+    pipeline_manager->bindPixelShader("Underwater");
 
     // Set render target
     context->OMSetRenderTargets(1, &screen_target->target_view, nullptr);
     context->RSSetViewports(1, &viewport);
 
-    // Set Data
+    // Set samplers and texture resources
     ID3D11SamplerState* mesh_texture_sampler =
         resource_manager->getMeshSampler();
     context->PSSetSamplers(0, 1, &mesh_texture_sampler);
@@ -1058,6 +1062,7 @@ void VisualSystem::processSky() {
     context->PSSetShaderResources(0, 1, &render_target->shader_view);
     context->PSSetShaderResources(1, 1, &depth_stencil->shader_view);
 
+    // Set resolution information
     {
         CBHandle* pCB0 = pipeline_manager->getPixelCB(CB0);
         pCB0->clearData();
@@ -1067,12 +1072,15 @@ void VisualSystem::processSky() {
         const float f_height = (float)screen_target->height;
         pCB0->loadData(&f_height, FLOAT);
 
-        pCB0->loadData(nullptr, FLOAT);
-        pCB0->loadData(nullptr, FLOAT);
+        const float z_near = camera.getZNear();
+        pCB0->loadData(&z_near, FLOAT);
+        const float z_far = camera.getZFar();
+        pCB0->loadData(&z_far, FLOAT);
 
         pipeline_manager->bindPixelCB(CB0);
     }
 
+    // Set parameters
     {
         CBHandle* pCB1 = pipeline_manager->getPixelCB(CB1);
         pCB1->clearData();
@@ -1082,21 +1090,33 @@ void VisualSystem::processSky() {
                 .inverse();
         pCB1->loadData(&m_project_to_world, FLOAT4X4);
 
-        const Vector3& sun_direction =
-            light_manager->getSunLight()->getDirection();
-        pCB1->loadData(&sun_direction, FLOAT3);
+        const Vector3& camera_pos = camera.getTransform()->getPosition();
+        pCB1->loadData(&camera_pos, FLOAT3);
 
-        pCB1->loadData(nullptr, FLOAT);
+        static float intensity_drop = 0.0025f;
+        ImGui::SliderFloat("Intensity Drop", &intensity_drop, 0.0f, 0.1f);
+        pCB1->loadData(&intensity_drop, FLOAT);
 
-        const Vector3 cam_pos = camera.getTransform()->getPosition();
-        pCB1->loadData(&cam_pos, FLOAT3);
+        const float d = camera.getZFar() * 0.5f;
+        const Vector3 fog_params = Vector3(1.f / (d * d), -2.f / d, 1.f);
+        pCB1->loadData(&fog_params, FLOAT3);
 
-        pCB1->loadData(nullptr, FLOAT);
+        static float visibility = 1.5f;
+        ImGui::SliderFloat("Visibility", &visibility, 0.5f, 10.0f);
+        pCB1->loadData(&visibility, FLOAT);
+
+        const float surface_height = 100.f;
+        pCB1->loadData(&surface_height, FLOAT);
+
+        const Vector3 shallow_waters = Vector3(24.f, 154.f, 180.f) / 255.f;
+        pCB1->loadData(&shallow_waters, FLOAT3);
+        const Vector3 deep_waters = Vector3(5.f, 68.f, 94.f) / 255.f;
+        pCB1->loadData(&deep_waters, FLOAT3);
 
         pipeline_manager->bindPixelCB(CB1);
     }
 
-    // Bind full screen quad
+    // Bind and draw full screen quad
     UINT vertexStride = sizeof(float) * 4;
     UINT vertexOffset = 0;
 
@@ -1105,6 +1125,10 @@ void VisualSystem::processSky() {
                                 &vertexOffset);
 
     context->Draw(6, 0);
+
+#if defined(_DEBUG)
+    gpu_timer.endTimer("Underwater Pass");
+#endif
 }
 
 void VisualSystem::renderFinish() {

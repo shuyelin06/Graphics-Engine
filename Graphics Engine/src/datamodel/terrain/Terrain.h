@@ -17,7 +17,7 @@ constexpr float TERRAIN_CHUNK_SIZE = 50.f;
 // so a higher sample count will mean less memory is wasted.
 constexpr int TERRAIN_CHUNK_SAMPLES = 5;
 // # Chunks out that will be loaded at once.
-constexpr int TERRAIN_CHUNK_EXTENT = 5;
+constexpr int TERRAIN_CHUNK_EXTENT = 9;
 // ---
 
 // # Chunks in 1 dimension
@@ -43,11 +43,6 @@ struct Chunk {
     UINT triangle_start, triangle_count;
 };
 
-struct ChunkTriangle {
-    Triangle triangle;
-    bool valid;
-};
-
 class Terrain {
   private:
     // Perlin Noise Generator
@@ -64,15 +59,15 @@ class Terrain {
 
     // Triangle Pool
     // All triangles owned by the terrain's chunks
-    std::vector<ChunkTriangle> triangle_pool;
-    std::vector<ChunkTriangle> triangle_pool_helper;
+    std::vector<Triangle> triangle_pool;
+    std::vector<Triangle> triangle_pool_helper;
 
   public:
     Terrain();
     ~Terrain();
 
     // Accessors
-    const std::vector<ChunkTriangle>& getTrianglePool() const;
+    const std::vector<Triangle>& getTrianglePool() const;
 
     int getCenterChunkX() const;
     int getCenterChunkY() const;

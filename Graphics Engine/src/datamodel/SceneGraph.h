@@ -2,8 +2,6 @@
 
 #include <vector>
 
-#include "math/PerlinNoise.h"
-
 #include "Object.h"
 #include "terrain/Terrain.h"
 

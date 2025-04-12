@@ -240,6 +240,12 @@ Vector3& Vector3::operator*=(const Vector3& v) {
     return *this;
 }
 
+// Equality:
+// Checks if two vector3's are equal. Used in hashing.
+bool Vector3::operator==(const Vector3& vec) const {
+    return x == vec.x && y == vec.y && z == vec.z;
+}
+
 // Static Vector Operations:
 // Statically create vectors
 Vector3 Vector3::PositiveX() { return Vector3(1, 0, 0); }
