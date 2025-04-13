@@ -1,7 +1,6 @@
 #include "MovementHandler.h"
 
 #include "input/InputState.h"
-#include "input/InputSystem.h"
 
 namespace Engine {
 namespace Input {

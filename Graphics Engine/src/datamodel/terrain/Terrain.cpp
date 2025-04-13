@@ -10,11 +10,13 @@
 namespace Engine {
 namespace Datamodel {
 Terrain::Terrain() : noise_func(0) {
-    center_x = center_y = center_z = 0;
+    center_x = center_y = center_z = INT_MAX;
 
     for (int i = 0; i < TERRAIN_CHUNK_COUNT; i++) {
         for (int j = 0; j < TERRAIN_CHUNK_COUNT; j++) {
             for (int k = 0; k < TERRAIN_CHUNK_COUNT; k++) {
+                bvh_array[i][j][k] = new BVH();
+
                 // TODO: Dynamic loading
                 loadChunk(i, j, k, true);
             }
@@ -33,6 +35,7 @@ Terrain::~Terrain() {
 }
 
 // --- Accessors ---
+const TLAS& Terrain::getTLAS() const { return tlas; }
 const std::vector<Triangle>& Terrain::getTrianglePool() const {
     return triangle_pool;
 }
@@ -47,6 +50,16 @@ const Chunk* Terrain::getChunk(int x_i, int y_i, int z_i) const {
 
 // ReloadTerrain:
 void Terrain::reloadTerrain(float x, float y, float z) {
+    /*for (int i = -1; i <= 1; i++) {
+        for (int j = -1; j <= 1; j++) {
+            for (int k = -1; k <= 1; k++) {
+                bvh_array[TERRAIN_CHUNK_EXTENT + i][TERRAIN_CHUNK_EXTENT + j]
+                         [TERRAIN_CHUNK_EXTENT + k]
+                             ->debugDrawBVH();
+            }
+        }
+    }*/
+
     // Calculate the chunk index that these x,y,z coordinates are in
     const int x_i = floor(x / TERRAIN_CHUNK_SIZE);
     const int y_i = floor(y / TERRAIN_CHUNK_SIZE);
@@ -70,6 +83,7 @@ void Terrain::reloadTerrain(float x, float y, float z) {
     // are the same. We will iterate through all chunks around our new center
     // and pull them from the old center chunks if possible.
     std::memset(chunks_helper, 0, sizeof(chunks_helper));
+    std::memset(bvh_helper, 0, sizeof(bvh_helper));
 
     for (int i = 0; i < TERRAIN_CHUNK_COUNT; i++) {
         for (int j = 0; j < TERRAIN_CHUNK_COUNT; j++) {
@@ -92,6 +106,10 @@ void Terrain::reloadTerrain(float x, float y, float z) {
                     chunks_helper[i][j][k] =
                         chunks[old_index_x][old_index_y][old_index_z];
                     chunks[old_index_x][old_index_y][old_index_z] = nullptr;
+
+                    bvh_helper[i][j][k] =
+                        bvh_array[old_index_x][old_index_y][old_index_z];
+                    bvh_array[old_index_x][old_index_y][old_index_z] = nullptr;
                 }
             }
         }
@@ -134,6 +152,8 @@ void Terrain::reloadTerrain(float x, float y, float z) {
                          triangle_pool_helper.end());
 
     // Now, finally iterate over the chunks and load new ones as necessary.
+    memcpy(bvh_array, bvh_helper, sizeof(bvh_helper));
+
     for (int i = 0; i < TERRAIN_CHUNK_COUNT; i++) {
         for (int j = 0; j < TERRAIN_CHUNK_COUNT; j++) {
             for (int k = 0; k < TERRAIN_CHUNK_COUNT; k++) {
@@ -146,6 +166,17 @@ void Terrain::reloadTerrain(float x, float y, float z) {
 
     // Copy our helper array to the actual terrain array
     memcpy(chunks, chunks_helper, sizeof(chunks));
+
+    // Finally, update our TLAS
+    tlas.reset();
+    for (int i = 0; i < TERRAIN_CHUNK_COUNT; i++) {
+        for (int j = 0; j < TERRAIN_CHUNK_COUNT; j++) {
+            for (int k = 0; k < TERRAIN_CHUNK_COUNT; k++) {
+                tlas.addTLASNode(bvh_array[i][j][k], Matrix4::Identity());
+            }
+        }
+    }
+    tlas.build();
 }
 
 // LoadChunk:
@@ -193,6 +224,10 @@ void Terrain::loadChunk(int index_x, int index_y, int index_z,
     }
 
     // Generate chunk mesh using the marching cubes algorithm
+    BVH* chunk_bvh = new BVH();
+    bvh_array[index_x][index_y][index_z] = chunk_bvh;
+    chunk_bvh->reset();
+
     chunk->triangle_start = triangle_pool.size();
     chunk->triangle_count = 0;
 
@@ -233,12 +268,16 @@ void Terrain::loadChunk(int index_x, int index_y, int index_z,
                         Vector3(x, y, z));
 
                     triangle_pool.push_back(triangle);
+                    chunk_bvh->addBVHTriangle(triangle, nullptr);
                 }
 
                 chunk->triangle_count += num_triangles;
             }
         }
     }
+
+    // Generate my chunk's BVH
+    chunk_bvh->build();
 
     // Assign chunk to my specific index. Assumes that the original spot is open
     if (direct_load)
@@ -254,6 +293,9 @@ void Terrain::unloadChunk(int index_x, int index_y, int index_z) {
 
     // Reset pointer
     chunks[index_x][index_y][index_z] = nullptr;
+
+    // Clear BVH (TODO: WE MAY BE ABLE TO REUSE THE MEMORY)
+    delete bvh_array[index_x][index_y][index_z];
 }
 
 } // namespace Datamodel

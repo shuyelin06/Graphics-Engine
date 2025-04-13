@@ -31,8 +31,7 @@ void PhysicsSystem::addCollisionHull(const std::string& name,
 // Binds a physics object to an object.
 PhysicsObject* PhysicsSystem::bindPhysicsObject(Object* object) {
     PhysicsObject* phys_obj = new PhysicsObject(object);
-    object->setPhysicsObject(phys_obj);
-    objects.push_back(phys_obj);
+    objects.newComponent(object, phys_obj);
     return phys_obj;
 }
 
@@ -42,7 +41,7 @@ CollisionObject*
 PhysicsSystem::bindCollisionObject(PhysicsObject* phys_obj,
                                    const std::string& hull_id) {
     // Create my collider
-    const Transform* obj_transform = &phys_obj->object->getTransform();
+    const Transform* obj_transform = &phys_obj->getObject()->getTransform();
     CollisionObject* collider =
         new CollisionObject(phys_obj, obj_transform, collision_hulls[hull_id]);
 
@@ -65,8 +64,12 @@ PhysicsSystem::bindCollisionObject(PhysicsObject* phys_obj,
 void PhysicsSystem::update() {
     physicsPrepare();
 
+    // Poll Input
+    for (PhysicsObject* obj : objects.getComponents())
+        obj->pollInput();
+
     // Update all AABBs
-    for (PhysicsObject* obj : objects) {
+    for (PhysicsObject* obj : objects.getComponents()) {
         if (obj->collider != nullptr) {
             obj->collider->updateBroadphaseAABB();
 #if defined(_DEBUG)
@@ -104,10 +107,9 @@ void PhysicsSystem::update() {
 
     // Iterate through and clear
     // Apply acceleration and velocity to all objects
-    for (PhysicsObject* object : objects) {
-        Transform& transform = object->object->getTransform();
-        transform.offsetPosition(object->velocity * delta_time);
-        object->velocity /= 2;
+    for (PhysicsObject* object : objects.getComponents()) {
+        object->applyAcceleration(delta_time);
+        object->applyVelocity(delta_time);
     }
 }
 
@@ -117,19 +119,7 @@ void PhysicsSystem::update() {
 // since the last call.
 void PhysicsSystem::physicsPrepare() {
     // Remove all PhysicsObjects marked for destruction, and free their memory.
-    int head = 0;
-
-    for (int i = 0; i < objects.size(); i++) {
-        if (!objects[i]->destroy) {
-            objects[head] = objects[i];
-            head++;
-        } else {
-            delete objects[i];
-            objects[i] = nullptr;
-        }
-    }
-
-    objects.resize(head);
+    objects.clean();
 
     // Determine the amount of time that has elapsed since the last
     // update() call.

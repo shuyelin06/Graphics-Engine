@@ -1,5 +1,7 @@
 #pragma once
 
+#include "datamodel/Component.h"
+
 #include "math/Matrix4.h"
 #include "math/OBB.h"
 #include "math/Transform.h"
@@ -7,6 +9,7 @@
 #include "Frustum.h"
 
 namespace Engine {
+using namespace Datamodel;
 using namespace Math;
 
 namespace Graphics {
@@ -15,25 +18,21 @@ namespace Graphics {
 // on the screen is rendered from the camera's point of view.
 // Unless otherwise rotated, the camera's default view
 // is in the +Z axis.
-class Camera {
+class Camera : public Component {
   protected:
     // Field of view
     float fov;
 
     // Z-near and z-far viewing planes
-    float z_near;
-    float z_far;
-
-    // Transform
-    Transform* transform;
+    float z_near, z_far;
 
     // Frustum Matrix
-    // Projects camera space coordiantes into the normalized 
+    // Projects camera space coordiantes into the normalized
     // unit cube from [-1,1] x [-1,1] x [0,1]
     Matrix4 frustum_matrix;
 
   public:
-    Camera();
+    Camera(Object* object);
     ~Camera();
 
     // Get the camera's attributes
@@ -46,7 +45,6 @@ class Camera {
     Frustum frustum() const;
 
     // Set the camera's attributes
-    void setTransform(Transform* transform);
     void setFrustumMatrix(float fov, float z_near, float z_far);
 
     // World -> Camera Matrix

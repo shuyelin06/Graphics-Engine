@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../core/AssetObject.h"
+#include "../core/AssetComponent.h"
 #include "../core/TextureAtlas.h"
 
 #include "Light.h"

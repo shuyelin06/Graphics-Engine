@@ -12,9 +12,11 @@
 #include "shaders/PipelineManager.h"
 #include "shaders/ShaderManager.h"
 
+#include "core/AssetComponent.h"
+#include "datamodel/ComponentHandler.h"
+#include "lights/LightComponent.h"
+
 #include "VisualTerrain.h"
-#include "core/AssetObject.h"
-#include "lights/LightObject.h"
 
 #include "rendering/core/Camera.h"
 
@@ -69,30 +71,21 @@ class VisualSystem {
     LightManager* light_manager;
     PipelineManager* pipeline_manager;
 
-    // Main Camera:
-    // The scene is rendered from this camera
-    Camera camera;
-
     // Render Information:
     // Rendering configurations
     float time_of_day;
 
-    // Vectors of rendering information that the visual system actually uses
-    // for rendering. It takes the datamodel state, and processes them into
-    // render information.
-    std::vector<AssetObject*> renderable_assets;
-    std::vector<ShadowLightObject*> shadow_lights;
+    // Supported Components
+    Camera* camera;
 
-    VisualTerrain* terrain_interface;
+    ComponentHandler<AssetComponent> asset_components;
+    ComponentHandler<ShadowLightComponent> light_components;
+    VisualTerrain* terrain;
 
     std::vector<RenderableAsset> renderable_meshes;
 
   public:
     VisualSystem();
-
-    // Returns the system's camera
-    const Camera& getCamera() const;
-    Camera& getCamera();
 
     // Initialize Visual System
     void initialize(HWND window);
@@ -103,31 +96,27 @@ class VisualSystem {
     // Shutdown Visual System
     void shutdown();
 
-    // Create objects in the visual system
-    AssetObject* bindAssetObject(Object* object, const std::string& asset_name);
-    ShadowLightObject* bindShadowLightObject(Object* object);
-    VisualTerrain* bindVisualTerrain(const Terrain* terrain);
+  public: // Visual System Bindings
+    Camera* bindCameraComponent(Object* object);
+    AssetComponent* bindAssetComponent(Object* object,
+                                       const std::string& asset_name);
+    ShadowLightComponent* bindLightComponent(Object* object);
+    VisualTerrain* bindTerrain(const Terrain* terrain);
 
-  private:
-    // Initialization Stages of the Visual System
+  private: // Initialization Stages
     void initializeScreenTarget(HWND window, UINT width, UINT height);
     void initializeRenderTarget(UINT width, UINT height);
-
     void initializeFullscreenQuad();
-
     void initializeManagers();
+    void initializeComponents();
 
-  private:
-    // Rendering Stages of the Visual System
-    void renderPrepare(); // Prepare for Rendering
-
+  private:                     // Rendering Stages
+    void renderPrepare();      // Prepare for Rendering
     void performShadowPass();  // Shadow Pass
     void performTerrainPass(); // Render Terrain
     void performRenderPass();  // Render Pass
-
-    void processUnderwater(); // Blur Effect
-
-    void renderFinish(); // Finish Rendering
+    void processUnderwater();  // Blur Effect
+    void renderFinish();       // Finish Rendering
 
 #if defined(_DEBUG)
   private:

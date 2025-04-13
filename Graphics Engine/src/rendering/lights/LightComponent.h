@@ -1,22 +1,20 @@
 #pragma once
 
-#include "../VisualObject.h"
 #include "Light.h"
+#include "datamodel/Component.h"
 
 namespace Engine {
+using namespace Datamodel;
 namespace Graphics {
 // LightObject:
 // Represents a light in the engine.
-class ShadowLightObject : public VisualObject {
-    friend class VisualSystem;
-
+class ShadowLightComponent : public Component {
   private:
     ShadowLight* light;
 
-    ShadowLightObject(Object* object, ShadowLight* light);
-
   public:
-    ~ShadowLightObject();
+    ShadowLightComponent(Object* object, ShadowLight* light);
+    ~ShadowLightComponent();
 
     // Update:
     // Updates the light's internal data with data from the datamodel.

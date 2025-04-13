@@ -39,10 +39,9 @@
 #include "math/Compute.h"
 #include "utility/Stopwatch.h"
 
-// ----- TESTING -----
-#include "datamodel/TreeGenerator.h"
+// --- TEST
 #include "datamodel/bvh/BVH.h"
-// -----
+// ---
 
 using namespace Engine;
 using namespace Engine::Physics;
@@ -110,20 +109,38 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     // Create SceneGraph
     Scene scene_graph = Scene();
+    Object& parent = scene_graph.createObject();
 
-    // Bind Terrain
-    visual_system.bindVisualTerrain(scene_graph.getTerrain());
+    Object& camera_obj = parent.createChild();
+    visual_system.bindCameraComponent(&camera_obj);
+    scene_graph.updateTerrainChunks(camera_obj.getTransform().getPosition());
 
-    // scene_graph.updateTerrainChunks(0.f, 0.f);
+    visual_system.bindTerrain(scene_graph.getTerrain());
 
-    // Bind Camera
-    MovementHandler movementHandler(visual_system.getCamera().getTransform());
-    visual_system.getCamera().getTransform()->setPosition(0, 100.f, 0);
+    // Input Handling
+    // MovementHandler movementHandler(&camera_obj.getTransform());
+    physics_system.bindPhysicsObject(&camera_obj);
 
-    // Create Object Hierarchy
-    Object& parent_object = scene_graph.createObject();
-    
+    //// Create Object Hierarchy
+    // visual_system.bindAssetComponent(&parent_object, "Fox");
+    // physics_system.bindPhysicsObject(&parent_object);
+
     // --- TESTING ENVIRONMENT
+    BVH bvh = BVH();
+    for (int i = 0; i < 3; i++) {
+        const Vector3 v0 = Vector3(Random(-10.f, 10.f), Random(-10.f, 10.f),
+                                   Random(-10.f, 10.f));
+        const Vector3 v1 = Vector3(Random(-10.f, 10.f), Random(-10.f, 10.f),
+                                   Random(-10.f, 10.f));
+        const Vector3 v2 = Vector3(Random(-10.f, 10.f), Random(-10.f, 10.f),
+                                   Random(-10.f, 10.f));
+
+        bvh.addBVHTriangle(Triangle(v0, v1, v2), nullptr);
+    }
+    bvh.build();
+
+    Vector3 ray_origin;
+    Vector3 ray_direction = Vector3(0, -1, 0);
     // ---
 
     // Begin window messaging loop
@@ -147,8 +164,63 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                 return 0;
         }
 
+        /*static float o_arr[3] = {0.f, 0.f, 0.f};
+        static float d_arr[3] = {0.f, -1.f, 0.f};
+        ImGui::SliderFloat3("Origin", o_arr, -25.f, 25.f);
+        ImGui::SliderFloat3("Direction", d_arr, -1.f, 1.f);
+
+        ray_origin = Vector3(o_arr[0], o_arr[1], o_arr[2]);
+        ray_direction = Vector3(d_arr[0], d_arr[1], d_arr[2]);
+        ray_direction = ray_direction.unit();
+
+        if (ImGui::Button("New BVH")) {
+            std::vector<Triangle> triangles;
+            for (int i = 0; i < 55; i++) {
+                const float extent = 5.f;
+                const Vector3 center =
+                    Vector3(Random(-50.f, 50.f), Random(-50.f, 50.f),
+                            Random(-50.f, 50.f));
+                const Vector3 v0 = center + Vector3(Random(-extent, extent),
+                                                    Random(-extent, extent),
+                                                    Random(-extent, extent));
+                const Vector3 v1 = center + Vector3(Random(-extent, extent),
+                                                    Random(-extent, extent),
+                                                    Random(-extent, extent));
+                const Vector3 v2 = center + Vector3(Random(-extent, extent),
+                                                    Random(-extent, extent),
+                                                    Random(-extent, extent));
+
+                bvh.addBVHTriangle(Triangle(v0, v1, v2), nullptr);
+            }
+            bvh.build();
+        }
+
+        BVHRayCast cast = bvh.raycast(ray_origin, ray_direction);
+        if (cast.hit) {
+            VisualDebug::DrawLine(ray_origin,
+                                  ray_origin + ray_direction * cast.t,
+                                  Color::Green());
+            VisualDebug::DrawPoint(ray_origin + ray_direction * cast.t, 2.5f,
+                                   Color ::Green());
+        } else {
+            VisualDebug::DrawLine(
+                ray_origin, ray_origin + ray_direction * 100.f, Color::Red());
+        }
+
+        bvh.debugDrawBVH();*/
+
+        const TLAS& tlas = scene_graph.getTerrain()->getTLAS();
+        BVHRayCast cast = tlas.raycast(camera_obj.getTransform().getPosition(),
+                                       camera_obj.getTransform().forward());
+        if (cast.hit) {
+            const Triangle& tri = cast.hit_triangle->triangle;
+            VisualDebug::DrawLine(tri.vertex(0), tri.vertex(1), Color::Green());
+            VisualDebug::DrawLine(tri.vertex(1), tri.vertex(2), Color::Green());
+            VisualDebug::DrawLine(tri.vertex(2), tri.vertex(0), Color::Green());
+        }
+
         // Dispatch Input Data
-        movementHandler.update();
+        // movementHandler.update();
         input_system.update();
 
         // Update Physics System
@@ -156,13 +228,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
         // Update Datamodel
         scene_graph.updateObjects();
+        static int update_time = 0;
+        if (update_time++ > 120) {
+            scene_graph.updateTerrainChunks(
+                camera_obj.getTransform().getPosition());
+            update_time = 0;
+        }
 
-        const Vector3& cam_pos =
-            visual_system.getCamera().getTransform()->getPosition();
-        scene_graph.updateTerrainChunks(cam_pos.x, cam_pos.y, cam_pos.z);
-
-        ImGui::Text("Camera Position: %f %f %f", cam_pos.x, cam_pos.y,
-                    cam_pos.z);
         // Render Objects
         visual_system.render();
 

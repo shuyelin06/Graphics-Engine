@@ -14,6 +14,9 @@ bool BVHNode::isLeaf() const { return tri_count > 0; }
 BVH::BVH() = default;
 BVH::~BVH() = default;
 
+const BVHNode& BVH::getBVHRoot() { return node_pool[0]; }
+int BVH::size() const { return node_pool.size(); }
+
 // Build:
 // Given an array of triangles, builds the BVH.
 void BVH::addBVHTriangle(const Triangle& tri_data, void* metadata) {
@@ -27,18 +30,21 @@ void BVH::addBVHTriangle(const Triangle& tri_data, void* metadata) {
 }
 
 void BVH::build() {
-    // Now, create a root node for our BVH. This node will contain all
-    // of our triangles.
-    const UINT root_index = allocateNode();
-    BVHNode& root = node_pool[root_index];
-    root.left = root.right = 0;
-    root.tri_first = 0;
-    root.tri_count = triangle_pool.size();
-    updateBVHNodeAABB(root_index);
+    if (triangle_pool.size() > 0) {
 
-    // Recursively subdivide our BVH using the
-    // Surface Area Heuristic (SAH)
-    subdivide(root_index);
+        // Now, create a root node for our BVH. This node will contain all
+        // of our triangles.
+        const UINT root_index = allocateNode();
+        BVHNode& root = node_pool[root_index];
+        root.left = root.right = 0;
+        root.tri_first = 0;
+        root.tri_count = triangle_pool.size();
+        updateBVHNodeAABB(root_index);
+
+        // Recursively subdivide our BVH using the
+        // Surface Area Heuristic (SAH)
+        subdivide(root_index);
+    }
 }
 
 // Reset:
@@ -62,24 +68,111 @@ void BVH::subdivide(UINT index) {
     float best_pos = 0;
     float best_cost = FLT_MAX;
 
-    for (int axis = 0; axis < 3; axis++) {
-        for (int i = 0; i < node.tri_count; i++) {
-            const BVHTriangle& triangle =
-                triangle_pool[triangle_indices[node.tri_first + i]];
+    std::vector<float> left_cost;
+    std::vector<float> right_cost;
+    std::vector<float> positions;
 
+    constexpr int NUM_SAMPLES = 3; // MODIFY TO INCREASE RESOLUTION
+    constexpr int NUM_DIVISIONS = NUM_SAMPLES + 2;
+
+    for (int axis = 0; axis < 3; axis++) {
+        left_cost.clear();
+        right_cost.clear();
+        positions.clear();
+
+        // Generate my positions
+        const float minimum = node.bounds.getMin()[axis];
+        const float maximum = node.bounds.getMax()[axis];
+
+        for (int i = 1; i < NUM_DIVISIONS - 1; i++) {
+            const float pos =
+                i * (maximum - minimum) / (NUM_DIVISIONS - 1) + minimum;
+            positions.push_back(pos);
+        }
+
+        // Sort our triangles by centroid.
+        const std::vector<BVHTriangle>& triangles = triangle_pool;
+        std::sort(triangle_indices.begin() + node.tri_first,
+                  triangle_indices.begin() + node.tri_first + node.tri_count,
+                  [triangles, axis](UINT i0, UINT i1) {
+                      return triangles[i0].center[axis] <
+                             triangles[i1].center[axis];
+                  });
+
+        // Now, iterate through my available positions. For each, grow our AABBs
+        // and record the resulting costs.
+        const int first = node.tri_first;
+        const int last = node.tri_first + node.tri_count - 1;
+
+        AABB left_aabb = AABB();
+        int left = node.tri_first;
+        int left_count = 0;
+
+        AABB right_aabb = AABB();
+        int right = node.tri_first + node.tri_count - 1;
+        int right_count = 0;
+
+        for (int i = 0; i < positions.size(); i++) {
+            // Left side cost
+            const float left_pos = positions[i];
+
+            while (left <= last &&
+                   triangles[triangle_indices[left]].center[axis] < left_pos) {
+                const Triangle& triangle =
+                    triangles[triangle_indices[left]].triangle;
+                left_aabb.expandToContain(triangle.vertex(0));
+                left_aabb.expandToContain(triangle.vertex(1));
+                left_aabb.expandToContain(triangle.vertex(2));
+                left++;
+                left_count++;
+            }
+
+            if (left_count == 0)
+                left_cost.push_back(FLT_MAX / 3);
+            else
+                left_cost.push_back(left_aabb.area() * left_count);
+
+            // Right side cost
+            const float right_pos = positions[positions.size() - 1 - i];
+
+            while (right >= first &&
+                   triangles[triangle_indices[right]].center[axis] >=
+                       right_pos) {
+                const Triangle& triangle =
+                    triangles[triangle_indices[right]].triangle;
+                right_aabb.expandToContain(triangle.vertex(0));
+                right_aabb.expandToContain(triangle.vertex(1));
+                right_aabb.expandToContain(triangle.vertex(2));
+                right--;
+                right_count++;
+            }
+
+            if (right_count == 0)
+                right_cost.push_back(FLT_MAX / 3);
+            else
+                right_cost.push_back(right_aabb.area() * right_count);
+        }
+
+        // Iterate through and choose the minimum cost
+        for (int i = 0; i < positions.size(); i++) {
+            const float pos = positions[i];
             const float cost =
-                computeSAHCost(index, axis, triangle.center[axis]);
+                left_cost[i] + right_cost[positions.size() - 1 - i];
+
             if (cost < best_cost) {
                 best_axis = axis;
-                best_pos = triangle.center[axis];
+                best_pos = pos;
                 best_cost = cost;
             }
         }
     }
 
-    // Abort split if we have no split that yields a good cost
+    // Abort split if we have no split that yields a good cost.
+    // The cost MUST be a proportion of the parent cost or smaller for it
+    // to be worth splitting
     const float parent_cost = node.bounds.area() * node.tri_count;
-    if (best_cost >= parent_cost)
+    constexpr float MINIMUM_COST_REDUCTION = 0.50f;
+    if (best_cost >= parent_cost * (1 - MINIMUM_COST_REDUCTION))
         return;
 
     // Iterate through my node's primitives, and swap them so that
@@ -191,16 +284,7 @@ float BVH::computeSAHCost(UINT node, int axis, float pos) {
 // Raycast:
 // Raycast into the BVH to find the first BVHTriangle
 // hit
-BVHRayCast BVH::raycast(const Vector3& origin, const Vector3& direction) {
-#if defined(DEBUG_BVH_INTERSECTION)
-    // Use boolean flags to mark what has and hasn't been intersected for
-    // debugging
-    for (BVHNode& node : node_pool)
-        node.intersected = false;
-    for (BVHTriangle& tri : triangle_pool)
-        tri.intersected = false;
-#endif
-
+BVHRayCast BVH::raycast(const Vector3& origin, const Vector3& direction) const {
     BVHRay ray;
     ray.origin = origin;
     ray.direction = direction.unit();
@@ -220,17 +304,13 @@ BVHRayCast BVH::raycast(const Vector3& origin, const Vector3& direction) {
     return ray_cast;
 }
 
-int BVH::raycastHelper(BVHRay& ray, UINT node_index) {
-    BVHNode& node = node_pool[node_index];
+int BVH::raycastHelper(BVHRay& ray, UINT node_index) const {
+    const BVHNode& node = node_pool[node_index];
 
     // If the ray doesn't intersect the AABB, we can prune this node and
     // all children of the node
-    if (!intersectRayWithAABB(ray, node.bounds))
+    if (!IntersectRayWithAABB(ray, node.bounds))
         return -1;
-
-#if defined(DEBUG_BVH_INTERSECTION)
-    node.intersected = true;
-#endif
 
     // Otherwise, if the node has children, recurse through the children.
     // If the node doesn't have children, raycast with its triangles.
@@ -241,11 +321,7 @@ int BVH::raycastHelper(BVHRay& ray, UINT node_index) {
             const BVHTriangle& triangle =
                 triangle_pool[triangle_indices[node.tri_first + i]];
 
-            if (intersectRayWithTriangle(ray, triangle)) {
-#if defined(DEBUG_BVH_INTERSECTION)
-                triangle_pool[triangle_indices[node.tri_first + i]]
-                    .intersected = true;
-#endif
+            if (IntersectRayWithTriangle(ray, triangle)) {
                 result = triangle_indices[node.tri_first + i];
             }
         }
@@ -267,7 +343,7 @@ int BVH::raycastHelper(BVHRay& ray, UINT node_index) {
 // if the ray intersects the triangle, and updates the ray's
 // "t" parameter (storing the distance)
 // Implements the Möller–Trumbore Ray-Triangle Intersection Algorithm
-bool BVH::intersectRayWithTriangle(BVHRay& ray, const BVHTriangle& triangle) {
+bool BVH::IntersectRayWithTriangle(BVHRay& ray, const BVHTriangle& triangle) {
     constexpr float EPSILON = 0.0001f;
 
     const Triangle& tri = triangle.triangle;
@@ -315,7 +391,7 @@ bool BVH::intersectRayWithTriangle(BVHRay& ray, const BVHTriangle& triangle) {
 // Intersects the ray with an AABB. Returns true on intersection, false
 // otherwise.
 // Performs this without branches.
-bool BVH::intersectRayWithAABB(const BVHRay& ray, const AABB& aabb) {
+bool BVH::IntersectRayWithAABB(const BVHRay& ray, const AABB& aabb) {
     const Vector3& origin = ray.origin;
     const Vector3& direction = ray.direction;
 
@@ -361,11 +437,14 @@ void BVH::debugDrawBVH() const {
     }
 
     const Color node_color = Color::White();
+    Vector3 corners[8];
     for (const BVHNode& node : node_pool) {
         if (!node.isLeaf())
             continue;
 
         const Color color = node.intersected ? intersect_color : node_color;
+        node.bounds.fillArrWithPoints(corners);
+
         const Vector3& minimum = node.bounds.getMin();
         const Vector3& maximum = node.bounds.getMax();
 
@@ -409,7 +488,38 @@ void BVH::debugDrawBVH() const {
             Vector3(maximum.x, maximum.y, maximum.z), color);
     }
 }
-
 #endif
+
+// --- Transformed BVH ---
+TransformedBVH::TransformedBVH(BVH* _bvh, const Matrix4& m_transform) {
+    bvh = _bvh;
+    m_inverse = m_transform.inverse();
+
+    bounds = AABB();
+    Vector3 aabb_bounds[8];
+    bvh->getBVHRoot().bounds.fillArrWithPoints(aabb_bounds);
+
+    for (int i = 0; i < 8; i++) {
+        // Transform my point into world space, and expand our TLAS node AABB
+        // with it
+        const Vector3 transformed =
+            (m_transform * Vector4(aabb_bounds[i], 1.f)).xyz();
+        bounds.expandToContain(transformed);
+    }
+}
+
+const AABB& TransformedBVH::getBounds() const { return bounds; }
+BVHRayCast TransformedBVH::raycast(const Vector3& origin,
+                                   const Vector3& direction) const {
+    // Transform my origin and direction. For the origin, we apply
+    // all transforms (scale, translate, rotate). For the direction,
+    // we only apply rotate + scale.
+    const Vector3 local_origin = (m_inverse * Vector4(origin, 1.f)).xyz();
+    const Vector3 local_direction = (m_inverse * Vector4(direction, 0.f)).xyz();
+
+    const BVHRayCast raycast = bvh->raycast(local_origin, local_direction);
+    return raycast;
+}
+
 } // namespace Datamodel
 } // namespace Engine

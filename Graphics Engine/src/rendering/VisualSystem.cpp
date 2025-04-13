@@ -11,7 +11,6 @@
 
 #define RGB(rgb) ((rgb) / 255.f)
 
-#include "datamodel/TreeGenerator.h"
 namespace Engine {
 
 namespace Graphics {
@@ -19,7 +18,7 @@ namespace Graphics {
 // Saves the handle to the application window and initializes the
 // system's data structures
 VisualSystem::VisualSystem() {
-    camera = Camera();
+    camera = nullptr;
 
     device = NULL;
     context = NULL;
@@ -30,12 +29,6 @@ VisualSystem::VisualSystem() {
     swap_chain = NULL;
     screen_target = NULL;
 }
-
-// GetCamera:
-// Returns the camera
-const Camera& VisualSystem::getCamera() const { return camera; }
-
-Camera& VisualSystem::getCamera() { return camera; }
 
 // Initialize:
 // Initializes the Visual Engine by creating the necessary Direct3D11
@@ -63,6 +56,9 @@ void VisualSystem::initialize(HWND window) {
 
     // Initialize each of my managers with the resources they need
     initializeManagers();
+
+    // Initialize My Components
+    initializeComponents();
 
 #if defined(_DEBUG)
     imGuiInitialize(window);
@@ -293,6 +289,12 @@ void VisualSystem::initializeManagers() {
     light_manager = new LightManager(new TextureAtlas(atlas_texture));
 }
 
+// InitializeComponents:
+// Register components of the visual system.
+void VisualSystem::initializeComponents() {
+    // ...
+}
+
 // Shutdown:
 // Closes the visual system.
 void VisualSystem::shutdown() {
@@ -301,31 +303,39 @@ void VisualSystem::shutdown() {
 #endif
 }
 
-// Create Objects:
-// Creates and returns objects in the visual system
-AssetObject* VisualSystem::bindAssetObject(Object* object,
-                                           const std::string& asset_name) {
+// --- Component Bindings ---
+Camera* VisualSystem::bindCameraComponent(Object* object) {
+    if (camera != nullptr)
+        delete camera;
+    Camera* new_cam = new Camera(object);
+    object->bindComponent(new_cam);
+    camera = new_cam;
+
+    return camera;
+}
+
+AssetComponent*
+VisualSystem::bindAssetComponent(Object* object,
+                                 const std::string& asset_name) {
     Asset* asset = resource_manager->getAsset(asset_name);
-    AssetObject* asset_obj = new AssetObject(object, asset);
-    object->setVisualObject(asset_obj);
-    renderable_assets.push_back(asset_obj);
+    AssetComponent* asset_obj = new AssetComponent(object, asset);
+    asset_components.newComponent(object, asset_obj);
     return asset_obj;
 }
 
-ShadowLightObject* VisualSystem::bindShadowLightObject(Object* object) {
+ShadowLightComponent* VisualSystem::bindLightComponent(Object* object) {
     ShadowLight* light = light_manager->createShadowLight(QUALITY_1);
-    ShadowLightObject* light_obj = new ShadowLightObject(object, light);
-    object->setVisualObject(light_obj);
-    shadow_lights.push_back(light_obj);
+    ShadowLightComponent* light_obj = new ShadowLightComponent(object, light);
+    light_components.newComponent(object, light_obj);
     return light_obj;
 }
 
-VisualTerrain* VisualSystem::bindVisualTerrain(const Terrain* terrain) {
-    if (terrain_interface != nullptr)
-        delete terrain_interface;
-    terrain_interface = new VisualTerrain(terrain);
+VisualTerrain* VisualSystem::bindTerrain(const Terrain* _terrain) {
+    if (terrain != nullptr)
+        delete terrain;
+    terrain = new VisualTerrain(_terrain);
 
-    return terrain_interface;
+    return terrain;
 }
 
 // Render:
@@ -367,69 +377,6 @@ void VisualSystem::render() {
 #endif
 }
 
-int generateTreeMeshHelper(MeshBuilder& builder,
-                           const std::vector<TreeStructure>& grammar, int index,
-                           const Vector3& position, const Vector2& rotation) {
-    if (index >= grammar.size())
-        return -1;
-
-    const TreeStructure tree = grammar[index];
-
-    switch (tree.token) {
-    case TRUNK: {
-        const float phi = rotation.u;
-        const float theta = rotation.v;
-
-        Vector3 direction = SphericalToEuler(1.0, theta, phi);
-        const Quaternion rotation_offset =
-            Quaternion::RotationAroundAxis(Vector3::PositiveX(), -PI / 2);
-        direction = rotation_offset.rotationMatrix3() * direction;
-
-        const Vector3 next_pos =
-            position + direction * tree.trunk_data.trunk_length;
-
-        builder.setColor(Color(150.f / 255.f, 75.f / 255.f, 0));
-        builder.addTube(position, next_pos, tree.trunk_data.trunk_thickess, 5);
-        return generateTreeMeshHelper(builder, grammar, index + 1, next_pos,
-                                      rotation);
-    } break;
-
-    case BRANCH: {
-        const Vector2 new_rotation =
-            rotation + Vector2(tree.branch_data.branch_angle_phi,
-                               tree.branch_data.branch_angle_theta);
-
-        const int next_index = generateTreeMeshHelper(
-            builder, grammar, index + 1, position, new_rotation);
-        return generateTreeMeshHelper(builder, grammar, next_index, position,
-                                      rotation);
-    } break;
-
-    case LEAF: {
-        builder.setColor(Color::Green());
-
-        const Vector3 random_axis =
-            Vector3(1 + Random(0.f, 1.f), Random(0.f, 1.f), Random(0.f, 1.f))
-                .unit();
-        const float angle = Random(0, 2 * PI);
-
-        builder.addCube(position,
-                        Quaternion::RotationAroundAxis(random_axis, angle),
-                        tree.leaf_data.leaf_density);
-        return index + 1;
-    } break;
-    }
-
-    return -1;
-}
-
-void generateTreeMesh(MeshBuilder& builder,
-                      const std::vector<TreeStructure>& grammar,
-                      const Vector3& offset) {
-    // Rotation stores (phi, theta), spherical angles. rho is assumed to be 1.
-    generateTreeMeshHelper(builder, grammar, 0, offset, Vector2(0, 0));
-}
-
 // RenderPrepare:
 // Prepares the engine for rendering, by processing all render requests and
 // clearing the screen
@@ -443,102 +390,55 @@ void VisualSystem::renderPrepare() {
         context, Color(RGB(158.f), RGB(218.f), RGB(255.f)));
 
     // Check and remove any visual objects that are no longer valid
-    int head;
+    asset_components.clean();
+    light_components.clean();
 
-    head = 0;
-    for (int i = 0; i < renderable_assets.size(); i++) {
-        if (!renderable_assets[i]->markedForDestruction()) {
-            renderable_assets[head] = renderable_assets[i];
-            head++;
-        } else {
-            delete renderable_assets[i];
-            renderable_assets[i] = nullptr;
-        }
-    }
-    renderable_assets.resize(head);
-
-    // --- TESTING ENVIRONMENT ---
-    //
-    // --- TEST ---
-#if defined(_DEBUG)
-    static TreeGenerator tree_gen = TreeGenerator();
-    static AssetObject* tree_asset = nullptr;
-
-    if (ImGui::Button("Regenerate")) {
-        tree_gen.generateTree();
-
-        const std::vector<TreeStructure> tree = tree_gen.getTree();
-
-        MeshBuilder* builder = resource_manager->createMeshBuilder();
-        generateTreeMesh(*builder, tree, Vector3(0, 0, 0));
-        builder->regenerateNormals();
-
-        if (tree_asset == nullptr) {
-            Object* obj = new Object();
-            obj->getTransform().setPosition(0, 50.f, 0);
-            obj->updateLocalMatrix(Matrix4::Identity());
-
-            tree_asset = new AssetObject(obj, new Asset());
-            tree_asset->asset->addMesh(builder->generate());
-            obj->setVisualObject(tree_asset);
-            renderable_assets.push_back(tree_asset);
-        } else {
-            tree_asset->asset = new Asset();
-            tree_asset->asset->addMesh(builder->generate());
-        }
-    }
-
-    // tree_gen.debugDrawTree(Vector3(0, 0, 0));
-    // ---
-
-    // --- TEST 2: Sun
+    // --- TEST 2: Sun DEBUG
     static float time = 15.f;
     ImGui::SliderFloat("Time of Day: ", &time, 1.0f, 23.f);
     light_manager->updateTimeOfDay(time);
-#endif
 
     // Pull information from the datamodel
     // - Pull asset local -> world matrices from the datamodel
     // - Pull light data from the datamodel.
-    for (AssetObject* asset_object : renderable_assets)
+    for (AssetComponent* asset_object : asset_components.getComponents())
         asset_object->pullDatamodelData();
-    for (ShadowLightObject* shadow_light : shadow_lights)
+    for (ShadowLightComponent* shadow_light : light_components.getComponents())
         shadow_light->pullDatamodelData();
-    light_manager->updateSunCascades(camera.frustum());
+    light_manager->updateSunCascades(camera->frustum());
 
     static bool enable = true;
 #if defined(_DEBUG)
     ImGui::Checkbox("Disable Frustum Culling", &enable);
 #endif
-    const Frustum cam_frustum = camera.frustum();
+    const Frustum cam_frustum = camera->frustum();
 
     // Prepare managers for data
     light_manager->resetShadowCasters();
 
-    for (const AssetObject* object : renderable_assets) {
+    for (const AssetComponent* object : asset_components.getComponents()) {
         const Asset* asset = object->getAsset();
 
         RenderableAsset renderable_asset;
         renderable_asset.asset = asset;
-        renderable_asset.m_localToWorld = object->object->getLocalMatrix();
+        renderable_asset.m_localToWorld = object->getObject()->getLocalMatrix();
         renderable_meshes.push_back(renderable_asset);
 
         const std::vector<Mesh*>& meshes = asset->getMeshes();
         for (const Mesh* mesh : meshes) {
             ShadowCaster shadowCaster;
             shadowCaster.mesh = mesh;
-            shadowCaster.m_localToWorld = object->object->getLocalMatrix();
+            shadowCaster.m_localToWorld = object->getObject()->getLocalMatrix();
             light_manager->addShadowCaster(shadowCaster);
         }
     }
 
     // Generate my terrain mesh
     MeshBuilder* builder = resource_manager->createMeshBuilder();
-    terrain_interface->updateTerrainMeshes(*builder);
+    terrain->updateTerrainMeshes(*builder);
 
     // Load it for shadows
-    const std::vector<Mesh*>& terrain_meshes =
-        terrain_interface->getTerrainMeshes();
+    const std::vector<Mesh*>& terrain_meshes = terrain->getTerrainMeshes();
     for (Mesh* terrain_mesh : terrain_meshes) {
         ShadowCaster terrain_shadow;
         terrain_shadow.m_localToWorld = Matrix4::Identity();
@@ -657,9 +557,9 @@ void VisualSystem::performTerrainPass() {
         CBHandle* vCB0 = pipeline_manager->getVertexCB(CB0);
         vCB0->clearData();
 
-        const Matrix4 viewMatrix = camera.getWorldToCameraMatrix();
+        const Matrix4 viewMatrix = camera->getWorldToCameraMatrix();
         vCB0->loadData(&viewMatrix, FLOAT4X4);
-        const Matrix4 projectionMatrix = camera.getFrustumMatrix();
+        const Matrix4 projectionMatrix = camera->getFrustumMatrix();
         vCB0->loadData(&projectionMatrix, FLOAT4X4);
 
         pipeline_manager->bindVertexCB(CB0);
@@ -671,12 +571,12 @@ void VisualSystem::performTerrainPass() {
         CBHandle* pCB1 = pipeline_manager->getPixelCB(CB1);
         pCB1->clearData();
 
-        const Vector3& cameraPosition = camera.getTransform()->getPosition();
+        const Vector3& cameraPosition = camera->getTransform()->getPosition();
         pCB1->loadData(&cameraPosition, FLOAT3);
         int lightCount = light_manager->getShadowLights().size();
         pCB1->loadData(&lightCount, INT);
 
-        const Vector3 cameraView = camera.getTransform()->forward();
+        const Vector3 cameraView = camera->getTransform()->forward();
         pCB1->loadData(&cameraView, FLOAT3);
         pCB1->loadData(nullptr, FLOAT);
 
@@ -762,8 +662,7 @@ void VisualSystem::performTerrainPass() {
     }
 
     // TEMP
-    const std::vector<Mesh*>& terrain_meshes =
-        terrain_interface->getTerrainMeshes();
+    const std::vector<Mesh*>& terrain_meshes = terrain->getTerrainMeshes();
     for (Mesh* mesh : terrain_meshes) {
         if (mesh == nullptr)
             continue;
@@ -808,10 +707,10 @@ void VisualSystem::performRenderPass() {
         CBHandle* vCB1 = pipeline_manager->getVertexCB(CB1);
         vCB1->clearData();
 
-        const Matrix4 viewMatrix = camera.getWorldToCameraMatrix();
+        const Matrix4 viewMatrix = camera->getWorldToCameraMatrix();
         vCB1->loadData(&viewMatrix, FLOAT4X4);
 
-        const Matrix4 projectionMatrix = camera.getFrustumMatrix();
+        const Matrix4 projectionMatrix = camera->getFrustumMatrix();
         vCB1->loadData(&projectionMatrix, FLOAT4X4);
 
         pipeline_manager->bindVertexCB(CB1);
@@ -823,12 +722,12 @@ void VisualSystem::performRenderPass() {
         CBHandle* pCB1 = pipeline_manager->getPixelCB(CB1);
         pCB1->clearData();
 
-        const Vector3& cameraPosition = camera.getTransform()->getPosition();
+        const Vector3& cameraPosition = camera->getTransform()->getPosition();
         pCB1->loadData(&cameraPosition, FLOAT3);
         int lightCount = light_manager->getShadowLights().size();
         pCB1->loadData(&lightCount, INT);
 
-        const Vector3 cameraView = camera.getTransform()->forward();
+        const Vector3 cameraView = camera->getTransform()->forward();
         pCB1->loadData(&cameraView, FLOAT3);
         pCB1->loadData(nullptr, FLOAT);
 
@@ -1072,9 +971,9 @@ void VisualSystem::processUnderwater() {
         const float f_height = (float)screen_target->height;
         pCB0->loadData(&f_height, FLOAT);
 
-        const float z_near = camera.getZNear();
+        const float z_near = camera->getZNear();
         pCB0->loadData(&z_near, FLOAT);
-        const float z_far = camera.getZFar();
+        const float z_far = camera->getZFar();
         pCB0->loadData(&z_far, FLOAT);
 
         pipeline_manager->bindPixelCB(CB0);
@@ -1086,25 +985,27 @@ void VisualSystem::processUnderwater() {
         pCB1->clearData();
 
         const Matrix4 m_project_to_world =
-            (camera.getFrustumMatrix() * camera.getWorldToCameraMatrix())
+            (camera->getFrustumMatrix() * camera->getWorldToCameraMatrix())
                 .inverse();
         pCB1->loadData(&m_project_to_world, FLOAT4X4);
 
-        const Vector3& camera_pos = camera.getTransform()->getPosition();
+        const Vector3& camera_pos = camera->getTransform()->getPosition();
         pCB1->loadData(&camera_pos, FLOAT3);
 
-        static float intensity_drop = 0.0025f;
-        ImGui::SliderFloat("Intensity Drop", &intensity_drop, 0.0f, 0.1f);
+        // The lower the value, the slower it gets darker as you go deeper
+        const float intensity_drop = 0.001f;
         pCB1->loadData(&intensity_drop, FLOAT);
 
-        const float d = camera.getZFar() * 0.5f;
+        // DO NOT MODIFY. Precomputed values for the fog interpolation.
+        const float d = camera->getZFar() * 0.5f;
         const Vector3 fog_params = Vector3(1.f / (d * d), -2.f / d, 1.f);
         pCB1->loadData(&fog_params, FLOAT3);
 
-        static float visibility = 1.5f;
-        ImGui::SliderFloat("Visibility", &visibility, 0.5f, 10.0f);
+        // Water Visibility
+        const float visibility = 1.5f;
         pCB1->loadData(&visibility, FLOAT);
 
+        // Where the surface is. Brightest at the surface.
         const float surface_height = 100.f;
         pCB1->loadData(&surface_height, FLOAT);
 
@@ -1189,10 +1090,10 @@ void VisualSystem::renderDebugPoints() {
         // Stores the camera view and projection matrices
         vCB1->clearData();
         {
-            const Matrix4 viewMatrix = camera.getWorldToCameraMatrix();
+            const Matrix4 viewMatrix = camera->getWorldToCameraMatrix();
             vCB1->loadData(&viewMatrix, FLOAT4X4);
 
-            const Matrix4 projectionMatrix = camera.getFrustumMatrix();
+            const Matrix4 projectionMatrix = camera->getFrustumMatrix();
             vCB1->loadData(&projectionMatrix, FLOAT4X4);
         }
         pipeline_manager->bindVertexCB(CB1);
@@ -1242,10 +1143,10 @@ void VisualSystem::renderDebugLines() {
         // Stores the camera view and projection matrices
         vCB1->clearData();
         {
-            const Matrix4 viewMatrix = camera.getWorldToCameraMatrix();
+            const Matrix4 viewMatrix = camera->getWorldToCameraMatrix();
             vCB1->loadData(&viewMatrix, FLOAT4X4);
 
-            const Matrix4 projectionMatrix = camera.getFrustumMatrix();
+            const Matrix4 projectionMatrix = camera->getFrustumMatrix();
             vCB1->loadData(&projectionMatrix, FLOAT4X4);
         }
         pipeline_manager->bindVertexCB(CB1);

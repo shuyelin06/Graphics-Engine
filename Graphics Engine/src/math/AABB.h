@@ -21,6 +21,9 @@ class AABB {
     const Vector3& getMin() const;
     const Vector3& getMax() const;
 
+    // AABB Operations
+    AABB unionWith(const AABB& aabb) const;
+
     // Populate an 8+ Vector3 array with the AABB points
     void fillArrWithPoints(Vector3* point_arr) const;
 

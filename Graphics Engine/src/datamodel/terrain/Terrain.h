@@ -2,6 +2,9 @@
 
 #include <vector>
 
+#include "datamodel/bvh/BVH.h"
+#include "datamodel/bvh/TLAS.h"
+
 #include "math/Triangle.h"
 
 #include "math/Vector2.h"
@@ -57,6 +60,14 @@ class Terrain {
     Chunk* chunks_helper[TERRAIN_CHUNK_COUNT][TERRAIN_CHUNK_COUNT]
                         [TERRAIN_CHUNK_COUNT];
 
+    // Chunk BVHs + TLAS for Raycasting
+    TLAS tlas;
+
+    BVH* bvh_array[TERRAIN_CHUNK_COUNT][TERRAIN_CHUNK_COUNT]
+                 [TERRAIN_CHUNK_COUNT];
+    BVH* bvh_helper[TERRAIN_CHUNK_COUNT][TERRAIN_CHUNK_COUNT]
+                  [TERRAIN_CHUNK_COUNT];
+
     // Triangle Pool
     // All triangles owned by the terrain's chunks
     std::vector<Triangle> triangle_pool;
@@ -67,6 +78,7 @@ class Terrain {
     ~Terrain();
 
     // Accessors
+    const TLAS& getTLAS() const;
     const std::vector<Triangle>& getTrianglePool() const;
 
     int getCenterChunkX() const;

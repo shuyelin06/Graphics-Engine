@@ -19,6 +19,15 @@ float AABB::area() const {
 const Vector3& AABB::getMin() const { return minimum; }
 const Vector3& AABB::getMax() const { return maximum; }
 
+// UnionWith:
+// Union this AABB with another and return the result
+AABB AABB::unionWith(const AABB& aabb) const {
+    AABB output;
+    output.minimum = minimum.componentMin(aabb.minimum);
+    output.maximum = maximum.componentMax(aabb.maximum);
+    return output;
+}
+
 // PopulatePointArray:
 // Populate an 8+ Vector3 array with the AABB points.
 // Array must be size 8 or more.

@@ -37,6 +37,7 @@ class Scene {
     const Terrain* getTerrain() const;
 
     // Update the terrain based on some center position
+    void updateTerrainChunks(const Vector3& center);
     void updateTerrainChunks(float x, float y, float z);
 
   private:

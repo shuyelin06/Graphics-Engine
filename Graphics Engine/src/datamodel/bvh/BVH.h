@@ -1,4 +1,5 @@
 #pragma once
+#pragma once
 
 #define DEBUG_BVH
 
@@ -11,6 +12,7 @@
 #include <vector>
 
 #include "math/AABB.h"
+#include "math/Matrix4.h"
 #include "math/Triangle.h"
 #include "math/Vector3.h"
 
@@ -76,7 +78,7 @@ struct BVHNode {
 struct BVHRayCast {
     bool hit;
 
-    BVHTriangle* hit_triangle;
+    const BVHTriangle* hit_triangle;
     float t;
 };
 
@@ -102,7 +104,11 @@ class BVH {
 
     // Raycast into the BVH to find the first BVHTriangle
     // hit. Returns the index of this triangle, or -1 on no hit.
-    BVHRayCast raycast(const Vector3& origin, const Vector3& direction);
+    BVHRayCast raycast(const Vector3& origin, const Vector3& direction) const;
+
+    // Get BVH data
+    const BVHNode& getBVHRoot();
+    int size() const;
 
 #if defined(DEBUG_BVH)
     void debugDrawBVH() const;
@@ -118,11 +124,34 @@ class BVH {
     float computeSAHCost(UINT node, int axis, float pos);
 
     // Recurse through the BVH to check for an intersection
-    int raycastHelper(BVHRay& ray, UINT node_index);
+    int raycastHelper(BVHRay& ray, UINT node_index) const;
+
+  public:
     // Ray-Triangle Intersection
-    bool intersectRayWithTriangle(BVHRay& ray, const BVHTriangle& triangle);
+    static bool IntersectRayWithTriangle(BVHRay& ray,
+                                         const BVHTriangle& triangle);
     // Ray-AABB Intersection
-    bool intersectRayWithAABB(const BVHRay& ray, const AABB& aabb);
+    static bool IntersectRayWithAABB(const BVHRay& ray, const AABB& aabb);
+};
+
+// We also support transformed BVH's, so we can reuse the same BVH
+// (for say, the same mesh) on different transforms.
+class TransformedBVH {
+  private:
+    BVH* bvh;
+
+    Matrix4 m_inverse;
+    AABB bounds;
+
+  public:
+    TransformedBVH(BVH* bvh, const Matrix4& m_transform);
+
+    // Get world AABB
+    const AABB& getBounds() const;
+
+    // Raycast on the transformed BVH. This uses the BVH raycast, but
+    // transforms the ray into the BVH's local space.
+    BVHRayCast raycast(const Vector3& origin, const Vector3& direction) const;
 };
 
 } // namespace Datamodel

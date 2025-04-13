@@ -4,6 +4,7 @@
 #include <float.h>
 #include <math.h>
 
+#include "datamodel/Object.h"
 #include "math/Compute.h"
 
 #define ASPECT_RATIO (1920.f / 1080.f)
@@ -11,32 +12,26 @@
 namespace Engine {
 namespace Graphics {
 // --- Camera ---
-Camera::Camera() {
+Camera::Camera(Object* object) : Component(object) {
     setFrustumMatrix(1.2f, 5.f, 500.f);
-    setTransform(new Transform());
 }
 Camera::~Camera() = default;
 
 // --- Accessors ---
 float Camera::getZNear() const { return z_near; }
-
 float Camera::getZFar() const { return z_far; }
-
-const Transform* Camera::getTransform() const { return transform; }
-Transform* Camera::getTransform() { return transform; }
+const Transform* Camera::getTransform() const {
+    return &object->getTransform();
+}
+Transform* Camera::getTransform() { return &object->getTransform(); }
 
 // GetFrustum:
 // Returns an object which can be used to query the camera frustum.
 Frustum Camera::frustum() const {
     const Matrix4 m_world_to_frustum =
-        frustum_matrix * transform->transformMatrix().inverse();
+        frustum_matrix * object->getTransform().transformMatrix().inverse();
     return Frustum(m_world_to_frustum);
 }
-
-// SetTransform:
-// Sets the camera's transform to follow a particular transform.
-// Can be used
-void Camera::setTransform(Transform* _transform) { transform = _transform; }
 
 // SetFrustuMatrix:
 // Updates the camera frustum (projection) matrix
@@ -59,7 +54,7 @@ void Camera::setFrustumMatrix(float fov, float _z_near, float _z_far) {
 
 // Camera -> World Matrix
 const Matrix4 Camera::getWorldToCameraMatrix(void) const {
-    return transform->transformMatrix().inverse();
+    return object->getTransform().transformMatrix().inverse();
 }
 
 // Camera -> Projected Space Matrix

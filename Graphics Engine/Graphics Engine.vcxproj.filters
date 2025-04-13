@@ -180,13 +180,10 @@
     <ClCompile Include="src\physics\PhysicsObject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\VisualObject.cpp">
+    <ClCompile Include="src\rendering\core\AssetComponent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\core\AssetObject.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\rendering\lights\LightObject.cpp">
+    <ClCompile Include="src\rendering\lights\LightComponent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\VisualTerrain.cpp">
@@ -198,7 +195,7 @@
     <ClCompile Include="src\physics\collisions\CollisionObject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\datamodel\TreeGenerator.cpp">
+    <ClCompile Include="src\_DEP_\TreeGenerator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\lights\SunLight.cpp">
@@ -229,6 +226,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\datamodel\bvh\BVH.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\datamodel\Component.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\datamodel\bvh\TLAS.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -407,13 +410,10 @@
     <ClInclude Include="src\physics\PhysicsObject.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\VisualObject.h">
+    <ClInclude Include="src\rendering\core\AssetComponent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\core\AssetObject.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\rendering\lights\LightObject.h">
+    <ClInclude Include="src\rendering\lights\LightComponent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\VisualTerrain.h">
@@ -425,10 +425,10 @@
     <ClInclude Include="src\physics\collisions\CollisionObject.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\datamodel\ResourceManager.h">
+    <ClInclude Include="src\_DEP_\ResourceManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\datamodel\TreeGenerator.h">
+    <ClInclude Include="src\_DEP_\TreeGenerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\lights\SunLight.h">
@@ -465,6 +465,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\datamodel\terrain\MarchingCube.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\datamodel\Component.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\datamodel\ComponentHandler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\datamodel\bvh\TLAS.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
