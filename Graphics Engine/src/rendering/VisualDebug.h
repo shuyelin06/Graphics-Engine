@@ -6,6 +6,8 @@
 #include "math/Matrix4.h"
 #include "math/Vector3.h"
 
+#define ENABLE_DEBUG_DRAWING
+
 namespace Engine {
 using namespace Math;
 
@@ -37,8 +39,10 @@ class VisualDebug {
     friend class VisualSystem;
 
   private:
+#if defined(ENABLE_DEBUG_DRAWING)
     static std::vector<PointData> points;
     static std::vector<LinePoint> lines;
+#endif
 
   public:
     // Clear all debug rendering data

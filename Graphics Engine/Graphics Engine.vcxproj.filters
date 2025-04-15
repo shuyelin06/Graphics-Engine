@@ -476,5 +476,8 @@
     <ClInclude Include="src\datamodel\bvh\TLAS.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\datamodel\ThreadPool.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

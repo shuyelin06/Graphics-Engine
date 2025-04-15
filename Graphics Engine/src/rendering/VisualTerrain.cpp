@@ -110,6 +110,9 @@ void VisualTerrain::updateTerrainMeshes(MeshBuilder& builder) {
                     builder.reset();
 
                     const Chunk* chunk = terrain->getChunk(i, j, k);
+                    if (chunk->dirty)
+                        continue;
+
                     for (int tri = 0; tri < chunk->triangle_count; tri++) {
                         const Triangle& triangle =
                             triangle_pool[tri + chunk->triangle_start];

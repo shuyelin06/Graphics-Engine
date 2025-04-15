@@ -10,29 +10,29 @@
 namespace Engine {
 namespace Datamodel {
 Terrain::Terrain() : noise_func(0) {
-    center_x = center_y = center_z = INT_MAX;
+    center_x = center_y = center_z = 0;
 
     for (int i = 0; i < TERRAIN_CHUNK_COUNT; i++) {
         for (int j = 0; j < TERRAIN_CHUNK_COUNT; j++) {
             for (int k = 0; k < TERRAIN_CHUNK_COUNT; k++) {
-                bvh_array[i][j][k] = new BVH();
+                bvh_array[i][j][k] = BVH();
 
-                // TODO: Dynamic loading
-                loadChunk(i, j, k, true);
+                chunks[i][j][k].dirty = true;
+                dirty_chunks.push({i, j, k});
             }
         }
     }
-}
 
-Terrain::~Terrain() {
-    for (int i = 0; i < TERRAIN_CHUNK_COUNT; i++) {
-        for (int j = 0; j < TERRAIN_CHUNK_COUNT; j++) {
-            for (int k = 0; k < TERRAIN_CHUNK_COUNT; k++) {
-                delete chunks[i][j][k];
-            }
-        }
+    while (dirty_chunks.size() > 0) {
+        const ChunkIndex chunk_index = dirty_chunks.front();
+        dirty_chunks.pop();
+
+        loadChunk(chunk_index.chunk_x, chunk_index.chunk_y, chunk_index.chunk_z,
+                  false);
     }
 }
+
+Terrain::~Terrain() = default;
 
 // --- Accessors ---
 const TLAS& Terrain::getTLAS() const { return tlas; }
@@ -45,21 +45,11 @@ int Terrain::getCenterChunkY() const { return center_y; }
 int Terrain::getCenterChunkZ() const { return center_z; }
 
 const Chunk* Terrain::getChunk(int x_i, int y_i, int z_i) const {
-    return chunks[x_i][y_i][z_i];
+    return &chunks[x_i][y_i][z_i];
 }
 
 // ReloadTerrain:
 void Terrain::reloadTerrain(float x, float y, float z) {
-    /*for (int i = -1; i <= 1; i++) {
-        for (int j = -1; j <= 1; j++) {
-            for (int k = -1; k <= 1; k++) {
-                bvh_array[TERRAIN_CHUNK_EXTENT + i][TERRAIN_CHUNK_EXTENT + j]
-                         [TERRAIN_CHUNK_EXTENT + k]
-                             ->debugDrawBVH();
-            }
-        }
-    }*/
-
     // Calculate the chunk index that these x,y,z coordinates are in
     const int x_i = floor(x / TERRAIN_CHUNK_SIZE);
     const int y_i = floor(y / TERRAIN_CHUNK_SIZE);
@@ -69,71 +59,54 @@ void Terrain::reloadTerrain(float x, float y, float z) {
     if (center_x == x_i && center_y == y_i && center_z == z_i)
         return;
 
-    // Find the x,z coordinates of the chunk that the center is located in.
-    const int old_center_x = center_x;
-    const int old_center_y = center_y;
-    const int old_center_z = center_z;
-
     center_x = x_i;
     center_y = y_i;
     center_z = z_i;
 
-    // We have a set of chunks around our old center. After moving our center,
-    // we have a new set of chunks, but we don't want to regenerate chunks that
-    // are the same. We will iterate through all chunks around our new center
-    // and pull them from the old center chunks if possible.
-    std::memset(chunks_helper, 0, sizeof(chunks_helper));
-    std::memset(bvh_helper, 0, sizeof(bvh_helper));
-
-    for (int i = 0; i < TERRAIN_CHUNK_COUNT; i++) {
-        for (int j = 0; j < TERRAIN_CHUNK_COUNT; j++) {
-            for (int k = 0; k < TERRAIN_CHUNK_COUNT; k++) {
-                // Find our chunk index on x,z
-                const int old_index_x = i + center_x - old_center_x;
-                const int old_index_y = j + center_y - old_center_y;
-                const int old_index_z = k + center_z - old_center_z;
-
-                const bool in_x_bounds =
-                    0 <= old_index_x && old_index_x < TERRAIN_CHUNK_COUNT;
-                const bool in_y_bounds =
-                    0 <= old_index_y && old_index_y < TERRAIN_CHUNK_COUNT;
-                const bool in_z_bounds =
-                    0 <= old_index_z && old_index_z < TERRAIN_CHUNK_COUNT;
-
-                // We've found that the chunk for the new (i,j,k) index can be
-                // reused. Copy the chunk over so we can reuse it.
-                if (in_x_bounds && in_y_bounds && in_z_bounds) {
-                    chunks_helper[i][j][k] =
-                        chunks[old_index_x][old_index_y][old_index_z];
-                    chunks[old_index_x][old_index_y][old_index_z] = nullptr;
-
-                    bvh_helper[i][j][k] =
-                        bvh_array[old_index_x][old_index_y][old_index_z];
-                    bvh_array[old_index_x][old_index_y][old_index_z] = nullptr;
-                }
-            }
-        }
-    }
-
-    // Now, iterate through and
-    // 1) Destroy old chunks too far from our center
-    // 2) For chunks we can reuse, copy their triangles to the new triangle
-    // pool.
-    //    We need to do this so we can free the triangles from deleted chunks
-    //    (which will shift the triangle_starts of existing chunks).
+    // Iterate through -TERRAIN_CHUNK_EXTENT to TERRAIN_CHUNK_EXTENT around this
+    // chunk's indices, and find chunks that are dirty. These are chunks whose
+    // indices no longer correspond to the chunk indices that need to be loaded.
+    // Each chunk index in the world corresponds to exactly 1 index in the
+    // array. We figure out this index by applying the modulus operator (that
+    // wraps for negatives too).
     triangle_pool_helper.clear();
 
-    for (int i = 0; i < TERRAIN_CHUNK_COUNT; i++) {
-        for (int j = 0; j < TERRAIN_CHUNK_COUNT; j++) {
-            for (int k = 0; k < TERRAIN_CHUNK_COUNT; k++) {
-                // Free memory for old chunks
-                if (chunks[i][j][k] != nullptr)
-                    unloadChunk(i, j, k);
+    for (int i = -TERRAIN_CHUNK_EXTENT; i <= TERRAIN_CHUNK_EXTENT; i++) {
+        const int chunk_x = center_x + i;
+        const int index_x =
+            ((chunk_x % TERRAIN_CHUNK_COUNT) + TERRAIN_CHUNK_COUNT) %
+            TERRAIN_CHUNK_COUNT;
 
-                // Remove unused triangles
-                if (chunks_helper[i][j][k] != nullptr) {
-                    const UINT start = chunks_helper[i][j][k]->triangle_start;
-                    const UINT count = chunks_helper[i][j][k]->triangle_count;
+        for (int j = -TERRAIN_CHUNK_EXTENT; j <= TERRAIN_CHUNK_EXTENT; j++) {
+            const int chunk_y = center_y + j;
+            const int index_y =
+                ((chunk_y % TERRAIN_CHUNK_COUNT) + TERRAIN_CHUNK_COUNT) %
+                TERRAIN_CHUNK_COUNT;
+
+            for (int k = -TERRAIN_CHUNK_EXTENT; k <= TERRAIN_CHUNK_EXTENT;
+                 k++) {
+                const int chunk_z = center_z + k;
+                const int index_z =
+                    ((chunk_z % TERRAIN_CHUNK_COUNT) + TERRAIN_CHUNK_COUNT) %
+                    TERRAIN_CHUNK_COUNT;
+
+                // If the chunk is dirty, don't do anything.
+                Chunk& chunk = chunks[index_x][index_y][index_z];
+
+                if (chunk.dirty)
+                    continue;
+
+                // Otherwise, check if the x,y,z indices match.
+                // If they do not, then mark the chunk as dirty so it can be
+                // reloaded.
+                const bool x_match = chunk.chunk_x == chunk_x;
+                const bool y_match = chunk.chunk_y == chunk_y;
+                const bool z_match = chunk.chunk_z == chunk_z;
+
+                if (x_match && y_match && z_match) {
+                    // Preserve the chunk's triangles
+                    const UINT start = chunk.triangle_start;
+                    const UINT count = chunk.triangle_count;
 
                     const UINT new_start = triangle_pool_helper.size();
                     triangle_pool_helper.insert(triangle_pool_helper.end(),
@@ -141,7 +114,10 @@ void Terrain::reloadTerrain(float x, float y, float z) {
                                                 triangle_pool.begin() + start +
                                                     count);
 
-                    chunks_helper[i][j][k]->triangle_start = new_start;
+                    chunk.triangle_start = new_start;
+                } else {
+                    chunk.dirty = true;
+                    dirty_chunks.push({index_x, index_y, index_z});
                 }
             }
         }
@@ -151,28 +127,21 @@ void Terrain::reloadTerrain(float x, float y, float z) {
     triangle_pool.insert(triangle_pool.end(), triangle_pool_helper.begin(),
                          triangle_pool_helper.end());
 
-    // Now, finally iterate over the chunks and load new ones as necessary.
-    memcpy(bvh_array, bvh_helper, sizeof(bvh_helper));
+    // Now, load one of the currently invalid chunks.
+    while (dirty_chunks.size() > 0) {
+        const ChunkIndex chunk_index = dirty_chunks.front();
+        dirty_chunks.pop();
 
-    for (int i = 0; i < TERRAIN_CHUNK_COUNT; i++) {
-        for (int j = 0; j < TERRAIN_CHUNK_COUNT; j++) {
-            for (int k = 0; k < TERRAIN_CHUNK_COUNT; k++) {
-                // Create new chunks
-                if (chunks_helper[i][j][k] == nullptr)
-                    loadChunk(i, j, k, false);
-            }
-        }
+        loadChunk(chunk_index.chunk_x, chunk_index.chunk_y, chunk_index.chunk_z,
+                  false);
     }
-
-    // Copy our helper array to the actual terrain array
-    memcpy(chunks, chunks_helper, sizeof(chunks));
 
     // Finally, update our TLAS
     tlas.reset();
     for (int i = 0; i < TERRAIN_CHUNK_COUNT; i++) {
         for (int j = 0; j < TERRAIN_CHUNK_COUNT; j++) {
             for (int k = 0; k < TERRAIN_CHUNK_COUNT; k++) {
-                tlas.addTLASNode(bvh_array[i][j][k], Matrix4::Identity());
+                tlas.addTLASNode(&bvh_array[i][j][k], Matrix4::Identity());
             }
         }
     }
@@ -186,22 +155,22 @@ void Terrain::reloadTerrain(float x, float y, float z) {
 // chunks_helper
 void Terrain::loadChunk(int index_x, int index_y, int index_z,
                         bool direct_load) {
+    Chunk* chunk = &chunks[index_x][index_y][index_z];
+    chunk->chunk_x = index_x + center_x - TERRAIN_CHUNK_EXTENT;
+    chunk->chunk_y = index_y + center_y - TERRAIN_CHUNK_EXTENT;
+    chunk->chunk_z = index_z + center_z - TERRAIN_CHUNK_EXTENT;
+
     // Determine the bottom-left world coordinates of the chunk, both in
     // world coordinates and index coordinates
-    const float x =
-        (index_x + center_x - TERRAIN_CHUNK_EXTENT) * TERRAIN_CHUNK_SIZE;
-    const float y =
-        (index_y + center_y - TERRAIN_CHUNK_EXTENT) * TERRAIN_CHUNK_SIZE;
-    const float z =
-        (index_z + center_z - TERRAIN_CHUNK_EXTENT) * TERRAIN_CHUNK_SIZE;
+    const float x = chunk->chunk_x * TERRAIN_CHUNK_SIZE;
+    const float y = chunk->chunk_y * TERRAIN_CHUNK_SIZE;
+    const float z = chunk->chunk_z * TERRAIN_CHUNK_SIZE;
 
     // Offset between samples
     constexpr float CHUNK_OFFSET =
         TERRAIN_CHUNK_SIZE / (TERRAIN_CHUNK_SAMPLES - 1);
 
     // Create my chunk and sample the noise function
-    Chunk* chunk = new Chunk();
-
     for (int i = 0; i < TERRAIN_CHUNK_SAMPLES; i++) {
         for (int j = 0; j < TERRAIN_CHUNK_SAMPLES; j++) {
             for (int k = 0; k < TERRAIN_CHUNK_SAMPLES; k++) {
@@ -224,9 +193,8 @@ void Terrain::loadChunk(int index_x, int index_y, int index_z,
     }
 
     // Generate chunk mesh using the marching cubes algorithm
-    BVH* chunk_bvh = new BVH();
-    bvh_array[index_x][index_y][index_z] = chunk_bvh;
-    chunk_bvh->reset();
+    BVH& chunk_bvh = bvh_array[index_x][index_y][index_z];
+    chunk_bvh.reset();
 
     chunk->triangle_start = triangle_pool.size();
     chunk->triangle_count = 0;
@@ -268,7 +236,7 @@ void Terrain::loadChunk(int index_x, int index_y, int index_z,
                         Vector3(x, y, z));
 
                     triangle_pool.push_back(triangle);
-                    chunk_bvh->addBVHTriangle(triangle, nullptr);
+                    chunk_bvh.addBVHTriangle(triangle, nullptr);
                 }
 
                 chunk->triangle_count += num_triangles;
@@ -277,25 +245,14 @@ void Terrain::loadChunk(int index_x, int index_y, int index_z,
     }
 
     // Generate my chunk's BVH
-    chunk_bvh->build();
+    chunk_bvh.build();
 
-    // Assign chunk to my specific index. Assumes that the original spot is open
-    if (direct_load)
-        chunks[index_x][index_y][index_z] = chunk;
-    else
-        chunks_helper[index_x][index_y][index_z] = chunk;
+    chunk->dirty = false;
 }
 
 void Terrain::unloadChunk(int index_x, int index_y, int index_z) {
-    // Delete chunk memory
-    if (chunks[index_x][index_y][index_z] != nullptr)
-        delete chunks[index_x][index_y][index_z];
-
-    // Reset pointer
-    chunks[index_x][index_y][index_z] = nullptr;
-
-    // Clear BVH (TODO: WE MAY BE ABLE TO REUSE THE MEMORY)
-    delete bvh_array[index_x][index_y][index_z];
+    // Set chunk dirty to true.
+    chunks[index_x][index_y][index_z].dirty = true;
 }
 
 } // namespace Datamodel

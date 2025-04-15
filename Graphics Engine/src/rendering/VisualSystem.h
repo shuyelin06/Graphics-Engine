@@ -27,6 +27,7 @@
 #include "util/CPUTimer.h"
 #include "util/GPUTimer.h"
 #endif
+#include "VisualDebug.h"
 
 // TESTING
 #include "core/TextureAtlas.h"
@@ -131,7 +132,9 @@ class VisualSystem {
     void imGuiFinish();
 
     void imGuiShutdown();
+#endif
 
+#if defined(ENABLE_DEBUG_DRAWING)
     // Debug via VisualDebug
     ID3D11Buffer* line_vbuffer;
 

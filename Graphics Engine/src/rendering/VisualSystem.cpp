@@ -356,7 +356,7 @@ void VisualSystem::render() {
     processUnderwater();
 
     // ...
-#if defined(_DEBUG)
+#if defined(ENABLE_DEBUG_DRAWING)
     // Debug Functionality
     renderDebugPoints();
     renderDebugLines();
@@ -395,7 +395,7 @@ void VisualSystem::renderPrepare() {
 
     // --- TEST 2: Sun DEBUG
     static float time = 15.f;
-    ImGui::SliderFloat("Time of Day: ", &time, 1.0f, 23.f);
+    // ImGui::SliderFloat("Time of Day: ", &time, 1.0f, 23.f);
     light_manager->updateTimeOfDay(time);
 
     // Pull information from the datamodel
@@ -1039,7 +1039,7 @@ void VisualSystem::renderFinish() {
     renderable_meshes.clear();
 }
 
-#if defined(_DEBUG)
+#if defined(ENABLE_DEBUG_DRAWING)
 void VisualSystem::renderDebugPoints() {
     std::vector<PointData>& points = VisualDebug::points;
 
@@ -1154,7 +1154,9 @@ void VisualSystem::renderDebugLines() {
         context->Draw(numLines, 0);
     }
 }
+#endif
 
+#if defined(_DEBUG)
 // ImGui Initialize:
 // Initializes the ImGui menu and associated data.
 void VisualSystem::imGuiInitialize(HWND window) {

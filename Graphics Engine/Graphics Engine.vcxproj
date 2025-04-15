@@ -248,6 +248,7 @@
     <ClInclude Include="src\datamodel\bvh\TLAS.h" />
     <ClInclude Include="src\datamodel\Component.h" />
     <ClInclude Include="src\datamodel\ComponentHandler.h" />
+    <ClInclude Include="src\datamodel\ThreadPool.h" />
     <ClInclude Include="src\_DEP_\ResourceManager.h" />
     <ClInclude Include="src\datamodel\SceneGraph.h" />
     <ClInclude Include="src\datamodel\terrain\MarchingCube.h" />

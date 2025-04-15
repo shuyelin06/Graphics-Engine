@@ -229,7 +229,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         // Update Datamodel
         scene_graph.updateObjects();
         static int update_time = 0;
-        if (update_time++ > 120) {
+        if (update_time++ > 10) {
             scene_graph.updateTerrainChunks(
                 camera_obj.getTransform().getPosition());
             update_time = 0;
