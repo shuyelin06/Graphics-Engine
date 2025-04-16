@@ -5,7 +5,7 @@
 namespace Engine {
 namespace Datamodel {
 
-Scene::Scene() : objects() { terrain_temp = new Terrain(); }
+Scene::Scene() : objects() { terrain = new Terrain(); }
 Scene::~Scene() {
     for (Object* object : objects)
         delete object;
@@ -24,16 +24,13 @@ Object& Scene::createObject() {
 }
 
 // --- Terrain Handling ---
-const Terrain* Scene::getTerrain() const { return terrain_temp; }
+const Terrain* Scene::getTerrain() const { return terrain; }
 
 // UpdateTerrainChunks:
 // Updates the scene center and loads / unloads chunks based on this center.
-void Scene::updateTerrainChunks(const Vector3& center) {
-    updateTerrainChunks(center.x, center.y, center.z);
-}
 void Scene::updateTerrainChunks(float x, float y, float z) {
-    if (terrain_temp != nullptr)
-        terrain_temp->reloadTerrain(x, y, z);
+    if (terrain != nullptr)
+        terrain->reloadTerrain(x, y, z);
 }
 
 // UpdateAndRenderObjects:

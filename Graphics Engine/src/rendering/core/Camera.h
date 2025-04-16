@@ -18,7 +18,7 @@ namespace Graphics {
 // on the screen is rendered from the camera's point of view.
 // Unless otherwise rotated, the camera's default view
 // is in the +Z axis.
-class Camera : public Component {
+class CameraComponent : public Component {
   protected:
     // Field of view
     float fov;
@@ -31,16 +31,25 @@ class Camera : public Component {
     // unit cube from [-1,1] x [-1,1] x [0,1]
     Matrix4 frustum_matrix;
 
+    // Transform
+    // Mirrors the camera object's transform,
+    // and is used to compute the local to world matrix
+    Transform transform;
+
   public:
-    Camera(Object* object);
-    ~Camera();
+    CameraComponent(Object* object);
+    ~CameraComponent();
+
+    // OVERRIDE:
+    // Pulls the object's transform
+    void update();
 
     // Get the camera's attributes
     float getZNear() const;
     float getZFar() const;
 
-    const Transform* getTransform() const;
-    Transform* getTransform();
+    const Transform& getTransform() const;
+    const Vector3& getPosition() const;
 
     Frustum frustum() const;
 

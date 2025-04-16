@@ -12,22 +12,25 @@
 namespace Engine {
 namespace Graphics {
 // --- Camera ---
-Camera::Camera(Object* object) : Component(object) {
+CameraComponent::CameraComponent(Object* object) : Component(object) {
     setFrustumMatrix(1.2f, 5.f, 500.f);
 }
-Camera::~Camera() = default;
+CameraComponent::~CameraComponent() = default;
+
+// --- Update ---
+void CameraComponent::update() { transform = object->getTransform(); }
 
 // --- Accessors ---
-float Camera::getZNear() const { return z_near; }
-float Camera::getZFar() const { return z_far; }
-const Transform* Camera::getTransform() const {
-    return &object->getTransform();
+float CameraComponent::getZNear() const { return z_near; }
+float CameraComponent::getZFar() const { return z_far; }
+const Transform& CameraComponent::getTransform() const { return transform; }
+const Vector3& CameraComponent::getPosition() const {
+    return transform.getPosition();
 }
-Transform* Camera::getTransform() { return &object->getTransform(); }
 
 // GetFrustum:
 // Returns an object which can be used to query the camera frustum.
-Frustum Camera::frustum() const {
+Frustum CameraComponent::frustum() const {
     const Matrix4 m_world_to_frustum =
         frustum_matrix * object->getTransform().transformMatrix().inverse();
     return Frustum(m_world_to_frustum);
@@ -35,7 +38,7 @@ Frustum Camera::frustum() const {
 
 // SetFrustuMatrix:
 // Updates the camera frustum (projection) matrix
-void Camera::setFrustumMatrix(float fov, float _z_near, float _z_far) {
+void CameraComponent::setFrustumMatrix(float fov, float _z_near, float _z_far) {
     z_near = _z_near;
     z_far = _z_far;
 
@@ -53,11 +56,13 @@ void Camera::setFrustumMatrix(float fov, float _z_near, float _z_far) {
 }
 
 // Camera -> World Matrix
-const Matrix4 Camera::getWorldToCameraMatrix(void) const {
-    return object->getTransform().transformMatrix().inverse();
+const Matrix4 CameraComponent::getWorldToCameraMatrix(void) const {
+    return transform.transformMatrix().inverse();
 }
 
 // Camera -> Projected Space Matrix
-const Matrix4 Camera::getFrustumMatrix(void) const { return frustum_matrix; }
+const Matrix4 CameraComponent::getFrustumMatrix(void) const {
+    return frustum_matrix;
+}
 } // namespace Graphics
 } // namespace Engine

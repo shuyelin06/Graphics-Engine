@@ -41,6 +41,7 @@ const Object* Component::getObject() const { return object; }
 Object* Component::getObject() { return object; }
 
 void Component::markInvalid() { valid = false; }
+void Component::update() {}
 
 } // namespace Datamodel
 } // namespace Engine

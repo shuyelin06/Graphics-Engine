@@ -35,13 +35,16 @@ class Component {
     Component(Object* object);
     ~Component();
 
+    // Component Accessors
     bool isValid() const;
     unsigned int getTag() const;
 
     const Object* getObject() const;
     Object* getObject();
 
+    // Component Modifiers
     void markInvalid();
+    void update();
 
     // Generate a new tag. Systems that want to create components
     // should register them here, so that each component has a unique tag.

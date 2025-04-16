@@ -36,20 +36,24 @@ template <typename T> class ComponentHandler {
         components.erase(components.begin() + index);
     }
 
-    // This will clear all components marked as invalid.
+    // This will clear all components marked as invalid, and call
+    // update for the remaining valid components.
     // Call in the beginning of a system's "prepare" method.
-    void clean() {
-        components.erase(std::remove_if(components.begin(), components.end(),
-                                        [](T* comp) {
-                                            Component* component =
-                                                static_cast<Component*>(comp);
-                                            if (!component->isValid()) {
-                                                delete component;
-                                                return true;
-                                            } else
-                                                return false;
-                                        }),
-                         components.end());
+    void cleanAndUpdate() {
+        int head = 0;
+
+        for (int i = 0; i < components.size(); i++) {
+            Component* component = static_cast<Component*>(components[i]);
+
+            if (component->isValid()) {
+                components[head++] = static_cast<T*>(component);
+                component->update();
+            } else {
+                delete component;
+            }
+        }
+
+        components.resize(head);
     }
 };
 

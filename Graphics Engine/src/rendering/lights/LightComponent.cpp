@@ -10,11 +10,7 @@ ShadowLightComponent::ShadowLightComponent(Object* object, ShadowLight* _light)
 }
 ShadowLightComponent::~ShadowLightComponent() = default;
 
-void ShadowLightComponent::pullDatamodelData(void) const {
-    updateLightMatrices();
-}
-
-void ShadowLightComponent::updateLightMatrices(void) const {
+void ShadowLightComponent::update(void) {
     const Matrix4& m_world = object->getLocalMatrix();
     light->setWorldMatrix(m_world);
 }

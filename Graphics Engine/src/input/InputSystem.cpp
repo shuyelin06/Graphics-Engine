@@ -17,12 +17,7 @@ namespace Input {
 
 // Constructor
 // Initializes the input engine
-InputSystem::InputSystem() = default;
-
-// Initialize:
-// Registers the InputPoller callback into the dispatch chain
-// for input polling functionality
-void InputSystem::initialize(HWND hwnd) {
+InputSystem::InputSystem(HWND hwnd) {
     RECT rect;
     GetWindowRect(hwnd, &rect);
     window_width = rect.right - rect.left;

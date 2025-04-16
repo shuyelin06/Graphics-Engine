@@ -20,7 +20,7 @@ class Scene {
     std::vector<Object*> objects;
 
     // Terrain
-    Terrain* terrain_temp;
+    Terrain* terrain;
 
   public:
     Scene();
@@ -37,7 +37,6 @@ class Scene {
     const Terrain* getTerrain() const;
 
     // Update the terrain based on some center position
-    void updateTerrainChunks(const Vector3& center);
     void updateTerrainChunks(float x, float y, float z);
 
   private:

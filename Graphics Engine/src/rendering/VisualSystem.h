@@ -77,8 +77,7 @@ class VisualSystem {
     float time_of_day;
 
     // Supported Components
-    Camera* camera;
-
+    CameraComponent* camera;
     ComponentHandler<AssetComponent> asset_components;
     ComponentHandler<ShadowLightComponent> light_components;
     VisualTerrain* terrain;
@@ -86,19 +85,17 @@ class VisualSystem {
     std::vector<RenderableAsset> renderable_meshes;
 
   public:
-    VisualSystem();
-
-    // Initialize Visual System
-    void initialize(HWND window);
+    VisualSystem(HWND window);
 
     // Renders an entire scene
+    void pullDatamodelData(); // Call First
     void render();
 
     // Shutdown Visual System
     void shutdown();
 
   public: // Visual System Bindings
-    Camera* bindCameraComponent(Object* object);
+    CameraComponent* bindCameraComponent(Object* object);
     AssetComponent* bindAssetComponent(Object* object,
                                        const std::string& asset_name);
     ShadowLightComponent* bindLightComponent(Object* object);
@@ -112,7 +109,6 @@ class VisualSystem {
     void initializeComponents();
 
   private:                     // Rendering Stages
-    void renderPrepare();      // Prepare for Rendering
     void performShadowPass();  // Shadow Pass
     void performTerrainPass(); // Render Terrain
     void performRenderPass();  // Render Pass

@@ -27,20 +27,18 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include <thread>
+
 #include "datamodel/SceneGraph.h"
 #include "input/InputSystem.h"
 #include "physics/PhysicsSystem.h"
 #include "rendering/VisualSystem.h"
 
-#include "input/components/MovementHandler.h"
-
 #include "rendering/VisualDebug.h"
-
-#include "math/Compute.h"
 #include "utility/Stopwatch.h"
 
 // --- TEST
-#include "datamodel/bvh/BVH.h"
+
 // ---
 
 using namespace Engine;
@@ -53,14 +51,11 @@ using namespace Engine::Graphics;
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 // Static reference to the input system for use in the window message callback
-static InputSystem input_system;
+static InputSystem* input_system_handle;
 
 // Main Function
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                     PWSTR pCmdLine, int nCmdShow) {
-    Vector3 result = SphericalToEuler(sqrtf(26), 1.3734f, 5.3559f);
-    Vector3 original = EulerToSpherical(result.x, result.y, result.z);
-
     // Create a Window Class with the OS
     const wchar_t CLASS_NAME[] = L"Main";
 
@@ -95,30 +90,26 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     // Seed Random Number Generator
     srand(0);
 
-    // Create Input System
-    input_system = InputSystem();
-    input_system.initialize(hwnd);
-
-    // Create Visual System
-    VisualSystem visual_system = VisualSystem();
-    visual_system.initialize(hwnd);
-
-    // Create Physics System
+    // --- Create my Systems ---
+    InputSystem input_system = InputSystem(hwnd);
+    input_system_handle = &input_system;
+    VisualSystem visual_system = VisualSystem(hwnd);
     PhysicsSystem physics_system = PhysicsSystem();
-    physics_system.initialize();
 
-    // Create SceneGraph
+    // --- Create my Scene ---
     Scene scene_graph = Scene();
+    scene_graph.updateTerrainChunks(0.f, 0.f, 0.f);
+
     Object& parent = scene_graph.createObject();
 
+    // Bind a Camera
     Object& camera_obj = parent.createChild();
     visual_system.bindCameraComponent(&camera_obj);
-    scene_graph.updateTerrainChunks(camera_obj.getTransform().getPosition());
 
+    // Bind Terrain
     visual_system.bindTerrain(scene_graph.getTerrain());
 
-    // Input Handling
-    // MovementHandler movementHandler(&camera_obj.getTransform());
+    // Bind Movement Physics
     physics_system.bindPhysicsObject(&camera_obj);
 
     //// Create Object Hierarchy
@@ -126,21 +117,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     // physics_system.bindPhysicsObject(&parent_object);
 
     // --- TESTING ENVIRONMENT
-    BVH bvh = BVH();
-    for (int i = 0; i < 3; i++) {
-        const Vector3 v0 = Vector3(Random(-10.f, 10.f), Random(-10.f, 10.f),
-                                   Random(-10.f, 10.f));
-        const Vector3 v1 = Vector3(Random(-10.f, 10.f), Random(-10.f, 10.f),
-                                   Random(-10.f, 10.f));
-        const Vector3 v2 = Vector3(Random(-10.f, 10.f), Random(-10.f, 10.f),
-                                   Random(-10.f, 10.f));
-
-        bvh.addBVHTriangle(Triangle(v0, v1, v2), nullptr);
-    }
-    bvh.build();
-
-    Vector3 ray_origin;
-    Vector3 ray_direction = Vector3(0, -1, 0);
+    std::thread thread;
     // ---
 
     // Begin window messaging loop
@@ -164,50 +141,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                 return 0;
         }
 
-        /*static float o_arr[3] = {0.f, 0.f, 0.f};
-        static float d_arr[3] = {0.f, -1.f, 0.f};
-        ImGui::SliderFloat3("Origin", o_arr, -25.f, 25.f);
-        ImGui::SliderFloat3("Direction", d_arr, -1.f, 1.f);
-
-        ray_origin = Vector3(o_arr[0], o_arr[1], o_arr[2]);
-        ray_direction = Vector3(d_arr[0], d_arr[1], d_arr[2]);
-        ray_direction = ray_direction.unit();
-
-        if (ImGui::Button("New BVH")) {
-            std::vector<Triangle> triangles;
-            for (int i = 0; i < 55; i++) {
-                const float extent = 5.f;
-                const Vector3 center =
-                    Vector3(Random(-50.f, 50.f), Random(-50.f, 50.f),
-                            Random(-50.f, 50.f));
-                const Vector3 v0 = center + Vector3(Random(-extent, extent),
-                                                    Random(-extent, extent),
-                                                    Random(-extent, extent));
-                const Vector3 v1 = center + Vector3(Random(-extent, extent),
-                                                    Random(-extent, extent),
-                                                    Random(-extent, extent));
-                const Vector3 v2 = center + Vector3(Random(-extent, extent),
-                                                    Random(-extent, extent),
-                                                    Random(-extent, extent));
-
-                bvh.addBVHTriangle(Triangle(v0, v1, v2), nullptr);
-            }
-            bvh.build();
-        }
-
-        BVHRayCast cast = bvh.raycast(ray_origin, ray_direction);
-        if (cast.hit) {
-            VisualDebug::DrawLine(ray_origin,
-                                  ray_origin + ray_direction * cast.t,
-                                  Color::Green());
-            VisualDebug::DrawPoint(ray_origin + ray_direction * cast.t, 2.5f,
-                                   Color ::Green());
-        } else {
-            VisualDebug::DrawLine(
-                ray_origin, ray_origin + ray_direction * 100.f, Color::Red());
-        }
-
-        bvh.debugDrawBVH();*/
+        // Dispatch Input Data
+        input_system.update();
 
         const TLAS& tlas = scene_graph.getTerrain()->getTLAS();
         BVHRayCast cast = tlas.raycast(camera_obj.getTransform().getPosition(),
@@ -219,9 +154,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             VisualDebug::DrawLine(tri.vertex(2), tri.vertex(0), Color::Green());
         }
 
-        // Dispatch Input Data
-        // movementHandler.update();
-        input_system.update();
+        // Pull Data for Rendering
+        visual_system.pullDatamodelData();
 
         // Update Physics System
         physics_system.update();
@@ -230,8 +164,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         scene_graph.updateObjects();
         static int update_time = 0;
         if (update_time++ > 10) {
-            scene_graph.updateTerrainChunks(
-                camera_obj.getTransform().getPosition());
+            const Vector3 pos = camera_obj.getTransform().getPosition();
+            /*thread = std::thread(&Scene::updateTerrainChunks, scene_graph,
+                                 pos.x, pos.y, pos.z);*/
+            scene_graph.updateTerrainChunks(pos.x, pos.y, pos.z);
+
             update_time = 0;
         }
 
@@ -269,7 +206,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
 #endif
 
     // Input System Input
-    if (input_system.dispatchWin32Input(hwnd, uMsg, wParam, lParam))
+    if (input_system_handle->dispatchWin32Input(hwnd, uMsg, wParam, lParam))
         return true;
 
     // Default Window Behavior

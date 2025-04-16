@@ -31,9 +31,6 @@ class PhysicsSystem {
   public:
     PhysicsSystem();
 
-    // Performs relevant initializations for the scene physics
-    void initialize();
-
     void addCollisionHull(const std::string& name,
                           const std::vector<Vector3>& points);
 

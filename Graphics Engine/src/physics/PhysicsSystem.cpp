@@ -9,11 +9,9 @@ using namespace Utility;
 namespace Physics {
 // Constructor:
 // Initializes relevant fields
-PhysicsSystem::PhysicsSystem() : broadphase_tree(0.2f), stopwatch() {}
-
-// Initialize:
-// Begin the stopwatch to track delta_time.
-void PhysicsSystem::initialize() { stopwatch.Reset(); }
+PhysicsSystem::PhysicsSystem() : broadphase_tree(0.2f), stopwatch() {
+    stopwatch.Reset();
+}
 
 // AddCollisionHull:
 // Adds a collision hull to the physics engine with a name
@@ -119,7 +117,7 @@ void PhysicsSystem::update() {
 // since the last call.
 void PhysicsSystem::physicsPrepare() {
     // Remove all PhysicsObjects marked for destruction, and free their memory.
-    objects.clean();
+    objects.cleanAndUpdate();
 
     // Determine the amount of time that has elapsed since the last
     // update() call.

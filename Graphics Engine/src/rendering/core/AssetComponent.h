@@ -23,8 +23,8 @@ class AssetComponent : public Component {
     Vector3 getPosition() const;
     Quaternion getRotation() const;
 
-    // Pulls the object transform
-    void pullDatamodelData();
+    // OVERRIDE: Pulls the object transform
+    void update();
 };
 
 } // namespace Graphics

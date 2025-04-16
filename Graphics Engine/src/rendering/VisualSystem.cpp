@@ -15,11 +15,8 @@ namespace Engine {
 
 namespace Graphics {
 // Constructor
-// Saves the handle to the application window and initializes the
-// system's data structures
-VisualSystem::VisualSystem() {
-    camera = nullptr;
-
+// Initializes the VisualSystem
+VisualSystem::VisualSystem(HWND window) {
     device = NULL;
     context = NULL;
 
@@ -28,12 +25,10 @@ VisualSystem::VisualSystem() {
 
     swap_chain = NULL;
     screen_target = NULL;
-}
 
-// Initialize:
-// Initializes the Visual Engine by creating the necessary Direct3D11
-// components.
-void VisualSystem::initialize(HWND window) {
+    camera = nullptr;
+    terrain = nullptr;
+
     HRESULT result;
 
     // Get window width and height
@@ -304,10 +299,10 @@ void VisualSystem::shutdown() {
 }
 
 // --- Component Bindings ---
-Camera* VisualSystem::bindCameraComponent(Object* object) {
+CameraComponent* VisualSystem::bindCameraComponent(Object* object) {
     if (camera != nullptr)
         delete camera;
-    Camera* new_cam = new Camera(object);
+    CameraComponent* new_cam = new CameraComponent(object);
     object->bindComponent(new_cam);
     camera = new_cam;
 
@@ -346,7 +341,12 @@ void VisualSystem::render() {
     cpu_timer.beginTimer("CPU Frametime");
 #endif
 
-    renderPrepare();
+    // TEMP
+    light_manager->updateTimeOfDay(15.f);
+
+    // Clear the the screen color
+    render_target->clearAsRenderTarget(
+        context, Color(RGB(158.f), RGB(218.f), RGB(255.f)));
 
     performShadowPass(); //..
 
@@ -378,42 +378,30 @@ void VisualSystem::render() {
 }
 
 // RenderPrepare:
-// Prepares the engine for rendering, by processing all render requests and
-// clearing the screen
-void VisualSystem::renderPrepare() {
+// Prepares the engine for rendering, by pulling all necessary
+// data from the datamodel.
+void VisualSystem::pullDatamodelData() {
 #if defined(_DEBUG)
     cpu_timer.beginTimer("Render Prepare");
 #endif
 
-    // Clear the the screen color
-    render_target->clearAsRenderTarget(
-        context, Color(RGB(158.f), RGB(218.f), RGB(255.f)));
+    // Pull my object data.
+    // Remove invalid visual objects, and update them to pull
+    // the datamodel data.
+    if (camera != nullptr)
+        camera->update();
+    asset_components.cleanAndUpdate();
+    light_components.cleanAndUpdate();
 
-    // Check and remove any visual objects that are no longer valid
-    asset_components.clean();
-    light_components.clean();
-
-    // --- TEST 2: Sun DEBUG
-    static float time = 15.f;
-    // ImGui::SliderFloat("Time of Day: ", &time, 1.0f, 23.f);
-    light_manager->updateTimeOfDay(time);
-
-    // Pull information from the datamodel
-    // - Pull asset local -> world matrices from the datamodel
-    // - Pull light data from the datamodel.
-    for (AssetComponent* asset_object : asset_components.getComponents())
-        asset_object->pullDatamodelData();
-    for (ShadowLightComponent* shadow_light : light_components.getComponents())
-        shadow_light->pullDatamodelData();
-    light_manager->updateSunCascades(camera->frustum());
-
-    static bool enable = true;
-#if defined(_DEBUG)
-    ImGui::Checkbox("Disable Frustum Culling", &enable);
-#endif
-    const Frustum cam_frustum = camera->frustum();
+    // Pull my terrain data.
+    // Generate my terrain meshes.
+    MeshBuilder* builder = resource_manager->createMeshBuilder();
+    terrain->updateTerrainMeshes(*builder);
 
     // Prepare managers for data
+    const Frustum cam_frustum = camera->frustum();
+    light_manager->updateSunCascades(camera->frustum());
+
     light_manager->resetShadowCasters();
 
     for (const AssetComponent* object : asset_components.getComponents()) {
@@ -432,10 +420,6 @@ void VisualSystem::renderPrepare() {
             light_manager->addShadowCaster(shadowCaster);
         }
     }
-
-    // Generate my terrain mesh
-    MeshBuilder* builder = resource_manager->createMeshBuilder();
-    terrain->updateTerrainMeshes(*builder);
 
     // Load it for shadows
     const std::vector<Mesh*>& terrain_meshes = terrain->getTerrainMeshes();
@@ -571,12 +555,12 @@ void VisualSystem::performTerrainPass() {
         CBHandle* pCB1 = pipeline_manager->getPixelCB(CB1);
         pCB1->clearData();
 
-        const Vector3& cameraPosition = camera->getTransform()->getPosition();
+        const Vector3& cameraPosition = camera->getPosition();
         pCB1->loadData(&cameraPosition, FLOAT3);
         int lightCount = light_manager->getShadowLights().size();
         pCB1->loadData(&lightCount, INT);
 
-        const Vector3 cameraView = camera->getTransform()->forward();
+        const Vector3 cameraView = camera->getTransform().forward();
         pCB1->loadData(&cameraView, FLOAT3);
         pCB1->loadData(nullptr, FLOAT);
 
@@ -722,12 +706,12 @@ void VisualSystem::performRenderPass() {
         CBHandle* pCB1 = pipeline_manager->getPixelCB(CB1);
         pCB1->clearData();
 
-        const Vector3& cameraPosition = camera->getTransform()->getPosition();
+        const Vector3& cameraPosition = camera->getPosition();
         pCB1->loadData(&cameraPosition, FLOAT3);
         int lightCount = light_manager->getShadowLights().size();
         pCB1->loadData(&lightCount, INT);
 
-        const Vector3 cameraView = camera->getTransform()->forward();
+        const Vector3 cameraView = camera->getTransform().forward();
         pCB1->loadData(&cameraView, FLOAT3);
         pCB1->loadData(nullptr, FLOAT);
 
@@ -989,7 +973,7 @@ void VisualSystem::processUnderwater() {
                 .inverse();
         pCB1->loadData(&m_project_to_world, FLOAT4X4);
 
-        const Vector3& camera_pos = camera->getTransform()->getPosition();
+        const Vector3& camera_pos = camera->getPosition();
         pCB1->loadData(&camera_pos, FLOAT3);
 
         // The lower the value, the slower it gets darker as you go deeper

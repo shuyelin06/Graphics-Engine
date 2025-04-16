@@ -24,7 +24,7 @@ Quaternion AssetComponent::getRotation() const {
 
 // PullDatamodelData:
 // Pulls the object transform from the datamodel.
-void AssetComponent::pullDatamodelData() {
+void AssetComponent::update() {
     m_local_to_world = object->getLocalMatrix();
 }
 

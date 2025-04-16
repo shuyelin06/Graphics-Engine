@@ -16,12 +16,8 @@ class ShadowLightComponent : public Component {
     ShadowLightComponent(Object* object, ShadowLight* light);
     ~ShadowLightComponent();
 
-    // Update:
-    // Updates the light's internal data with data from the datamodel.
-    void pullDatamodelData() const;
-
-  private:
-    void updateLightMatrices() const;
+    // OVERRIDE: Updates the light's internal data with data from the datamodel.
+    void update();
 };
 
 } // namespace Graphics
