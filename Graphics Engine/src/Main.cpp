@@ -27,8 +27,10 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include <mutex>
 #include <thread>
 
+#include "core/ThreadPool.h"
 #include "datamodel/SceneGraph.h"
 #include "input/InputSystem.h"
 #include "physics/PhysicsSystem.h"
@@ -96,6 +98,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     VisualSystem visual_system = VisualSystem(hwnd);
     PhysicsSystem physics_system = PhysicsSystem();
 
+    // --- Create my ThreadPool ---
+    const int num_worker_threads = std::thread::hardware_concurrency() - 1;
+    ThreadPool::InitializeThreadPool();
+
     // --- Create my Scene ---
     Scene scene_graph = Scene();
     scene_graph.updateTerrainChunks(0.f, 0.f, 0.f);
@@ -117,7 +123,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     // physics_system.bindPhysicsObject(&parent_object);
 
     // --- TESTING ENVIRONMENT
-    std::thread thread;
+
     // ---
 
     // Begin window messaging loop
@@ -138,42 +144,37 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             DispatchMessage(&msg);
 
             if (msg.message == WM_QUIT)
-                return 0;
+                close = true;
         }
+
+#if defined(_DEBUG)
+        // ImGui Display
+        if (ImGui::CollapsingHeader("Core")) {
+            ImGui::Text("Pending Jobs: %i",
+                        ThreadPool::GetThreadPool()->countPendingJobs());
+            ImGui::Text("Active Workers: %i",
+                        ThreadPool::GetThreadPool()->countActiveWorkers());
+        }
+#endif
 
         // Dispatch Input Data
         input_system.update();
 
-        const TLAS& tlas = scene_graph.getTerrain()->getTLAS();
-        BVHRayCast cast = tlas.raycast(camera_obj.getTransform().getPosition(),
-                                       camera_obj.getTransform().forward());
-        if (cast.hit) {
-            const Triangle& tri = cast.hit_triangle->triangle;
-            VisualDebug::DrawLine(tri.vertex(0), tri.vertex(1), Color::Green());
-            VisualDebug::DrawLine(tri.vertex(1), tri.vertex(2), Color::Green());
-            VisualDebug::DrawLine(tri.vertex(2), tri.vertex(0), Color::Green());
-        }
-
         // Pull Data for Rendering
         visual_system.pullDatamodelData();
 
+        // Render Objects
+        visual_system.render();
+
         // Update Physics System
+        physics_system.pullDatamodelData();
         physics_system.update();
+        physics_system.pushDatamodelData();
 
         // Update Datamodel
         scene_graph.updateObjects();
-        static int update_time = 0;
-        if (update_time++ > 10) {
-            const Vector3 pos = camera_obj.getTransform().getPosition();
-            /*thread = std::thread(&Scene::updateTerrainChunks, scene_graph,
-                                 pos.x, pos.y, pos.z);*/
-            scene_graph.updateTerrainChunks(pos.x, pos.y, pos.z);
-
-            update_time = 0;
-        }
-
-        // Render Objects
-        visual_system.render();
+        const Vector3 pos = camera_obj.getTransform().getPosition();
+        scene_graph.updateTerrainChunks(pos.x, pos.y, pos.z);
 
         // Stall until enough time has elapsed for 60 frames / second
         while (framerate_watch.Duration() < 1 / 60.f) {
@@ -182,6 +183,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     // Shutdown all systems
     visual_system.shutdown();
+
+    ThreadPool::DestroyThreadPool();
 
     // Finish
     return 0;

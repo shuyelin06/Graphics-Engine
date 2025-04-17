@@ -13,9 +13,10 @@ PhysicsObject::PhysicsObject(Object* _object) : Component(_object) {
 }
 PhysicsObject::~PhysicsObject() = default;
 
-void PhysicsObject::pollInput() {
-    Transform& transform = object->getTransform();
+void PhysicsObject::pull() { transform = object->getTransform(); }
+void PhysicsObject::push() { object->getTransform() = transform; }
 
+void PhysicsObject::pollInput() {
     // Poll the input system for the status of the WASDQE keys.
     // Use this to form a movement vector indicating the direction
     // to move in.
@@ -71,7 +72,7 @@ void PhysicsObject::pollInput() {
 }
 
 void PhysicsObject::applyVelocity(float delta_time) {
-    object->getTransform().offsetPosition(velocity * delta_time);
+    transform.offsetPosition(velocity * delta_time);
 }
 void PhysicsObject::applyAcceleration(float delta_time) {
     velocity += acceleration * delta_time;

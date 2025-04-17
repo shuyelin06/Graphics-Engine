@@ -16,11 +16,7 @@ class VisualTerrain {
 
     // Stores my terrain meshes, in a format modeling our terrain.
     std::vector<Mesh*> chunk_meshes;
-    std::vector<Mesh*> chunk_meshes_helper; // Used for copying data
-
-    // Tracks the terrain center to determine if a mesh
-    // update is needed
-    int center_x, center_y, center_z;
+    bool dirty[TERRAIN_CHUNK_COUNT][TERRAIN_CHUNK_COUNT][TERRAIN_CHUNK_COUNT];
 
   public:
     VisualTerrain(const Terrain* terrain);

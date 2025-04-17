@@ -18,8 +18,6 @@ namespace Datamodel {
 class Scene {
   private:
     std::vector<Object*> objects;
-
-    // Terrain
     Terrain* terrain;
 
   public:
@@ -27,7 +25,7 @@ class Scene {
     ~Scene();
 
     // --- Object Handling ---
-    const std::vector<Object*>& getObjects();
+    const std::vector<Object*>& getObjects() const;
     Object& createObject();
 
     // Update object transforms and submit render requests
@@ -36,8 +34,12 @@ class Scene {
     // --- Terrain Handling ---
     const Terrain* getTerrain() const;
 
+    // Invalidate terrain chunks outside of our given position.
+    void invalidateTerrainChunks(float x, float y, float z);
     // Update the terrain based on some center position
     void updateTerrainChunks(float x, float y, float z);
+    // Load terrain chunks
+    void loadTerrainChunks();
 
   private:
     void updateObjectsHelper(Object* object, const Matrix4& m_parent);

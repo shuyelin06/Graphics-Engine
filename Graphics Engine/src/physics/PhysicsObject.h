@@ -18,6 +18,8 @@ class PhysicsObject : public Component {
     friend class PhysicsSystem;
 
   private:
+    Transform transform;
+
     Vector3 acceleration;
     Vector3 velocity;
 
@@ -30,6 +32,11 @@ class PhysicsObject : public Component {
   public:
     PhysicsObject(Object* object);
     ~PhysicsObject();
+
+    // Pull and push data from this component
+    // and the datamodel.
+    void pull();
+    void push();
 
     void pollInput();
     void applyVelocity(float delta_time);

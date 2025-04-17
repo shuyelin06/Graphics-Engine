@@ -13,7 +13,7 @@ Scene::~Scene() {
 
 // GetObjects:
 // Returns the vector of objects in the SceneGraph
-const std::vector<Object*>& Scene::getObjects() { return objects; }
+const std::vector<Object*>& Scene::getObjects() const { return objects; }
 
 // NewObject:
 // Creates a new object in the scene.
@@ -26,11 +26,20 @@ Object& Scene::createObject() {
 // --- Terrain Handling ---
 const Terrain* Scene::getTerrain() const { return terrain; }
 
+// InvalidateTerrainChunks:
+// Given a position, invalidates the terrain chunks too far
+// from this position, and places their positions in a priority queue
+// to be reloaded.
+void Scene::invalidateTerrainChunks(float x, float y, float z)
+{
+
+}
+
 // UpdateTerrainChunks:
 // Updates the scene center and loads / unloads chunks based on this center.
 void Scene::updateTerrainChunks(float x, float y, float z) {
     if (terrain != nullptr)
-        terrain->reloadTerrain(x, y, z);
+        terrain->invalidateTerrain(x, y, z);
 }
 
 // UpdateAndRenderObjects:

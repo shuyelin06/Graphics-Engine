@@ -424,6 +424,9 @@ void VisualSystem::pullDatamodelData() {
     // Load it for shadows
     const std::vector<Mesh*>& terrain_meshes = terrain->getTerrainMeshes();
     for (Mesh* terrain_mesh : terrain_meshes) {
+        if (terrain_mesh == nullptr)
+            continue;
+
         ShadowCaster terrain_shadow;
         terrain_shadow.m_localToWorld = Matrix4::Identity();
         terrain_shadow.mesh = terrain_mesh;

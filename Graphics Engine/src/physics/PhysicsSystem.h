@@ -40,11 +40,13 @@ class PhysicsSystem {
     CollisionObject* bindCollisionObject(PhysicsObject* physics_object,
                                          const std::string& hull_id);
 
+    // (SYNC) Pull data from the datamodel
+    void pullDatamodelData();
     // Updates the physics for a scene
     void update();
+    // (SYNC) Push data to the datamodel
+    void pushDatamodelData();
 
-  private:
-    void physicsPrepare(); // Prepare for Physics
 };
 } // namespace Physics
 } // namespace Engine

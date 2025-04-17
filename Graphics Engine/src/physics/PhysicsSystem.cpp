@@ -57,11 +57,26 @@ PhysicsSystem::bindCollisionObject(PhysicsObject* phys_obj,
     return collider;
 }
 
+// PullDatamodelData:
+// Pulls a copy of data from the datamodel, for the physics
+// system to operate on.
+void PhysicsSystem::pullDatamodelData() {
+    // Remove all PhysicsObjects marked for destruction, and free their memory.
+    objects.cleanAndUpdate();
+
+    // Pull datamodel data
+    for (PhysicsObject* obj : objects.getComponents())
+        obj->pull();
+
+    // Determine the amount of time that has elapsed since the last
+    // update() call.
+    delta_time = stopwatch.Duration();
+    stopwatch.Reset();
+}
+
 // Update:
 // Updates the physics for a scene.
 void PhysicsSystem::update() {
-    physicsPrepare();
-
     // Poll Input
     for (PhysicsObject* obj : objects.getComponents())
         obj->pollInput();
@@ -111,18 +126,11 @@ void PhysicsSystem::update() {
     }
 }
 
-// PhysicsPrepare:
-// Prepares the physics system to run. Removes objects that are
-// marked for destruction, and finds the amount of time that has elapsed
-// since the last call.
-void PhysicsSystem::physicsPrepare() {
-    // Remove all PhysicsObjects marked for destruction, and free their memory.
-    objects.cleanAndUpdate();
-
-    // Determine the amount of time that has elapsed since the last
-    // update() call.
-    delta_time = stopwatch.Duration();
-    stopwatch.Reset();
+// PushDatamodelData:
+// Pushes data to the datamodel.
+void PhysicsSystem::pushDatamodelData() {
+    for (PhysicsObject* obj : objects.getComponents())
+        obj->push();
 }
 
 } // namespace Physics
