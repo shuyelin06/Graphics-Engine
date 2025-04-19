@@ -1,9 +1,7 @@
 #pragma once
 
-#include <atomic>
 #include <mutex>
 #include <queue>
-#include <shared_mutex>
 #include <vector>
 
 #include "TerrainCallback.h"
@@ -103,9 +101,8 @@ class Terrain {
     TerrainChunk* getChunk(int x_i, int y_i, int z_i);
 
     // Invalidate terrain chunks based on a new center (x,y,z) in
-    // world coordinates.
-    // Invalidated terrain chunks have generation requests submitted
-    // to worker threads so that their data can be generated again.
+    // world coordinates. Invalidated terrain chunks have generation requests
+    // submitted to worker threads so that their data can be generated again.
     void invalidateTerrain(float x, float y, float z);
 
   private:

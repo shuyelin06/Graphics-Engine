@@ -77,7 +77,9 @@ void Terrain::invalidateTerrain(float x, float y, float z) {
                 const int chunk_z = center_z + k;
                 const int index_z = Modulus(chunk_z, TERRAIN_CHUNK_COUNT);
 
-                // If the chunk is dirty, don't do anything.
+                // If the chunk is dirty, don't do anything. We know its dirty
+                // if we're unable to lock-- as this means a thread is updating
+                // the chunk data.
                 TerrainChunk& chunk = chunks[index_x][index_y][index_z];
                 std::unique_lock<std::mutex> lock(chunk.mutex,
                                                   std::try_to_lock);

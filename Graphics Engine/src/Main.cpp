@@ -104,7 +104,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     // --- Create my Scene ---
     Scene scene_graph = Scene();
-    scene_graph.updateTerrainChunks(0.f, 0.f, 0.f);
+    scene_graph.invalidateTerrainChunks(0.f, 0.f, 0.f);
 
     Object& parent = scene_graph.createObject();
 
@@ -173,9 +173,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
         // Update Datamodel
         scene_graph.updateObjects();
+
         const Vector3 pos = camera_obj.getTransform().getPosition();
-        // ImGui::Text("Camera Pos: %f %f %f", pos.x, pos.y, pos.z);
-        scene_graph.updateTerrainChunks(pos.x, pos.y, pos.z);
+        scene_graph.invalidateTerrainChunks(pos.x, pos.y, pos.z);
 
         // Stall until enough time has elapsed for 60 frames / second
         while (framerate_watch.Duration() < 1 / 60.f) {

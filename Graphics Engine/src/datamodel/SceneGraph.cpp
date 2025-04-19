@@ -30,14 +30,7 @@ Terrain* Scene::getTerrain() const { return terrain; }
 // Given a position, invalidates the terrain chunks too far
 // from this position, and places their positions in a priority queue
 // to be reloaded.
-void Scene::invalidateTerrainChunks(float x, float y, float z)
-{
-
-}
-
-// UpdateTerrainChunks:
-// Updates the scene center and loads / unloads chunks based on this center.
-void Scene::updateTerrainChunks(float x, float y, float z) {
+void Scene::invalidateTerrainChunks(float x, float y, float z) {
     if (terrain != nullptr)
         terrain->invalidateTerrain(x, y, z);
 }

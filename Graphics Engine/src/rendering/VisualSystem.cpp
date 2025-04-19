@@ -84,11 +84,11 @@ void VisualSystem::initializeScreenTarget(HWND window, UINT width,
     swap_chain_descriptor.Windowed = true; // Displaying to a Window
 
     D3D_FEATURE_LEVEL feature_level; // Stores the GPU functionality
-    result = D3D11CreateDeviceAndSwapChain(
-        NULL, D3D_DRIVER_TYPE_HARDWARE, NULL,
-        0, // Flags
-        NULL, 0, D3D11_SDK_VERSION, &swap_chain_descriptor, &swap_chain,
-        &device, &feature_level, &context);
+    result = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL,
+                                           0, // Flags
+                                           NULL, 0, D3D11_SDK_VERSION,
+                                           &swap_chain_descriptor, &swap_chain,
+                                           &device, &feature_level, &context);
 
     assert(S_OK == result && swap_chain && device && context);
 
@@ -389,10 +389,8 @@ void VisualSystem::pullDatamodelData() {
     asset_components.cleanAndUpdate();
     light_components.cleanAndUpdate();
 
-    // Pull my terrain data.
-    // Generate my terrain meshes.
-    MeshBuilder* builder = resource_manager->createMeshBuilder();
-    terrain->updateTerrainMeshes();
+    // Pull my terrain meshes
+    terrain->pullTerrainMeshes();
 
     // Prepare managers for data
     const Frustum cam_frustum = camera->frustum();

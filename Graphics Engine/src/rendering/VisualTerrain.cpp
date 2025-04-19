@@ -163,7 +163,7 @@ VisualTerrain::~VisualTerrain() {
 
 // GenerateTerrainMesh:
 // Generates the mesh for the terrain
-void VisualTerrain::updateTerrainMeshes() {
+void VisualTerrain::pullTerrainMeshes() {
     // Iterate through my callbacks. If they have a mesh, overwrite what we
     // currently have.
     for (int i = 0; i < TERRAIN_CHUNK_COUNT; i++) {

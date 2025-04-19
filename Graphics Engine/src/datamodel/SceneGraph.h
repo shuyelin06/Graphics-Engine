@@ -36,10 +36,6 @@ class Scene {
 
     // Invalidate terrain chunks outside of our given position.
     void invalidateTerrainChunks(float x, float y, float z);
-    // Update the terrain based on some center position
-    void updateTerrainChunks(float x, float y, float z);
-    // Load terrain chunks
-    void loadTerrainChunks();
 
   private:
     void updateObjectsHelper(Object* object, const Matrix4& m_parent);
