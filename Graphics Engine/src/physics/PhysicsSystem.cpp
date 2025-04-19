@@ -11,6 +11,8 @@ namespace Physics {
 // Initializes relevant fields
 PhysicsSystem::PhysicsSystem() : broadphase_tree(0.2f), stopwatch() {
     stopwatch.Reset();
+
+    terrain = nullptr;
 }
 
 // AddCollisionHull:
@@ -57,6 +59,13 @@ PhysicsSystem::bindCollisionObject(PhysicsObject* phys_obj,
     return collider;
 }
 
+PhysicsTerrain* PhysicsSystem::bindTerrain(Terrain* _terrain) {
+    if (terrain != nullptr)
+        delete terrain;
+    terrain = new PhysicsTerrain(_terrain);
+    return terrain;
+}
+
 // PullDatamodelData:
 // Pulls a copy of data from the datamodel, for the physics
 // system to operate on.
@@ -67,6 +76,9 @@ void PhysicsSystem::pullDatamodelData() {
     // Pull datamodel data
     for (PhysicsObject* obj : objects.getComponents())
         obj->pull();
+
+    if (terrain != nullptr)
+        terrain->pullTerrainBVHs();
 
     // Determine the amount of time that has elapsed since the last
     // update() call.
@@ -131,6 +143,11 @@ void PhysicsSystem::update() {
 void PhysicsSystem::pushDatamodelData() {
     for (PhysicsObject* obj : objects.getComponents())
         obj->push();
+}
+
+BVHRayCast PhysicsSystem::raycast(const Vector3& origin,
+                                  const Vector3& direction) {
+    return terrain->getTerrainTLS().raycast(origin, direction);
 }
 
 } // namespace Physics

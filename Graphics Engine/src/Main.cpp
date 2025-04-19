@@ -114,6 +114,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     // Bind Terrain
     visual_system.bindTerrain(scene_graph.getTerrain());
+    physics_system.bindTerrain(scene_graph.getTerrain());
 
     // Bind Movement Physics
     physics_system.bindPhysicsObject(&camera_obj);
@@ -176,6 +177,16 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
         const Vector3 pos = camera_obj.getTransform().getPosition();
         scene_graph.invalidateTerrainChunks(pos.x, pos.y, pos.z);
+
+        // TEST
+        const Vector3 direc = camera_obj.getTransform().forward();
+        BVHRayCast raycast = physics_system.raycast(pos, direc);
+        if (raycast.hit) {
+            const Triangle& triangle = raycast.hit_triangle->triangle;
+            VisualDebug::DrawLine(triangle.vertex(0), triangle.vertex(1));
+            VisualDebug::DrawLine(triangle.vertex(1), triangle.vertex(2));
+            VisualDebug::DrawLine(triangle.vertex(2), triangle.vertex(0));
+        }
 
         // Stall until enough time has elapsed for 60 frames / second
         while (framerate_watch.Duration() < 1 / 60.f) {

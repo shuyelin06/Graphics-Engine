@@ -155,7 +155,8 @@ VisualTerrain::~VisualTerrain() {
     for (int i = 0; i < TERRAIN_CHUNK_COUNT; i++) {
         for (int j = 0; j < TERRAIN_CHUNK_COUNT; j++) {
             for (int k = 0; k < TERRAIN_CHUNK_COUNT; k++) {
-                delete chunk_meshes[i][j][k];
+                if (chunk_meshes[i][j][k] != nullptr)
+                    delete chunk_meshes[i][j][k];
             }
         }
     }

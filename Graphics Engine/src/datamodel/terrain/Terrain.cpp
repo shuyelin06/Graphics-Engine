@@ -11,17 +11,7 @@
 
 namespace Engine {
 namespace Datamodel {
-Terrain::Terrain() : noise_func(0) {
-    center_x = center_y = center_z = INT_MAX;
-
-    for (int i = 0; i < TERRAIN_CHUNK_COUNT; i++) {
-        for (int j = 0; j < TERRAIN_CHUNK_COUNT; j++) {
-            for (int k = 0; k < TERRAIN_CHUNK_COUNT; k++) {
-                bvh_array[i][j][k] = BVH();
-            }
-        }
-    }
-}
+Terrain::Terrain() : noise_func(0) { center_x = center_y = center_z = INT_MAX; }
 
 Terrain::~Terrain() = default;
 
@@ -29,17 +19,6 @@ Terrain::~Terrain() = default;
 void Terrain::registerTerrainCallback(int i, int j, int k,
                                       TerrainCallback* callback) {
     chunks[i][j][k].callbacks.push_back(callback);
-}
-
-// --- Accessors ---
-const TLAS& Terrain::getTLAS() const { return tlas; }
-
-int Terrain::getCenterChunkX() const { return center_x; }
-int Terrain::getCenterChunkY() const { return center_y; }
-int Terrain::getCenterChunkZ() const { return center_z; }
-
-TerrainChunk* Terrain::getChunk(int x_i, int y_i, int z_i) {
-    return &chunks[x_i][y_i][z_i];
 }
 
 // ReloadTerrain:
@@ -104,20 +83,6 @@ void Terrain::invalidateTerrain(float x, float y, float z) {
             }
         }
     }
-
-    // Finally, update our TLAS
-    tlas.reset();
-    /*for (int i = 0; i < TERRAIN_CHUNK_COUNT; i++) {
-        for (int j = 0; j < TERRAIN_CHUNK_COUNT; j++) {
-            for (int k = 0; k < TERRAIN_CHUNK_COUNT; k++) {
-                if (chunks[i][j][k].isDirty())
-                    continue;
-
-                tlas.addTLASNode(&bvh_array[i][j][k], Matrix4::Identity());
-            }
-        }
-    }
-    tlas.build();*/
 }
 
 // ScheduleChunkReload:
@@ -179,9 +144,6 @@ void Terrain::reloadChunk(const ChunkIndex local_index,
     }
 
     // Generate chunk mesh using the marching cubes algorithm
-    BVH& chunk_bvh = bvh_array[local_index.x][local_index.y][local_index.z];
-    chunk_bvh.reset();
-
     chunk->border_triangles.clear();
     chunk->triangles.clear();
 
@@ -234,15 +196,11 @@ void Terrain::reloadChunk(const ChunkIndex local_index,
                     // Triangles in the chunk
                     else {
                         chunk->triangles.push_back(triangle);
-                        chunk_bvh.addBVHTriangle(triangle, nullptr);
                     }
                 }
             }
         }
     }
-
-    // Generate my chunk's BVH
-    chunk_bvh.build();
 
     // Call the chunk callback functions
     for (TerrainCallback* callback : chunk->callbacks)

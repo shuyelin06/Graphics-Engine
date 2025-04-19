@@ -78,11 +78,6 @@ class Terrain {
     TerrainChunk chunks[TERRAIN_CHUNK_COUNT][TERRAIN_CHUNK_COUNT]
                        [TERRAIN_CHUNK_COUNT];
 
-    // Chunk BVHs + TLAS for Raycasting
-    TLAS tlas;
-    BVH bvh_array[TERRAIN_CHUNK_COUNT][TERRAIN_CHUNK_COUNT]
-                 [TERRAIN_CHUNK_COUNT];
-
   public:
     Terrain();
     ~Terrain();
@@ -90,15 +85,6 @@ class Terrain {
     // Initializers
     void registerTerrainCallback(int i, int j, int k,
                                  TerrainCallback* callback);
-
-    // Accessors
-    const TLAS& getTLAS() const;
-
-    int getCenterChunkX() const;
-    int getCenterChunkY() const;
-    int getCenterChunkZ() const;
-
-    TerrainChunk* getChunk(int x_i, int y_i, int z_i);
 
     // Invalidate terrain chunks based on a new center (x,y,z) in
     // world coordinates. Invalidated terrain chunks have generation requests

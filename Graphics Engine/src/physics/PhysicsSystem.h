@@ -6,6 +6,7 @@
 #include "collisions/AABBTree.h"
 
 #include "PhysicsObject.h"
+#include "PhysicsTerrain.h"
 #include "datamodel/ComponentHandler.h"
 
 #include "utility/Stopwatch.h"
@@ -27,6 +28,7 @@ class PhysicsSystem {
 
     // All physics object the engine is in control of
     ComponentHandler<PhysicsObject> objects;
+    PhysicsTerrain* terrain;
 
   public:
     PhysicsSystem();
@@ -39,6 +41,7 @@ class PhysicsSystem {
 
     CollisionObject* bindCollisionObject(PhysicsObject* physics_object,
                                          const std::string& hull_id);
+    PhysicsTerrain* bindTerrain(Terrain* terrain);
 
     // (SYNC) Pull data from the datamodel
     void pullDatamodelData();
@@ -47,6 +50,8 @@ class PhysicsSystem {
     // (SYNC) Push data to the datamodel
     void pushDatamodelData();
 
+    // Raycast into the scene
+    BVHRayCast raycast(const Vector3& origin, const Vector3& direction);
 };
 } // namespace Physics
 } // namespace Engine

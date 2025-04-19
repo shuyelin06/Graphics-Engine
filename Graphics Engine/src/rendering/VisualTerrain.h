@@ -32,7 +32,9 @@ class VisualTerrainCallback : public TerrainCallback {
 };
 
 // VisualTerrain Class:
-// Stores rendering information for a terrain chunk.
+// Interfaces with the datamodel to pull and generate
+// terrain data for the visual system. This
+// primarily consists of mesh data.
 class VisualTerrain {
   private:
     Terrain* terrain;
@@ -40,7 +42,7 @@ class VisualTerrain {
     // Output Meshes
     std::vector<Mesh*> output_meshes;
 
-    // Stores my most recent terrain meshes, in a format modeling our terrain.
+    // Stores the most recent terrain meshes
     Mesh* chunk_meshes[TERRAIN_CHUNK_COUNT][TERRAIN_CHUNK_COUNT]
                       [TERRAIN_CHUNK_COUNT];
     // Stores callback functions that may update with new terrain data
