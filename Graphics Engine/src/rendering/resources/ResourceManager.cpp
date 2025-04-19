@@ -36,8 +36,8 @@ void ResourceManager::initializeResources() {
     mesh_sampler = LoadMeshTextureSampler();
 
     // Stores an atlas of material colors to avoid the need for rebinds later
-    AtlasBuilder atlas_builder = AtlasBuilder(4096, 4096, device);
-    MeshBuilder mesh_builder = MeshBuilder(device);
+    AtlasBuilder atlas_builder = AtlasBuilder(4096, 4096);
+    MeshBuilder mesh_builder = MeshBuilder();
 
     // --- Load Assets Here ---
     LoadCube(mesh_builder);
@@ -64,7 +64,7 @@ void ResourceManager::initializeResources() {
     // Tree
     LoadAssetFromGLTF("Tree", "data/Tree.glb", mesh_builder, atlas_builder);
 
-    color_atlas = atlas_builder.generate();
+    color_atlas = atlas_builder.generate(device);
 }
 
 uint16_t ResourceManager::registerAsset(const std::string& name, Asset* asset) {
@@ -78,9 +78,7 @@ uint16_t ResourceManager::registerAsset(const std::string& name, Asset* asset) {
 
 // CreateMeshBuilder:
 // Creates and returns a mesh builder
-MeshBuilder* ResourceManager::createMeshBuilder() {
-    return new MeshBuilder(device);
-}
+MeshBuilder* ResourceManager::createMeshBuilder() { return new MeshBuilder(); }
 
 // Get Resources:
 // Return resources by name.
@@ -119,7 +117,7 @@ bool ResourceManager::LoadAssetFromGLTF(const std::string& asset_name,
                                         AtlasBuilder& tex_builder) {
     mesh_builder.reset();
     GLTFFile gltf_file = GLTFFile(path);
-    Asset* asset = gltf_file.readFromFile(mesh_builder, tex_builder);
+    Asset* asset = gltf_file.readFromFile(mesh_builder, tex_builder, device);
 
     if (asset != nullptr) {
         registerAsset(asset_name, asset);
@@ -135,7 +133,7 @@ bool ResourceManager::LoadTextureFromPNG(const std::string& tex_name,
                                          TextureBuilder& builder) {
     PNGFile png_file = PNGFile(path);
     png_file.readPNGData(builder);
-    Texture* tex = builder.generate();
+    Texture* tex = builder.generate(device);
 
     if (tex != nullptr) {
         const uint16_t index = textures.size();
@@ -163,7 +161,7 @@ bool ResourceManager::LoadCube(MeshBuilder& builder) {
     builder.addCube(Vector3(0, 0, 0), Quaternion(), 1.f);
 
     Asset* cube = new Asset();
-    cube->addMesh(builder.generate());
+    cube->addMesh(builder.generate(device));
 
     return registerAsset("Cube", cube);
 }

@@ -4,12 +4,8 @@
 #include <d3d11_1.h>
 
 #include "VisualDebug.h"
-
-#include "datamodel/Object.h"
-
 #include "core/Frustum.h"
-
-#define RGB(rgb) ((rgb) / 255.f)
+#include "datamodel/Object.h"
 
 namespace Engine {
 
@@ -90,7 +86,7 @@ void VisualSystem::initializeScreenTarget(HWND window, UINT width,
     D3D_FEATURE_LEVEL feature_level; // Stores the GPU functionality
     result = D3D11CreateDeviceAndSwapChain(
         NULL, D3D_DRIVER_TYPE_HARDWARE, NULL,
-        D3D11_CREATE_DEVICE_SINGLETHREADED, // Flags
+        0, // Flags
         NULL, 0, D3D11_SDK_VERSION, &swap_chain_descriptor, &swap_chain,
         &device, &feature_level, &context);
 
@@ -325,10 +321,10 @@ ShadowLightComponent* VisualSystem::bindLightComponent(Object* object) {
     return light_obj;
 }
 
-VisualTerrain* VisualSystem::bindTerrain(const Terrain* _terrain) {
+VisualTerrain* VisualSystem::bindTerrain(Terrain* _terrain) {
     if (terrain != nullptr)
         delete terrain;
-    terrain = new VisualTerrain(_terrain);
+    terrain = new VisualTerrain(_terrain, device);
 
     return terrain;
 }
@@ -346,7 +342,7 @@ void VisualSystem::render() {
 
     // Clear the the screen color
     render_target->clearAsRenderTarget(
-        context, Color(RGB(158.f), RGB(218.f), RGB(255.f)));
+        context, Color(158.f / 255.f, 218.f / 255.f, 255.f / 255.f));
 
     performShadowPass(); //..
 
@@ -396,7 +392,7 @@ void VisualSystem::pullDatamodelData() {
     // Pull my terrain data.
     // Generate my terrain meshes.
     MeshBuilder* builder = resource_manager->createMeshBuilder();
-    terrain->updateTerrainMeshes(*builder);
+    terrain->updateTerrainMeshes();
 
     // Prepare managers for data
     const Frustum cam_frustum = camera->frustum();

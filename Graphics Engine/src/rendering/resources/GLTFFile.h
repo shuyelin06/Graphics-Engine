@@ -21,7 +21,8 @@ class GLTFFile {
   public:
     GLTFFile(const std::string& path);
 
-    Asset* readFromFile(MeshBuilder& mesh_builder, AtlasBuilder& tex_builder);
+    Asset* readFromFile(MeshBuilder& mesh_builder, AtlasBuilder& tex_builder,
+                        ID3D11Device* device);
 
   private:
     // Material Parsing

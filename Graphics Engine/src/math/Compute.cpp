@@ -15,6 +15,13 @@ namespace Engine {
 
 namespace Math {
 
+// Modulus:
+// Performs a modulus that properly wraps around for negatives.
+// For example, 7 % 5 = 2, and -2 % 5 = 3.
+int Modulus(int value, int mod) {
+    return ((value %= mod) < 0) ? value + mod : value;
+}
+
 // Clamp:
 // Forces value to be within the range [low, high]
 float Clamp(float val, float low, float high) {

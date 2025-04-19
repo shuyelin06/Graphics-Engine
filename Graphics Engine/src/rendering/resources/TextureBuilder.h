@@ -20,20 +20,17 @@ struct TextureColor {
 // The texture builder only supports the building of 8-bit RGBA channels.
 class TextureBuilder {
   protected:
-    // Device interface for creating GPU resources.
-    ID3D11Device* device;
-
     // Data for the texture
     Texture* texture_resource;
 
     std::vector<TextureColor> data;
 
   public:
-    TextureBuilder(UINT _width, UINT _height, ID3D11Device* _device);
+    TextureBuilder(UINT _width, UINT _height);
     ~TextureBuilder();
 
     // Generates the renderable texture
-    Texture* generate();
+    Texture* generate(ID3D11Device* device);
 
     // Sets the color for a particular pixel
     void setColor(UINT x, UINT y, const TextureColor& rgba);
@@ -60,11 +57,11 @@ class AtlasBuilder : public TextureBuilder {
   public:
     // The constructor here sets the atlas size. This CANNOT be changed
     // after initialization
-    AtlasBuilder(UINT atlas_width, UINT atlas_height, ID3D11Device* _evice);
+    AtlasBuilder(UINT atlas_width, UINT atlas_height);
     ~AtlasBuilder();
 
     // Generates the texture for the atlas and returns the atlas.
-    TextureAtlas* generate();
+    TextureAtlas* generate(ID3D11Device* device);
 
     // Get the atlas size
     UINT getAtlasWidth() const;

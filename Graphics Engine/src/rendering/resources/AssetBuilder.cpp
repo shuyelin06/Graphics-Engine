@@ -4,6 +4,19 @@
 
 #include "math/Compute.h"
 
+// Hash Function for Vector3.
+// Used if vertices are to be shared.
+template <> struct std::hash<Engine::Math::Vector3> {
+    std::size_t operator()(const Engine::Math::Vector3& k) const {
+        // https://stackoverflow.com/questions/5928725/hashing-2d-3d-and-nd-vectors
+        uint32_t hash = std::_Bit_cast<uint32_t, float>(k.x) * 73856093 ^
+                        std::_Bit_cast<uint32_t, float>(k.y) * 19349663 ^
+                        std::_Bit_cast<uint32_t, float>(k.z) * 83492791;
+
+        return hash % SIZE_MAX;
+    }
+};
+
 namespace Engine {
 namespace Graphics {
 MeshVertex::MeshVertex() {
@@ -47,17 +60,17 @@ MeshTriangle::MeshTriangle(UINT v0, UINT v1, UINT v2) {
     vertex2 = v2;
 }
 
-MeshBuilder::MeshBuilder(ID3D11Device* _device) : device(_device) {
-    active_color = Color::White();
-};
+MeshBuilder::MeshBuilder() { active_color = Color::White(); };
 
 MeshBuilder::~MeshBuilder() = default;
 
 // Generate:
 // Generates the index and vertex buffer resources for the mesh.
-Mesh* MeshBuilder::generate() { return generate(Material()); }
+Mesh* MeshBuilder::generate(ID3D11Device* device) {
+    return generate(device, Material());
+}
 
-Mesh* MeshBuilder::generate(const Material& material) {
+Mesh* MeshBuilder::generate(ID3D11Device* device, const Material& material) {
     if (index_buffer.size() == 0 || vertex_buffer.size() == 0)
         return nullptr;
 
@@ -78,19 +91,19 @@ Mesh* MeshBuilder::generate(const Material& material) {
     assert(mesh->index_buffer != nullptr);
 
     // Create each of my vertex streams
-    mesh->vertex_streams[POSITION] =
-        createVertexStream(MeshVertex::AddressPosition, sizeof(Vector3));
+    mesh->vertex_streams[POSITION] = createVertexStream(
+        MeshVertex::AddressPosition, sizeof(Vector3), device);
     mesh->vertex_streams[TEXTURE] =
-        createVertexStream(MeshVertex::AddressTexture, sizeof(Vector2));
+        createVertexStream(MeshVertex::AddressTexture, sizeof(Vector2), device);
     mesh->vertex_streams[NORMAL] =
-        createVertexStream(MeshVertex::AddressNormal, sizeof(Vector3));
+        createVertexStream(MeshVertex::AddressNormal, sizeof(Vector3), device);
     mesh->vertex_streams[COLOR] =
-        createVertexStream(MeshVertex::AddressColor, sizeof(Color));
+        createVertexStream(MeshVertex::AddressColor, sizeof(Color), device);
     // TEMP
     mesh->vertex_streams[JOINTS] =
-        createVertexStream(MeshVertex::AddressJoints, sizeof(Vector4));
+        createVertexStream(MeshVertex::AddressJoints, sizeof(Vector4), device);
     mesh->vertex_streams[WEIGHTS] =
-        createVertexStream(MeshVertex::AddressWeights, sizeof(Vector4));
+        createVertexStream(MeshVertex::AddressWeights, sizeof(Vector4), device);
 
     // Generate my AABB extents
     for (const MeshVertex& vertex : vertex_buffer)
@@ -108,7 +121,8 @@ Mesh* MeshBuilder::generate(const Material& material) {
 // element_size bytes of data to output (assumed to be the same size). This
 // function could extract position, normals, or a combination of data.
 ID3D11Buffer* MeshBuilder::createVertexStream(void* (*addressor)(MeshVertex&),
-                                              UINT byte_size) {
+                                              UINT byte_size,
+                                              ID3D11Device* device) {
     const UINT NUM_VERTICES = vertex_buffer.size();
 
     // Iterate through each vertex, and extract the data from it.
@@ -202,6 +216,13 @@ void MeshBuilder::addTriangles(const std::vector<MeshTriangle>& indices,
         addTriangle(triangle.vertex0 + start_index,
                     triangle.vertex1 + start_index,
                     triangle.vertex2 + start_index);
+    }
+}
+
+void MeshBuilder::popTriangles(UINT num_triangles) {
+    for (int i = 0; i < num_triangles; i++) {
+        if (index_buffer.size() > 0)
+            index_buffer.pop_back();
     }
 }
 

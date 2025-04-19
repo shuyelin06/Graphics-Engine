@@ -482,5 +482,8 @@
     <ClInclude Include="src\core\ThreadPool.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\datamodel\terrain\TerrainCallback.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

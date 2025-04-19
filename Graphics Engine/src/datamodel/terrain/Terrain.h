@@ -1,9 +1,12 @@
 #pragma once
 
 #include <atomic>
+#include <mutex>
 #include <queue>
+#include <shared_mutex>
 #include <vector>
 
+#include "TerrainCallback.h"
 #include "datamodel/bvh/BVH.h"
 #include "datamodel/bvh/TLAS.h"
 
@@ -17,12 +20,15 @@
 // --- EDITABLE PARAMETERS ---
 // Chunk Size
 constexpr float TERRAIN_CHUNK_SIZE = 75.f;
+
 // Samples Per Chunk (must be >= 2)
 // Chunk will share the data values along their borders,
 // so a higher sample count will mean less memory is wasted.
+// Must be >= 2, since we must at least sample the borders.
 constexpr int TERRAIN_CHUNK_SAMPLES = 7;
+
 // # Chunks out that will be loaded at once.
-constexpr int TERRAIN_CHUNK_EXTENT = 6;
+constexpr int TERRAIN_CHUNK_EXTENT = 7;
 // ---
 
 // # Chunks in 1 dimension
@@ -34,29 +40,33 @@ using namespace Math;
 namespace Datamodel {
 typedef unsigned int UINT;
 
-// CHUNKS SHOULD NOT BE TOUCHED WHILE DIRTY == TRUE. THIS IS
-// NOT SAFE.
-
 // Terrain Class:
 // Represents the terrain in a scene. Internally achieves this by
 // storing terrain chunks as 3D grids of data, where the surface exists
 // where 0 is (when interpolating the data across space).
-struct Chunk {
-    // Tracks if the chunk is dirty or not. If the chunk
-    // is dirty, it needs to be reloaded.
-    std::atomic<bool> dirty;
+struct ChunkIndex {
+    int x, y, z;
+};
+
+struct TerrainChunk {
+    // Mutex for the chunk.
+    std::mutex mutex;
 
     // Stores the chunk's x,y,z world index
     int chunk_x, chunk_y, chunk_z;
-    // Stores the chunk's data in its 8 corners.
-    float data[TERRAIN_CHUNK_SAMPLES][TERRAIN_CHUNK_SAMPLES]
-              [TERRAIN_CHUNK_SAMPLES];
+    // Stores the chunk's data in its 8 corners. Includes a few samples
+    // outside of the chunk so that we can smooth out the normals.
+    float data[TERRAIN_CHUNK_SAMPLES + 2][TERRAIN_CHUNK_SAMPLES + 2]
+              [TERRAIN_CHUNK_SAMPLES + 2];
     // Stores what triangles in the triangle_pool belong to this chunk
     std::vector<Triangle> triangles;
+    // Stores the border triangles. These contribute to the normals but
+    // will not be in the final mesh.
+    std::vector<Triangle> border_triangles;
 
-  public:
-    void setDirty(bool status);
-    bool isDirty() const;
+    // Terrain callbacks, which are called on chunk reload. Systems can use
+    // these callbacks to regenerate terrain data.
+    std::vector<TerrainCallback*> callbacks;
 };
 
 class Terrain {
@@ -67,7 +77,8 @@ class Terrain {
     // "Pointers" (indices) to the chunk pool, storing the active chunks
     // (centered around some position in space).
     int center_x, center_y, center_z; // Chunk Index Coordinates
-    Chunk chunks[TERRAIN_CHUNK_COUNT][TERRAIN_CHUNK_COUNT][TERRAIN_CHUNK_COUNT];
+    TerrainChunk chunks[TERRAIN_CHUNK_COUNT][TERRAIN_CHUNK_COUNT]
+                       [TERRAIN_CHUNK_COUNT];
 
     // Chunk BVHs + TLAS for Raycasting
     TLAS tlas;
@@ -78,6 +89,10 @@ class Terrain {
     Terrain();
     ~Terrain();
 
+    // Initializers
+    void registerTerrainCallback(int i, int j, int k,
+                                 TerrainCallback* callback);
+
     // Accessors
     const TLAS& getTLAS() const;
 
@@ -85,19 +100,19 @@ class Terrain {
     int getCenterChunkY() const;
     int getCenterChunkZ() const;
 
-    const Chunk* getChunk(int x_i, int y_i, int z_i) const;
+    TerrainChunk* getChunk(int x_i, int y_i, int z_i);
 
     // Invalidate terrain chunks based on a new center (x,y,z) in
-    // world coordinates. Submits generation requests to a worker
-    // thread
+    // world coordinates.
+    // Invalidated terrain chunks have generation requests submitted
+    // to worker threads so that their data can be generated again.
     void invalidateTerrain(float x, float y, float z);
-    // Check results of worker threads and load them into the terrain
-    // when ready.
 
   private:
-    void scheduleTerrainReload(int index_x, int index_y, int index_z);
-    void loadChunk(int index_x, int index_y, int index_z);
-    void unloadChunk(int index_x, int index_y, int index_z);
+    void scheduleTerrainReload(const ChunkIndex& local_index,
+                               const ChunkIndex& world_index);
+    void reloadChunk(const ChunkIndex local_index,
+                     const ChunkIndex world_index);
 };
 
 } // namespace Datamodel

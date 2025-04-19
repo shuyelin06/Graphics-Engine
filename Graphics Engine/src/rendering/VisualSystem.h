@@ -99,7 +99,7 @@ class VisualSystem {
     AssetComponent* bindAssetComponent(Object* object,
                                        const std::string& asset_name);
     ShadowLightComponent* bindLightComponent(Object* object);
-    VisualTerrain* bindTerrain(const Terrain* terrain);
+    VisualTerrain* bindTerrain(Terrain* terrain);
 
   private: // Initialization Stages
     void initializeScreenTarget(HWND window, UINT width, UINT height);

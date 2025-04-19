@@ -250,6 +250,7 @@
     <ClInclude Include="src\datamodel\Component.h" />
     <ClInclude Include="src\datamodel\ComponentHandler.h" />
     <ClInclude Include="src\core\ThreadPool.h" />
+    <ClInclude Include="src\datamodel\terrain\TerrainCallback.h" />
     <ClInclude Include="src\_DEP_\ResourceManager.h" />
     <ClInclude Include="src\datamodel\SceneGraph.h" />
     <ClInclude Include="src\datamodel\terrain\MarchingCube.h" />

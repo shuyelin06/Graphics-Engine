@@ -32,7 +32,7 @@ class Scene {
     void updateObjects();
 
     // --- Terrain Handling ---
-    const Terrain* getTerrain() const;
+    Terrain* getTerrain() const;
 
     // Invalidate terrain chunks outside of our given position.
     void invalidateTerrainChunks(float x, float y, float z);

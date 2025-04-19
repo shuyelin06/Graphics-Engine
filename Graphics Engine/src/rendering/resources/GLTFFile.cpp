@@ -63,7 +63,7 @@ static void ParseVertexProperty(const cgltf_accessor* accessor,
 }
 
 Asset* GLTFFile::readFromFile(MeshBuilder& mesh_builder,
-                              AtlasBuilder& tex_builder) {
+                              AtlasBuilder& tex_builder, ID3D11Device* device) {
     cgltf_options options = {};
     cgltf_data* data = NULL;
 
@@ -176,7 +176,7 @@ Asset* GLTFFile::readFromFile(MeshBuilder& mesh_builder,
                 parseMaterial(prim.material, material, tex_builder);
 
                 // Register mesh under the asset
-                Mesh* generated_mesh = mesh_builder.generate(material);
+                Mesh* generated_mesh = mesh_builder.generate(device, material);
                 asset->addMesh(generated_mesh);
             }
         }

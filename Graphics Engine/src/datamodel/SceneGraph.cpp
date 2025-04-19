@@ -24,7 +24,7 @@ Object& Scene::createObject() {
 }
 
 // --- Terrain Handling ---
-const Terrain* Scene::getTerrain() const { return terrain; }
+Terrain* Scene::getTerrain() const { return terrain; }
 
 // InvalidateTerrainChunks:
 // Given a position, invalidates the terrain chunks too far

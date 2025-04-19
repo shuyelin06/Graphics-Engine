@@ -47,20 +47,18 @@ struct MeshTriangle {
 
 class MeshBuilder {
   private:
-    ID3D11Device* device;
-
     std::vector<MeshVertex> vertex_buffer;
     std::vector<MeshTriangle> index_buffer;
 
     Color active_color;
 
   public:
-    MeshBuilder(ID3D11Device* device);
+    MeshBuilder();
     ~MeshBuilder();
 
     // Generates the Mesh for use in the rendering pipeline
-    Mesh* generate();
-    Mesh* generate(const Material& material);
+    Mesh* generate(ID3D11Device* device);
+    Mesh* generate(ID3D11Device* device, const Material& material);
 
     // Set the active color
     void setColor(const Color& color);
@@ -74,6 +72,7 @@ class MeshBuilder {
     UINT addVertices(const std::vector<MeshVertex>& vertices);
     void addTriangles(const std::vector<MeshTriangle>& indices,
                       UINT start_index);
+    void popTriangles(UINT num_triangles);
 
     // Return a MeshVertex from the builder (by index) for modification
     MeshVertex& getVertex(UINT index);
@@ -87,13 +86,14 @@ class MeshBuilder {
 
     // Discard the current normals for the mesh and regenerate them
     void regenerateNormals();
+    // Optimize the vertex buffer
 
     // Resets the builder, so it can be used to generate another mesh
     void reset();
 
   private:
     ID3D11Buffer* createVertexStream(void* (*addressor)(MeshVertex&),
-                                     UINT byte_size);
+                                     UINT byte_size, ID3D11Device* device);
 
     static void ExtractVertexPosition(const MeshVertex& vertex,
                                       uint8_t* output);

@@ -2,36 +2,61 @@
 
 #include "core/Asset.h"
 #include "datamodel/terrain/Terrain.h"
+#include "datamodel/terrain/TerrainCallback.h"
 #include "resources/AssetBuilder.h"
 
 namespace Engine {
 using namespace Datamodel;
 
 namespace Graphics {
-// VisualTerrain Class:
-// Stores rendering information for a terrain chunk.
-class VisualTerrain {
+// VisualTerrainCallback:
+// Given a terrain chunk reload call, regenerates the chunk's mesh
+class VisualTerrainCallback : public TerrainCallback {
   private:
-    const Terrain* const terrain;
+    ID3D11Device* device;
+    Mesh* output_mesh;
+    bool dirty;
 
-    // Stores my terrain meshes, in a format modeling our terrain.
-    std::vector<Mesh*> chunk_meshes;
-    bool dirty[TERRAIN_CHUNK_COUNT][TERRAIN_CHUNK_COUNT][TERRAIN_CHUNK_COUNT];
+    // Synchronization
+    std::mutex mutex;
 
   public:
-    VisualTerrain(const Terrain* terrain);
+    VisualTerrainCallback();
+
+    void initialize(ID3D11Device* device);
+
+    Mesh* extractMesh();
+    bool isDirty();
+
+    void reloadTerrainData(const TerrainChunk* chunk_data);
+};
+
+// VisualTerrain Class:
+// Stores rendering information for a terrain chunk.
+class VisualTerrainCallback;
+class VisualTerrain {
+  private:
+    Terrain* terrain;
+
+    // Output Meshes
+    std::vector<Mesh*> output_meshes;
+
+    // Stores my most recent terrain meshes, in a format modeling our terrain.
+    Mesh* chunk_meshes[TERRAIN_CHUNK_COUNT][TERRAIN_CHUNK_COUNT]
+                      [TERRAIN_CHUNK_COUNT];
+    // Stores callback functions that may update with new terrain data
+    VisualTerrainCallback callbacks[TERRAIN_CHUNK_COUNT][TERRAIN_CHUNK_COUNT]
+                                   [TERRAIN_CHUNK_COUNT];
+
+  public:
+    VisualTerrain(Terrain* terrain, ID3D11Device* device);
     ~VisualTerrain();
 
     // Update the visual terrain's meshes by pulling the terrain's data
-    void updateTerrainMeshes(MeshBuilder& builder);
+    void updateTerrainMeshes();
 
     // Return the current meshes for rendering.
     const std::vector<Mesh*>& getTerrainMeshes();
-
-  private:
-    // Given index i,j,k returns the index in the vector
-    // corresponding to what we would get if we had a 3D array
-    int index3DVector(int i, int j, int k);
 };
 
 } // namespace Graphics
