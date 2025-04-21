@@ -334,7 +334,7 @@ VisualTerrain* VisualSystem::bindTerrain(Terrain* _terrain) {
 void VisualSystem::render() {
 #if defined(_DEBUG)
     gpu_timer.beginTimer("GPU Frametime");
-    cpu_timer.beginTimer("CPU Frametime");
+    CPUTimer::BeginCPUTimer("CPU Frametime");
 #endif
 
     // TEMP
@@ -361,7 +361,7 @@ void VisualSystem::render() {
 
 #if defined(_DEBUG)
     gpu_timer.endTimer("GPU Frametime");
-    cpu_timer.endTimer("CPU Frametime");
+    CPUTimer::EndCPUTimer("CPU Frametime");
     imGuiFinish();
 #endif
 
@@ -378,7 +378,7 @@ void VisualSystem::render() {
 // data from the datamodel.
 void VisualSystem::pullDatamodelData() {
 #if defined(_DEBUG)
-    cpu_timer.beginTimer("Render Prepare");
+    CPUTimer::BeginCPUTimer("Render Prepare");
 #endif
 
     // Pull my object data.
@@ -430,7 +430,7 @@ void VisualSystem::pullDatamodelData() {
     light_manager->clusterShadowCasters();
 
 #if defined(_DEBUG)
-    cpu_timer.endTimer("Render Prepare");
+    CPUTimer::EndCPUTimer("Render Prepare");
 #endif
 }
 
@@ -440,7 +440,7 @@ void VisualSystem::pullDatamodelData() {
 void VisualSystem::performShadowPass() {
 #if defined(_DEBUG)
     gpu_timer.beginTimer("Shadow Pass");
-    cpu_timer.beginTimer("Shadow Pass");
+    CPUTimer::BeginCPUTimer("Shadow Pass");
 #endif
 
     pipeline_manager->bindVertexShader("ShadowMap");
@@ -512,14 +512,14 @@ void VisualSystem::performShadowPass() {
 
 #if defined(_DEBUG)
     gpu_timer.endTimer("Shadow Pass");
-    cpu_timer.endTimer("Shadow Pass");
+    CPUTimer::EndCPUTimer("Shadow Pass");
 #endif
 }
 
 void VisualSystem::performTerrainPass() {
 #if defined(_DEBUG)
     gpu_timer.beginTimer("Terrain Pass");
-    cpu_timer.beginTimer("Terrain Pass");
+    CPUTimer::BeginCPUTimer("Terrain Pass");
 #endif
 
     pipeline_manager->bindVertexShader("Terrain");
@@ -666,14 +666,14 @@ void VisualSystem::performTerrainPass() {
     }
 #if defined(_DEBUG)
     gpu_timer.endTimer("Terrain Pass");
-    cpu_timer.endTimer("Terrain Pass");
+    CPUTimer::EndCPUTimer("Terrain Pass");
 #endif
 }
 
 void VisualSystem::performRenderPass() {
 #if defined(_DEBUG)
     gpu_timer.beginTimer("Render Pass");
-    cpu_timer.beginTimer("Render Pass");
+    CPUTimer::BeginCPUTimer("Render Pass");
 #endif
 
     pipeline_manager->bindPixelShader("TexturedMesh");
@@ -792,10 +792,6 @@ void VisualSystem::performRenderPass() {
 
     const Texture* color_tex = resource_manager->getColorAtlas();
     context->PSSetShaderResources(0, 1, &color_tex->shader_view);
-
-#if defined(_DEBUG)
-    color_tex->displayImGui();
-#endif
 
     // Testing for animations
     static float time = 0.0f;
@@ -918,7 +914,7 @@ void VisualSystem::performRenderPass() {
 
 #if defined(_DEBUG)
     gpu_timer.endTimer("Render Pass");
-    cpu_timer.endTimer("Render Pass");
+    CPUTimer::EndCPUTimer("Render Pass");
 #endif
 }
 
@@ -1161,13 +1157,12 @@ void VisualSystem::imGuiInitialize(HWND window) {
     gpu_timer.createTimer("Terrain Pass");
     gpu_timer.createTimer("Render Pass");
 
-    cpu_timer.initialize();
-
-    cpu_timer.createTimer("CPU Frametime");
-    cpu_timer.createTimer("Render Prepare");
-    cpu_timer.createTimer("Shadow Pass");
-    cpu_timer.createTimer("Terrain Pass");
-    cpu_timer.createTimer("Render Pass");
+    CPUTimer::Initialize();
+    CPUTimer::CreateCPUTimer("CPU Frametime");
+    CPUTimer::CreateCPUTimer("Render Prepare");
+    CPUTimer::CreateCPUTimer("Shadow Pass");
+    CPUTimer::CreateCPUTimer("Terrain Pass");
+    CPUTimer::CreateCPUTimer("Render Pass");
 }
 
 // ImGuiPrepare:
@@ -1193,7 +1188,7 @@ void VisualSystem::imGuiFinish() {
 
     if (ImGui::CollapsingHeader("Rendering")) {
         ImGui::SeparatorText("CPU Times:");
-        cpu_timer.displayTimes();
+        CPUTimer::DisplayCPUTimes();
 
         ImGui::SeparatorText("GPU Times:");
         gpu_timer.displayTimes();

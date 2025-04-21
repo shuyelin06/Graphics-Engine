@@ -120,7 +120,6 @@ class VisualSystem {
     // Debug via ImGui
     // Frametime Tracking (CPU + GPU)
     GPUTimer gpu_timer;
-    CPUTimer cpu_timer;
 
     void imGuiInitialize(HWND window);
 

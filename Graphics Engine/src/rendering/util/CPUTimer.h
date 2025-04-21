@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <mutex>
 #include <string>
 
 #include "utility/Stopwatch.h"
@@ -12,23 +13,27 @@ struct CPUTimerBatch;
 
 // Class CPUTimer:
 // Can be used to track the amount of time a batch of CPU
-// commands take
+// commands take.
+// Initialization is handled by the visual system
+// (as the data is displayed on the ImGui menu).
 class CPUTimer {
   private:
+    static CPUTimer* system_timer;
+    static std::mutex mutex;
+
     std::map<std::string, CPUTimerBatch*> cpu_timers;
 
-  public:
     CPUTimer();
 
-    void initialize();
+  public:
+    static void Initialize();
 
-    void createTimer(std::string name);
-
-    void beginTimer(std::string name);
-    void endTimer(std::string name);
+    static void CreateCPUTimer(const std::string& name);
+    static void BeginCPUTimer(const std::string& name);
+    static void EndCPUTimer(const std::string& name);
 
     // Display Current Frame's Times to ImGui
-    void displayTimes();
+    static void DisplayCPUTimes();
 };
 
 } // namespace Graphics

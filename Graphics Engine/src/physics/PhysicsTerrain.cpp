@@ -1,5 +1,9 @@
 #include "PhysicsTerrain.h"
 
+#if defined(_DEBUG)
+#include "rendering/util/CPUTimer.h"
+#endif
+
 namespace Engine {
 namespace Physics {
 PhysicsTerrainCallback::PhysicsTerrainCallback() = default;
@@ -51,6 +55,10 @@ PhysicsTerrain::PhysicsTerrain(Terrain* _terrain)
             }
         }
     }
+
+#if defined(_DEBUG)
+    Graphics::CPUTimer::CreateCPUTimer("Terrain TLAS Build");
+#endif
 }
 
 void PhysicsTerrain::pullTerrainBVHs() {
@@ -70,9 +78,12 @@ void PhysicsTerrain::pullTerrainBVHs() {
         }
     }
 
-    // Add to our TLAS
-    // TODO: THIS BUILD IS SUPER SLOW. NEEDS TO BE REAL TIME
-    /*tlas.reset();
+    // Add to our TLAS and build it
+#if defined(_DEBUG)
+    Graphics::CPUTimer::BeginCPUTimer("Terrain TLAS Build");
+#endif
+
+    tlas.reset();
 
     for (int i = 0; i < TERRAIN_CHUNK_COUNT; i++) {
         for (int j = 0; j < TERRAIN_CHUNK_COUNT; j++) {
@@ -83,7 +94,11 @@ void PhysicsTerrain::pullTerrainBVHs() {
         }
     }
 
-    tlas.build();*/
+    tlas.buildFast();
+
+#if defined(_DEBUG)
+    Graphics::CPUTimer::EndCPUTimer("Terrain TLAS Build");
+#endif
 }
 
 // GetTerrainTLS();

@@ -82,6 +82,54 @@ void TLAS::build() {
     }
 }
 
+// BuildFast:
+// Fast build that just merges every adjacent node in the list.
+// Use when adjacent nodes have some sort of spatial relation to each other.
+// One good use of this is terrain chunks; we naturally add chunks to the TLAS
+// in an order where adjacent chunks are also adjacent in the list,
+// so we can exploit this for faster build times.
+void TLAS::buildFast() {
+    std::vector<unsigned int> unassigned_temp;
+
+    // First, add all of our nodes by index to a list. This list
+    // will track all nodes that do not have a parent.
+    std::vector<unsigned int> unassigned;
+    for (int i = 0; i < node_pool.size(); i++) {
+        unassigned.push_back(i);
+    }
+
+    // While we have >1 unassigned nodes, merge the last unassigned node
+    // with the one minimizing their total surface area.
+    while (unassigned.size() > 1) {
+        unassigned_temp.clear();
+
+        while (unassigned.size() >= 2) {
+            const unsigned int A = unassigned.back();
+            unassigned.pop_back();
+
+            const unsigned int B = unassigned.back();
+            unassigned.pop_back();
+
+            // Now, create a new TLAS node and add it to our TLAS.
+            TLASNode new_node;
+            new_node.bounds =
+                node_pool[A].bounds.unionWith(node_pool[B].bounds);
+            new_node.left = A;
+            new_node.right = B;
+            new_node.bvh = -1;
+
+            const int new_node_index = node_pool.size();
+            node_pool.push_back(new_node);
+            unassigned_temp.push_back(new_node_index);
+        }
+
+        if (unassigned.size() == 1)
+            unassigned_temp.push_back(unassigned.back());
+
+        unassigned = unassigned_temp;
+    }
+}
+
 // Reset:
 // Clears the TLAS fields
 void TLAS::reset() {

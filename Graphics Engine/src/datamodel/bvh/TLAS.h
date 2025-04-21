@@ -32,6 +32,7 @@ class TLAS {
 
     // Build the TLAS
     void addTLASNode(BVH* bvh, const Matrix4& transform);
+    void buildFast(); // Inefficient but fast
     void build();
     void reset();
 
