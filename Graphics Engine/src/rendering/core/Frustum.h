@@ -33,6 +33,9 @@ class Frustum {
     void fillArrWithWorldPoints(Vector3* point_arr) const;
 
     bool intersectsOBB(const OBB& obb) const;
+
+    // Return frustum to world coordinates
+    const Matrix4& getFrustumToWorldMatrix() const;
 };
 
 } // namespace Graphics

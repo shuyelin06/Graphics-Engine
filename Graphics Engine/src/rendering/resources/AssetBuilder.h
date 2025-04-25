@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "../core/Asset.h"
@@ -42,11 +43,24 @@ struct MeshTriangle {
     uint32_t vertex1;
     uint32_t vertex2;
 
+    MeshTriangle();
     MeshTriangle(UINT v0, UINT v1, UINT v2);
+};
+
+enum MeshBuilderLayout {
+    BUILDER_NONE = 0,
+    BUILDER_POSITION = 1 << 1,
+    BUILDER_NORMAL = 1 << 2,
+    BUILDER_TEXTURE = 1 << 3,
+    BUILDER_COLOR = 1 << 4,
+    BUILDER_JOINTS = 1 << 5,
+    BUILDER_WEIGHTS = 1 << 6
 };
 
 class MeshBuilder {
   private:
+    uint16_t layout;
+
     std::vector<MeshVertex> vertex_buffer;
     std::vector<MeshTriangle> index_buffer;
 
@@ -54,14 +68,20 @@ class MeshBuilder {
 
   public:
     MeshBuilder();
+    MeshBuilder(MeshBuilderLayout layout);
     ~MeshBuilder();
 
     // Generates the Mesh for use in the rendering pipeline
-    Mesh* generate(ID3D11Device* device);
-    Mesh* generate(ID3D11Device* device, const Material& material);
+    Mesh* generateMesh(ID3D11Device* device);
+    Mesh* generateMesh(ID3D11Device* device, const Material& material);
+
+    const std::vector<MeshVertex>& getVertices() const;
+    const std::vector<MeshTriangle>& getIndices() const;
 
     // Set the active color
     void setColor(const Color& color);
+    // Add a layout to generate
+    void addLayout(MeshBuilderLayout layout_pins);
 
     // Add vertices and triangles to the builder. If a vertex is added,
     // the builder returns the index corresponding to that vertex.
@@ -86,7 +106,6 @@ class MeshBuilder {
 
     // Discard the current normals for the mesh and regenerate them
     void regenerateNormals();
-    // Optimize the vertex buffer
 
     // Resets the builder, so it can be used to generate another mesh
     void reset();

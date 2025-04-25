@@ -54,23 +54,31 @@ void* MeshVertex::AddressColor(MeshVertex& vertex) { return &vertex.color; }
 void* MeshVertex::AddressJoints(MeshVertex& vertex) { return &vertex.joints; }
 void* MeshVertex::AddressWeights(MeshVertex& vertex) { return &vertex.weights; }
 
+MeshTriangle::MeshTriangle() { vertex0 = vertex1 = vertex2 = 0; }
 MeshTriangle::MeshTriangle(UINT v0, UINT v1, UINT v2) {
     vertex0 = v0;
     vertex1 = v1;
     vertex2 = v2;
 }
 
-MeshBuilder::MeshBuilder() { active_color = Color::White(); };
+MeshBuilder::MeshBuilder() {
+    layout = BUILDER_NONE;
+    active_color = Color::White();
+}
+MeshBuilder::MeshBuilder(MeshBuilderLayout _layout) {
+    layout = _layout;
+    active_color = Color::White();
+};
 
 MeshBuilder::~MeshBuilder() = default;
 
 // Generate:
 // Generates the index and vertex buffer resources for the mesh.
-Mesh* MeshBuilder::generate(ID3D11Device* device) {
-    return generate(device, Material());
+Mesh* MeshBuilder::generateMesh(ID3D11Device* device) {
+    return generateMesh(device, Material());
 }
 
-Mesh* MeshBuilder::generate(ID3D11Device* device, const Material& material) {
+Mesh* MeshBuilder::generateMesh(ID3D11Device* device, const Material& material) {
     if (index_buffer.size() == 0 || vertex_buffer.size() == 0)
         return nullptr;
 
@@ -91,19 +99,24 @@ Mesh* MeshBuilder::generate(ID3D11Device* device, const Material& material) {
     assert(mesh->index_buffer != nullptr);
 
     // Create each of my vertex streams
-    mesh->vertex_streams[POSITION] = createVertexStream(
-        MeshVertex::AddressPosition, sizeof(Vector3), device);
-    mesh->vertex_streams[TEXTURE] =
-        createVertexStream(MeshVertex::AddressTexture, sizeof(Vector2), device);
-    mesh->vertex_streams[NORMAL] =
-        createVertexStream(MeshVertex::AddressNormal, sizeof(Vector3), device);
-    mesh->vertex_streams[COLOR] =
-        createVertexStream(MeshVertex::AddressColor, sizeof(Color), device);
-    // TEMP
-    mesh->vertex_streams[JOINTS] =
-        createVertexStream(MeshVertex::AddressJoints, sizeof(Vector4), device);
-    mesh->vertex_streams[WEIGHTS] =
-        createVertexStream(MeshVertex::AddressWeights, sizeof(Vector4), device);
+    if (layout & BUILDER_POSITION)
+        mesh->vertex_streams[POSITION] = createVertexStream(
+            MeshVertex::AddressPosition, sizeof(Vector3), device);
+    if (layout & BUILDER_TEXTURE)
+        mesh->vertex_streams[TEXTURE] = createVertexStream(
+            MeshVertex::AddressTexture, sizeof(Vector2), device);
+    if (layout & BUILDER_NORMAL)
+        mesh->vertex_streams[NORMAL] = createVertexStream(
+            MeshVertex::AddressNormal, sizeof(Vector3), device);
+    if (layout & BUILDER_COLOR)
+        mesh->vertex_streams[COLOR] =
+            createVertexStream(MeshVertex::AddressColor, sizeof(Color), device);
+    if (layout & BUILDER_JOINTS)
+        mesh->vertex_streams[JOINTS] = createVertexStream(
+            MeshVertex::AddressJoints, sizeof(Vector4), device);
+    if (layout & BUILDER_WEIGHTS)
+        mesh->vertex_streams[WEIGHTS] = createVertexStream(
+            MeshVertex::AddressWeights, sizeof(Vector4), device);
 
     // Generate my AABB extents
     for (const MeshVertex& vertex : vertex_buffer)
@@ -113,6 +126,13 @@ Mesh* MeshBuilder::generate(ID3D11Device* device, const Material& material) {
     mesh->material = material;
 
     return mesh;
+}
+
+const std::vector<MeshVertex>& MeshBuilder::getVertices() const {
+    return vertex_buffer;
+}
+const std::vector<MeshTriangle>& MeshBuilder::getIndices() const {
+    return index_buffer;
 }
 
 // CreateVertexStream:
@@ -182,6 +202,12 @@ void MeshBuilder::ExtractVertexColor(const MeshVertex& vertex,
 // SetColor:
 // Sets the active color
 void MeshBuilder::setColor(const Color& color) { active_color = color; }
+
+// AddLayout:
+// Add a layout vertex buffer for the builder to generate with
+void MeshBuilder::addLayout(MeshBuilderLayout layout_pins) {
+    layout = layout | layout_pins;
+}
 
 // AddVertex:
 // Adds a vertex with position, texture, and norm to the MeshBuilder.
@@ -382,6 +408,8 @@ void MeshBuilder::regenerateNormals() {
 void MeshBuilder::reset() {
     vertex_buffer.clear();
     index_buffer.clear();
+
+    layout = 0;
 }
 
 } // namespace Graphics

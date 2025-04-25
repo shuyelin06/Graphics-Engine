@@ -103,7 +103,7 @@ void PipelineManager::updateCBData(CBHandle* constantBuffer) {
         // GPU read and CPU write. We opt for this usage so that we can update
         // the resource on the fly when needed.
         D3D11_BUFFER_DESC buff_desc = {};
-        buff_desc.ByteWidth = constantBuffer->byteSize();
+        buff_desc.ByteWidth = 65536;
         buff_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
         buff_desc.Usage = D3D11_USAGE_DYNAMIC;
         buff_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;

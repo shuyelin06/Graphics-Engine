@@ -119,6 +119,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     // Bind Movement Physics
     physics_system.bindPhysicsObject(&camera_obj);
 
+    Object& light = parent.createChild();
+    ShadowLightComponent* comp = visual_system.bindLightComponent(&light);
     //// Create Object Hierarchy
     // visual_system.bindAssetComponent(&parent_object, "Fox");
     // physics_system.bindPhysicsObject(&parent_object);
@@ -149,6 +151,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         }
 
 #if defined(_DEBUG)
+        VisualDebug::DrawPoint(light.getTransform().getPosition(), 2.5f);
+
         // ImGui Display
         if (ImGui::CollapsingHeader("Core")) {
             ImGui::Text("Pending Jobs: %i",
@@ -179,14 +183,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         scene_graph.invalidateTerrainChunks(pos.x, pos.y, pos.z);
 
         // TEST
-        const Vector3 direc = camera_obj.getTransform().forward();
+        /*const Vector3 direc = camera_obj.getTransform().forward();
         BVHRayCast raycast = physics_system.raycast(pos, direc);
         if (raycast.hit) {
             const Triangle& triangle = raycast.hit_triangle->triangle;
             VisualDebug::DrawLine(triangle.vertex(0), triangle.vertex(1));
             VisualDebug::DrawLine(triangle.vertex(1), triangle.vertex(2));
             VisualDebug::DrawLine(triangle.vertex(2), triangle.vertex(0));
-        }
+        }*/
 
         // Stall until enough time has elapsed for 60 frames / second
         while (framerate_watch.Duration() < 1 / 60.f) {

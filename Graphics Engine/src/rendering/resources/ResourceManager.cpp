@@ -37,17 +37,15 @@ void ResourceManager::initializeResources() {
 
     // Stores an atlas of material colors to avoid the need for rebinds later
     AtlasBuilder atlas_builder = AtlasBuilder(4096, 4096);
-    MeshBuilder mesh_builder = MeshBuilder();
 
     // --- Load Assets Here ---
-    LoadCube(mesh_builder);
+    LoadCube();
 
     // Currently supported: GLTF
 
     // LoadAssetFromGLTF("TestAsset", "data/Testing.glb", atlas_builder);
     // Capybara by Poly by Google [CC-BY] via Poly Pizza
-    LoadAssetFromGLTF("Capybara", "data/Capybara.glb", mesh_builder,
-                      atlas_builder);
+    LoadAssetFromGLTF("Capybara", "data/Capybara.glb", atlas_builder);
 
     // LoadAssetFromGLTF("TexturedCube", "data/TexturedCube.glb",
     // atlas_builder);
@@ -56,13 +54,13 @@ void ResourceManager::initializeResources() {
     // LoadAssetFromGLTF("Dingus", "data/Dingus the cat.glb", atlas_builder);
 
     // Fox by Quaternius
-    LoadAssetFromGLTF("Fox", "data/Fox.glb", mesh_builder, atlas_builder);
+    LoadAssetFromGLTF("Fox", "data/Fox.glb", atlas_builder);
 
     // Man by Quaternius
-    LoadAssetFromGLTF("Man", "data/Man.glb", mesh_builder, atlas_builder);
+    LoadAssetFromGLTF("Man", "data/Man.glb", atlas_builder);
 
     // Tree
-    LoadAssetFromGLTF("Tree", "data/Tree.glb", mesh_builder, atlas_builder);
+    LoadAssetFromGLTF("Tree", "data/Tree.glb", atlas_builder);
 
     color_atlas = atlas_builder.generate(device);
 }
@@ -75,10 +73,6 @@ uint16_t ResourceManager::registerAsset(const std::string& name, Asset* asset) {
 
     return id;
 }
-
-// CreateMeshBuilder:
-// Creates and returns a mesh builder
-MeshBuilder* ResourceManager::createMeshBuilder() { return new MeshBuilder(); }
 
 // Get Resources:
 // Return resources by name.
@@ -113,9 +107,8 @@ ID3D11SamplerState* ResourceManager::getMeshSampler() { return mesh_sampler; }
 // Uses the GLTFFile interface to load an asset from a GLTF file
 bool ResourceManager::LoadAssetFromGLTF(const std::string& asset_name,
                                         const std::string& path,
-                                        MeshBuilder& mesh_builder,
                                         AtlasBuilder& tex_builder) {
-    mesh_builder.reset();
+    MeshBuilder mesh_builder = MeshBuilder();
     GLTFFile gltf_file = GLTFFile(path);
     Asset* asset = gltf_file.readFromFile(mesh_builder, tex_builder, device);
 
@@ -155,13 +148,12 @@ bool ResourceManager::WriteTextureToPNG(ID3D11Texture2D* texture,
 
 // Hard-Coded Cube Creator
 // Used in debugging
-bool ResourceManager::LoadCube(MeshBuilder& builder) {
-    builder.reset();
-
+bool ResourceManager::LoadCube() {
+    MeshBuilder builder = MeshBuilder(BUILDER_POSITION);
     builder.addCube(Vector3(0, 0, 0), Quaternion(), 1.f);
 
     Asset* cube = new Asset();
-    cube->addMesh(builder.generate(device));
+    cube->addMesh(builder.generateMesh(device));
 
     return registerAsset("Cube", cube);
 }

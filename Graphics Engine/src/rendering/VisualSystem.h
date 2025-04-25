@@ -58,14 +58,16 @@ class VisualSystem {
     IDXGISwapChain* swap_chain;
     Texture* screen_target;
 
-    // Main render target information
-    // We render to this and apply post-processing before moving
-    // everything to the screen
-    Texture* render_target;
-    Texture* depth_stencil;
-
+    // Render target information. Lets us ping pong
+    // between two render targets for post processing effects.
+    Texture* render_target_dest; // We Render to This
+    Texture* render_target_src;  // We Read from This
     ID3D11Buffer* postprocess_quad;
+
+    Texture* depth_stencil;
     D3D11_VIEWPORT viewport;
+
+    ID3D11BlendState* blend_state;
 
     // Managers
     ResourceManager* resource_manager;
@@ -108,12 +110,18 @@ class VisualSystem {
     void initializeManagers();
     void initializeComponents();
 
-  private:                     // Rendering Stages
-    void performShadowPass();  // Shadow Pass
-    void performTerrainPass(); // Render Terrain
-    void performRenderPass();  // Render Pass
-    void processUnderwater();  // Blur Effect
-    void renderFinish();       // Finish Rendering
+  private:                          // Rendering Stages
+    void performShadowPass();       // Shadow Pass
+    void performTerrainPass();      // Render Terrain
+    void performRenderPass();       // Render Pass
+    void performLightFrustumPass(); // Light Frustum Pass
+    void processUnderwater();       // Blur Effect
+    void renderFinish();            // Finish Rendering
+
+    // --- Rendering Helper Methods ---
+    // Set the render targets for a given pass
+    void bindActiveRenderTarget(bool set_depth_stencil);
+    void swapActiveRenderTarget();
 
 #if defined(_DEBUG)
   private:

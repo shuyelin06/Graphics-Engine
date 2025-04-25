@@ -127,10 +127,16 @@ void ShaderManager::initializeShaders() {
 
     createPixelShader({"TexturedMesh", "P_TexturedMesh.hlsl", "ps_main"});
 
+    input_layout_arr = {POSITION, INSTANCE_ID};
+    createVertexShader(
+        {"LightFrustum", "V_LightFrustum.hlsl", "vs_main", false});
+    createPixelShader({"LightFrustum", "P_LightFrustum.hlsl", "ps_main"});
+
     // --- Post Processing Effects ---
     // Generic vertex shader for post process effects
     input_layout_arr = {SV_POSITION};
     createVertexShader({"PostProcess", "Post_VertexShader.hlsl", "vs_main"});
+    createPixelShader({"PostProcess", "Post_PixelShader.hlsl", "ps_main"});
 
     // Sky:
     // Draws a sun and shades the sky
