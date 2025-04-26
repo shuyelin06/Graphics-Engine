@@ -11,6 +11,11 @@ namespace Math {
 // Class Compute
 // Provides some utility math functions for use
 // throughout the program
+
+// Performs a modulus that properly wraps around for negatives.
+// For example, 7 % 5 = 2, and -2 % 5 = 3.
+int Modulus(int value, int mod);
+
 // Forces value to be within the range [low, high]
 float Clamp(float value, float low, float high);
 

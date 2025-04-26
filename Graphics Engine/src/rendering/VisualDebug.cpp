@@ -4,19 +4,26 @@
 
 namespace Engine {
 namespace Graphics {
+#if defined(ENABLE_DEBUG_DRAWING)
 // Initializing static fields
 std::vector<PointData> VisualDebug::points = std::vector<PointData>();
 std::vector<LinePoint> VisualDebug::lines = std::vector<LinePoint>();
+#endif
 
 // Clear:
 // Clears all debug data
-void VisualDebug::Clear() { lines.clear(); }
+void VisualDebug::Clear() {
+#if defined(ENABLE_DEBUG_DRAWING)
+    lines.clear();
+#endif
+}
 
 // DrawPoint:
 // Registers a point in 3D space to be drawn by the visual
 // engine. Points are cleared after every frame
 bool VisualDebug::DrawPoint(const Vector3& position, float scale,
                             const Color& color) {
+#if defined(ENABLE_DEBUG_DRAWING)
     const int POINT_CAP = (4096 * 4 * sizeof(float)) / sizeof(PointData);
 
     // Check if there is space in the constant buffer for the point. If not
@@ -35,6 +42,9 @@ bool VisualDebug::DrawPoint(const Vector3& position, float scale,
 
         return true;
     }
+#else
+    return false;
+#endif
 }
 
 bool VisualDebug::DrawPoint(const Vector3& position, float scale) {
@@ -46,6 +56,7 @@ bool VisualDebug::DrawPoint(const Vector3& position, float scale) {
 // Like points, lines are cleared after every frame.
 bool VisualDebug::DrawLine(const Vector3& p1, const Vector3& p2,
                            const Color& rgb) {
+#if defined(ENABLE_DEBUG_DRAWING)
     LinePoint data1;
     data1.point = p1;
     data1.color = rgb;
@@ -55,6 +66,7 @@ bool VisualDebug::DrawLine(const Vector3& p1, const Vector3& p2,
     data2.point = p2;
     data2.color = rgb;
     lines.push_back(data2);
+#endif
 
     return true;
 }
@@ -66,6 +78,7 @@ bool VisualDebug::DrawLine(const Vector3& p1, const Vector3& p2) {
 // DrawFrustum:
 // Draws a frustum, given a camera space -> world space matrix.
 void VisualDebug::DrawFrustum(const Matrix4& frustumMatrix, const Color& rgb) {
+#if defined(ENABLE_DEBUG_DRAWING)
     // Box from (-1, -1, 0) to (1, 1, 1). Represents Direct3D's
     // render space in normalized device coordinates.
     Vector4 cube[8] = {
@@ -95,6 +108,7 @@ void VisualDebug::DrawFrustum(const Matrix4& frustumMatrix, const Color& rgb) {
     DrawLine(cube[5].xyz(), cube[6].xyz(), rgb);
     DrawLine(cube[6].xyz(), cube[7].xyz(), rgb);
     DrawLine(cube[7].xyz(), cube[4].xyz(), rgb);
+#endif
 }
 
 } // namespace Graphics

@@ -4,8 +4,6 @@
 #include <string>
 #include <unordered_map>
 
-#include "datamodel/SceneGraph.h"
-
 #include "../Direct3D11.h"
 
 #include "../core/Asset.h"
@@ -13,7 +11,6 @@
 #include "TextureBuilder.h"
 
 namespace Engine {
-using namespace Datamodel;
 namespace Graphics {
 
 // ResourceManager Class:
@@ -33,6 +30,10 @@ class ResourceManager {
     ID3D11SamplerState* shadowmap_sampler;
     ID3D11SamplerState* mesh_sampler;
 
+    // Depth stencil states
+    ID3D11DepthStencilState* ds_test_and_write;
+    ID3D11DepthStencilState* ds_test_no_write;
+
     TextureAtlas* color_atlas;
 
   public:
@@ -41,9 +42,6 @@ class ResourceManager {
 
     // Initialize assets
     void initializeResources();
-
-    // Get builders
-    MeshBuilder* createMeshBuilder();
 
     // Get an asset
     Asset* getAsset(const std::string& name);
@@ -58,17 +56,20 @@ class ResourceManager {
     ID3D11SamplerState* getShadowMapSampler();
     ID3D11SamplerState* getMeshSampler();
 
+    // Get depth stencil states
+    ID3D11DepthStencilState* DSState_TestNoWrite();
+    ID3D11DepthStencilState* DSState_TestAndWrite();
+
   private:
     // Registers an asset by name, and returns it's ID
     uint16_t registerAsset(const std::string& name, Asset* asset);
 
     // Generate a cube
-    bool LoadCube(MeshBuilder& builder);
+    bool LoadCube();
 
     // Load assets from files.
     bool LoadAssetFromGLTF(const std::string& asset_name,
-                           const std::string& path, MeshBuilder& mesh_builder,
-                           AtlasBuilder& tex_builder);
+                           const std::string& path, AtlasBuilder& tex_builder);
 
     bool LoadTextureFromPNG(const std::string& tex_name,
                             const std::string& path, TextureBuilder& builder);

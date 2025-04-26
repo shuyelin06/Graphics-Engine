@@ -9,12 +9,13 @@
 
 #include "lights/LightManager.h"
 #include "resources/ResourceManager.h"
-#include "shaders/ShaderManager.h"
 #include "shaders/PipelineManager.h"
+#include "shaders/ShaderManager.h"
 
-#include "VisualTerrain.h"
-#include "core/AssetObject.h"
-#include "lights/LightObject.h"
+#include "core/AssetComponent.h"
+#include "datamodel/ComponentHandler.h"
+#include "lights/LightComponent.h"
+#include "terrain/VisualTerrain.h"
 
 #include "rendering/core/Camera.h"
 
@@ -25,6 +26,7 @@
 #include "util/CPUTimer.h"
 #include "util/GPUTimer.h"
 #endif
+#include "VisualDebug.h"
 
 // TESTING
 #include "core/TextureAtlas.h"
@@ -43,6 +45,12 @@ struct RenderableAsset {
     Matrix4 m_localToWorld;
 };
 
+enum RenderTargetBindFlags {
+    DisableDepthStencil,
+    EnableDepthStencil_TestAndWrite,
+    EnableDepthStencil_TestNoWrite
+};
+
 // VisualSystem Class:
 // Provides an interface for the application's graphics.
 class VisualSystem {
@@ -55,86 +63,81 @@ class VisualSystem {
     IDXGISwapChain* swap_chain;
     Texture* screen_target;
 
-    // Main render target information
-    // We render to this and apply post-processing before moving
-    // everything to the screen
-    Texture* render_target;
-    Texture* depth_stencil;
-
+    // Render target information. Lets us ping pong
+    // between two render targets for post processing effects.
+    Texture* render_target_dest; // We Render to This
+    Texture* render_target_src;  // We Read from This
     ID3D11Buffer* postprocess_quad;
+
+    Texture* depth_stencil;
     D3D11_VIEWPORT viewport;
+
+    ID3D11BlendState* blend_state;
 
     // Managers
     ResourceManager* resource_manager;
     LightManager* light_manager;
     PipelineManager* pipeline_manager;
 
-    // Main Camera:
-    // The scene is rendered from this camera
-    Camera camera;
-
     // Render Information:
     // Rendering configurations
+    float time_elapsed;
     float time_of_day;
 
-    // Vectors of rendering information that the visual system actually uses
-    // for rendering. It takes the datamodel state, and processes them into
-    // render information.
-    std::vector<AssetObject*> renderable_assets;
-    std::vector<ShadowLightObject*> shadow_lights;
-    std::vector<VisualTerrain*> terrain_chunks;
+    // Supported Components
+    CameraComponent* camera;
+    ComponentHandler<AssetComponent> asset_components;
+    ComponentHandler<ShadowLightComponent> light_components;
+    VisualTerrain* terrain;
 
     std::vector<RenderableAsset> renderable_meshes;
-    std::vector<Mesh*> terrain_meshes;
 
   public:
-    VisualSystem();
-
-    // Returns the system's camera
-    const Camera& getCamera() const;
-    Camera& getCamera();
-
-    // Initialize Visual System
-    void initialize(HWND window);
+    VisualSystem(HWND window);
 
     // Renders an entire scene
+    void pullDatamodelData(); // Call First
     void render();
 
     // Shutdown Visual System
     void shutdown();
 
-    // Create objects in the visual system
-    AssetObject* bindAssetObject(Object* object, const std::string& asset_name);
-    ShadowLightObject* bindShadowLightObject(Object* object);
-    VisualTerrain* bindVisualTerrain(TerrainChunk* terrain);
+  public: // Visual System Bindings
+    CameraComponent* bindCameraComponent(Object* object);
+    AssetComponent* bindAssetComponent(Object* object,
+                                       const std::string& asset_name);
+    ShadowLightComponent* bindLightComponent(Object* object);
+    VisualTerrain* bindTerrain(Terrain* terrain);
 
-  private:
-    // Initialization Stages of the Visual System
+  private: // Initialization Stages
     void initializeScreenTarget(HWND window, UINT width, UINT height);
     void initializeRenderTarget(UINT width, UINT height);
-
     void initializeFullscreenQuad();
-
     void initializeManagers();
+    void initializeComponents();
 
-  private:
-    // Rendering Stages of the Visual System
-    void renderPrepare(); // Prepare for Rendering
-
+  private:                     // Rendering Stages
     void performShadowPass();  // Shadow Pass
     void performTerrainPass(); // Render Terrain
     void performRenderPass();  // Render Pass
 
-    void processSky(); // Blur Effect
+    void performLightFrustumPass(); // Light Frustum Pass
+    void performWaterSurfacePass(); // Water Surface Pass
+
+    void processUnderwater(); // Underwater Effect
 
     void renderFinish(); // Finish Rendering
+
+    // --- Rendering Helper Methods ---
+    // Set the render targets for a given pass
+    void bindActiveRenderTarget(RenderTargetBindFlags bind_flags);
+    void swapActiveRenderTarget();
 
 #if defined(_DEBUG)
   private:
     // Debug via ImGui
     // Frametime Tracking (CPU + GPU)
     GPUTimer gpu_timer;
-    CPUTimer cpu_timer;
 
     void imGuiInitialize(HWND window);
 
@@ -142,7 +145,9 @@ class VisualSystem {
     void imGuiFinish();
 
     void imGuiShutdown();
+#endif
 
+#if defined(ENABLE_DEBUG_DRAWING)
     // Debug via VisualDebug
     ID3D11Buffer* line_vbuffer;
 

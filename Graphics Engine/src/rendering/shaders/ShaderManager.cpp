@@ -90,9 +90,9 @@ void ShaderManager::initializeShaders() {
     // Handles rendering of the scene's terrain. Done in a separate shader than
     // the meshes as terrain is procedurally textured with a tri-planar mapping
     input_layout_arr = {POSITION, NORMAL};
-    createVertexShader({"Terrain", "VSTerrain.hlsl", "vsterrain_main"});
+    createVertexShader({"Terrain", "V_Terrain.hlsl", "vsterrain_main"});
 
-    createPixelShader({"Terrain", "PSTerrain.hlsl", "psterrain_main"});
+    createPixelShader({"Terrain", "P_Terrain.hlsl", "psterrain_main"});
 
     // DebugPoint:
     // Uses instancing to draw colored points in the scene. Only available if
@@ -127,14 +127,29 @@ void ShaderManager::initializeShaders() {
 
     createPixelShader({"TexturedMesh", "P_TexturedMesh.hlsl", "ps_main"});
 
+    input_layout_arr = {POSITION, INSTANCE_ID};
+    createVertexShader(
+        {"LightFrustum", "V_LightFrustum.hlsl", "vs_main", false});
+    createPixelShader({"LightFrustum", "P_LightFrustum.hlsl", "ps_main"});
+
+    input_layout_arr = {POSITION};
+    createVertexShader(
+        {"WaterSurface", "V_WaterSurface.hlsl", "vs_main", false});
+    createPixelShader({"WaterSurface", "P_WaterSurface.hlsl", "ps_main"});
+
     // --- Post Processing Effects ---
     // Generic vertex shader for post process effects
     input_layout_arr = {SV_POSITION};
-    createVertexShader({"PostProcess", "Sky.hlsl", "vs_sky"});
+    createVertexShader({"PostProcess", "Post_VertexShader.hlsl", "vs_main"});
+    createPixelShader({"PostProcess", "Post_PixelShader.hlsl", "ps_main"});
 
-    // Blur:
-    // Attempt at blurring
+    // Sky:
+    // Draws a sun and shades the sky
     createPixelShader({"Sky", "Sky.hlsl", "ps_sky"});
+
+    // Underwater:
+    // Creates an underwater effect
+    createPixelShader({"Underwater", "Post_Underwater.hlsl", "ps_main"});
 }
 
 // GetVertexShader:

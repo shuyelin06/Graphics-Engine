@@ -4,23 +4,15 @@
 #include <d3d11_1.h>
 
 #include "VisualDebug.h"
-
+#include "core/Frustum.h"
 #include "datamodel/Object.h"
 
-#include "core/Frustum.h"
-
-#define RGB(rgb) ((rgb) / 255.f)
-
-#include "datamodel/TreeGenerator.h"
 namespace Engine {
 
 namespace Graphics {
 // Constructor
-// Saves the handle to the application window and initializes the
-// system's data structures
-VisualSystem::VisualSystem() {
-    camera = Camera();
-
+// Initializes the VisualSystem
+VisualSystem::VisualSystem(HWND window) {
     device = NULL;
     context = NULL;
 
@@ -29,18 +21,12 @@ VisualSystem::VisualSystem() {
 
     swap_chain = NULL;
     screen_target = NULL;
-}
 
-// GetCamera:
-// Returns the camera
-const Camera& VisualSystem::getCamera() const { return camera; }
+    camera = nullptr;
+    terrain = nullptr;
 
-Camera& VisualSystem::getCamera() { return camera; }
+    time_elapsed = 0.f;
 
-// Initialize:
-// Initializes the Visual Engine by creating the necessary Direct3D11
-// components.
-void VisualSystem::initialize(HWND window) {
     HRESULT result;
 
     // Get window width and height
@@ -63,6 +49,9 @@ void VisualSystem::initialize(HWND window) {
 
     // Initialize each of my managers with the resources they need
     initializeManagers();
+
+    // Initialize My Components
+    initializeComponents();
 
 #if defined(_DEBUG)
     imGuiInitialize(window);
@@ -97,11 +86,11 @@ void VisualSystem::initializeScreenTarget(HWND window, UINT width,
     swap_chain_descriptor.Windowed = true; // Displaying to a Window
 
     D3D_FEATURE_LEVEL feature_level; // Stores the GPU functionality
-    result = D3D11CreateDeviceAndSwapChain(
-        NULL, D3D_DRIVER_TYPE_HARDWARE, NULL,
-        D3D11_CREATE_DEVICE_SINGLETHREADED, // Flags
-        NULL, 0, D3D11_SDK_VERSION, &swap_chain_descriptor, &swap_chain,
-        &device, &feature_level, &context);
+    result = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL,
+                                           0, // Flags
+                                           NULL, 0, D3D11_SDK_VERSION,
+                                           &swap_chain_descriptor, &swap_chain,
+                                           &device, &feature_level, &context);
 
     assert(S_OK == result && swap_chain && device && context);
 
@@ -129,8 +118,10 @@ void VisualSystem::initializeScreenTarget(HWND window, UINT width,
 void VisualSystem::initializeRenderTarget(UINT width, UINT height) {
     HRESULT result;
 
-    // Create my render target texture
-    render_target = new Texture(width, height);
+    // Create 2 render targets. We will ping pong between
+    // these two render targets during post processing.
+    render_target_dest = new Texture(width, height);
+    render_target_src = new Texture(width, height);
 
     D3D11_TEXTURE2D_DESC tex_desc = {};
     tex_desc.Width = width;
@@ -140,29 +131,40 @@ void VisualSystem::initializeRenderTarget(UINT width, UINT height) {
     tex_desc.MipLevels = 1;
     tex_desc.ArraySize = 1;
     tex_desc.SampleDesc.Count = 1;
-    tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
     tex_desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 
-    result = device->CreateTexture2D(&tex_desc, NULL, &render_target->texture);
+    // Create my texture resources
+    result =
+        device->CreateTexture2D(&tex_desc, NULL, &render_target_src->texture);
+    assert(SUCCEEDED(result));
+    result =
+        device->CreateTexture2D(&tex_desc, NULL, &render_target_dest->texture);
     assert(SUCCEEDED(result));
 
-    // Create a target view for my render target texture so we can render to it
-    result = device->CreateRenderTargetView(render_target->texture, 0,
-                                            &render_target->target_view);
+    // Create render target views
+    result = device->CreateRenderTargetView(render_target_dest->texture, 0,
+                                            &render_target_dest->target_view);
+    assert(SUCCEEDED(result));
+    result = device->CreateRenderTargetView(render_target_src->texture, 0,
+                                            &render_target_src->target_view);
     assert(SUCCEEDED(result));
 
-    // Create a shader view for my render target texture so we can access it in
-    // the GPU
+    // Create shader views so we can access them in the GPU
     {
         D3D11_SHADER_RESOURCE_VIEW_DESC resource_view_desc = {};
-        resource_view_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        resource_view_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
         resource_view_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
         resource_view_desc.Texture2D.MostDetailedMip = 0;
         resource_view_desc.Texture2D.MipLevels = 1;
 
-        result = device->CreateShaderResourceView(render_target->texture,
-                                                  &resource_view_desc,
-                                                  &render_target->shader_view);
+        result = device->CreateShaderResourceView(
+            render_target_dest->texture, &resource_view_desc,
+            &render_target_dest->shader_view);
+        assert(SUCCEEDED(result));
+        result = device->CreateShaderResourceView(
+            render_target_src->texture, &resource_view_desc,
+            &render_target_src->shader_view);
         assert(SUCCEEDED(result));
     }
 
@@ -207,6 +209,23 @@ void VisualSystem::initializeRenderTarget(UINT width, UINT height) {
                                                   &depth_stencil->shader_view);
         assert(SUCCEEDED(result));
     }
+
+    // Create a blend state
+    D3D11_BLEND_DESC blend_desc = {};
+    blend_desc.RenderTarget[0].BlendEnable = TRUE;
+
+    blend_desc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+    blend_desc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+    blend_desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+
+    blend_desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
+    blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+    blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_MAX;
+
+    blend_desc.RenderTarget[0].RenderTargetWriteMask =
+        D3D11_COLOR_WRITE_ENABLE_ALL;
+    result = device->CreateBlendState(&blend_desc, &blend_state);
+    assert(SUCCEEDED(result));
 }
 
 // InitializeFullscreenQuad:
@@ -293,6 +312,12 @@ void VisualSystem::initializeManagers() {
     light_manager = new LightManager(new TextureAtlas(atlas_texture));
 }
 
+// InitializeComponents:
+// Register components of the visual system.
+void VisualSystem::initializeComponents() {
+    // ...
+}
+
 // Shutdown:
 // Closes the visual system.
 void VisualSystem::shutdown() {
@@ -301,34 +326,39 @@ void VisualSystem::shutdown() {
 #endif
 }
 
-// Create Objects:
-// Creates and returns objects in the visual system
-AssetObject* VisualSystem::bindAssetObject(Object* object,
-                                           const std::string& asset_name) {
+// --- Component Bindings ---
+CameraComponent* VisualSystem::bindCameraComponent(Object* object) {
+    if (camera != nullptr)
+        delete camera;
+    CameraComponent* new_cam = new CameraComponent(object);
+    object->bindComponent(new_cam);
+    camera = new_cam;
+
+    return camera;
+}
+
+AssetComponent*
+VisualSystem::bindAssetComponent(Object* object,
+                                 const std::string& asset_name) {
     Asset* asset = resource_manager->getAsset(asset_name);
-    AssetObject* asset_obj = new AssetObject(object, asset);
-    object->setVisualObject(asset_obj);
-    renderable_assets.push_back(asset_obj);
+    AssetComponent* asset_obj = new AssetComponent(object, asset);
+    asset_components.newComponent(object, asset_obj);
     return asset_obj;
 }
 
-ShadowLightObject* VisualSystem::bindShadowLightObject(Object* object) {
+ShadowLightComponent* VisualSystem::bindLightComponent(Object* object) {
     ShadowLight* light = light_manager->createShadowLight(QUALITY_1);
-    ShadowLightObject* light_obj = new ShadowLightObject(object, light);
-    object->setVisualObject(light_obj);
-    shadow_lights.push_back(light_obj);
+    ShadowLightComponent* light_obj = new ShadowLightComponent(object, light);
+    light_components.newComponent(object, light_obj);
     return light_obj;
 }
 
-VisualTerrain* VisualSystem::bindVisualTerrain(TerrainChunk* terrain) {
-    // TEMP: Generate a triangulation of the terrain
-    MeshBuilder* builder = resource_manager->createMeshBuilder();
-    VisualTerrain* visual_terrain = new VisualTerrain(terrain, builder);
+VisualTerrain* VisualSystem::bindTerrain(Terrain* _terrain) {
+    if (terrain != nullptr)
+        delete terrain;
+    terrain = new VisualTerrain(_terrain, device);
 
-    terrain_chunks.push_back(visual_terrain);
-    terrain->bindVisualTerrain(visual_terrain);
-
-    return visual_terrain;
+    return terrain;
 }
 
 // Render:
@@ -336,20 +366,35 @@ VisualTerrain* VisualSystem::bindVisualTerrain(TerrainChunk* terrain) {
 void VisualSystem::render() {
 #if defined(_DEBUG)
     gpu_timer.beginTimer("GPU Frametime");
-    cpu_timer.beginTimer("CPU Frametime");
+    CPUTimer::BeginCPUTimer("CPU Frametime");
 #endif
 
-    renderPrepare();
+    // TEMP
+    light_manager->updateTimeOfDay(15.f);
 
+    // Clear the the screen color
+    render_target_dest->clearAsRenderTarget(context, Color(0.f, 0.f, 0.f));
+
+    // Prepare the shadow maps
     performShadowPass(); //..
 
+    // Render terrain
     performTerrainPass();
+    // Render meshes
     performRenderPass();
 
-    processSky();
+    // Rendering is different depending on if we're below
+    // or above the surface of the water
+    const Vector3& cam_pos = camera->getPosition();
+    if (cam_pos.y <= 100.f) {
+        processUnderwater();
+    } else {
+        performWaterSurfacePass();
+    }
 
-    // ...
-#if defined(_DEBUG)
+    performLightFrustumPass();
+
+#if defined(ENABLE_DEBUG_DRAWING)
     // Debug Functionality
     renderDebugPoints();
     renderDebugLines();
@@ -358,7 +403,7 @@ void VisualSystem::render() {
 
 #if defined(_DEBUG)
     gpu_timer.endTimer("GPU Frametime");
-    cpu_timer.endTimer("CPU Frametime");
+    CPUTimer::EndCPUTimer("CPU Frametime");
     imGuiFinish();
 #endif
 
@@ -370,214 +415,64 @@ void VisualSystem::render() {
 #endif
 }
 
-int generateTreeMeshHelper(MeshBuilder& builder,
-                           const std::vector<TreeStructure>& grammar, int index,
-                           const Vector3& position, const Vector2& rotation) {
-    if (index >= grammar.size())
-        return -1;
-
-    const TreeStructure tree = grammar[index];
-
-    switch (tree.token) {
-    case TRUNK: {
-        const float phi = rotation.u;
-        const float theta = rotation.v;
-
-        Vector3 direction = SphericalToEuler(1.0, theta, phi);
-        const Quaternion rotation_offset =
-            Quaternion::RotationAroundAxis(Vector3::PositiveX(), -PI / 2);
-        direction = rotation_offset.rotationMatrix3() * direction;
-
-        const Vector3 next_pos =
-            position + direction * tree.trunk_data.trunk_length;
-
-        builder.setColor(Color(150.f / 255.f, 75.f / 255.f, 0));
-        builder.addTube(position, next_pos, tree.trunk_data.trunk_thickess, 5);
-        return generateTreeMeshHelper(builder, grammar, index + 1, next_pos,
-                                      rotation);
-    } break;
-
-    case BRANCH: {
-        const Vector2 new_rotation =
-            rotation + Vector2(tree.branch_data.branch_angle_phi,
-                               tree.branch_data.branch_angle_theta);
-
-        const int next_index = generateTreeMeshHelper(
-            builder, grammar, index + 1, position, new_rotation);
-        return generateTreeMeshHelper(builder, grammar, next_index, position,
-                                      rotation);
-    } break;
-
-    case LEAF: {
-        builder.setColor(Color::Green());
-
-        const Vector3 random_axis =
-            Vector3(1 + Random(0.f, 1.f), Random(0.f, 1.f), Random(0.f, 1.f))
-                .unit();
-        const float angle = Random(0, 2 * PI);
-
-        builder.addCube(position,
-                        Quaternion::RotationAroundAxis(random_axis, angle),
-                        tree.leaf_data.leaf_density);
-        return index + 1;
-    } break;
-    }
-
-    return -1;
-}
-
-void generateTreeMesh(MeshBuilder& builder,
-                      const std::vector<TreeStructure>& grammar,
-                      const Vector3& offset) {
-    // Rotation stores (phi, theta), spherical angles. rho is assumed to be 1.
-    generateTreeMeshHelper(builder, grammar, 0, offset, Vector2(0, 0));
-}
-
 // RenderPrepare:
-// Prepares the engine for rendering, by processing all render requests and
-// clearing the screen
-void VisualSystem::renderPrepare() {
+// Prepares the engine for rendering, by pulling all necessary
+// data from the datamodel.
+void VisualSystem::pullDatamodelData() {
 #if defined(_DEBUG)
-    cpu_timer.beginTimer("Render Prepare");
+    CPUTimer::BeginCPUTimer("Render Prepare");
 #endif
 
-    // Clear the the screen color
-    render_target->clearAsRenderTarget(
-        context, Color(RGB(158.f), RGB(218.f), RGB(255.f)));
+    // Pull my object data.
+    // Remove invalid visual objects, and update them to pull
+    // the datamodel data.
+    if (camera != nullptr)
+        camera->update();
+    asset_components.cleanAndUpdate();
+    light_components.cleanAndUpdate();
 
-    // Check and remove any visual objects that are no longer valid
-    int head;
-
-    head = 0;
-    for (int i = 0; i < renderable_assets.size(); i++) {
-        if (!renderable_assets[i]->markedForDestruction()) {
-            renderable_assets[head] = renderable_assets[i];
-            head++;
-        } else {
-            delete renderable_assets[i];
-            renderable_assets[i] = nullptr;
-        }
-    }
-    renderable_assets.resize(head);
-
-    // Check and remove any visual terrain objects that are no longer valid
-    head = 0;
-    for (int i = 0; i < terrain_chunks.size(); i++) {
-        if (!terrain_chunks[i]->markedForDestruction()) {
-            terrain_chunks[head] = terrain_chunks[i];
-            head++;
-        } else {
-            delete terrain_chunks[i];
-            terrain_chunks[i] = nullptr;
-        }
-    }
-    terrain_chunks.resize(head);
-
-    // --- TESTING ENVIRONMENT ---
-    //
-    // --- TEST ---
-#if defined(_DEBUG)
-    static TreeGenerator tree_gen = TreeGenerator();
-    static AssetObject* tree_asset = nullptr;
-
-    if (ImGui::Button("Regenerate")) {
-        tree_gen.generateTree();
-
-        const std::vector<TreeStructure> tree = tree_gen.getTree();
-
-        MeshBuilder* builder = resource_manager->createMeshBuilder();
-        generateTreeMesh(*builder, tree, Vector3(0, 0, 0));
-        builder->regenerateNormals();
-
-        if (tree_asset == nullptr) {
-            Object* obj = new Object();
-            obj->getTransform().setPosition(0, 50.f, 0);
-            obj->updateLocalMatrix(Matrix4::Identity());
-
-            tree_asset = new AssetObject(obj, new Asset());
-            tree_asset->asset->addMesh(builder->generate());
-            obj->setVisualObject(tree_asset);
-            renderable_assets.push_back(tree_asset);
-        } else {
-            tree_asset->asset = new Asset();
-            tree_asset->asset->addMesh(builder->generate());
-        }
-    }
-
-    // tree_gen.debugDrawTree(Vector3(0, 0, 0));
-    // ---
-
-    // --- TEST 2: Sun
-    static float time = 15.f;
-    ImGui::SliderFloat("Time of Day: ", &time, 1.0f, 23.f);
-    light_manager->updateTimeOfDay(time);
-#endif
-
-    // Pull information from the datamodel
-    // - Pull asset local -> world matrices from the datamodel
-    // - Pull light data from the datamodel.
-    for (AssetObject* asset_object : renderable_assets)
-        asset_object->pullDatamodelData();
-    for (ShadowLightObject* shadow_light : shadow_lights)
-        shadow_light->pullDatamodelData();
-    light_manager->updateSunCascades(camera.frustum());
-
-    static bool enable = true;
-#if defined(_DEBUG)
-    ImGui::Checkbox("Disable Frustum Culling", &enable);
-#endif
-    const Frustum cam_frustum = camera.frustum();
+    // Pull my terrain meshes
+    terrain->pullTerrainMeshes(context);
 
     // Prepare managers for data
+    const Frustum cam_frustum = camera->frustum();
+    light_manager->updateSunCascades(camera->frustum());
+
     light_manager->resetShadowCasters();
 
-    for (const AssetObject* object : renderable_assets) {
+    for (const AssetComponent* object : asset_components.getComponents()) {
         const Asset* asset = object->getAsset();
 
         RenderableAsset renderable_asset;
         renderable_asset.asset = asset;
-        renderable_asset.m_localToWorld = object->object->getLocalMatrix();
+        renderable_asset.m_localToWorld = object->getObject()->getLocalMatrix();
         renderable_meshes.push_back(renderable_asset);
 
         const std::vector<Mesh*>& meshes = asset->getMeshes();
         for (const Mesh* mesh : meshes) {
             ShadowCaster shadowCaster;
             shadowCaster.mesh = mesh;
-            shadowCaster.m_localToWorld = object->object->getLocalMatrix();
+            shadowCaster.m_localToWorld = object->getObject()->getLocalMatrix();
             light_manager->addShadowCaster(shadowCaster);
         }
     }
 
-    // Parse all terrain data
-    for (const VisualTerrain* terrain : terrain_chunks) {
-        ShadowCaster shadowCaster;
-        shadowCaster.m_localToWorld = Matrix4::Identity();
+    // Load it for shadows
+    /*const std::vector<Mesh*>& terrain_meshes = terrain->getTerrainMeshes();
+    for (Mesh* terrain_mesh : terrain_meshes) {
+        if (terrain_mesh == nullptr)
+            continue;
 
-        shadowCaster.mesh = terrain->terrain_mesh;
-        light_manager->addShadowCaster(shadowCaster);
-
-        for (Mesh* tree_mesh : terrain->tree_meshes) {
-            shadowCaster.mesh = tree_mesh;
-            light_manager->addShadowCaster(shadowCaster);
-
-            if (enable || cam_frustum.intersectsOBB(
-                              OBB(tree_mesh->aabb, Matrix4::Identity()))) {
-                // Temp disabled
-                /*RenderableAsset renderableMesh;
-                renderableMesh.mesh = tree_mesh;
-                renderableMesh.m_localToWorld = Matrix4::Identity();
-                renderable_meshes.push_back(renderableMesh);*/
-            }
-        }
-
-        terrain_meshes.push_back(terrain->terrain_mesh);
-    }
+        ShadowCaster terrain_shadow;
+        terrain_shadow.m_localToWorld = Matrix4::Identity();
+        terrain_shadow.mesh = terrain_mesh;
+    }*/
 
     // Cluster shadows
     light_manager->clusterShadowCasters();
 
 #if defined(_DEBUG)
-    cpu_timer.endTimer("Render Prepare");
+    CPUTimer::EndCPUTimer("Render Prepare");
 #endif
 }
 
@@ -587,7 +482,7 @@ void VisualSystem::renderPrepare() {
 void VisualSystem::performShadowPass() {
 #if defined(_DEBUG)
     gpu_timer.beginTimer("Shadow Pass");
-    cpu_timer.beginTimer("Shadow Pass");
+    CPUTimer::BeginCPUTimer("Shadow Pass");
 #endif
 
     pipeline_manager->bindVertexShader("ShadowMap");
@@ -659,25 +554,23 @@ void VisualSystem::performShadowPass() {
 
 #if defined(_DEBUG)
     gpu_timer.endTimer("Shadow Pass");
-    cpu_timer.endTimer("Shadow Pass");
+    CPUTimer::EndCPUTimer("Shadow Pass");
 #endif
 }
 
 void VisualSystem::performTerrainPass() {
 #if defined(_DEBUG)
     gpu_timer.beginTimer("Terrain Pass");
-    cpu_timer.beginTimer("Terrain Pass");
+    CPUTimer::BeginCPUTimer("Terrain Pass");
 #endif
 
     pipeline_manager->bindVertexShader("Terrain");
     pipeline_manager->bindPixelShader("Terrain");
 
     // TEST
-    context->OMSetRenderTargets(1, &render_target->target_view,
-                                depth_stencil->depth_view);
+    bindActiveRenderTarget(EnableDepthStencil_TestAndWrite);
     context->ClearDepthStencilView(depth_stencil->depth_view, D3D11_CLEAR_DEPTH,
                                    1.0f, 0);
-    context->RSSetViewports(1, &viewport);
 
     // Vertex Constant Buffer 0:
     // Stores the camera view and projection matrices
@@ -685,9 +578,9 @@ void VisualSystem::performTerrainPass() {
         CBHandle* vCB0 = pipeline_manager->getVertexCB(CB0);
         vCB0->clearData();
 
-        const Matrix4 viewMatrix = camera.getWorldToCameraMatrix();
+        const Matrix4 viewMatrix = camera->getWorldToCameraMatrix();
         vCB0->loadData(&viewMatrix, FLOAT4X4);
-        const Matrix4 projectionMatrix = camera.getFrustumMatrix();
+        const Matrix4 projectionMatrix = camera->getFrustumMatrix();
         vCB0->loadData(&projectionMatrix, FLOAT4X4);
 
         pipeline_manager->bindVertexCB(CB0);
@@ -699,12 +592,12 @@ void VisualSystem::performTerrainPass() {
         CBHandle* pCB1 = pipeline_manager->getPixelCB(CB1);
         pCB1->clearData();
 
-        const Vector3& cameraPosition = camera.getTransform()->getPosition();
+        const Vector3& cameraPosition = camera->getPosition();
         pCB1->loadData(&cameraPosition, FLOAT3);
         int lightCount = light_manager->getShadowLights().size();
         pCB1->loadData(&lightCount, INT);
 
-        const Vector3 cameraView = camera.getTransform()->forward();
+        const Vector3 cameraView = camera->getTransform().forward();
         pCB1->loadData(&cameraView, FLOAT3);
         pCB1->loadData(nullptr, FLOAT);
 
@@ -790,41 +683,45 @@ void VisualSystem::performTerrainPass() {
     }
 
     // TEMP
-    for (Mesh* mesh : terrain_meshes) {
+    /* const std::vector<Mesh*>& terrain_meshes = terrain->getTerrainMeshes();
+     for (Mesh* mesh : terrain_meshes) {
+         if (mesh == nullptr)
+             continue;*/
+
+    BufferPool* bpool = terrain->getMesh();
+    if (bpool->getNumTriangles() > 0) {
         context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
         UINT buffer_stride = sizeof(float) * 3;
         UINT buffer_offset = 0;
 
-        context->IASetVertexBuffers(POSITION, 1,
-                                    &mesh->vertex_streams[POSITION],
-                                    &buffer_stride, &buffer_offset);
-        context->IASetVertexBuffers(NORMAL, 1, &mesh->vertex_streams[NORMAL],
-                                    &buffer_stride, &buffer_offset);
+        ID3D11Buffer* p_buffer = bpool->getPositionBuffer();
+        context->IASetVertexBuffers(POSITION, 1, &p_buffer, &buffer_stride,
+                                    &buffer_offset);
+        ID3D11Buffer* n_buffer = bpool->getNormalBuffer();
+        context->IASetVertexBuffers(NORMAL, 1, &n_buffer, &buffer_stride,
+                                    &buffer_offset);
 
-        context->IASetIndexBuffer(mesh->index_buffer, DXGI_FORMAT_R32_UINT, 0);
+        ID3D11Buffer* i_buffer = bpool->getIndexBuffer();
+        context->IASetIndexBuffer(i_buffer, DXGI_FORMAT_R32_UINT, 0);
 
-        UINT numIndices = mesh->triangle_count * 3;
+        UINT numIndices = bpool->getNumTriangles() * 3;
         context->DrawIndexed(numIndices, 0, 0);
     }
-
 #if defined(_DEBUG)
     gpu_timer.endTimer("Terrain Pass");
-    cpu_timer.endTimer("Terrain Pass");
+    CPUTimer::EndCPUTimer("Terrain Pass");
 #endif
 }
 
 void VisualSystem::performRenderPass() {
 #if defined(_DEBUG)
     gpu_timer.beginTimer("Render Pass");
-    cpu_timer.beginTimer("Render Pass");
+    CPUTimer::BeginCPUTimer("Render Pass");
 #endif
 
     pipeline_manager->bindPixelShader("TexturedMesh");
-
-    context->OMSetRenderTargets(1, &render_target->target_view,
-                                depth_stencil->depth_view);
-    context->RSSetViewports(1, &viewport);
+    bindActiveRenderTarget(EnableDepthStencil_TestAndWrite);
 
     // Vertex Constant Buffer 1:
     // Stores the camera view and projection matrices
@@ -832,10 +729,10 @@ void VisualSystem::performRenderPass() {
         CBHandle* vCB1 = pipeline_manager->getVertexCB(CB1);
         vCB1->clearData();
 
-        const Matrix4 viewMatrix = camera.getWorldToCameraMatrix();
+        const Matrix4 viewMatrix = camera->getWorldToCameraMatrix();
         vCB1->loadData(&viewMatrix, FLOAT4X4);
 
-        const Matrix4 projectionMatrix = camera.getFrustumMatrix();
+        const Matrix4 projectionMatrix = camera->getFrustumMatrix();
         vCB1->loadData(&projectionMatrix, FLOAT4X4);
 
         pipeline_manager->bindVertexCB(CB1);
@@ -847,12 +744,12 @@ void VisualSystem::performRenderPass() {
         CBHandle* pCB1 = pipeline_manager->getPixelCB(CB1);
         pCB1->clearData();
 
-        const Vector3& cameraPosition = camera.getTransform()->getPosition();
+        const Vector3& cameraPosition = camera->getPosition();
         pCB1->loadData(&cameraPosition, FLOAT3);
         int lightCount = light_manager->getShadowLights().size();
         pCB1->loadData(&lightCount, INT);
 
-        const Vector3 cameraView = camera.getTransform()->forward();
+        const Vector3 cameraView = camera->getTransform().forward();
         pCB1->loadData(&cameraView, FLOAT3);
         pCB1->loadData(nullptr, FLOAT);
 
@@ -936,10 +833,6 @@ void VisualSystem::performRenderPass() {
 
     const Texture* color_tex = resource_manager->getColorAtlas();
     context->PSSetShaderResources(0, 1, &color_tex->shader_view);
-
-#if defined(_DEBUG)
-    color_tex->displayImGui();
-#endif
 
     // Testing for animations
     static float time = 0.0f;
@@ -1062,26 +955,176 @@ void VisualSystem::performRenderPass() {
 
 #if defined(_DEBUG)
     gpu_timer.endTimer("Render Pass");
-    cpu_timer.endTimer("Render Pass");
+    CPUTimer::EndCPUTimer("Render Pass");
 #endif
 }
 
-void VisualSystem::processSky() {
+void VisualSystem::performLightFrustumPass() {
+    pipeline_manager->bindVertexShader("LightFrustum");
+    pipeline_manager->bindPixelShader("LightFrustum");
+
+    const std::vector<ShadowLight*>& lights = light_manager->getShadowLights();
+
+    if (lights.size() == 0)
+        return;
+
+    // Disable depth writes
+    bindActiveRenderTarget(DisableDepthStencil);
+
+    {
+        CBHandle* vcb0 = pipeline_manager->getVertexCB(CB0);
+        vcb0->clearData();
+
+        // This matrix scales the unit cube to the frustum cube. The frustum
+        // cube has x in [-1,1], y in [-1,1], z in [0,1].
+        const Matrix4 m_camera_to_screen =
+            camera->getFrustumMatrix() * camera->getWorldToCameraMatrix();
+        vcb0->loadData(&m_camera_to_screen, FLOAT4X4);
+
+        const Matrix4 transform = Matrix4::T_Translate(Vector3(0, 0, 0.5f)) *
+                                  Matrix4::T_Scale(2, 2, 1);
+        for (int i = 0; i < lights.size(); i++) {
+            const Frustum frust = lights[i]->frustum();
+            const Matrix4 m_frustum =
+                frust.getFrustumToWorldMatrix() * transform;
+            vcb0->loadData(&m_frustum, FLOAT4X4);
+
+            /*if (i == 3) {
+                VisualDebug::DrawFrustum(frust.getFrustumToWorldMatrix(),
+                                         Color::Green());
+            }*/
+        }
+
+        pipeline_manager->bindVertexCB(CB0);
+    }
+
+    {
+        CBHandle* pCB0 = pipeline_manager->getPixelCB(CB0);
+        pCB0->clearData();
+
+        const Vector3& pos = camera->getPosition();
+        pCB0->loadData(&pos, FLOAT3);
+
+        pipeline_manager->bindPixelCB(CB0);
+    }
+
+    Asset* frustum_cube = resource_manager->getAsset("Cube");
+    const Mesh* mesh = frustum_cube->getMesh(0);
+
+    ID3D11Buffer* indexBuffer = mesh->index_buffer;
+    ID3D11Buffer* vertexBuffer = mesh->vertex_streams[POSITION];
+    int numIndices = mesh->triangle_count * 3;
+
+    UINT vertexStride = sizeof(float) * 3;
+    UINT vertexOffset = 0;
+
+    context->OMSetBlendState(blend_state, NULL, 0xffffffff);
+
+    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    context->IASetVertexBuffers(POSITION, 1, &vertexBuffer, &vertexStride,
+                                &vertexOffset);
+    context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+    context->DrawIndexedInstanced(numIndices, lights.size(), 0, 0, 1);
+}
+
+void VisualSystem::performWaterSurfacePass() {
+    pipeline_manager->bindVertexShader("WaterSurface");
+    pipeline_manager->bindPixelShader("WaterSurface");
+
+    // Disable depth writes
+    swapActiveRenderTarget();
+    bindActiveRenderTarget(EnableDepthStencil_TestAndWrite);
+
+    {
+        CBHandle* vcb0 = pipeline_manager->getVertexCB(CB0);
+        vcb0->clearData();
+
+        const Matrix4 m_camera_to_screen =
+            camera->getFrustumMatrix() * camera->getWorldToCameraMatrix();
+        vcb0->loadData(&m_camera_to_screen, FLOAT4X4);
+
+        const Vector3& camera_pos = camera->getPosition();
+        vcb0->loadData(&camera_pos, FLOAT3);
+
+        const float surface_height = 100.f;
+        vcb0->loadData(&surface_height, FLOAT);
+
+        pipeline_manager->bindVertexCB(CB0);
+    }
+
+    // VCB1: Wave Information
+    const std::vector<WaveConfig>& wave_config =
+        terrain->getWaterSurface()->getWaveConfig();
+    const int num_waves = terrain->getWaterSurface()->getNumWaves();
+    time_elapsed += 1 / 60.f;
+    {
+        CBHandle* vcb1 = pipeline_manager->getVertexCB(CB1);
+        vcb1->clearData();
+
+        vcb1->loadData(&time_elapsed, FLOAT);
+        vcb1->loadData(&num_waves, INT);
+        vcb1->loadData(nullptr, FLOAT2);
+
+        for (int i = 0; i < num_waves; i++) {
+            vcb1->loadData(&wave_config[i].dimension, INT);
+            vcb1->loadData(&wave_config[i].period, FLOAT);
+            vcb1->loadData(&wave_config[i].amplitude, FLOAT);
+            vcb1->loadData(nullptr, FLOAT);
+        }
+
+        pipeline_manager->bindVertexCB(CB1);
+    }
+
+    {
+        CBHandle* pcb0 = pipeline_manager->getPixelCB(CB0);
+        pcb0->clearData();
+
+        const Vector3& pos = camera->getPosition();
+        pcb0->loadData(&pos, FLOAT3);
+        pcb0->loadData(nullptr, FLOAT);
+
+        pipeline_manager->bindPixelCB(CB0);
+    }
+
+    const Mesh* surface_mesh = terrain->getWaterSurface()->getSurfaceMesh();
+
+    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    ID3D11Buffer* indexBuffer = surface_mesh->index_buffer;
+    context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+    ID3D11Buffer* vertexBuffer = surface_mesh->vertex_streams[POSITION];
+    UINT vertexStride = sizeof(float) * 3;
+    UINT vertexOffset = 0;
+    context->IASetVertexBuffers(POSITION, 1, &vertexBuffer, &vertexStride,
+                                &vertexOffset);
+
+    int numIndices = surface_mesh->triangle_count * 3;
+    context->OMSetBlendState(blend_state, NULL, 0xffffffff);
+    context->DrawIndexed(numIndices, 0, 0);
+}
+
+void VisualSystem::processUnderwater() {
+#if defined(_DEBUG)
+    gpu_timer.beginTimer("Underwater Pass");
+#endif
+
     pipeline_manager->bindVertexShader("PostProcess");
-    pipeline_manager->bindPixelShader("Sky");
+    pipeline_manager->bindPixelShader("Underwater");
 
     // Set render target
-    context->OMSetRenderTargets(1, &screen_target->target_view, nullptr);
-    context->RSSetViewports(1, &viewport);
+    swapActiveRenderTarget();
+    bindActiveRenderTarget(DisableDepthStencil);
 
-    // Set Data
+    // Set samplers and texture resources
     ID3D11SamplerState* mesh_texture_sampler =
         resource_manager->getMeshSampler();
     context->PSSetSamplers(0, 1, &mesh_texture_sampler);
-
-    context->PSSetShaderResources(0, 1, &render_target->shader_view);
+    context->PSSetShaderResources(0, 1, &render_target_src->shader_view);
     context->PSSetShaderResources(1, 1, &depth_stencil->shader_view);
 
+    // Set resolution information
     {
         CBHandle* pCB0 = pipeline_manager->getPixelCB(CB0);
         pCB0->clearData();
@@ -1091,36 +1134,53 @@ void VisualSystem::processSky() {
         const float f_height = (float)screen_target->height;
         pCB0->loadData(&f_height, FLOAT);
 
-        pCB0->loadData(nullptr, FLOAT);
-        pCB0->loadData(nullptr, FLOAT);
+        const float z_near = camera->getZNear();
+        pCB0->loadData(&z_near, FLOAT);
+        const float z_far = camera->getZFar();
+        pCB0->loadData(&z_far, FLOAT);
 
         pipeline_manager->bindPixelCB(CB0);
     }
 
+    // Set parameters
     {
         CBHandle* pCB1 = pipeline_manager->getPixelCB(CB1);
         pCB1->clearData();
 
         const Matrix4 m_project_to_world =
-            (camera.getFrustumMatrix() * camera.getWorldToCameraMatrix())
+            (camera->getFrustumMatrix() * camera->getWorldToCameraMatrix())
                 .inverse();
         pCB1->loadData(&m_project_to_world, FLOAT4X4);
 
-        const Vector3& sun_direction =
-            light_manager->getSunLight()->getDirection();
-        pCB1->loadData(&sun_direction, FLOAT3);
+        const Vector3& camera_pos = camera->getPosition();
+        pCB1->loadData(&camera_pos, FLOAT3);
 
-        pCB1->loadData(nullptr, FLOAT);
+        // The lower the value, the slower it gets darker as you go deeper
+        const float intensity_drop = 0.001f;
+        pCB1->loadData(&intensity_drop, FLOAT);
 
-        const Vector3 cam_pos = camera.getTransform()->getPosition();
-        pCB1->loadData(&cam_pos, FLOAT3);
+        // DO NOT MODIFY. Precomputed values for the fog interpolation.
+        const float d = camera->getZFar() * 0.5f;
+        const Vector3 fog_params = Vector3(1.f / (d * d), -2.f / d, 1.f);
+        pCB1->loadData(&fog_params, FLOAT3);
 
-        pCB1->loadData(nullptr, FLOAT);
+        // Water Visibility
+        const float visibility = 1.5f;
+        pCB1->loadData(&visibility, FLOAT);
+
+        // Where the surface is. Brightest at the surface.
+        const float surface_height = 100.f;
+        pCB1->loadData(&surface_height, FLOAT);
+
+        const Vector3 shallow_waters = Vector3(24.f, 154.f, 180.f) / 255.f;
+        pCB1->loadData(&shallow_waters, FLOAT3);
+        const Vector3 deep_waters = Vector3(5.f, 68.f, 94.f) / 255.f;
+        pCB1->loadData(&deep_waters, FLOAT3);
 
         pipeline_manager->bindPixelCB(CB1);
     }
 
-    // Bind full screen quad
+    // Bind and draw full screen quad
     UINT vertexStride = sizeof(float) * 4;
     UINT vertexOffset = 0;
 
@@ -1129,17 +1189,92 @@ void VisualSystem::processSky() {
                                 &vertexOffset);
 
     context->Draw(6, 0);
+
+#if defined(_DEBUG)
+    gpu_timer.endTimer("Underwater Pass");
+#endif
 }
 
 void VisualSystem::renderFinish() {
-    // Present what we rendered to
+    // We will render from our most reecntly used render target to the screen
+    pipeline_manager->bindVertexShader("PostProcess");
+    pipeline_manager->bindPixelShader("PostProcess");
+
+    // Set render target
+    context->OMSetRenderTargets(1, &screen_target->target_view, nullptr);
+    context->RSSetViewports(1, &viewport);
+
+    // Set samplers and texture resources
+    ID3D11SamplerState* mesh_texture_sampler =
+        resource_manager->getMeshSampler();
+    context->PSSetSamplers(0, 1, &mesh_texture_sampler);
+    context->PSSetShaderResources(0, 1, &render_target_dest->shader_view);
+
+    // Set resolution information
+    {
+        CBHandle* pCB0 = pipeline_manager->getPixelCB(CB0);
+        pCB0->clearData();
+
+        const float f_width = (float)screen_target->width;
+        pCB0->loadData(&f_width, FLOAT);
+        const float f_height = (float)screen_target->height;
+        pCB0->loadData(&f_height, FLOAT);
+
+        const float z_near = camera->getZNear();
+        pCB0->loadData(&z_near, FLOAT);
+        const float z_far = camera->getZFar();
+        pCB0->loadData(&z_far, FLOAT);
+
+        pipeline_manager->bindPixelCB(CB0);
+    }
+
+    // Bind and draw full screen quad
+    UINT vertexStride = sizeof(float) * 4;
+    UINT vertexOffset = 0;
+
+    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    context->IASetVertexBuffers(0, 1, &postprocess_quad, &vertexStride,
+                                &vertexOffset);
+
+    context->Draw(6, 0);
+
+    // Finally, present what we rendered to
     swap_chain->Present(1, 0);
 
     renderable_meshes.clear();
-    terrain_meshes.clear();
 }
 
-#if defined(_DEBUG)
+// --- Rendering Helper Methods ---
+// BindActiveRenderTarget:
+// Binds the currently active render target. There is an option
+// to bind the depth stencil too, if needed.
+void VisualSystem::bindActiveRenderTarget(RenderTargetBindFlags bind_flags) {
+    ID3D11DepthStencilView* depth_view = nullptr;
+
+    if (bind_flags == EnableDepthStencil_TestAndWrite ||
+        bind_flags == EnableDepthStencil_TestNoWrite) {
+        depth_view = depth_stencil->depth_view;
+
+        ID3D11DepthStencilState* state = nullptr;
+        if (bind_flags == EnableDepthStencil_TestAndWrite)
+            state = resource_manager->DSState_TestAndWrite();
+        else if (bind_flags == EnableDepthStencil_TestNoWrite)
+            state = resource_manager->DSState_TestNoWrite();
+        context->OMSetDepthStencilState(state, 0);
+    }
+
+    context->OMSetRenderTargets(1, &render_target_dest->target_view,
+                                depth_view);
+    context->RSSetViewports(1, &viewport);
+}
+
+void VisualSystem::swapActiveRenderTarget() {
+    Texture* temp = render_target_dest;
+    render_target_dest = render_target_src;
+    render_target_src = temp;
+}
+
+#if defined(ENABLE_DEBUG_DRAWING)
 void VisualSystem::renderDebugPoints() {
     std::vector<PointData>& points = VisualDebug::points;
 
@@ -1190,10 +1325,10 @@ void VisualSystem::renderDebugPoints() {
         // Stores the camera view and projection matrices
         vCB1->clearData();
         {
-            const Matrix4 viewMatrix = camera.getWorldToCameraMatrix();
+            const Matrix4 viewMatrix = camera->getWorldToCameraMatrix();
             vCB1->loadData(&viewMatrix, FLOAT4X4);
 
-            const Matrix4 projectionMatrix = camera.getFrustumMatrix();
+            const Matrix4 projectionMatrix = camera->getFrustumMatrix();
             vCB1->loadData(&projectionMatrix, FLOAT4X4);
         }
         pipeline_manager->bindVertexCB(CB1);
@@ -1243,10 +1378,10 @@ void VisualSystem::renderDebugLines() {
         // Stores the camera view and projection matrices
         vCB1->clearData();
         {
-            const Matrix4 viewMatrix = camera.getWorldToCameraMatrix();
+            const Matrix4 viewMatrix = camera->getWorldToCameraMatrix();
             vCB1->loadData(&viewMatrix, FLOAT4X4);
 
-            const Matrix4 projectionMatrix = camera.getFrustumMatrix();
+            const Matrix4 projectionMatrix = camera->getFrustumMatrix();
             vCB1->loadData(&projectionMatrix, FLOAT4X4);
         }
         pipeline_manager->bindVertexCB(CB1);
@@ -1254,7 +1389,9 @@ void VisualSystem::renderDebugLines() {
         context->Draw(numLines, 0);
     }
 }
+#endif
 
+#if defined(_DEBUG)
 // ImGui Initialize:
 // Initializes the ImGui menu and associated data.
 void VisualSystem::imGuiInitialize(HWND window) {
@@ -1278,13 +1415,12 @@ void VisualSystem::imGuiInitialize(HWND window) {
     gpu_timer.createTimer("Terrain Pass");
     gpu_timer.createTimer("Render Pass");
 
-    cpu_timer.initialize();
-
-    cpu_timer.createTimer("CPU Frametime");
-    cpu_timer.createTimer("Render Prepare");
-    cpu_timer.createTimer("Shadow Pass");
-    cpu_timer.createTimer("Terrain Pass");
-    cpu_timer.createTimer("Render Pass");
+    CPUTimer::Initialize();
+    CPUTimer::CreateCPUTimer("CPU Frametime");
+    CPUTimer::CreateCPUTimer("Render Prepare");
+    CPUTimer::CreateCPUTimer("Shadow Pass");
+    CPUTimer::CreateCPUTimer("Terrain Pass");
+    CPUTimer::CreateCPUTimer("Render Pass");
 }
 
 // ImGuiPrepare:
@@ -1310,7 +1446,7 @@ void VisualSystem::imGuiFinish() {
 
     if (ImGui::CollapsingHeader("Rendering")) {
         ImGui::SeparatorText("CPU Times:");
-        cpu_timer.displayTimes();
+        CPUTimer::DisplayCPUTimes();
 
         ImGui::SeparatorText("GPU Times:");
         gpu_timer.displayTimes();

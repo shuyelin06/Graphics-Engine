@@ -167,5 +167,10 @@ bool testSeparationAlongAxis(const Vector3& _axis,
     else
         return false;
 }
+
+const Matrix4& Frustum::getFrustumToWorldMatrix() const {
+    return m_frustum_to_world;
+}
+
 } // namespace Graphics
 } // namespace Engine

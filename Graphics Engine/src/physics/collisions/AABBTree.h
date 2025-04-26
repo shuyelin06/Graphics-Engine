@@ -23,10 +23,10 @@ struct AABBNode;
 // Can be used by the physics engine for a more precise collision
 // check and resolution.
 struct ColliderPair {
-    AABB* aabb_1;
-    AABB* aabb_2;
+    CollisionAABB* aabb_1;
+    CollisionAABB* aabb_2;
 
-    ColliderPair(AABB* aabb1, AABB* aabb2);
+    ColliderPair(CollisionAABB* aabb1, CollisionAABB* aabb2);
 };
 
 class AABBTree {
@@ -46,8 +46,8 @@ class AABBTree {
     AABBTree(float fat_margin);
     ~AABBTree();
 
-    void add(AABB* aabb);
-    void remove(AABB* aabb);
+    void add(CollisionAABB* aabb);
+    void remove(CollisionAABB* aabb);
     void update();
 
     // Broadphase:
@@ -65,7 +65,7 @@ class AABBTree {
     void removeAABB(AABBNode* node);
     void correctTreeAfterRemoval(AABBNode* node);
 
-    void findInvalidBeforeUpdate(AABBNode* node, std::vector<AABB*>& invalid);
+    void findInvalidBeforeUpdate(AABBNode* node, std::vector<CollisionAABB*>& invalid);
 
     void findColliderPairs(AABBNode* n1, AABBNode* n2);
 

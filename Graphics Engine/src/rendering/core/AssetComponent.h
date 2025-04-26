@@ -1,23 +1,21 @@
 #pragma once
 
 #include "Asset.h"
-#include "rendering/VisualObject.h"
+#include "datamodel/Component.h"
 
 namespace Engine {
+using namespace Datamodel;
 namespace Graphics {
 // MeshObject Class:
 // Denotes an asset in the engine, that can be rendered.
-class AssetObject : public VisualObject {
-    friend class VisualSystem;
-
+class AssetComponent : public Component {
   private:
     Asset* asset;
     Matrix4 m_local_to_world;
 
-    AssetObject(Object* object, Asset* mesh);
-
   public:
-    ~AssetObject();
+    AssetComponent(Object* object, Asset* mesh);
+    ~AssetComponent();
 
     const Asset* getAsset() const;
     const Matrix4& getLocalToWorldMatrix() const;
@@ -25,8 +23,8 @@ class AssetObject : public VisualObject {
     Vector3 getPosition() const;
     Quaternion getRotation() const;
 
-    // Pulls the object transform
-    void pullDatamodelData();
+    // OVERRIDE: Pulls the object transform
+    void update();
 };
 
 } // namespace Graphics

@@ -3,6 +3,7 @@
 #include <map>
 #include <vector>
 
+#include "Component.h"
 #include "math/Matrix4.h"
 #include "math/Transform.h"
 #include "math/Vector3.h"
@@ -33,31 +34,13 @@ class Object {
     Object* parent;
     std::vector<Object*> children;
 
+    // Components
+    std::vector<Component*> components;
+
     // Transform of the object
     Transform transform;
-
-    // (Cached) Local --> World Matrix
+    // Cached Local --> World Matrix
     Matrix4 m_local;
-
-    // Object Tags
-    // Store information about what the object is in the rendering and
-    // physics engine.
-    uint16_t visual_tag;
-
-    uint16_t physics_tag;
-
-    // --- TODO --- 
-    // Component Flags.
-    // Objects don't know what components are associated with them. They only
-    // store references to the component's "destroy" boolean flags, so it can signal
-    // to the component that the object is destroyed
-    // ... 
-    
-    // Renderable Asset Associated with the Object
-    VisualObject* visual_object;
-
-    // Physics Data Associated with the Object
-    PhysicsObject* physics_object;
 
   public:
     // Constructor & Destructor
@@ -76,14 +59,18 @@ class Object {
     const Matrix4& getLocalMatrix() const;
     const Matrix4& updateLocalMatrix(const Matrix4& m_parent);
 
-    // Visual Methods
-    const VisualObject* getVisualObject() const;
-    void setVisualObject(VisualObject* visual_obj);
+    // --- Component Methods ---
+    // Bind a new component to the object.
+    int bindComponent(Component* component);
 
-    // Physics Methods
-    const PhysicsObject* getPhysicsObject() const;
-    void setPhysicsObject(PhysicsObject* phys_obj);
+    // Remove a component (or components) from the object.
+    // Components removed are marked invalid.
+    void removeComponent(Component* component);
+    void removeAllComponentsWithTag(unsigned int tag);
 
+    // Retrieve an object component by tag.
+    Component* getComponent(unsigned int tag);
 };
+
 } // namespace Datamodel
 } // namespace Engine

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "../core/Asset.h"
@@ -41,12 +43,23 @@ struct MeshTriangle {
     uint32_t vertex1;
     uint32_t vertex2;
 
+    MeshTriangle();
     MeshTriangle(UINT v0, UINT v1, UINT v2);
+};
+
+enum MeshBuilderLayout {
+    BUILDER_NONE = 0,
+    BUILDER_POSITION = 1 << 1,
+    BUILDER_NORMAL = 1 << 2,
+    BUILDER_TEXTURE = 1 << 3,
+    BUILDER_COLOR = 1 << 4,
+    BUILDER_JOINTS = 1 << 5,
+    BUILDER_WEIGHTS = 1 << 6
 };
 
 class MeshBuilder {
   private:
-    ID3D11Device* device;
+    uint16_t layout;
 
     std::vector<MeshVertex> vertex_buffer;
     std::vector<MeshTriangle> index_buffer;
@@ -54,15 +67,21 @@ class MeshBuilder {
     Color active_color;
 
   public:
-    MeshBuilder(ID3D11Device* device);
+    MeshBuilder();
+    MeshBuilder(MeshBuilderLayout layout);
     ~MeshBuilder();
 
     // Generates the Mesh for use in the rendering pipeline
-    Mesh* generate();
-    Mesh* generate(const Material& material);
+    Mesh* generateMesh(ID3D11Device* device);
+    Mesh* generateMesh(ID3D11Device* device, const Material& material);
+
+    const std::vector<MeshVertex>& getVertices() const;
+    const std::vector<MeshTriangle>& getIndices() const;
 
     // Set the active color
     void setColor(const Color& color);
+    // Add a layout to generate
+    void addLayout(MeshBuilderLayout layout_pins);
 
     // Add vertices and triangles to the builder. If a vertex is added,
     // the builder returns the index corresponding to that vertex.
@@ -73,9 +92,12 @@ class MeshBuilder {
     UINT addVertices(const std::vector<MeshVertex>& vertices);
     void addTriangles(const std::vector<MeshTriangle>& indices,
                       UINT start_index);
+    void popTriangles(UINT num_triangles);
 
     // Return a MeshVertex from the builder (by index) for modification
     MeshVertex& getVertex(UINT index);
+    
+    Vector3& getPosition(UINT index);
 
     // Add shapes to the builder. This makes it easy to compose objects using
     // the builder. Unit cube centered around the origin
@@ -92,7 +114,7 @@ class MeshBuilder {
 
   private:
     ID3D11Buffer* createVertexStream(void* (*addressor)(MeshVertex&),
-                                     UINT byte_size);
+                                     UINT byte_size, ID3D11Device* device);
 
     static void ExtractVertexPosition(const MeshVertex& vertex,
                                       uint8_t* output);

@@ -19,6 +19,8 @@ class PerlinNoise {
     float noise2D(float x, float y) const;
     float octaveNoise2D(float x, float y, int octaves, float persistence) const;
 
+    float noise3D(float x, float y, float z) const;
+
   private:
     void seedGenerator(unsigned int seed);
     unsigned char indexTable(int index) const;

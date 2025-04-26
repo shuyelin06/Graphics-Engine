@@ -124,6 +124,18 @@ Vector3 Vector3::orthogonal() const {
     return perp;
 }
 
+// [] Operator:
+// Access a component of the vector by index
+float Vector3::operator[](int axis) const {
+    if (axis == 0)
+        return x;
+    else if (axis == 1)
+        return y;
+    else if (axis == 2)
+        return z;
+    return 0;
+}
+
 // + Operator:
 // Returns a new vector which is the summation of
 // this vector and another vector
@@ -226,6 +238,12 @@ Vector3& Vector3::operator*=(const Vector3& v) {
     y = y * v.y;
     z = z * v.z;
     return *this;
+}
+
+// Equality:
+// Checks if two vector3's are equal. Used in hashing.
+bool Vector3::operator==(const Vector3& vec) const {
+    return x == vec.x && y == vec.y && z == vec.z;
 }
 
 // Static Vector Operations:

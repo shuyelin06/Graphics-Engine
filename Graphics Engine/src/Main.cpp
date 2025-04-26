@@ -27,22 +27,21 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include <mutex>
+#include <thread>
+
+#include "core/ThreadPool.h"
 #include "datamodel/SceneGraph.h"
 #include "input/InputSystem.h"
 #include "physics/PhysicsSystem.h"
 #include "rendering/VisualSystem.h"
 
-#include "input/components/MovementHandler.h"
-
 #include "rendering/VisualDebug.h"
-
-#include "math/Compute.h"
 #include "utility/Stopwatch.h"
 
-// ----- TESTING -----
-#include "datamodel/TreeGenerator.h"
-#include "physics/collisions/AABBTree.h"
-// -----
+// --- TEST
+
+// ---
 
 using namespace Engine;
 using namespace Engine::Physics;
@@ -54,14 +53,11 @@ using namespace Engine::Graphics;
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 // Static reference to the input system for use in the window message callback
-static InputSystem input_system;
+static InputSystem* input_system_handle;
 
 // Main Function
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                     PWSTR pCmdLine, int nCmdShow) {
-    Vector3 result = SphericalToEuler(sqrtf(26), 1.3734f, 5.3559f);
-    Vector3 original = EulerToSpherical(result.x, result.y, result.z);
-
     // Create a Window Class with the OS
     const wchar_t CLASS_NAME[] = L"Main";
 
@@ -96,58 +92,44 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     // Seed Random Number Generator
     srand(0);
 
-    // Create Input System
-    input_system = InputSystem();
-    input_system.initialize(hwnd);
-
-    // Create Visual System
-    VisualSystem visual_system = VisualSystem();
-    visual_system.initialize(hwnd);
-
-    // Create Physics System
+    // --- Create my Systems ---
+    InputSystem input_system = InputSystem(hwnd);
+    input_system_handle = &input_system;
+    VisualSystem visual_system = VisualSystem(hwnd);
     PhysicsSystem physics_system = PhysicsSystem();
-    physics_system.initialize();
 
-    // Create SceneGraph
+    // --- Create my ThreadPool ---
+    const int num_worker_threads = std::thread::hardware_concurrency() - 1;
+    ThreadPool::InitializeThreadPool();
+
+    // --- Create my Scene ---
     Scene scene_graph = Scene();
-    // scene_graph.updateTerrainChunks(0.f, 0.f);
+    scene_graph.invalidateTerrainChunks(0.f, 0.f, 0.f);
 
-    // Bind Camera
-    MovementHandler movementHandler(visual_system.getCamera().getTransform());
-    visual_system.getCamera().getTransform()->setPosition(0, 100.f, 0);
+    Object& parent = scene_graph.createObject();
 
-    // Create Object Hierarchy
-    Object& parent_object = scene_graph.createObject();
+    // Bind a Camera
+    Object& camera_obj = parent.createChild();
+    visual_system.bindCameraComponent(&camera_obj);
 
-    /*Object& sun_light = parent_object.createChild();
-    visual_system.bindShadowLightObject(&sun_light);*/
+    // Bind Terrain
+    visual_system.bindTerrain(scene_graph.getTerrain());
+    physics_system.bindTerrain(scene_graph.getTerrain());
 
-    {
-        Object& child2 = parent_object.createChild();
-        AssetObject* asset2 = visual_system.bindAssetObject(&child2, "Tree");
-        child2.getTransform().setScale(1, 1, 1);
-        child2.getTransform().setPosition(Random(-2.5f, 2.5f), 100,
-                                          Random(15, 25));
-    }
+    // Bind Movement Physics
+    physics_system.bindPhysicsObject(&camera_obj);
 
-    {
-        Object& child = parent_object.createChild();
-        AssetObject* asset2 = visual_system.bindAssetObject(&child, "Fox");
-        child.getTransform().setScale(5, 5, 5);
-        child.getTransform().setPosition(0, 75, 0);
-    }
-    /*std::vector<Vector3> points;
-    points.push_back(Vector3(-2.5, -2.5, -2.5));
-    points.push_back(Vector3(-2.5, -2.5, 2.5));
-    points.push_back(Vector3(-2.5, 2.5, -2.5));
-    points.push_back(Vector3(-2.5, 2.5, 2.5));
-    points.push_back(Vector3(2.5, -2.5, -2.5));
-    points.push_back(Vector3(2.5, -2.5, 2.5));
-    points.push_back(Vector3(2.5, 2.5, -2.5));
-    points.push_back(Vector3(2.5, 2.5, 2.5));
-    physics_system.addCollisionHull("Box", points);
-    PhysicsObject* p1 = physics_system.bindPhysicsObject(&child2);
-    CollisionObject* c1 = physics_system.bindCollisionObject(p1, "Box");*/
+    Object& light = parent.createChild();
+    ShadowLightComponent* comp = visual_system.bindLightComponent(&light);
+    camera_obj.getTransform().offsetPosition(0.0f, 125.f, 0.0f);
+
+    //// Create Object Hierarchy
+    // visual_system.bindAssetComponent(&parent_object, "Fox");
+    // physics_system.bindPhysicsObject(&parent_object);
+
+    // --- TESTING ENVIRONMENT
+
+    // ---
 
     // Begin window messaging loop
     MSG msg = {};
@@ -167,29 +149,52 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             DispatchMessage(&msg);
 
             if (msg.message == WM_QUIT)
-                return 0;
+                close = true;
         }
 
+#if defined(_DEBUG)
+        VisualDebug::DrawPoint(light.getTransform().getPosition(), 2.5f);
+
+        // ImGui Display
+        if (ImGui::CollapsingHeader("Core")) {
+            ImGui::Text("Pending Jobs: %i",
+                        ThreadPool::GetThreadPool()->countPendingJobs());
+            ImGui::Text("Active Workers: %i",
+                        ThreadPool::GetThreadPool()->countActiveWorkers());
+        }
+
+        // light.getTransform().offsetRotation(Vector3::PositiveY(), 0.1f);
+#endif
+
         // Dispatch Input Data
-        movementHandler.update();
         input_system.update();
 
+        // Pull Data for Rendering
+        visual_system.pullDatamodelData();
+
+        // Render Objects
+        visual_system.render();
+
         // Update Physics System
+        physics_system.pullDatamodelData();
         physics_system.update();
+        physics_system.pushDatamodelData();
 
         // Update Datamodel
         scene_graph.updateObjects();
 
-        const Vector3& cam_pos =
-            visual_system.getCamera().getTransform()->getPosition();
-        scene_graph.updateTerrainChunks(cam_pos.x, cam_pos.z);
+        const Vector3 pos = camera_obj.getTransform().getPosition();
+        scene_graph.invalidateTerrainChunks(pos.x, pos.y, pos.z);
 
-        const std::vector<TerrainChunk*>& chunks = scene_graph.getNewChunks();
-        for (TerrainChunk* chunk : chunks)
-            visual_system.bindVisualTerrain(chunk);
-
-        // Render Objects
-        visual_system.render();
+        // TEST
+        /*const Vector3 direc = camera_obj.getTransform().forward();
+        BVHRayCast raycast = physics_system.raycast(pos, direc);
+        if (raycast.hit) {
+            const Triangle& triangle = raycast.hit_triangle->triangle;
+            VisualDebug::DrawLine(triangle.vertex(0), triangle.vertex(1));
+            VisualDebug::DrawLine(triangle.vertex(1), triangle.vertex(2));
+            VisualDebug::DrawLine(triangle.vertex(2), triangle.vertex(0));
+        }*/
 
         // Stall until enough time has elapsed for 60 frames / second
         while (framerate_watch.Duration() < 1 / 60.f) {
@@ -198,6 +203,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     // Shutdown all systems
     visual_system.shutdown();
+
+    ThreadPool::DestroyThreadPool();
 
     // Finish
     return 0;
@@ -222,7 +229,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
 #endif
 
     // Input System Input
-    if (input_system.dispatchWin32Input(hwnd, uMsg, wParam, lParam))
+    if (input_system_handle->dispatchWin32Input(hwnd, uMsg, wParam, lParam))
         return true;
 
     // Default Window Behavior

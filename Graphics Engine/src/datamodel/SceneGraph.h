@@ -2,27 +2,8 @@
 
 #include <vector>
 
-#include "math/PerlinNoise.h"
-
 #include "Object.h"
-#include "Terrain.h"
-
-// Stores the number of terrain chunks past the center chunk we will maintain.
-/*
-               /\ Extent
-                |
-                |
-              -----
-             |     |
-  Extent<--  |     | --> Extent
-              -----
-                |
-                |
-               \/ Extent
-
-*/
-constexpr int TERRAIN_CHUNK_EXTENT = 3;
-constexpr int TERRAIN_NUM_CHUNKS = 2 * TERRAIN_CHUNK_EXTENT + 1;
+#include "terrain/Terrain.h"
 
 namespace Engine {
 using namespace Math;
@@ -37,44 +18,24 @@ namespace Datamodel {
 class Scene {
   private:
     std::vector<Object*> objects;
-
-    // Random Generation
-    PerlinNoise* noise_func;
-
-    // --- Terrain Fields ---
-    // Center chunk of the scene. Loading is performed based on this center
-    int center_chunk_x, center_chunk_z;
-
-    // Loaded terrain chunks in the scene
-    TerrainChunk* terrain[TERRAIN_NUM_CHUNKS][TERRAIN_NUM_CHUNKS];
-    // Temporarily stores terrain chunks for when the scene center changes
-    TerrainChunk* terrain_helper[TERRAIN_NUM_CHUNKS][TERRAIN_NUM_CHUNKS];
-    // Stores newly created chunks to be bound
-    std::vector<TerrainChunk*> new_chunks;
+    Terrain* terrain;
 
   public:
     Scene();
     ~Scene();
 
     // --- Object Handling ---
-    const std::vector<Object*>& getObjects();
+    const std::vector<Object*>& getObjects() const;
     Object& createObject();
 
     // Update object transforms and submit render requests
     void updateObjects();
 
     // --- Terrain Handling ---
-    TerrainChunk* getTerrainChunk(int x_index, int z_index) const;
-    float sampleTerrainHeight(float x, float z) const;
+    Terrain* getTerrain() const;
 
-    void seedTerrain(unsigned int seed); // Set the Generation Seed
-    void reloadTerrainChunk(int x_index, int z_index); // Reload a Terrain Chunk
-    void reloadTerrain();                              // Reload all terrain
-
-    // Update the loaded terrain chunks based on the center x,z coordinates
-    void updateTerrainChunks(float center_x, float center_z);
-    // Returns the newly created terrain chunks
-    const std::vector<TerrainChunk*>& getNewChunks() const;
+    // Invalidate terrain chunks outside of our given position.
+    void invalidateTerrainChunks(float x, float y, float z);
 
   private:
     void updateObjectsHelper(Object* object, const Matrix4& m_parent);

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "datamodel/Object.h"
 #include "collisions/CollisionObject.h"
+#include "datamodel/Object.h"
 
 #include "collisions/GJKSupport.h"
 #include "math/Vector3.h"
@@ -14,27 +14,33 @@ namespace Physics {
 // PhysicsObject Struct:
 // Data that represents the physics state of an object in the
 // datamodel.
-class PhysicsObject {
+class PhysicsObject : public Component {
     friend class PhysicsSystem;
-    friend void Object::setPhysicsObject(PhysicsObject* phys_obj);
 
   private:
-    Object* const object;
+    Transform transform;
 
+    Vector3 acceleration;
     Vector3 velocity;
-    
+
     CollisionObject* collider;
 
-    // Marks if the PhysicsObject should be destroyed or not
-    // by the PhysicsSystem
-    bool destroy;
-
-    PhysicsObject(Object* object);
+    Quaternion xRotation; // Left-Right Rotation (Z-Axis)
+    Quaternion yRotation; // Up-Down Rotation (Y-Axis)
+    float prev_x, prev_y;
 
   public:
+    PhysicsObject(Object* object);
     ~PhysicsObject();
 
-    void setVelocity(const Vector3& velocity);
+    // Pull and push data from this component
+    // and the datamodel.
+    void pull();
+    void push();
+
+    void pollInput();
+    void applyVelocity(float delta_time);
+    void applyAcceleration(float delta_time);
 };
 
 } // namespace Physics

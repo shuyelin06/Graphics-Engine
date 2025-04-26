@@ -4,7 +4,7 @@
 
 namespace Engine {
 namespace Physics {
-ColliderPair::ColliderPair(AABB* aabb1, AABB* aabb2) {
+ColliderPair::ColliderPair(CollisionAABB* aabb1, CollisionAABB* aabb2) {
     aabb_1 = aabb1;
     aabb_2 = aabb2;
 }
@@ -19,16 +19,16 @@ struct AABBNode {
 
     // Node AABB that is guaranteed (by property of the AABB tree)
     // to contain the AABB of all its children
-    AABB aabb;
+    CollisionAABB aabb;
 
     // Collider AABB. Only leaves store collider AABB data
-    AABB* data;
+    CollisionAABB* data;
 
     AABBNode() {
         parent = nullptr;
         children[0] = nullptr;
         children[1] = nullptr;
-        aabb = AABB();
+        aabb = CollisionAABB();
         data = nullptr;
     }
     ~AABBNode() {}
@@ -40,7 +40,7 @@ struct AABBNode {
         if (isLeaf()) {
             const Vector3 margin_vector = Vector3(margin, margin, margin);
 
-            aabb = AABB();
+            aabb = CollisionAABB();
             aabb.expandToContain(data->getMin() - margin_vector);
             aabb.expandToContain(data->getMax() + margin_vector);
         } else
@@ -54,7 +54,7 @@ struct AABBNode {
 
     // SefLeaf:
     // Set the node to be a leaf, with data == aabb
-    void setLeaf(AABB* aabb) {
+    void setLeaf(CollisionAABB* aabb) {
         data = aabb;
         aabb->node = this;
 
@@ -99,7 +99,7 @@ AABBTree::~AABBTree() {
 // Adds an AABB collider into the tree. If the tree is empty, sets the
 // collider as the root. Otherwise, recursively goes into the tree
 // to find the best place to insert the node.
-void AABBTree::add(AABB* aabb) {
+void AABBTree::add(CollisionAABB* aabb) {
     if (root != nullptr) {
         AABBNode* node = new AABBNode();
         node->setLeaf(aabb);
@@ -129,9 +129,9 @@ void AABBTree::insertAABB(AABBNode* node, AABBNode** parent_ptr) {
     // Otherwise, recursively go into the child whose insertion will minimize
     // the increase in volume.
     else {
-        const AABB aabb = node->aabb;
-        const AABB p_child0 = parent->children[0]->aabb;
-        const AABB p_child1 = parent->children[1]->aabb;
+        const CollisionAABB aabb = node->aabb;
+        const CollisionAABB p_child0 = parent->children[0]->aabb;
+        const CollisionAABB p_child1 = parent->children[1]->aabb;
 
         const float volume_0_diff =
             p_child0.unionWith(aabb).volume() - aabb.volume();
@@ -154,7 +154,7 @@ void AABBTree::insertAABB(AABBNode* node, AABBNode** parent_ptr) {
 // RemoveAABB:
 // Removes an AABB from the tree. Could be used to render a collider invalid,
 // or to update a collider.
-void AABBTree::remove(AABB* aabb) {
+void AABBTree::remove(CollisionAABB* aabb) {
     // Do nothing if AABB has no node field. This means it is not
     // in the tree.
     if (aabb->node == nullptr)
@@ -226,10 +226,10 @@ void AABBTree::update() {
     if (root->isLeaf())
         root->updateAABB(margin);
     else {
-        std::vector<AABB*> invalid;
+        std::vector<CollisionAABB*> invalid;
         findInvalidBeforeUpdate(root, invalid);
 
-        for (AABB* aabb : invalid) {
+        for (CollisionAABB* aabb : invalid) {
             remove(aabb);
             add(aabb);
         }
@@ -237,7 +237,7 @@ void AABBTree::update() {
 }
 
 void AABBTree::findInvalidBeforeUpdate(AABBNode* node,
-                                       std::vector<AABB*>& invalid) {
+                                       std::vector<CollisionAABB*>& invalid) {
     if (node == nullptr)
         return;
 

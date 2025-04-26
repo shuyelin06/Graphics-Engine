@@ -1,84 +1,88 @@
 #include "VisualTerrain.h"
 
-#include "datamodel/TreeGenerator.h"
-#include "math/Compute.h"
+#include <assert.h>
+#include <unordered_map>
 
-constexpr int SAMPLE_COUNT = 20;
+#if defined(_DEBUG)
+#include "../ImGui.h"
+#endif
 
 namespace Engine {
 using namespace Datamodel;
 
 namespace Graphics {
-VisualTerrain::VisualTerrain(TerrainChunk* _terrain, MeshBuilder* mesh_builder)
-    : terrain(_terrain) {
-    terrain_mesh = generateTerrainMesh(*mesh_builder);
+VisualTerrain::VisualTerrain(Terrain* _terrain, ID3D11Device* device)
+    : terrain(_terrain), callbacks() {
+    // Initialize our buffer pool. This will consolidate our mesh data
+    // into a few vertex / index buffers, to dramatically reduce the number of
+    // draw calls we make.
+    // Empirical testing has shown that 300,000 vertices, 200,000 indices is
+    // enough.
+    output_mesh = new BufferPool(device, 300000, 200000);
 
-    for (const Vector2& tree_loc : terrain->getTreeLocations()) {
-        tree_meshes.push_back(generateTreeMesh(*mesh_builder, tree_loc));
+    // Set all current chunk_meshes to null, and initialize my terrain
+    // callbacks.
+    for (int i = 0; i < TERRAIN_CHUNK_COUNT; i++) {
+        for (int j = 0; j < TERRAIN_CHUNK_COUNT; j++) {
+            for (int k = 0; k < TERRAIN_CHUNK_COUNT; k++) {
+                allocations[i][j][k] = nullptr;
+
+                callbacks[i][j][k].initialize(device);
+                terrain->registerTerrainCallback(i, j, k, &callbacks[i][j][k]);
+            }
+        }
     }
 
-    markedToDestroy = false;
+    // Initialize my water surface mesh.
+    water_surface = new WaterSurface();
+    water_surface->generateSurfaceMesh(device, 450.f, 10);
+    water_surface->generateWaveConfig(4);
 }
-
-VisualTerrain::~VisualTerrain() {
-    delete terrain_mesh;
-
-    for (Mesh* tree : tree_meshes)
-        delete tree;
-}
-
-void VisualTerrain::destroy() { markedToDestroy = true; }
-
-bool VisualTerrain::markedForDestruction() const { return markedToDestroy; }
+VisualTerrain::~VisualTerrain() = default;
 
 // GenerateTerrainMesh:
 // Generates the mesh for the terrain
-Mesh* VisualTerrain::generateTerrainMesh(MeshBuilder& builder) {
-    builder.reset();
+void VisualTerrain::pullTerrainMeshes(ID3D11DeviceContext* context) {
+    // Iterate through my callbacks. If they have a mesh, overwrite what we
+    // currently have.
+    bool dirty = false;
 
-    for (int i = 0; i < SAMPLE_COUNT; i++) {
-        for (int j = 0; j < SAMPLE_COUNT; j++) {
-            const float x =
-                HEIGHT_MAP_XZ_SIZE * i / (SAMPLE_COUNT - 1) + terrain->getX();
-            const float z =
-                HEIGHT_MAP_XZ_SIZE * j / (SAMPLE_COUNT - 1) + terrain->getZ();
+    for (int i = 0; i < TERRAIN_CHUNK_COUNT; i++) {
+        for (int j = 0; j < TERRAIN_CHUNK_COUNT; j++) {
+            for (int k = 0; k < TERRAIN_CHUNK_COUNT; k++) {
+                VisualTerrainCallback& callback = callbacks[i][j][k];
 
-            const float y = terrain->sampleTerrainHeight(x, z);
+                if (callback.isDirty()) {
+                    dirty = true;
 
-            builder.addVertex(Vector3(x, y, z));
+                    if (allocations[i][j][k] != nullptr) {
+                        allocations[i][j][k]->valid = false;
+                        allocations[i][j][k] = nullptr;
+                    }
+                    allocations[i][j][k] = callback.loadMesh(*output_mesh);
+                }
+            }
         }
     }
 
-    for (int i = 0; i < SAMPLE_COUNT; i++) {
-        for (int j = 0; j < SAMPLE_COUNT; j++) {
-            const int v0 = i * SAMPLE_COUNT + j;
-            const int v1 = (i + 1) * SAMPLE_COUNT + j;
-            const int v2 = i * SAMPLE_COUNT + (j + 1);
-            const int v3 = (i - 1) * SAMPLE_COUNT + j;
-            const int v4 = i * SAMPLE_COUNT + (j - 1);
-
-            // NE triangle
-            if (i < SAMPLE_COUNT - 1 && j < SAMPLE_COUNT - 1)
-                builder.addTriangle(v0, v2, v1);
-
-            // NW triangle
-            if (i > 0 && j < SAMPLE_COUNT - 1)
-                builder.addTriangle(v0, v3, v2);
-
-            // SW triangle
-            if (i > 0 && j > 0)
-                builder.addTriangle(v0, v4, v3);
-
-            // SE triangle
-            if (i < SAMPLE_COUNT - 1 && j > 0)
-                builder.addTriangle(v0, v1, v4);
-        }
+    // CLEANING MAY CAUSE THE ALLOCATION POINTERS TO CAUSE A MEMORY
+    // CORRUPTION...
+    if (dirty) {
+        output_mesh->cleanAndCompact();
+        output_mesh->updateGPUResources(context);
     }
-
-    builder.regenerateNormals();
-    return builder.generate();
 }
 
+// --- Accessors ---
+// Returns the chunk meshes
+BufferPool* VisualTerrain::getMesh() { return output_mesh; }
+
+// Returns the water surface mesh
+const WaterSurface* VisualTerrain::getWaterSurface() const {
+    return water_surface;
+}
+
+/*
 static int generateTreeMeshHelper(MeshBuilder& builder,
                                   const std::vector<TreeStructure>& grammar,
                                   int index, const Vector3& position,
@@ -155,6 +159,7 @@ Mesh* VisualTerrain::generateTreeMesh(MeshBuilder& builder,
 
     return builder.generate();
 }
+*/
 
 } // namespace Graphics
 } // namespace Engine

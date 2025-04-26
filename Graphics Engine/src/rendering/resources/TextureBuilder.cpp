@@ -4,10 +4,7 @@
 
 namespace Engine {
 namespace Graphics {
-TextureBuilder::TextureBuilder(UINT _width, UINT _height,
-                               ID3D11Device* _device) {
-    device = _device;
-
+TextureBuilder::TextureBuilder(UINT _width, UINT _height) {
     texture_resource = new Texture(_width, _height);
 
     data.resize(_width * _height);
@@ -19,7 +16,7 @@ TextureBuilder::~TextureBuilder() = default;
 // GenerateTexture:
 // Generates a texture resource (for use in the rendering pipeline)
 // given the data stored within the builder.
-Texture* TextureBuilder::generate() {
+Texture* TextureBuilder::generate(ID3D11Device* device) {
     // Generate my GPU texture resource
     D3D11_TEXTURE2D_DESC tex_desc = {};
     tex_desc.Width = texture_resource->width;
@@ -87,9 +84,8 @@ void TextureBuilder::reset(unsigned int _width, unsigned int _height) {
 }
 
 // --- Atlas Builder ---
-AtlasBuilder::AtlasBuilder(UINT atlas_width, UINT atlas_height,
-                           ID3D11Device* device)
-    : TextureBuilder(atlas_width, atlas_height, device) {
+AtlasBuilder::AtlasBuilder(UINT atlas_width, UINT atlas_height)
+    : TextureBuilder(atlas_width, atlas_height) {
     // Initialize my texture atlas
     atlas = new TextureAtlas(texture_resource);
 
@@ -110,8 +106,8 @@ const AtlasAllocation& AtlasBuilder::allocateRegion(UINT tex_width,
 }
 
 // Generates the texture for the atlas and returns the atlas.
-TextureAtlas* AtlasBuilder::generate() {
-    TextureBuilder::generate();
+TextureAtlas* AtlasBuilder::generate(ID3D11Device* device) {
+    TextureBuilder::generate(device);
 
     TextureAtlas* output = atlas;
     atlas = nullptr;

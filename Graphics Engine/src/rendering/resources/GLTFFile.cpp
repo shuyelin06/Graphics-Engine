@@ -63,7 +63,7 @@ static void ParseVertexProperty(const cgltf_accessor* accessor,
 }
 
 Asset* GLTFFile::readFromFile(MeshBuilder& mesh_builder,
-                              AtlasBuilder& tex_builder) {
+                              AtlasBuilder& tex_builder, ID3D11Device* device) {
     cgltf_options options = {};
     cgltf_data* data = NULL;
 
@@ -120,24 +120,28 @@ Asset* GLTFFile::readFromFile(MeshBuilder& mesh_builder,
 
                     switch (type) {
                     case cgltf_attribute_type_position:
+                        mesh_builder.addLayout(BUILDER_POSITION);
                         ParseVertexProperty(attr.data,
                                             MeshVertex::AddressPosition,
                                             sizeof(Vector3), vertex_data);
                         break;
 
                     case cgltf_attribute_type_normal:
+                        mesh_builder.addLayout(BUILDER_NORMAL);
                         ParseVertexProperty(attr.data,
                                             MeshVertex::AddressNormal,
                                             sizeof(Vector3), vertex_data);
                         break;
 
                     case cgltf_attribute_type_texcoord:
+                        mesh_builder.addLayout(BUILDER_TEXTURE);
                         ParseVertexProperty(attr.data,
                                             MeshVertex::AddressTexture,
                                             sizeof(Vector2), vertex_data);
                         break;
 
                     case cgltf_attribute_type_joints: {
+                        mesh_builder.addLayout(BUILDER_JOINTS);
                         ParseAccessor<Uint4>(attr.data, u4b_data);
                         vertex_data.resize(u4b_data.size());
                         for (int i = 0; i < u4b_data.size(); i++) {
@@ -150,6 +154,7 @@ Asset* GLTFFile::readFromFile(MeshBuilder& mesh_builder,
                     } break;
 
                     case cgltf_attribute_type_weights:
+                        mesh_builder.addLayout(BUILDER_WEIGHTS);
                         ParseVertexProperty(attr.data,
                                             MeshVertex::AddressWeights,
                                             sizeof(Vector4), vertex_data);
@@ -176,7 +181,7 @@ Asset* GLTFFile::readFromFile(MeshBuilder& mesh_builder,
                 parseMaterial(prim.material, material, tex_builder);
 
                 // Register mesh under the asset
-                Mesh* generated_mesh = mesh_builder.generate(material);
+                Mesh* generated_mesh = mesh_builder.generateMesh(device, material);
                 asset->addMesh(generated_mesh);
             }
         }

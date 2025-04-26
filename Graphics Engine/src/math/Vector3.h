@@ -14,10 +14,10 @@ class Vector3 {
     Vector3(const Vector3& copy);
     Vector3(float _x, float _y, float _z);
 
-    ~Vector3(){};
+    ~Vector3() {};
 
     // Updates the contents of the current vector
-    void set(const Vector3& vec); 
+    void set(const Vector3& vec);
 
     // Return a vector with the contents rearranged
     Vector3 xzy() const;
@@ -31,19 +31,22 @@ class Vector3 {
     // Dot and Cross Product
     float dot(const Vector3& vector) const;
     Vector3 cross(const Vector3& vector) const;
-    
+
     // Projects this vector onto another vector.
     float scalarProjection(const Vector3& vector) const;
     Vector3 projectOnto(const Vector3& vector) const;
 
-    // Returns a new vector with each x,y,z value the minimum (or maximum) of the two vectors
+    // Returns a new vector with each x,y,z value the minimum (or maximum) of
+    // the two vectors
     Vector3 componentMin(const Vector3& vector) const;
     Vector3 componentMax(const Vector3& vector) const;
-    
+
     // Returns a new vector that is orthogonal to this vector
     Vector3 orthogonal() const;
 
     // Vector Operations
+    float operator[](int) const;
+
     Vector3 operator+(const Vector3&) const; // Addition
     Vector3& operator+=(const Vector3&);     // Compound (In-Place) Addition
     Vector3 operator-(const Vector3&) const; // Subtraction
@@ -57,7 +60,10 @@ class Vector3 {
     Vector3& operator/=(const float);     // Compound (In-Place) Scalar Division
 
     Vector3 operator*(const Vector3&) const; // Hamming (Component-Wise) Product
-    Vector3& operator*=(const Vector3&);    // Compound Hamming (Component-Wise) Product
+    Vector3&
+    operator*=(const Vector3&); // Compound Hamming (Component-Wise) Product
+
+    bool operator==(const Vector3& vec) const; // Equality -- Used in Hashing
 
     // Static Vector Operations
     static Vector3 PositiveX();

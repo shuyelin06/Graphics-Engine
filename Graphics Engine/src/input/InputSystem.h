@@ -22,10 +22,7 @@ class InputSystem {
     int window_width, window_height;
 
   public:
-    InputSystem();
-
-    // Initialize the input system
-    void initialize(HWND hwnd);
+    InputSystem(HWND hwnd);
 
     // Dispatch accumulated input data and evaluate it
     // against the callback chain.

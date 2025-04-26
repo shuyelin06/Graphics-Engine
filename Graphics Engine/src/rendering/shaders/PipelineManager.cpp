@@ -94,48 +94,36 @@ void PipelineManager::updateCBData(CBHandle* constantBuffer) {
 
     // If the buffer resource has never been created before, or the current
     // resource is too small for mapping / unmapping, create a new one.
-    if (constantBuffer->resource == nullptr ||
-        constantBuffer->byteSize() > constantBuffer->buffer_size) {
-        if (constantBuffer->resource != nullptr)
-            constantBuffer->resource->Release();
-
+    if (constantBuffer->resource == nullptr) {
         // Create buffer to allow dynamic usage, i.e. accessible by
         // GPU read and CPU write. We opt for this usage so that we can update
         // the resource on the fly when needed.
         D3D11_BUFFER_DESC buff_desc = {};
-        buff_desc.ByteWidth = constantBuffer->byteSize();
+        buff_desc.ByteWidth = 65536;
         buff_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
         buff_desc.Usage = D3D11_USAGE_DYNAMIC;
         buff_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
-        // Allocate resources
-        D3D11_SUBRESOURCE_DATA sr_data;
-        sr_data.pSysMem = constantBuffer->data.data();
-        sr_data.SysMemPitch = 0;
-        sr_data.SysMemSlicePitch = 0;
-
         // Create buffer
-        HRESULT result = device->CreateBuffer(&buff_desc, &sr_data,
-                                              &(constantBuffer->resource));
+        HRESULT result =
+            device->CreateBuffer(&buff_desc, NULL, &(constantBuffer->resource));
         assert(SUCCEEDED(result));
-
-        constantBuffer->buffer_size = constantBuffer->byteSize();
     }
-    // If buffer exists, perform resource renaming to update buffer data
-    // instead of creating a new buffer
-    else {
-        // Disable GPU access to data and obtain the my constant buffer resource
-        D3D11_MAPPED_SUBRESOURCE mapped_resource = {0};
-        context->Map(constantBuffer->resource, 0, D3D11_MAP_WRITE_DISCARD, 0,
-                     &mapped_resource);
 
-        // Update the data in the resource
-        memcpy(mapped_resource.pData, constantBuffer->data.data(),
-               constantBuffer->byteSize());
+    // Perform resource renaming to update buffer data
+    // Disable GPU access to data and obtain the my constant buffer resource
+    D3D11_MAPPED_SUBRESOURCE mapped_resource = {0};
+    context->Map(constantBuffer->resource, 0, D3D11_MAP_WRITE_DISCARD, 0,
+                 &mapped_resource);
 
-        // Reenable GPU access to data
-        context->Unmap(constantBuffer->resource, 0);
-    }
+    // Update the data in the resource
+    memcpy(mapped_resource.pData, constantBuffer->data.data(),
+           constantBuffer->byteSize());
+
+    // Reenable GPU access to data
+    context->Unmap(constantBuffer->resource, 0);
+
+    constantBuffer->buffer_size = constantBuffer->byteSize();
 }
 
 } // namespace Graphics

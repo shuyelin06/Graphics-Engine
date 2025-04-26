@@ -9,7 +9,6 @@
 
 #include <assert.h>
 
-#include "datamodel/Terrain.h"
 #include "math/Vector2.h"
 #include "math/Vector3.h"
 
@@ -31,24 +30,29 @@ ResourceManager::~ResourceManager() = default;
 
 // Initialize:
 // Loads assets into the asset manager.
+static ID3D11DepthStencilState* LoadDSTestAndWrite(ID3D11Device* device);
+static ID3D11DepthStencilState* LoadDSTestNoWrite(ID3D11Device* device);
+
 void ResourceManager::initializeResources() {
     // Create my samplers
     shadowmap_sampler = LoadShadowMapSampler();
     mesh_sampler = LoadMeshTextureSampler();
 
+    // Create my depth stencil states
+    ds_test_and_write = LoadDSTestAndWrite(device);
+    ds_test_no_write = LoadDSTestNoWrite(device);
+
     // Stores an atlas of material colors to avoid the need for rebinds later
-    AtlasBuilder atlas_builder = AtlasBuilder(4096, 4096, device);
-    MeshBuilder mesh_builder = MeshBuilder(device);
+    AtlasBuilder atlas_builder = AtlasBuilder(4096, 4096);
 
     // --- Load Assets Here ---
-    LoadCube(mesh_builder);
+    LoadCube();
 
     // Currently supported: GLTF
 
     // LoadAssetFromGLTF("TestAsset", "data/Testing.glb", atlas_builder);
     // Capybara by Poly by Google [CC-BY] via Poly Pizza
-    LoadAssetFromGLTF("Capybara", "data/Capybara.glb", mesh_builder,
-                      atlas_builder);
+    LoadAssetFromGLTF("Capybara", "data/Capybara.glb", atlas_builder);
 
     // LoadAssetFromGLTF("TexturedCube", "data/TexturedCube.glb",
     // atlas_builder);
@@ -57,15 +61,15 @@ void ResourceManager::initializeResources() {
     // LoadAssetFromGLTF("Dingus", "data/Dingus the cat.glb", atlas_builder);
 
     // Fox by Quaternius
-    LoadAssetFromGLTF("Fox", "data/Fox.glb", mesh_builder, atlas_builder);
+    LoadAssetFromGLTF("Fox", "data/Fox.glb", atlas_builder);
 
     // Man by Quaternius
-    LoadAssetFromGLTF("Man", "data/Man.glb", mesh_builder, atlas_builder);
+    LoadAssetFromGLTF("Man", "data/Man.glb", atlas_builder);
 
     // Tree
-    LoadAssetFromGLTF("Tree", "data/Tree.glb", mesh_builder, atlas_builder);
+    LoadAssetFromGLTF("Tree", "data/Tree.glb", atlas_builder);
 
-    color_atlas = atlas_builder.generate();
+    color_atlas = atlas_builder.generate(device);
 }
 
 uint16_t ResourceManager::registerAsset(const std::string& name, Asset* asset) {
@@ -75,12 +79,6 @@ uint16_t ResourceManager::registerAsset(const std::string& name, Asset* asset) {
     assets.push_back(asset);
 
     return id;
-}
-
-// CreateMeshBuilder:
-// Creates and returns a mesh builder
-MeshBuilder* ResourceManager::createMeshBuilder() {
-    return new MeshBuilder(device);
 }
 
 // Get Resources:
@@ -112,15 +110,21 @@ ID3D11SamplerState* ResourceManager::getShadowMapSampler() {
 
 ID3D11SamplerState* ResourceManager::getMeshSampler() { return mesh_sampler; }
 
+ID3D11DepthStencilState* ResourceManager::DSState_TestNoWrite() {
+    return ds_test_no_write;
+}
+ID3D11DepthStencilState* ResourceManager::DSState_TestAndWrite() {
+    return ds_test_and_write;
+}
+
 // LoadAssetFromGLTF:
 // Uses the GLTFFile interface to load an asset from a GLTF file
 bool ResourceManager::LoadAssetFromGLTF(const std::string& asset_name,
                                         const std::string& path,
-                                        MeshBuilder& mesh_builder,
                                         AtlasBuilder& tex_builder) {
-    mesh_builder.reset();
+    MeshBuilder mesh_builder = MeshBuilder();
     GLTFFile gltf_file = GLTFFile(path);
-    Asset* asset = gltf_file.readFromFile(mesh_builder, tex_builder);
+    Asset* asset = gltf_file.readFromFile(mesh_builder, tex_builder, device);
 
     if (asset != nullptr) {
         registerAsset(asset_name, asset);
@@ -136,7 +140,7 @@ bool ResourceManager::LoadTextureFromPNG(const std::string& tex_name,
                                          TextureBuilder& builder) {
     PNGFile png_file = PNGFile(path);
     png_file.readPNGData(builder);
-    Texture* tex = builder.generate();
+    Texture* tex = builder.generate(device);
 
     if (tex != nullptr) {
         const uint16_t index = textures.size();
@@ -158,13 +162,12 @@ bool ResourceManager::WriteTextureToPNG(ID3D11Texture2D* texture,
 
 // Hard-Coded Cube Creator
 // Used in debugging
-bool ResourceManager::LoadCube(MeshBuilder& builder) {
-    builder.reset();
-
+bool ResourceManager::LoadCube() {
+    MeshBuilder builder = MeshBuilder(BUILDER_POSITION);
     builder.addCube(Vector3(0, 0, 0), Quaternion(), 1.f);
 
     Asset* cube = new Asset();
-    cube->addMesh(builder.generate());
+    cube->addMesh(builder.generateMesh(device));
 
     return registerAsset("Cube", cube);
 }
@@ -208,5 +211,42 @@ ID3D11SamplerState* ResourceManager::LoadMeshTextureSampler() {
 
     return sampler;
 }
+
+ID3D11DepthStencilState* LoadDSTestAndWrite(ID3D11Device* device) {
+    D3D11_DEPTH_STENCIL_DESC desc = {};
+    // Enable depth testing
+    desc.DepthEnable = TRUE;
+    // Standard depth test
+    desc.DepthFunc = D3D11_COMPARISON_LESS;
+    // Enable depth writing
+    desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+    // No stencil testing
+    desc.StencilEnable = FALSE;
+
+    ID3D11DepthStencilState* state = nullptr;
+    HRESULT result = device->CreateDepthStencilState(&desc, &state);
+    assert(SUCCEEDED(result));
+
+    return state;
+}
+
+ID3D11DepthStencilState* LoadDSTestNoWrite(ID3D11Device* device) {
+    D3D11_DEPTH_STENCIL_DESC desc = {};
+    // Enable depth testing
+    desc.DepthEnable = TRUE;
+    // Standard depth test
+    desc.DepthFunc = D3D11_COMPARISON_LESS;
+    // Disable depth writing
+    desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+    // No stencil testing
+    desc.StencilEnable = FALSE;
+
+    ID3D11DepthStencilState* state = nullptr;
+    HRESULT result = device->CreateDepthStencilState(&desc, &state);
+    assert(SUCCEEDED(result));
+
+    return state;
+}
+
 } // namespace Graphics
 } // namespace Engine

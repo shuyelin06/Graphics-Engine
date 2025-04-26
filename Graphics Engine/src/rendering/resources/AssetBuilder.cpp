@@ -4,6 +4,19 @@
 
 #include "math/Compute.h"
 
+// Hash Function for Vector3.
+// Used if vertices are to be shared.
+template <> struct std::hash<Engine::Math::Vector3> {
+    std::size_t operator()(const Engine::Math::Vector3& k) const {
+        // https://stackoverflow.com/questions/5928725/hashing-2d-3d-and-nd-vectors
+        uint32_t hash = std::_Bit_cast<uint32_t, float>(k.x) * 73856093 ^
+                        std::_Bit_cast<uint32_t, float>(k.y) * 19349663 ^
+                        std::_Bit_cast<uint32_t, float>(k.z) * 83492791;
+
+        return hash % SIZE_MAX;
+    }
+};
+
 namespace Engine {
 namespace Graphics {
 MeshVertex::MeshVertex() {
@@ -41,13 +54,19 @@ void* MeshVertex::AddressColor(MeshVertex& vertex) { return &vertex.color; }
 void* MeshVertex::AddressJoints(MeshVertex& vertex) { return &vertex.joints; }
 void* MeshVertex::AddressWeights(MeshVertex& vertex) { return &vertex.weights; }
 
+MeshTriangle::MeshTriangle() { vertex0 = vertex1 = vertex2 = 0; }
 MeshTriangle::MeshTriangle(UINT v0, UINT v1, UINT v2) {
     vertex0 = v0;
     vertex1 = v1;
     vertex2 = v2;
 }
 
-MeshBuilder::MeshBuilder(ID3D11Device* _device) : device(_device) {
+MeshBuilder::MeshBuilder() {
+    layout = BUILDER_NONE;
+    active_color = Color::White();
+}
+MeshBuilder::MeshBuilder(MeshBuilderLayout _layout) {
+    layout = _layout;
     active_color = Color::White();
 };
 
@@ -55,9 +74,11 @@ MeshBuilder::~MeshBuilder() = default;
 
 // Generate:
 // Generates the index and vertex buffer resources for the mesh.
-Mesh* MeshBuilder::generate() { return generate(Material()); }
+Mesh* MeshBuilder::generateMesh(ID3D11Device* device) {
+    return generateMesh(device, Material());
+}
 
-Mesh* MeshBuilder::generate(const Material& material) {
+Mesh* MeshBuilder::generateMesh(ID3D11Device* device, const Material& material) {
     if (index_buffer.size() == 0 || vertex_buffer.size() == 0)
         return nullptr;
 
@@ -78,19 +99,24 @@ Mesh* MeshBuilder::generate(const Material& material) {
     assert(mesh->index_buffer != nullptr);
 
     // Create each of my vertex streams
-    mesh->vertex_streams[POSITION] =
-        createVertexStream(MeshVertex::AddressPosition, sizeof(Vector3));
-    mesh->vertex_streams[TEXTURE] =
-        createVertexStream(MeshVertex::AddressTexture, sizeof(Vector2));
-    mesh->vertex_streams[NORMAL] =
-        createVertexStream(MeshVertex::AddressNormal, sizeof(Vector3));
-    mesh->vertex_streams[COLOR] =
-        createVertexStream(MeshVertex::AddressColor, sizeof(Color));
-    // TEMP
-    mesh->vertex_streams[JOINTS] =
-        createVertexStream(MeshVertex::AddressJoints, sizeof(Vector4));
-    mesh->vertex_streams[WEIGHTS] =
-        createVertexStream(MeshVertex::AddressWeights, sizeof(Vector4));
+    if (layout & BUILDER_POSITION)
+        mesh->vertex_streams[POSITION] = createVertexStream(
+            MeshVertex::AddressPosition, sizeof(Vector3), device);
+    if (layout & BUILDER_TEXTURE)
+        mesh->vertex_streams[TEXTURE] = createVertexStream(
+            MeshVertex::AddressTexture, sizeof(Vector2), device);
+    if (layout & BUILDER_NORMAL)
+        mesh->vertex_streams[NORMAL] = createVertexStream(
+            MeshVertex::AddressNormal, sizeof(Vector3), device);
+    if (layout & BUILDER_COLOR)
+        mesh->vertex_streams[COLOR] =
+            createVertexStream(MeshVertex::AddressColor, sizeof(Color), device);
+    if (layout & BUILDER_JOINTS)
+        mesh->vertex_streams[JOINTS] = createVertexStream(
+            MeshVertex::AddressJoints, sizeof(Vector4), device);
+    if (layout & BUILDER_WEIGHTS)
+        mesh->vertex_streams[WEIGHTS] = createVertexStream(
+            MeshVertex::AddressWeights, sizeof(Vector4), device);
 
     // Generate my AABB extents
     for (const MeshVertex& vertex : vertex_buffer)
@@ -102,13 +128,21 @@ Mesh* MeshBuilder::generate(const Material& material) {
     return mesh;
 }
 
+const std::vector<MeshVertex>& MeshBuilder::getVertices() const {
+    return vertex_buffer;
+}
+const std::vector<MeshTriangle>& MeshBuilder::getIndices() const {
+    return index_buffer;
+}
+
 // CreateVertexStream:
 // Creates a vertex stream for some data extracted from the MeshVertex.
 // Builds this by using a function that, given the MeshVertex, writes
 // element_size bytes of data to output (assumed to be the same size). This
 // function could extract position, normals, or a combination of data.
 ID3D11Buffer* MeshBuilder::createVertexStream(void* (*addressor)(MeshVertex&),
-                                              UINT byte_size) {
+                                              UINT byte_size,
+                                              ID3D11Device* device) {
     const UINT NUM_VERTICES = vertex_buffer.size();
 
     // Iterate through each vertex, and extract the data from it.
@@ -169,6 +203,12 @@ void MeshBuilder::ExtractVertexColor(const MeshVertex& vertex,
 // Sets the active color
 void MeshBuilder::setColor(const Color& color) { active_color = color; }
 
+// AddLayout:
+// Add a layout vertex buffer for the builder to generate with
+void MeshBuilder::addLayout(MeshBuilderLayout layout_pins) {
+    layout = layout | layout_pins;
+}
+
 // AddVertex:
 // Adds a vertex with position, texture, and norm to the MeshBuilder.
 UINT MeshBuilder::addVertex(const MeshVertex& vertex) {
@@ -205,9 +245,17 @@ void MeshBuilder::addTriangles(const std::vector<MeshTriangle>& indices,
     }
 }
 
+void MeshBuilder::popTriangles(UINT num_triangles) {
+    for (int i = 0; i < num_triangles; i++) {
+        if (index_buffer.size() > 0)
+            index_buffer.pop_back();
+    }
+}
+
 // GetVertex;
 // Return a MeshVertex from the builder (by index) for modification
 MeshVertex& MeshBuilder::getVertex(UINT index) { return vertex_buffer[index]; }
+Vector3& MeshBuilder::getPosition(UINT index) { return vertex_buffer[index].position; }
 
 // AddShapes:
 // Generates various shapes (given parameters) and adds them to the mesh
@@ -361,6 +409,8 @@ void MeshBuilder::regenerateNormals() {
 void MeshBuilder::reset() {
     vertex_buffer.clear();
     index_buffer.clear();
+
+    layout = 0;
 }
 
 } // namespace Graphics

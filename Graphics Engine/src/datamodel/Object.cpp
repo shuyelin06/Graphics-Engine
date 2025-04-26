@@ -3,7 +3,6 @@
 #include <math.h>
 
 #include "physics/PhysicsObject.h"
-#include "rendering/VisualObject.h"
 
 namespace Engine {
 using namespace Math;
@@ -17,13 +16,11 @@ Object::Object() {
     // Objects start with no parent and no children
     parent = nullptr;
     children = std::vector<Object*>(0);
-
-    // Objects start with no asset
-    visual_object = nullptr;
-    physics_object = nullptr;
+    components = std::vector<Component*>(0);
 
     // Default transform
     transform = Transform();
+    m_local = Matrix4::Identity();
 }
 
 // Destructor:
@@ -34,8 +31,9 @@ Object::~Object() {
     for (Object* child : children)
         delete child;
 
-    setVisualObject(nullptr);
-    setPhysicsObject(nullptr);
+    // Mark components as invalid
+    for (Component* component : components)
+        component->markInvalid();
 }
 
 /* --- Object Hierarchy Methods --- */
@@ -84,29 +82,65 @@ const Matrix4& Object::updateLocalMatrix(const Math::Matrix4& m_parent) {
     return m_local;
 }
 
-// GetVisualObject:
-// Returns the visual object currently associated with this object
-const VisualObject* Object::getVisualObject() const { return visual_object; }
-
-// SetVisualObject:
-// Change the current visual object. If needed, marks the old visual object for destruction.
-void Object::setVisualObject(VisualObject* visual_obj) {
-    if (visual_object != nullptr)
-        visual_object->destroy();
-    visual_object = visual_obj;
+// --- Components ---
+// BindComponent
+// Bind a new component to the object.
+int Object::bindComponent(Component* component) {
+    int index = components.size();
+    components.push_back(component);
+    return index;
 }
 
-// GetPhysicsObject:
-// Returns the physics object currently associated with this object
-const PhysicsObject* Object::getPhysicsObject() const { return physics_object; }
+// RemoveComponent:
+// Remove a component from the object by direct pointer to it
+void Object::removeComponent(Component* component) {
+    int index = -1;
 
-// SetPhysicsObject:
-// Change the current physics object. If needed, marks the old physics object
-// for destruction.
-void Object::setPhysicsObject(PhysicsObject* phys_obj) {
-    if (physics_object != nullptr)
-        physics_object->destroy = true;
-    physics_object = phys_obj;
+    for (int i = 0; i < components.size(); i++) {
+        Component* comp = components[i];
+        if (comp == component) {
+            index = i;
+            break;
+        }
+    }
+
+    if (index != -1) {
+        components[index]->markInvalid();
+        components.erase(components.begin() + index);
+    }
+}
+
+// RemoveComponentByTag:
+// Removes the first occurrence of component with the
+// given tag.
+void Object::removeAllComponentsWithTag(unsigned int tag) {
+    components.erase(std::remove_if(components.begin(), components.end(),
+                                    [tag](Component* comp) {
+                                        if (comp->getTag() == tag) {
+                                            comp->markInvalid();
+                                            return true;
+                                        } else
+                                            return false;
+                                    }),
+                     components.end());
+}
+
+// Retrieve an object component by tag.
+Component* Object::getComponent(unsigned int tag) {
+    int index = -1;
+
+    for (int i = 0; i < components.size(); i++) {
+        Component* comp = components[i];
+        if (comp->getTag() == tag) {
+            index = i;
+            break;
+        }
+    }
+
+    if (index != -1)
+        return components[index];
+    else
+        return nullptr;
 }
 
 } // namespace Datamodel

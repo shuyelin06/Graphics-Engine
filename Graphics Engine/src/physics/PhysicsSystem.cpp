@@ -9,11 +9,11 @@ using namespace Utility;
 namespace Physics {
 // Constructor:
 // Initializes relevant fields
-PhysicsSystem::PhysicsSystem() : broadphase_tree(0.2f), stopwatch() {}
+PhysicsSystem::PhysicsSystem() : broadphase_tree(0.2f), stopwatch() {
+    stopwatch.Reset();
 
-// Initialize:
-// Begin the stopwatch to track delta_time.
-void PhysicsSystem::initialize() { stopwatch.Reset(); }
+    terrain = nullptr;
+}
 
 // AddCollisionHull:
 // Adds a collision hull to the physics engine with a name
@@ -31,8 +31,7 @@ void PhysicsSystem::addCollisionHull(const std::string& name,
 // Binds a physics object to an object.
 PhysicsObject* PhysicsSystem::bindPhysicsObject(Object* object) {
     PhysicsObject* phys_obj = new PhysicsObject(object);
-    object->setPhysicsObject(phys_obj);
-    objects.push_back(phys_obj);
+    objects.newComponent(object, phys_obj);
     return phys_obj;
 }
 
@@ -42,7 +41,7 @@ CollisionObject*
 PhysicsSystem::bindCollisionObject(PhysicsObject* phys_obj,
                                    const std::string& hull_id) {
     // Create my collider
-    const Transform* obj_transform = &phys_obj->object->getTransform();
+    const Transform* obj_transform = &phys_obj->getObject()->getTransform();
     CollisionObject* collider =
         new CollisionObject(phys_obj, obj_transform, collision_hulls[hull_id]);
 
@@ -60,13 +59,42 @@ PhysicsSystem::bindCollisionObject(PhysicsObject* phys_obj,
     return collider;
 }
 
+PhysicsTerrain* PhysicsSystem::bindTerrain(Terrain* _terrain) {
+    if (terrain != nullptr)
+        delete terrain;
+    terrain = new PhysicsTerrain(_terrain);
+    return terrain;
+}
+
+// PullDatamodelData:
+// Pulls a copy of data from the datamodel, for the physics
+// system to operate on.
+void PhysicsSystem::pullDatamodelData() {
+    // Remove all PhysicsObjects marked for destruction, and free their memory.
+    objects.cleanAndUpdate();
+
+    // Pull datamodel data
+    for (PhysicsObject* obj : objects.getComponents())
+        obj->pull();
+
+    if (terrain != nullptr)
+        terrain->pullTerrainBVHs();
+
+    // Determine the amount of time that has elapsed since the last
+    // update() call.
+    delta_time = stopwatch.Duration();
+    stopwatch.Reset();
+}
+
 // Update:
 // Updates the physics for a scene.
 void PhysicsSystem::update() {
-    physicsPrepare();
+    // Poll Input
+    for (PhysicsObject* obj : objects.getComponents())
+        obj->pollInput();
 
     // Update all AABBs
-    for (PhysicsObject* obj : objects) {
+    for (PhysicsObject* obj : objects.getComponents()) {
         if (obj->collider != nullptr) {
             obj->collider->updateBroadphaseAABB();
 #if defined(_DEBUG)
@@ -104,37 +132,22 @@ void PhysicsSystem::update() {
 
     // Iterate through and clear
     // Apply acceleration and velocity to all objects
-    for (PhysicsObject* object : objects) {
-        Transform& transform = object->object->getTransform();
-        transform.offsetPosition(object->velocity * delta_time);
-        object->velocity /= 2;
+    for (PhysicsObject* object : objects.getComponents()) {
+        object->applyAcceleration(delta_time);
+        object->applyVelocity(delta_time);
     }
 }
 
-// PhysicsPrepare:
-// Prepares the physics system to run. Removes objects that are
-// marked for destruction, and finds the amount of time that has elapsed
-// since the last call.
-void PhysicsSystem::physicsPrepare() {
-    // Remove all PhysicsObjects marked for destruction, and free their memory.
-    int head = 0;
+// PushDatamodelData:
+// Pushes data to the datamodel.
+void PhysicsSystem::pushDatamodelData() {
+    for (PhysicsObject* obj : objects.getComponents())
+        obj->push();
+}
 
-    for (int i = 0; i < objects.size(); i++) {
-        if (!objects[i]->destroy) {
-            objects[head] = objects[i];
-            head++;
-        } else {
-            delete objects[i];
-            objects[i] = nullptr;
-        }
-    }
-
-    objects.resize(head);
-
-    // Determine the amount of time that has elapsed since the last
-    // update() call.
-    delta_time = stopwatch.Duration();
-    stopwatch.Reset();
+BVHRayCast PhysicsSystem::raycast(const Vector3& origin,
+                                  const Vector3& direction) {
+    return terrain->getTerrainTLS().raycast(origin, direction);
 }
 
 } // namespace Physics

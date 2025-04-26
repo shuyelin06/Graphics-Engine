@@ -21,7 +21,7 @@ class PhysicsSystem;
 // AxisAlignedBoundingBox (AABB):
 // Represents an AABB in 3D space, given by its lower left corner and upper
 // right corner.
-class AABB {
+class CollisionAABB {
 friend class AABBTree;
 friend struct AABBNode;
 friend class CollisionObject;
@@ -37,20 +37,20 @@ friend class PhysicsSystem;
     CollisionObject* collider;
 
   public:
-    AABB();
-    AABB(const Vector3& center);
-    ~AABB();
+    CollisionAABB();
+    CollisionAABB(const Vector3& center);
+    ~CollisionAABB();
 
     float volume() const;
 
     const Vector3& getMin() const;
     const Vector3& getMax() const;
 
-    bool contains(const AABB& aabb) const;
+    bool contains(const CollisionAABB& aabb) const;
     bool contains(const Vector3& point) const;
-    bool intersects(const AABB& aabb) const;
+    bool intersects(const CollisionAABB& aabb) const;
 
-    AABB unionWith(const AABB& aabb) const;
+    CollisionAABB unionWith(const CollisionAABB& aabb) const;
 
     // If this is called and the node is not null, the AABBTree should be
     // updated.

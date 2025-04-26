@@ -1,6 +1,7 @@
 #include "AABB.h"
 
 #include <math.h>
+#include <algorithm>
 
 namespace Engine {
 namespace Math {
@@ -12,8 +13,21 @@ float AABB::volume() const {
     const Vector3 difference = maximum - minimum;
     return fabsf(difference.x * difference.y * difference.z);
 }
+float AABB::area() const {
+    const Vector3 diff = maximum - minimum;
+    return 2 * (diff.x * diff.y + diff.x * diff.z + diff.y * diff.z);
+}
 const Vector3& AABB::getMin() const { return minimum; }
 const Vector3& AABB::getMax() const { return maximum; }
+
+// UnionWith:
+// Union this AABB with another and return the result
+AABB AABB::unionWith(const AABB& aabb) const {
+    AABB output;
+    output.minimum = minimum.componentMin(aabb.minimum);
+    output.maximum = maximum.componentMax(aabb.maximum);
+    return output;
+}
 
 // PopulatePointArray:
 // Populate an 8+ Vector3 array with the AABB points.

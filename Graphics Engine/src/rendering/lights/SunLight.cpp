@@ -77,7 +77,7 @@ void SunLight::updateCascade(int index, float min_z, float max_z,
 
     // For each near / far point pair, find the direction from one to the other,
     // and translate them so that they are z_min, z_max distance from the
-    // camera. While we do this, find the frustum center point.
+    // camera-> While we do this, find the frustum center point.
     Vector3 center_point = Vector3(0.f, 0.f, 0.f);
 
     for (int i = 0; i < 4; i++) {
