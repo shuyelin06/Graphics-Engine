@@ -186,7 +186,7 @@
     <ClCompile Include="src\rendering\lights\LightComponent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\VisualTerrain.cpp">
+    <ClCompile Include="src\rendering\terrain\VisualTerrain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\physics\collisions\AABBTree.cpp">
@@ -238,6 +238,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\physics\PhysicsTerrain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rendering\terrain\VisualTerrainCallback.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rendering\terrain\BufferPool.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rendering\terrain\WaterSurface.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -422,7 +431,7 @@
     <ClInclude Include="src\rendering\lights\LightComponent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\VisualTerrain.h">
+    <ClInclude Include="src\rendering\terrain\VisualTerrain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\physics\collisions\AABBTree.h">
@@ -489,6 +498,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\physics\PhysicsTerrain.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rendering\terrain\VisualTerrainCallback.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rendering\terrain\BufferPool.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rendering\terrain\WaterSurface.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

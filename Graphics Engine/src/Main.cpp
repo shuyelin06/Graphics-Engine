@@ -121,6 +121,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     Object& light = parent.createChild();
     ShadowLightComponent* comp = visual_system.bindLightComponent(&light);
+    camera_obj.getTransform().offsetPosition(0.0f, 125.f, 0.0f);
+
     //// Create Object Hierarchy
     // visual_system.bindAssetComponent(&parent_object, "Fox");
     // physics_system.bindPhysicsObject(&parent_object);
@@ -160,6 +162,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             ImGui::Text("Active Workers: %i",
                         ThreadPool::GetThreadPool()->countActiveWorkers());
         }
+
+        // light.getTransform().offsetRotation(Vector3::PositiveY(), 0.1f);
 #endif
 
         // Dispatch Input Data

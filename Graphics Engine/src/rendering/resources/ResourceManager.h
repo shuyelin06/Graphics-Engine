@@ -30,6 +30,10 @@ class ResourceManager {
     ID3D11SamplerState* shadowmap_sampler;
     ID3D11SamplerState* mesh_sampler;
 
+    // Depth stencil states
+    ID3D11DepthStencilState* ds_test_and_write;
+    ID3D11DepthStencilState* ds_test_no_write;
+
     TextureAtlas* color_atlas;
 
   public:
@@ -51,6 +55,10 @@ class ResourceManager {
     // Get a sampler by name
     ID3D11SamplerState* getShadowMapSampler();
     ID3D11SamplerState* getMeshSampler();
+
+    // Get depth stencil states
+    ID3D11DepthStencilState* DSState_TestNoWrite();
+    ID3D11DepthStencilState* DSState_TestAndWrite();
 
   private:
     // Registers an asset by name, and returns it's ID

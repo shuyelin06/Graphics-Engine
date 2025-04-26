@@ -255,6 +255,7 @@ void MeshBuilder::popTriangles(UINT num_triangles) {
 // GetVertex;
 // Return a MeshVertex from the builder (by index) for modification
 MeshVertex& MeshBuilder::getVertex(UINT index) { return vertex_buffer[index]; }
+Vector3& MeshBuilder::getPosition(UINT index) { return vertex_buffer[index].position; }
 
 // AddShapes:
 // Generates various shapes (given parameters) and adds them to the mesh

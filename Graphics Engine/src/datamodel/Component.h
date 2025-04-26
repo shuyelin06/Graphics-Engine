@@ -44,7 +44,8 @@ class Component {
 
     // Component Modifiers
     void markInvalid();
-    void update();
+    // Optionally Overridable -- Pull Datamodel Data
+    virtual void update(); 
 
     // Generate a new tag. Systems that want to create components
     // should register them here, so that each component has a unique tag.

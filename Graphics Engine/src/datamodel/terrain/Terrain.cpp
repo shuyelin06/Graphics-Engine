@@ -11,7 +11,10 @@
 
 namespace Engine {
 namespace Datamodel {
-Terrain::Terrain() : noise_func(0) { center_x = center_y = center_z = INT_MAX; }
+Terrain::Terrain() : noise_func(0) {
+    surface_height = 100.f;
+    center_x = center_y = center_z = INT_MAX;
+}
 
 Terrain::~Terrain() = default;
 
@@ -21,6 +24,10 @@ void Terrain::registerTerrainCallback(int i, int j, int k,
     chunks[i][j][k].callbacks.push_back(callback);
 }
 
+// --- Accessors ---
+float Terrain::getSurfaceHeight() const { return surface_height; }
+
+// --- Updates ---
 // ReloadTerrain:
 void Terrain::invalidateTerrain(float x, float y, float z) {
     // Calculate the chunk index that these x,y,z coordinates are in

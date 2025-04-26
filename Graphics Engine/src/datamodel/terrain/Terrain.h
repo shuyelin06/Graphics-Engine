@@ -72,20 +72,27 @@ class Terrain {
     // Perlin Noise Generator
     PerlinNoise noise_func;
 
+    // Water "surface" height
+    float surface_height;
+    
     // "Pointers" (indices) to the chunk pool, storing the active chunks
     // (centered around some position in space).
     int center_x, center_y, center_z; // Chunk Index Coordinates
     TerrainChunk chunks[TERRAIN_CHUNK_COUNT][TERRAIN_CHUNK_COUNT]
                        [TERRAIN_CHUNK_COUNT];
-
+    
   public:
     Terrain();
     ~Terrain();
 
-    // Initializers
+    // --- Initialization ---
     void registerTerrainCallback(int i, int j, int k,
                                  TerrainCallback* callback);
 
+    // --- Accessors ---
+    float getSurfaceHeight() const;
+
+    // --- Update Function ---
     // Invalidate terrain chunks based on a new center (x,y,z) in
     // world coordinates. Invalidated terrain chunks have generation requests
     // submitted to worker threads so that their data can be generated again.

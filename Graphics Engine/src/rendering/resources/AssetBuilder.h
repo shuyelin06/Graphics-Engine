@@ -96,6 +96,8 @@ class MeshBuilder {
 
     // Return a MeshVertex from the builder (by index) for modification
     MeshVertex& getVertex(UINT index);
+    
+    Vector3& getPosition(UINT index);
 
     // Add shapes to the builder. This makes it easy to compose objects using
     // the builder. Unit cube centered around the origin

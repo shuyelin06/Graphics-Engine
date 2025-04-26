@@ -15,8 +15,7 @@
 #include "core/AssetComponent.h"
 #include "datamodel/ComponentHandler.h"
 #include "lights/LightComponent.h"
-
-#include "VisualTerrain.h"
+#include "terrain/VisualTerrain.h"
 
 #include "rendering/core/Camera.h"
 
@@ -44,6 +43,12 @@ struct RenderableTerrain {
 struct RenderableAsset {
     const Asset* asset;
     Matrix4 m_localToWorld;
+};
+
+enum RenderTargetBindFlags {
+    DisableDepthStencil,
+    EnableDepthStencil_TestAndWrite,
+    EnableDepthStencil_TestNoWrite
 };
 
 // VisualSystem Class:
@@ -76,6 +81,7 @@ class VisualSystem {
 
     // Render Information:
     // Rendering configurations
+    float time_elapsed;
     float time_of_day;
 
     // Supported Components
@@ -110,17 +116,21 @@ class VisualSystem {
     void initializeManagers();
     void initializeComponents();
 
-  private:                          // Rendering Stages
-    void performShadowPass();       // Shadow Pass
-    void performTerrainPass();      // Render Terrain
-    void performRenderPass();       // Render Pass
+  private:                     // Rendering Stages
+    void performShadowPass();  // Shadow Pass
+    void performTerrainPass(); // Render Terrain
+    void performRenderPass();  // Render Pass
+
     void performLightFrustumPass(); // Light Frustum Pass
-    void processUnderwater();       // Blur Effect
-    void renderFinish();            // Finish Rendering
+    void performWaterSurfacePass(); // Water Surface Pass
+
+    void processUnderwater(); // Underwater Effect
+
+    void renderFinish(); // Finish Rendering
 
     // --- Rendering Helper Methods ---
     // Set the render targets for a given pass
-    void bindActiveRenderTarget(bool set_depth_stencil);
+    void bindActiveRenderTarget(RenderTargetBindFlags bind_flags);
     void swapActiveRenderTarget();
 
 #if defined(_DEBUG)

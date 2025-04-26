@@ -25,6 +25,8 @@ VisualSystem::VisualSystem(HWND window) {
     camera = nullptr;
     terrain = nullptr;
 
+    time_elapsed = 0.f;
+
     HRESULT result;
 
     // Get window width and height
@@ -373,15 +375,25 @@ void VisualSystem::render() {
     // Clear the the screen color
     render_target_dest->clearAsRenderTarget(context, Color(0.f, 0.f, 0.f));
 
+    // Prepare the shadow maps
     performShadowPass(); //..
 
+    // Render terrain
     performTerrainPass();
+    // Render meshes
     performRenderPass();
 
-    processUnderwater();
+    // Rendering is different depending on if we're below
+    // or above the surface of the water
+    const Vector3& cam_pos = camera->getPosition();
+    if (cam_pos.y <= 100.f) {
+        processUnderwater();
+    } else {
+        performWaterSurfacePass();
+    }
+
     performLightFrustumPass();
 
-    // ...
 #if defined(ENABLE_DEBUG_DRAWING)
     // Debug Functionality
     renderDebugPoints();
@@ -446,7 +458,7 @@ void VisualSystem::pullDatamodelData() {
     }
 
     // Load it for shadows
-    const std::vector<Mesh*>& terrain_meshes = terrain->getTerrainMeshes();
+    /*const std::vector<Mesh*>& terrain_meshes = terrain->getTerrainMeshes();
     for (Mesh* terrain_mesh : terrain_meshes) {
         if (terrain_mesh == nullptr)
             continue;
@@ -454,7 +466,7 @@ void VisualSystem::pullDatamodelData() {
         ShadowCaster terrain_shadow;
         terrain_shadow.m_localToWorld = Matrix4::Identity();
         terrain_shadow.mesh = terrain_mesh;
-    }
+    }*/
 
     // Cluster shadows
     light_manager->clusterShadowCasters();
@@ -556,7 +568,7 @@ void VisualSystem::performTerrainPass() {
     pipeline_manager->bindPixelShader("Terrain");
 
     // TEST
-    bindActiveRenderTarget(true);
+    bindActiveRenderTarget(EnableDepthStencil_TestAndWrite);
     context->ClearDepthStencilView(depth_stencil->depth_view, D3D11_CLEAR_DEPTH,
                                    1.0f, 0);
 
@@ -709,7 +721,7 @@ void VisualSystem::performRenderPass() {
 #endif
 
     pipeline_manager->bindPixelShader("TexturedMesh");
-    bindActiveRenderTarget(true);
+    bindActiveRenderTarget(EnableDepthStencil_TestAndWrite);
 
     // Vertex Constant Buffer 1:
     // Stores the camera view and projection matrices
@@ -957,7 +969,7 @@ void VisualSystem::performLightFrustumPass() {
         return;
 
     // Disable depth writes
-    bindActiveRenderTarget(false);
+    bindActiveRenderTarget(DisableDepthStencil);
 
     {
         CBHandle* vcb0 = pipeline_manager->getVertexCB(CB0);
@@ -1016,6 +1028,83 @@ void VisualSystem::performLightFrustumPass() {
     context->DrawIndexedInstanced(numIndices, lights.size(), 0, 0, 1);
 }
 
+void VisualSystem::performWaterSurfacePass() {
+    pipeline_manager->bindVertexShader("WaterSurface");
+    pipeline_manager->bindPixelShader("WaterSurface");
+
+    // Disable depth writes
+    swapActiveRenderTarget();
+    bindActiveRenderTarget(EnableDepthStencil_TestAndWrite);
+
+    {
+        CBHandle* vcb0 = pipeline_manager->getVertexCB(CB0);
+        vcb0->clearData();
+
+        const Matrix4 m_camera_to_screen =
+            camera->getFrustumMatrix() * camera->getWorldToCameraMatrix();
+        vcb0->loadData(&m_camera_to_screen, FLOAT4X4);
+
+        const Vector3& camera_pos = camera->getPosition();
+        vcb0->loadData(&camera_pos, FLOAT3);
+
+        const float surface_height = 100.f;
+        vcb0->loadData(&surface_height, FLOAT);
+
+        pipeline_manager->bindVertexCB(CB0);
+    }
+
+    // VCB1: Wave Information
+    const std::vector<WaveConfig>& wave_config =
+        terrain->getWaterSurface()->getWaveConfig();
+    const int num_waves = terrain->getWaterSurface()->getNumWaves();
+    time_elapsed += 1 / 60.f;
+    {
+        CBHandle* vcb1 = pipeline_manager->getVertexCB(CB1);
+        vcb1->clearData();
+
+        vcb1->loadData(&time_elapsed, FLOAT);
+        vcb1->loadData(&num_waves, INT);
+        vcb1->loadData(nullptr, FLOAT2);
+
+        for (int i = 0; i < num_waves; i++) {
+            vcb1->loadData(&wave_config[i].dimension, INT);
+            vcb1->loadData(&wave_config[i].period, FLOAT);
+            vcb1->loadData(&wave_config[i].amplitude, FLOAT);
+            vcb1->loadData(nullptr, FLOAT);
+        }
+
+        pipeline_manager->bindVertexCB(CB1);
+    }
+
+    {
+        CBHandle* pcb0 = pipeline_manager->getPixelCB(CB0);
+        pcb0->clearData();
+
+        const Vector3& pos = camera->getPosition();
+        pcb0->loadData(&pos, FLOAT3);
+        pcb0->loadData(nullptr, FLOAT);
+
+        pipeline_manager->bindPixelCB(CB0);
+    }
+
+    const Mesh* surface_mesh = terrain->getWaterSurface()->getSurfaceMesh();
+
+    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    ID3D11Buffer* indexBuffer = surface_mesh->index_buffer;
+    context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+    ID3D11Buffer* vertexBuffer = surface_mesh->vertex_streams[POSITION];
+    UINT vertexStride = sizeof(float) * 3;
+    UINT vertexOffset = 0;
+    context->IASetVertexBuffers(POSITION, 1, &vertexBuffer, &vertexStride,
+                                &vertexOffset);
+
+    int numIndices = surface_mesh->triangle_count * 3;
+    context->OMSetBlendState(blend_state, NULL, 0xffffffff);
+    context->DrawIndexed(numIndices, 0, 0);
+}
+
 void VisualSystem::processUnderwater() {
 #if defined(_DEBUG)
     gpu_timer.beginTimer("Underwater Pass");
@@ -1026,7 +1115,7 @@ void VisualSystem::processUnderwater() {
 
     // Set render target
     swapActiveRenderTarget();
-    bindActiveRenderTarget(false);
+    bindActiveRenderTarget(DisableDepthStencil);
 
     // Set samplers and texture resources
     ID3D11SamplerState* mesh_texture_sampler =
@@ -1159,9 +1248,21 @@ void VisualSystem::renderFinish() {
 // BindActiveRenderTarget:
 // Binds the currently active render target. There is an option
 // to bind the depth stencil too, if needed.
-void VisualSystem::bindActiveRenderTarget(bool set_depth_stencil) {
-    ID3D11DepthStencilView* depth_view =
-        set_depth_stencil ? depth_stencil->depth_view : nullptr;
+void VisualSystem::bindActiveRenderTarget(RenderTargetBindFlags bind_flags) {
+    ID3D11DepthStencilView* depth_view = nullptr;
+
+    if (bind_flags == EnableDepthStencil_TestAndWrite ||
+        bind_flags == EnableDepthStencil_TestNoWrite) {
+        depth_view = depth_stencil->depth_view;
+
+        ID3D11DepthStencilState* state = nullptr;
+        if (bind_flags == EnableDepthStencil_TestAndWrite)
+            state = resource_manager->DSState_TestAndWrite();
+        else if (bind_flags == EnableDepthStencil_TestNoWrite)
+            state = resource_manager->DSState_TestNoWrite();
+        context->OMSetDepthStencilState(state, 0);
+    }
+
     context->OMSetRenderTargets(1, &render_target_dest->target_view,
                                 depth_view);
     context->RSSetViewports(1, &viewport);
