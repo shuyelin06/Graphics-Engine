@@ -11,7 +11,7 @@ struct WaveConfig {
     int dimension;
     float period;
     float amplitude;
-    float offset;
+    float timing;
 };
 
 // WaterSurface Class:

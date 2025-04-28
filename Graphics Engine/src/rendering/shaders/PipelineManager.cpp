@@ -4,6 +4,31 @@
 
 namespace Engine {
 namespace Graphics {
+IConstantBuffer::IConstantBuffer(PipelineManager* _pipeline, BufferType _type,
+                                 CBSlot _slot) {
+    pipeline = _pipeline;
+    slot = _slot;
+    type = _type;
+
+    if (type == Vertex)
+        cb_handle = pipeline->getVertexCB(slot);
+    else if (type == Pixel)
+        cb_handle = pipeline->getPixelCB(slot);
+
+    cb_handle->clearData();
+}
+
+IConstantBuffer::~IConstantBuffer() {
+    if (type == Vertex)
+        pipeline->bindVertexCB(slot);
+    else if (type == Pixel)
+        pipeline->bindPixelCB(slot);
+}
+
+void IConstantBuffer::loadData(const void* dataPtr, CBDataFormat dataFormat) {
+    cb_handle->loadData(dataPtr, dataFormat);
+}
+
 PipelineManager::PipelineManager(ID3D11Device* _device,
                                  ID3D11DeviceContext* _context)
     : device(_device), context(_context) {
@@ -25,6 +50,14 @@ PipelineManager::~PipelineManager() {
     }
 
     delete shader_manager;
+}
+
+// Constant Buffer Loading
+IConstantBuffer PipelineManager::loadVertexCB(CBSlot slot) {
+    return IConstantBuffer(this, CBVertex, slot);
+}
+IConstantBuffer PipelineManager::loadPixelCB(CBSlot slot) {
+    return IConstantBuffer(this, CBPixel, slot);
 }
 
 // --- Accessors ---

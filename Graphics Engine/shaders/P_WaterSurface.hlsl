@@ -27,5 +27,5 @@ float4 ps_main(PS_INPUT input) : SV_TARGET
     specular_term = pow(specular_term, 40);
     
     color = color * (diffuse_term + specular_term);
-    return float4(color, 0.75f);
+    return float4(color, 0.99f);
 }

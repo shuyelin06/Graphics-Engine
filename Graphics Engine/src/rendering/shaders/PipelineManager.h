@@ -5,6 +5,27 @@
 
 namespace Engine {
 namespace Graphics {
+class PipelineManager;
+
+// IConstantBuffer Class:
+// Provides automatic clearing and binding of constant
+// buffer data on construction and destruction.
+enum BufferType { CBVertex, CBPixel };
+class IConstantBuffer {
+  private:
+    CBHandle* cb_handle;
+
+    BufferType type;
+    PipelineManager* pipeline;
+    CBSlot slot;
+
+  public:
+    IConstantBuffer(PipelineManager* pipeline, BufferType type, CBSlot slot);
+    ~IConstantBuffer();
+
+    void loadData(const void* dataPtr, CBDataFormat dataFormat);
+};
+
 // PipelineManager Class:
 // Provides an interface for working with the 3D rendering pipeline.
 // Uses D3D under the hood.
@@ -28,6 +49,10 @@ class PipelineManager {
   public:
     PipelineManager(ID3D11Device* device, ID3D11DeviceContext* context);
     ~PipelineManager();
+
+    // Load data into the constant buffer
+    IConstantBuffer loadVertexCB(CBSlot slot);
+    IConstantBuffer loadPixelCB(CBSlot slot);
 
     // Accessors
     CBHandle* getVertexCB(CBSlot slot) const;

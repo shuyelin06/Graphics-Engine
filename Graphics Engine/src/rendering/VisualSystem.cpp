@@ -373,7 +373,8 @@ void VisualSystem::render() {
     light_manager->updateTimeOfDay(15.f);
 
     // Clear the the screen color
-    render_target_dest->clearAsRenderTarget(context, Color(0.f, 0.f, 0.f));
+    render_target_dest->clearAsRenderTarget(
+        context, Color(173.f / 255.f, 216.f / 255.f, 230.f / 255.f));
 
     // Prepare the shadow maps
     performShadowPass(); //..

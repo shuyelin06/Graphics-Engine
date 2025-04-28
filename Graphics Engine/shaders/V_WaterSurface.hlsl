@@ -18,7 +18,7 @@ struct WaveConfig
     int dimension; // 0 for x, 1 for z
     float period;
     float amplitude;
-    float offset;
+    float timing;
 };
 cbuffer CB1_WAVE_INFO : register(b1)
 {
@@ -63,14 +63,14 @@ PS_INPUT vs_main(VS_INPUT input)
         // Wave Config is for the X Dimension
         if (waves[i].dimension == 0)
         {
-            float domain = waves[i].period * x + waves[i].offset + time;
+            float domain = waves[i].period * x + waves[i].timing * time;
             wave_sample += waves[i].amplitude * sin(domain);
             dx_sample += waves[i].amplitude * waves[i].period * cos(domain);
         }
         // Wave Config is for the Z Dimension
         else
         {
-            float domain = waves[i].period * z + waves[i].offset + time;
+            float domain = waves[i].period * z + waves[i].timing + time;
             wave_sample += waves[i].amplitude * sin(domain);
             dz_sample += waves[i].amplitude * waves[i].period * cos(domain);
         }
