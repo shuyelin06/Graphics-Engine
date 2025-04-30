@@ -4,7 +4,7 @@
 
 namespace Engine {
 namespace Graphics {
-IConstantBuffer::IConstantBuffer(PipelineManager* _pipeline, BufferType _type,
+IConstantBuffer::IConstantBuffer(PipelineManager* _pipeline, IBufferType _type,
                                  CBSlot _slot) {
     pipeline = _pipeline;
     slot = _slot;

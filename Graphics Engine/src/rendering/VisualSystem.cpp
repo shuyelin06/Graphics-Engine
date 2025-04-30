@@ -970,7 +970,7 @@ void VisualSystem::performLightFrustumPass() {
         return;
 
     // Disable depth writes
-    bindActiveRenderTarget(DisableDepthStencil);
+    bindActiveRenderTarget(EnableDepthStencil_TestNoWrite);
 
     {
         CBHandle* vcb0 = pipeline_manager->getVertexCB(CB0);
@@ -1038,20 +1038,16 @@ void VisualSystem::performWaterSurfacePass() {
     bindActiveRenderTarget(EnableDepthStencil_TestAndWrite);
 
     {
-        CBHandle* vcb0 = pipeline_manager->getVertexCB(CB0);
-        vcb0->clearData();
-
+        IConstantBuffer vcb0 = pipeline_manager->loadVertexCB(CB0);
         const Matrix4 m_camera_to_screen =
             camera->getFrustumMatrix() * camera->getWorldToCameraMatrix();
-        vcb0->loadData(&m_camera_to_screen, FLOAT4X4);
+        vcb0.loadData(&m_camera_to_screen, FLOAT4X4);
 
         const Vector3& camera_pos = camera->getPosition();
-        vcb0->loadData(&camera_pos, FLOAT3);
+        vcb0.loadData(&camera_pos, FLOAT3);
 
         const float surface_height = 100.f;
-        vcb0->loadData(&surface_height, FLOAT);
-
-        pipeline_manager->bindVertexCB(CB0);
+        vcb0.loadData(&surface_height, FLOAT);
     }
 
     // VCB1: Wave Information
@@ -1086,6 +1082,42 @@ void VisualSystem::performWaterSurfacePass() {
         pcb0->loadData(nullptr, FLOAT);
 
         pipeline_manager->bindPixelCB(CB0);
+    }
+
+    // PCB1: Noise
+    static PerlinNoise noise = PerlinNoise(3);
+    {
+        CBHandle* pcb1 = pipeline_manager->getPixelCB(CB1);
+        pcb1->clearData();
+
+        // Gradients for Perlin Noise
+        const Vector2 gradients[8] = {Vector2(1.0f, 0.0f),
+                                      Vector2(0.0f, 1.0f),
+                                      Vector2(-1.0f, 0.0f),
+                                      Vector2(0.0f, -1.0f),
+                                      Vector2(-1.41421356f, -1.41421356f),
+                                      Vector2(-1.41421356f, 1.41421356f),
+                                      Vector2(1.41421356f, 1.41421356f),
+                                      Vector2(1.41421356f, -1.41421356f)};
+        for (int i = 0; i < 8; i++) {
+            pcb1->loadData(&gradients[i], FLOAT2);
+            pcb1->loadData(nullptr, FLOAT2);
+        }
+
+        const unsigned char* table = noise.getPermutationTable();
+
+        for (int i = 0; i < 256; i++) {
+            const int val = table[i];
+            pcb1->loadData(&val, INT);
+            pcb1->loadData(nullptr, FLOAT3);
+        }
+        for (int i = 0; i < 256; i++) {
+            const int val = table[i];
+            pcb1->loadData(&val, INT);
+            pcb1->loadData(nullptr, FLOAT3);
+        }
+
+        pipeline_manager->bindPixelCB(CB1);
     }
 
     const Mesh* surface_mesh = terrain->getWaterSurface()->getSurfaceMesh();

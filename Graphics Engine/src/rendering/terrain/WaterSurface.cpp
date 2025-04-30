@@ -92,13 +92,14 @@ void WaterSurface::generateWaveConfig(int wave_count) {
         const float rel_period =
             (config.period - MIN_PERIOD) / (MAX_PERIOD - MIN_PERIOD);
         const float random_amp_sample = (rel_period + Random(-0.25f, 0.25f));
-        // config.amplitude = (MAX_AMP - MIN_AMP) * random_amp_sample + MIN_AMP;
-        config.amplitude = Random(MIN_AMP, MAX_AMP);
+        config.amplitude = (MAX_AMP - MIN_AMP) * random_amp_sample + MIN_AMP;
+        // config.amplitude = Random(MIN_AMP, MAX_AMP);
         config.timing =
             Random(1.f - TIMING_VARIABILITY, 1.f + TIMING_VARIABILITY);
 
         wave_config.push_back(config);
     }
+
 }
 
 // --- Accessors ---

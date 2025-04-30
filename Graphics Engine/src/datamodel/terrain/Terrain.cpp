@@ -136,12 +136,19 @@ void Terrain::reloadChunk(const ChunkIndex local_index,
                 const float sample_y = y + (j - 1) * CHUNK_OFFSET;
                 const float sample_z = z + (k - 1) * CHUNK_OFFSET;
 
-                // --- NOISE SAMPLING ---
+                // Sample our noise function
                 constexpr float SURFACE = 0.375f;
                 constexpr float FREQ = 0.0075f;
+                float val = noise_func.noise3D(FREQ * sample_x, FREQ * sample_y,
+                                               FREQ * sample_z);
 
-                const float val = noise_func.noise3D(
-                    FREQ * sample_x, FREQ * sample_y, FREQ * sample_z);
+                // Fade our noise to 0 depending on how close we are to the
+                // water line
+                constexpr float FADE_RATE = 0.0075f;
+                if (sample_y >= TERRAIN_WATER_LINE) {
+                    val += (sample_y - TERRAIN_WATER_LINE) * FADE_RATE;
+                }
+                val = Clamp(val, 0.0f, 1.0f);
 
                 // Offset sampled value as marching cubes considers a
                 // surface where 0 is.

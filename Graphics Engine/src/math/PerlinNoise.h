@@ -21,6 +21,7 @@ class PerlinNoise {
 
     float noise3D(float x, float y, float z) const;
 
+    const unsigned char* getPermutationTable();
   private:
     void seedGenerator(unsigned int seed);
     unsigned char indexTable(int index) const;

@@ -10,17 +10,17 @@ class PipelineManager;
 // IConstantBuffer Class:
 // Provides automatic clearing and binding of constant
 // buffer data on construction and destruction.
-enum BufferType { CBVertex, CBPixel };
+enum IBufferType { CBVertex, CBPixel };
 class IConstantBuffer {
   private:
     CBHandle* cb_handle;
 
-    BufferType type;
+    IBufferType type;
     PipelineManager* pipeline;
     CBSlot slot;
 
   public:
-    IConstantBuffer(PipelineManager* pipeline, BufferType type, CBSlot slot);
+    IConstantBuffer(PipelineManager* pipeline, IBufferType type, CBSlot slot);
     ~IConstantBuffer();
 
     void loadData(const void* dataPtr, CBDataFormat dataFormat);
@@ -50,17 +50,17 @@ class PipelineManager {
     PipelineManager(ID3D11Device* device, ID3D11DeviceContext* context);
     ~PipelineManager();
 
-    // Load data into the constant buffer
+    // Shader Management
+    bool bindVertexShader(const std::string& vs_name);
+    bool bindPixelShader(const std::string& ps_name);
+
+    // Constant Buffer Management 
     IConstantBuffer loadVertexCB(CBSlot slot);
     IConstantBuffer loadPixelCB(CBSlot slot);
 
     // Accessors
     CBHandle* getVertexCB(CBSlot slot) const;
     CBHandle* getPixelCB(CBSlot slot) const;
-
-    // Pipeline Binding
-    bool bindVertexShader(const std::string& vs_name);
-    bool bindPixelShader(const std::string& ps_name);
 
     void bindVertexCB(CBSlot slot);
     void bindPixelCB(CBSlot slot);
