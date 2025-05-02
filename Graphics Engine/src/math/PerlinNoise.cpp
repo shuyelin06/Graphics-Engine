@@ -265,5 +265,9 @@ float PerlinNoise::noise3D(float x, float y, float z) const {
     return (Lerp(y1, y2, zf) + 1) / 2;
 }
 
+const unsigned char* PerlinNoise::getPermutationTable() {
+    return permutation_table;
+}
+
 } // namespace Math
 } // namespace Engine

@@ -2,8 +2,37 @@
 
 #include <assert.h>
 
+#include "math/Vector4.h"
+
 namespace Engine {
+using namespace Math;
+
 namespace Graphics {
+IConstantBuffer::IConstantBuffer(PipelineManager* _pipeline, IBufferType _type,
+                                 CBSlot _slot) {
+    pipeline = _pipeline;
+    slot = _slot;
+    type = _type;
+
+    if (type == Vertex)
+        cb_handle = pipeline->getVertexCB(slot);
+    else if (type == Pixel)
+        cb_handle = pipeline->getPixelCB(slot);
+
+    cb_handle->clearData();
+}
+
+IConstantBuffer::~IConstantBuffer() {
+    if (type == Vertex)
+        pipeline->bindVertexCB(slot);
+    else if (type == Pixel)
+        pipeline->bindPixelCB(slot);
+}
+
+void IConstantBuffer::loadData(const void* dataPtr, CBDataFormat dataFormat) {
+    cb_handle->loadData(dataPtr, dataFormat);
+}
+
 PipelineManager::PipelineManager(ID3D11Device* _device,
                                  ID3D11DeviceContext* _context)
     : device(_device), context(_context) {
@@ -16,6 +45,25 @@ PipelineManager::PipelineManager(ID3D11Device* _device,
         vcb_handles[i] = new CBHandle();
         pcb_handles[i] = new CBHandle();
     }
+
+    // Initialize my full screen quad
+    {
+        const Vector4 fullscreen_quad[6] = {
+            // First Triangle
+            Vector4(-1, -1, 0, 1), Vector4(-1, 1, 0, 1), Vector4(1, 1, 0, 1),
+            // Second Triangle
+            Vector4(-1, -1, 0, 1), Vector4(1, 1, 0, 1), Vector4(1, -1, 0, 1)};
+
+        D3D11_BUFFER_DESC buffer_desc = {};
+        buffer_desc.ByteWidth = sizeof(fullscreen_quad);
+        buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+        buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+        D3D11_SUBRESOURCE_DATA sr_data = {};
+        sr_data.pSysMem = (void*)fullscreen_quad;
+
+        device->CreateBuffer(&buffer_desc, &sr_data, &postprocess_quad);
+    }
 }
 
 PipelineManager::~PipelineManager() {
@@ -25,6 +73,14 @@ PipelineManager::~PipelineManager() {
     }
 
     delete shader_manager;
+}
+
+// Constant Buffer Loading
+IConstantBuffer PipelineManager::loadVertexCB(CBSlot slot) {
+    return IConstantBuffer(this, CBVertex, slot);
+}
+IConstantBuffer PipelineManager::loadPixelCB(CBSlot slot) {
+    return IConstantBuffer(this, CBPixel, slot);
 }
 
 // --- Accessors ---
@@ -85,6 +141,17 @@ void PipelineManager::bindPixelCB(CBSlot slot) {
     // Bind constant buffer to pipeline
     if (cb->byteSize() > 0)
         context->PSSetConstantBuffers(slot, 1, &cb->resource);
+}
+
+void PipelineManager::drawPostProcessQuad() {
+    UINT vertexStride = sizeof(float) * 4;
+    UINT vertexOffset = 0;
+
+    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    context->IASetVertexBuffers(0, 1, &postprocess_quad, &vertexStride,
+                                &vertexOffset);
+
+    context->Draw(6, 0);
 }
 
 void PipelineManager::updateCBData(CBHandle* constantBuffer) {

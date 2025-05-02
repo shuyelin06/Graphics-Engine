@@ -23,6 +23,7 @@ class VisualTerrain {
 
     // Water Surface
     WaterSurface* water_surface;
+    float surface_level;
 
     // Output Chunk Meshes
     BufferPool* output_mesh;
@@ -42,6 +43,8 @@ class VisualTerrain {
     void pullTerrainMeshes(ID3D11DeviceContext* context);
 
     // Return the current meshes for rendering.
+    float getSurfaceLevel() const;
+
     BufferPool* getMesh();
     const WaterSurface* getWaterSurface() const;
 };

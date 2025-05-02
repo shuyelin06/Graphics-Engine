@@ -27,6 +27,9 @@ constexpr int TERRAIN_CHUNK_SAMPLES = 7;
 
 // # Chunks out that will be loaded at once.
 constexpr int TERRAIN_CHUNK_EXTENT = 7;
+
+// Water Line
+constexpr float TERRAIN_FADE_LINE = 100.f;
 // ---
 
 // # Chunks in 1 dimension
@@ -74,13 +77,13 @@ class Terrain {
 
     // Water "surface" height
     float surface_height;
-    
+
     // "Pointers" (indices) to the chunk pool, storing the active chunks
     // (centered around some position in space).
     int center_x, center_y, center_z; // Chunk Index Coordinates
     TerrainChunk chunks[TERRAIN_CHUNK_COUNT][TERRAIN_CHUNK_COUNT]
                        [TERRAIN_CHUNK_COUNT];
-    
+
   public:
     Terrain();
     ~Terrain();

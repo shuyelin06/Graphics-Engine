@@ -48,7 +48,7 @@ float CubicInterp(float a, float b, float t) {
 // Generates a random value within the range [low, high]
 float Random(float low, float high) {
     // Generate random float
-    float rand_num = (float)(rand()) / RAND_MAX;
+    float rand_num = (float)(rand()) / float(RAND_MAX);
     return rand_num * (high - low) + low;
 }
 int Random(int low, int high) {

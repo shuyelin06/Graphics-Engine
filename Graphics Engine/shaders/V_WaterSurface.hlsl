@@ -15,10 +15,9 @@ cbuffer CB0_TRANSFORM_INFO : register(b0)
 // form unique looking waves.
 struct WaveConfig
 {
-    int dimension; // 0 for x, 1 for z
+    float2 direction;
     float period;
     float amplitude;
-    float offset;
 };
 cbuffer CB1_WAVE_INFO : register(b1)
 {
@@ -60,22 +59,17 @@ PS_INPUT vs_main(VS_INPUT input)
     
     for (int i = 0; i < num_waves; i++)
     {
-        // Wave Config is for the X Dimension
-        if (waves[i].dimension == 0)
-        {
-            float domain = waves[i].period * x + waves[i].offset + time;
-            wave_sample += waves[i].amplitude * sin(domain);
-            dx_sample += waves[i].amplitude * waves[i].period * cos(domain);
-        }
-        // Wave Config is for the Z Dimension
-        else
-        {
-            float domain = waves[i].period * z + waves[i].offset + time;
-            wave_sample += waves[i].amplitude * sin(domain);
-            dz_sample += waves[i].amplitude * waves[i].period * cos(domain);
-        }
+        float domain = waves[i].period * dot(waves[i].direction, float2(x, z)) + time;
+        
+        wave_sample += waves[i].amplitude * sin(domain);
+        dx_sample += waves[i].amplitude * waves[i].period * waves[i].direction.x * cos(domain);
+        dz_sample += waves[i].amplitude * waves[i].period * waves[i].direction.y * cos(domain);
     }
     float y = surface_height + wave_sample;
+    
+    // Domain warp our wave
+    x += dx_sample;
+    z += dz_sample;
     
     // Translate this point to clip space
     output.world_position = float3(x, y, z);

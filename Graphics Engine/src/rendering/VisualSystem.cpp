@@ -43,10 +43,6 @@ VisualSystem::VisualSystem(HWND window) {
     // an intermediate target so that we can apply post processing effects
     initializeRenderTarget(width, height);
 
-    // Initialize my full screen quad. This will be used for post-processing
-    // effects.
-    initializeFullscreenQuad();
-
     // Initialize each of my managers with the resources they need
     initializeManagers();
 
@@ -228,27 +224,6 @@ void VisualSystem::initializeRenderTarget(UINT width, UINT height) {
     assert(SUCCEEDED(result));
 }
 
-// InitializeFullscreenQuad:
-// Creates a quad that covers the entire screen, so we can use the pixel shader
-// for post processing effects
-void VisualSystem::initializeFullscreenQuad() {
-    const Vector4 fullscreen_quad[6] = {
-        // First Triangle
-        Vector4(-1, -1, 0, 1), Vector4(-1, 1, 0, 1), Vector4(1, 1, 0, 1),
-        // Second Triangle
-        Vector4(-1, -1, 0, 1), Vector4(1, 1, 0, 1), Vector4(1, -1, 0, 1)};
-
-    D3D11_BUFFER_DESC buffer_desc = {};
-    buffer_desc.ByteWidth = sizeof(fullscreen_quad);
-    buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-    buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
-    D3D11_SUBRESOURCE_DATA sr_data = {};
-    sr_data.pSysMem = (void*)fullscreen_quad;
-
-    device->CreateBuffer(&buffer_desc, &sr_data, &postprocess_quad);
-}
-
 // InitializeManagers:
 // Initializes different managers that the visual system uses.
 void VisualSystem::initializeManagers() {
@@ -365,15 +340,15 @@ VisualTerrain* VisualSystem::bindTerrain(Terrain* _terrain) {
 // Renders the entire scene to the screen.
 void VisualSystem::render() {
 #if defined(_DEBUG)
-    gpu_timer.beginTimer("GPU Frametime");
-    CPUTimer::BeginCPUTimer("CPU Frametime");
+    ICPUTimer cpu_timer = CPUTimer::TrackCPUTime("CPU Frametime");
 #endif
 
     // TEMP
     light_manager->updateTimeOfDay(15.f);
 
     // Clear the the screen color
-    render_target_dest->clearAsRenderTarget(context, Color(0.f, 0.f, 0.f));
+    render_target_dest->clearAsRenderTarget(
+        context, Color(173.f / 255.f, 216.f / 255.f, 230.f / 255.f));
 
     // Prepare the shadow maps
     performShadowPass(); //..
@@ -386,13 +361,15 @@ void VisualSystem::render() {
     // Rendering is different depending on if we're below
     // or above the surface of the water
     const Vector3& cam_pos = camera->getPosition();
-    if (cam_pos.y <= 100.f) {
+    if (cam_pos.y <= terrain->getSurfaceLevel() + 3.5f) {
+        performLightFrustumPass();
+        // Underwater rendering
         processUnderwater();
     } else {
+        // Above water rendering
         performWaterSurfacePass();
+        processSky();
     }
-
-    performLightFrustumPass();
 
 #if defined(ENABLE_DEBUG_DRAWING)
     // Debug Functionality
@@ -401,9 +378,9 @@ void VisualSystem::render() {
     VisualDebug::Clear();
 #endif
 
+    processDither();
+
 #if defined(_DEBUG)
-    gpu_timer.endTimer("GPU Frametime");
-    CPUTimer::EndCPUTimer("CPU Frametime");
     imGuiFinish();
 #endif
 
@@ -420,7 +397,11 @@ void VisualSystem::render() {
 // data from the datamodel.
 void VisualSystem::pullDatamodelData() {
 #if defined(_DEBUG)
-    CPUTimer::BeginCPUTimer("Render Prepare");
+    ICPUTimer cpu_timer = CPUTimer::TrackCPUTime("Render Prepare");
+#endif
+
+#if defined(_DEBUG)
+    imGuiConfig();
 #endif
 
     // Pull my object data.
@@ -470,10 +451,6 @@ void VisualSystem::pullDatamodelData() {
 
     // Cluster shadows
     light_manager->clusterShadowCasters();
-
-#if defined(_DEBUG)
-    CPUTimer::EndCPUTimer("Render Prepare");
-#endif
 }
 
 // PerformShadowPass:
@@ -481,8 +458,7 @@ void VisualSystem::pullDatamodelData() {
 // its shadow map.
 void VisualSystem::performShadowPass() {
 #if defined(_DEBUG)
-    gpu_timer.beginTimer("Shadow Pass");
-    CPUTimer::BeginCPUTimer("Shadow Pass");
+    IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Shadow Pass");
 #endif
 
     pipeline_manager->bindVertexShader("ShadowMap");
@@ -551,17 +527,11 @@ void VisualSystem::performShadowPass() {
             context->DrawIndexed(num_indices, 0, 0);
         }
     }
-
-#if defined(_DEBUG)
-    gpu_timer.endTimer("Shadow Pass");
-    CPUTimer::EndCPUTimer("Shadow Pass");
-#endif
 }
 
 void VisualSystem::performTerrainPass() {
 #if defined(_DEBUG)
-    gpu_timer.beginTimer("Terrain Pass");
-    CPUTimer::BeginCPUTimer("Terrain Pass");
+    IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Terrain Pass");
 #endif
 
     pipeline_manager->bindVertexShader("Terrain");
@@ -607,8 +577,7 @@ void VisualSystem::performTerrainPass() {
         // Sun Cascade Data
         const SunLight* sun_light = light_manager->getSunLight();
 
-        const Vector3 sun_direction = sun_light->getDirection();
-        pCB1->loadData(&sun_direction, FLOAT3);
+        pCB1->loadData(&config.sun_direction, FLOAT3);
         pCB1->loadData(nullptr, FLOAT);
 
         for (int i = 0; i < SUN_NUM_CASCADES; i++) {
@@ -708,16 +677,11 @@ void VisualSystem::performTerrainPass() {
         UINT numIndices = bpool->getNumTriangles() * 3;
         context->DrawIndexed(numIndices, 0, 0);
     }
-#if defined(_DEBUG)
-    gpu_timer.endTimer("Terrain Pass");
-    CPUTimer::EndCPUTimer("Terrain Pass");
-#endif
 }
 
 void VisualSystem::performRenderPass() {
 #if defined(_DEBUG)
-    gpu_timer.beginTimer("Render Pass");
-    CPUTimer::BeginCPUTimer("Render Pass");
+    IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Render Pass");
 #endif
 
     pipeline_manager->bindPixelShader("TexturedMesh");
@@ -952,14 +916,13 @@ void VisualSystem::performRenderPass() {
             context->DrawIndexed(numIndices, 0, 0);
         }
     }
-
-#if defined(_DEBUG)
-    gpu_timer.endTimer("Render Pass");
-    CPUTimer::EndCPUTimer("Render Pass");
-#endif
 }
 
 void VisualSystem::performLightFrustumPass() {
+#if defined(_DEBUG)
+    IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Light Frustum Pass");
+#endif
+
     pipeline_manager->bindVertexShader("LightFrustum");
     pipeline_manager->bindPixelShader("LightFrustum");
 
@@ -969,7 +932,7 @@ void VisualSystem::performLightFrustumPass() {
         return;
 
     // Disable depth writes
-    bindActiveRenderTarget(DisableDepthStencil);
+    bindActiveRenderTarget(EnableDepthStencil_TestNoWrite);
 
     {
         CBHandle* vcb0 = pipeline_manager->getVertexCB(CB0);
@@ -1029,28 +992,28 @@ void VisualSystem::performLightFrustumPass() {
 }
 
 void VisualSystem::performWaterSurfacePass() {
+#if defined(_DEBUG)
+    IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Water Surface Pass");
+#endif
+
     pipeline_manager->bindVertexShader("WaterSurface");
     pipeline_manager->bindPixelShader("WaterSurface");
 
     // Disable depth writes
-    swapActiveRenderTarget();
+    // swapActiveRenderTarget();
     bindActiveRenderTarget(EnableDepthStencil_TestAndWrite);
 
     {
-        CBHandle* vcb0 = pipeline_manager->getVertexCB(CB0);
-        vcb0->clearData();
-
+        IConstantBuffer vcb0 = pipeline_manager->loadVertexCB(CB0);
         const Matrix4 m_camera_to_screen =
             camera->getFrustumMatrix() * camera->getWorldToCameraMatrix();
-        vcb0->loadData(&m_camera_to_screen, FLOAT4X4);
+        vcb0.loadData(&m_camera_to_screen, FLOAT4X4);
 
         const Vector3& camera_pos = camera->getPosition();
-        vcb0->loadData(&camera_pos, FLOAT3);
+        vcb0.loadData(&camera_pos, FLOAT3);
 
-        const float surface_height = 100.f;
-        vcb0->loadData(&surface_height, FLOAT);
-
-        pipeline_manager->bindVertexCB(CB0);
+        const float surface_height = terrain->getSurfaceLevel();
+        vcb0.loadData(&surface_height, FLOAT);
     }
 
     // VCB1: Wave Information
@@ -1067,10 +1030,9 @@ void VisualSystem::performWaterSurfacePass() {
         vcb1->loadData(nullptr, FLOAT2);
 
         for (int i = 0; i < num_waves; i++) {
-            vcb1->loadData(&wave_config[i].dimension, INT);
+            vcb1->loadData(&wave_config[i].direction, FLOAT2);
             vcb1->loadData(&wave_config[i].period, FLOAT);
             vcb1->loadData(&wave_config[i].amplitude, FLOAT);
-            vcb1->loadData(nullptr, FLOAT);
         }
 
         pipeline_manager->bindVertexCB(CB1);
@@ -1084,7 +1046,49 @@ void VisualSystem::performWaterSurfacePass() {
         pcb0->loadData(&pos, FLOAT3);
         pcb0->loadData(nullptr, FLOAT);
 
+        pcb0->loadData(&config.sun_direction, FLOAT3);
+        pcb0->loadData(nullptr, FLOAT);
+
+        pcb0->loadData(&config.sun_color, FLOAT3);
+        pcb0->loadData(nullptr, FLOAT);
+
         pipeline_manager->bindPixelCB(CB0);
+    }
+
+    // PCB1: Noise
+    static PerlinNoise noise = PerlinNoise(3);
+    {
+        CBHandle* pcb1 = pipeline_manager->getPixelCB(CB1);
+        pcb1->clearData();
+
+        // Gradients for Perlin Noise
+        const Vector2 gradients[8] = {Vector2(1.0f, 0.0f),
+                                      Vector2(0.0f, 1.0f),
+                                      Vector2(-1.0f, 0.0f),
+                                      Vector2(0.0f, -1.0f),
+                                      Vector2(-1.41421356f, -1.41421356f),
+                                      Vector2(-1.41421356f, 1.41421356f),
+                                      Vector2(1.41421356f, 1.41421356f),
+                                      Vector2(1.41421356f, -1.41421356f)};
+        for (int i = 0; i < 8; i++) {
+            pcb1->loadData(&gradients[i], FLOAT2);
+            pcb1->loadData(nullptr, FLOAT2);
+        }
+
+        const unsigned char* table = noise.getPermutationTable();
+
+        for (int i = 0; i < 256; i++) {
+            const int val = table[i];
+            pcb1->loadData(&val, INT);
+            pcb1->loadData(nullptr, FLOAT3);
+        }
+        for (int i = 0; i < 256; i++) {
+            const int val = table[i];
+            pcb1->loadData(&val, INT);
+            pcb1->loadData(nullptr, FLOAT3);
+        }
+
+        pipeline_manager->bindPixelCB(CB1);
     }
 
     const Mesh* surface_mesh = terrain->getWaterSurface()->getSurfaceMesh();
@@ -1105,9 +1109,67 @@ void VisualSystem::performWaterSurfacePass() {
     context->DrawIndexed(numIndices, 0, 0);
 }
 
+void VisualSystem::processSky() {
+#if defined(_DEBUG)
+    IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Sky Processing");
+#endif
+
+    pipeline_manager->bindVertexShader("PostProcess");
+    pipeline_manager->bindPixelShader("Sky");
+
+    swapActiveRenderTarget();
+    bindActiveRenderTarget(DisableDepthStencil);
+
+    // Set samplers and texture resources
+    ID3D11SamplerState* mesh_texture_sampler =
+        resource_manager->getMeshSampler();
+    context->PSSetSamplers(0, 1, &mesh_texture_sampler);
+    context->PSSetShaderResources(0, 1, &render_target_src->shader_view);
+    context->PSSetShaderResources(1, 1, &depth_stencil->shader_view);
+
+    // Bind Constant Buffers
+    {
+        IConstantBuffer pcb0 = pipeline_manager->loadPixelCB(CB0);
+
+        const float f_width = (float)screen_target->width;
+        pcb0.loadData(&f_width, FLOAT);
+        const float f_height = (float)screen_target->height;
+        pcb0.loadData(&f_height, FLOAT);
+
+        const float z_near = camera->getZNear();
+        pcb0.loadData(&z_near, FLOAT);
+        const float z_far = camera->getZFar();
+        pcb0.loadData(&z_far, FLOAT);
+    }
+    {
+        IConstantBuffer pcb1 = pipeline_manager->loadPixelCB(CB1);
+
+        const Matrix4 m_proj_to_world =
+            (camera->getFrustumMatrix() * camera->getWorldToCameraMatrix())
+                .inverse();
+        pcb1.loadData(&m_proj_to_world, FLOAT4X4);
+        const Vector3& cam_pos = camera->getPosition();
+        pcb1.loadData(&cam_pos, FLOAT3);
+        pcb1.loadData(nullptr, FLOAT);
+
+        pcb1.loadData(&config.sun_direction, FLOAT3);
+        const float sun_size = 0.025f;
+        pcb1.loadData(&sun_size, FLOAT);
+
+        pcb1.loadData(&config.sun_color, FLOAT3);
+        pcb1.loadData(nullptr, FLOAT);
+        const Vector3 sky_color =
+            Vector3(173.f / 255.f, 216.f / 255.f, 230.f / 255.f);
+        pcb1.loadData(&sky_color, FLOAT3);
+        pcb1.loadData(nullptr, FLOAT);
+    }
+
+    pipeline_manager->drawPostProcessQuad();
+}
+
 void VisualSystem::processUnderwater() {
 #if defined(_DEBUG)
-    gpu_timer.beginTimer("Underwater Pass");
+    IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Underwater Pass");
 #endif
 
     pipeline_manager->bindVertexShader("PostProcess");
@@ -1181,21 +1243,14 @@ void VisualSystem::processUnderwater() {
     }
 
     // Bind and draw full screen quad
-    UINT vertexStride = sizeof(float) * 4;
-    UINT vertexOffset = 0;
-
-    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    context->IASetVertexBuffers(0, 1, &postprocess_quad, &vertexStride,
-                                &vertexOffset);
-
-    context->Draw(6, 0);
-
-#if defined(_DEBUG)
-    gpu_timer.endTimer("Underwater Pass");
-#endif
+    pipeline_manager->drawPostProcessQuad();
 }
 
-void VisualSystem::renderFinish() {
+void VisualSystem::processDither() {
+#if defined(_DEBUG)
+    IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Finish + Dither");
+#endif
+
     // We will render from our most reecntly used render target to the screen
     pipeline_manager->bindVertexShader("PostProcess");
     pipeline_manager->bindPixelShader("PostProcess");
@@ -1228,16 +1283,10 @@ void VisualSystem::renderFinish() {
         pipeline_manager->bindPixelCB(CB0);
     }
 
-    // Bind and draw full screen quad
-    UINT vertexStride = sizeof(float) * 4;
-    UINT vertexOffset = 0;
+    pipeline_manager->drawPostProcessQuad();
+}
 
-    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    context->IASetVertexBuffers(0, 1, &postprocess_quad, &vertexStride,
-                                &vertexOffset);
-
-    context->Draw(6, 0);
-
+void VisualSystem::renderFinish() {
     // Finally, present what we rendered to
     swap_chain->Present(1, 0);
 
@@ -1408,19 +1457,8 @@ void VisualSystem::imGuiInitialize(HWND window) {
     ImGui_ImplDX11_Init(device, context);
 
     // Create GPU + CPU Timers
-    gpu_timer.initialize(device, context);
-
-    gpu_timer.createTimer("GPU Frametime");
-    gpu_timer.createTimer("Shadow Pass");
-    gpu_timer.createTimer("Terrain Pass");
-    gpu_timer.createTimer("Render Pass");
-
+    GPUTimer::Initialize(device, context);
     CPUTimer::Initialize();
-    CPUTimer::CreateCPUTimer("CPU Frametime");
-    CPUTimer::CreateCPUTimer("Render Prepare");
-    CPUTimer::CreateCPUTimer("Shadow Pass");
-    CPUTimer::CreateCPUTimer("Terrain Pass");
-    CPUTimer::CreateCPUTimer("Render Pass");
 }
 
 // ImGuiPrepare:
@@ -1433,23 +1471,39 @@ void VisualSystem::imGuiPrepare() {
     ImGui::NewFrame();
 
     // Begin timestamping
-    gpu_timer.beginFrame();
+    GPUTimer::BeginFrame();
 
     // ImGui::ShowDemoWindow(); // Show demo window! :)
+}
+
+// ImGuiConfig:
+// Sets configuration parameters
+void VisualSystem::imGuiConfig() {
+    static float sun_direc[3] = {-3.0f, -1.0f, 0.0f};
+    static float sun_color[3] = {1.f, 1.f, 0.0f};
+
+    if (ImGui::CollapsingHeader("Rendering Parameters")) {
+        ImGui::SliderFloat3("Sun Direction", sun_direc, -5.f, 5.f);
+        ImGui::SliderFloat3("Sun Color", sun_color, 0.0f, 1.f);
+    }
+
+    config.sun_direction =
+        Vector3(sun_direc[0], sun_direc[1], sun_direc[2]).unit();
+    config.sun_color = Vector3(sun_color[0], sun_color[1], sun_color[2]);
 }
 
 // ImGuiFinish:
 // Finish and present the ImGui window
 void VisualSystem::imGuiFinish() {
     // Finish and Display GPU + CPU Times
-    gpu_timer.endFrame();
+    GPUTimer::EndFrame();
 
     if (ImGui::CollapsingHeader("Rendering")) {
         ImGui::SeparatorText("CPU Times:");
         CPUTimer::DisplayCPUTimes();
 
         ImGui::SeparatorText("GPU Times:");
-        gpu_timer.displayTimes();
+        GPUTimer::DisplayGPUTimes();
 
         ImGui::SeparatorText("Shadow Atlas:");
         light_manager->getAtlasTexture()->displayImGui(512);

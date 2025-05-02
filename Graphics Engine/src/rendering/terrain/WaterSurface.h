@@ -8,10 +8,9 @@ namespace Graphics {
 // Stores the dimension, period, and amplitude for a wave.
 // Can be directly passed into the shader
 struct WaveConfig {
-    int dimension;
+    Vector2 direction;
     float period;
     float amplitude;
-    float offset;
 };
 
 // WaterSurface Class:

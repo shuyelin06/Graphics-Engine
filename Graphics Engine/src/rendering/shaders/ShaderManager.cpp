@@ -145,7 +145,7 @@ void ShaderManager::initializeShaders() {
 
     // Sky:
     // Draws a sun and shades the sky
-    createPixelShader({"Sky", "Sky.hlsl", "ps_sky"});
+    createPixelShader({"Sky", "Post_Abovewater.hlsl", "ps_main"});
 
     // Underwater:
     // Creates an underwater effect

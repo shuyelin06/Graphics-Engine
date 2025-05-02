@@ -51,6 +51,12 @@ enum RenderTargetBindFlags {
     EnableDepthStencil_TestNoWrite
 };
 
+// Parameters for the VisualSystem
+struct VisualParameters {
+    Vector3 sun_direction;
+    Vector3 sun_color;
+};
+
 // VisualSystem Class:
 // Provides an interface for the application's graphics.
 class VisualSystem {
@@ -67,7 +73,6 @@ class VisualSystem {
     // between two render targets for post processing effects.
     Texture* render_target_dest; // We Render to This
     Texture* render_target_src;  // We Read from This
-    ID3D11Buffer* postprocess_quad;
 
     Texture* depth_stencil;
     D3D11_VIEWPORT viewport;
@@ -85,6 +90,8 @@ class VisualSystem {
     float time_of_day;
 
     // Supported Components
+    VisualParameters config;
+
     CameraComponent* camera;
     ComponentHandler<AssetComponent> asset_components;
     ComponentHandler<ShadowLightComponent> light_components;
@@ -112,7 +119,6 @@ class VisualSystem {
   private: // Initialization Stages
     void initializeScreenTarget(HWND window, UINT width, UINT height);
     void initializeRenderTarget(UINT width, UINT height);
-    void initializeFullscreenQuad();
     void initializeManagers();
     void initializeComponents();
 
@@ -122,9 +128,14 @@ class VisualSystem {
     void performRenderPass();  // Render Pass
 
     void performLightFrustumPass(); // Light Frustum Pass
+
+    // Above Water Processing
     void performWaterSurfacePass(); // Water Surface Pass
+    void processSky();
 
     void processUnderwater(); // Underwater Effect
+
+    void processDither();
 
     void renderFinish(); // Finish Rendering
 
@@ -142,6 +153,7 @@ class VisualSystem {
     void imGuiInitialize(HWND window);
 
     void imGuiPrepare();
+    void imGuiConfig();
     void imGuiFinish();
 
     void imGuiShutdown();
