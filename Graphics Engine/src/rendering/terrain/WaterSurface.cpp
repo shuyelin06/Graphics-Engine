@@ -73,33 +73,25 @@ void subdivideSurface(MeshBuilder& builder, UINT a, UINT b, UINT c, UINT d,
 // Randomly generates the wave configurations for the engine.
 void WaterSurface::generateWaveConfig(int wave_count) {
     wave_config.clear();
-
-    constexpr float MIN_PERIOD = 0.00125f;
-    constexpr float MAX_PERIOD = 0.075f;
-    constexpr float MIN_AMP = 0.5f;
-    constexpr float MAX_AMP = 1.5f;
-    constexpr float TIMING_VARIABILITY = 0.5f;
-
     num_waves = wave_count;
+
+    float amplitude = 0.75f;
+    float frequency = 0.1f;
+
     for (int i = 0; i < num_waves; i++) {
         WaveConfig config;
-        if (i % 2 == 0)
-            config.dimension = 0;
-        else
-            config.dimension = 1;
-        config.period = Random(MIN_PERIOD, MAX_PERIOD);
 
-        const float rel_period =
-            (config.period - MIN_PERIOD) / (MAX_PERIOD - MIN_PERIOD);
-        const float random_amp_sample = (rel_period + Random(-0.25f, 0.25f));
-        config.amplitude = (MAX_AMP - MIN_AMP) * random_amp_sample + MIN_AMP;
-        // config.amplitude = Random(MIN_AMP, MAX_AMP);
-        config.timing =
-            Random(1.f - TIMING_VARIABILITY, 1.f + TIMING_VARIABILITY);
+        const float theta = Random(-float(2 * PI), float(2 * PI));
+        config.direction = Vector2(cosf(theta), sinf(theta));
+
+        config.amplitude = amplitude;
+        amplitude *= Random(0.83f, 0.99f);
+
+        config.period = frequency;
+        frequency *= Random(1.01f, 1.17f);
 
         wave_config.push_back(config);
     }
-
 }
 
 // --- Accessors ---

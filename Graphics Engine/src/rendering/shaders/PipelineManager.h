@@ -35,16 +35,17 @@ class PipelineManager {
     ID3D11Device* device;
     ID3D11DeviceContext* context;
 
-    // Shader Manager
-    ShaderManager* shader_manager;
-
     // Shared constant buffer handles.
     CBHandle* vcb_handles[CBCOUNT];
     CBHandle* pcb_handles[CBCOUNT];
 
     // Active Shaders
+    ShaderManager* shader_manager;
     VertexShader* vs_active;
     PixelShader* ps_active;
+
+    // Post Processing
+    ID3D11Buffer* postprocess_quad;
 
   public:
     PipelineManager(ID3D11Device* device, ID3D11DeviceContext* context);
@@ -54,11 +55,15 @@ class PipelineManager {
     bool bindVertexShader(const std::string& vs_name);
     bool bindPixelShader(const std::string& ps_name);
 
-    // Constant Buffer Management 
+    // Constant Buffer Management
     IConstantBuffer loadVertexCB(CBSlot slot);
     IConstantBuffer loadPixelCB(CBSlot slot);
 
-    // Accessors
+    // Draw Calls
+    void drawMesh(VertexDataPin vertex_layout);
+    void drawPostProcessQuad();
+
+    // (START TO DEPRECATE) Accessors
     CBHandle* getVertexCB(CBSlot slot) const;
     CBHandle* getPixelCB(CBSlot slot) const;
 

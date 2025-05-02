@@ -145,8 +145,8 @@ void Terrain::reloadChunk(const ChunkIndex local_index,
                 // Fade our noise to 0 depending on how close we are to the
                 // water line
                 constexpr float FADE_RATE = 0.0075f;
-                if (sample_y >= TERRAIN_WATER_LINE) {
-                    val += (sample_y - TERRAIN_WATER_LINE) * FADE_RATE;
+                if (sample_y >= TERRAIN_FADE_LINE) {
+                    val += (sample_y - TERRAIN_FADE_LINE) * FADE_RATE;
                 }
                 val = Clamp(val, 0.0f, 1.0f);
 

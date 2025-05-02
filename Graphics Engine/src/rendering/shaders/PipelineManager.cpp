@@ -2,7 +2,11 @@
 
 #include <assert.h>
 
+#include "math/Vector4.h"
+
 namespace Engine {
+using namespace Math;
+
 namespace Graphics {
 IConstantBuffer::IConstantBuffer(PipelineManager* _pipeline, IBufferType _type,
                                  CBSlot _slot) {
@@ -40,6 +44,25 @@ PipelineManager::PipelineManager(ID3D11Device* _device,
     for (int i = 0; i < CBSlot::CBCOUNT; i++) {
         vcb_handles[i] = new CBHandle();
         pcb_handles[i] = new CBHandle();
+    }
+
+    // Initialize my full screen quad
+    {
+        const Vector4 fullscreen_quad[6] = {
+            // First Triangle
+            Vector4(-1, -1, 0, 1), Vector4(-1, 1, 0, 1), Vector4(1, 1, 0, 1),
+            // Second Triangle
+            Vector4(-1, -1, 0, 1), Vector4(1, 1, 0, 1), Vector4(1, -1, 0, 1)};
+
+        D3D11_BUFFER_DESC buffer_desc = {};
+        buffer_desc.ByteWidth = sizeof(fullscreen_quad);
+        buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+        buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+        D3D11_SUBRESOURCE_DATA sr_data = {};
+        sr_data.pSysMem = (void*)fullscreen_quad;
+
+        device->CreateBuffer(&buffer_desc, &sr_data, &postprocess_quad);
     }
 }
 
@@ -118,6 +141,17 @@ void PipelineManager::bindPixelCB(CBSlot slot) {
     // Bind constant buffer to pipeline
     if (cb->byteSize() > 0)
         context->PSSetConstantBuffers(slot, 1, &cb->resource);
+}
+
+void PipelineManager::drawPostProcessQuad() {
+    UINT vertexStride = sizeof(float) * 4;
+    UINT vertexOffset = 0;
+
+    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    context->IASetVertexBuffers(0, 1, &postprocess_quad, &vertexStride,
+                                &vertexOffset);
+
+    context->Draw(6, 0);
 }
 
 void PipelineManager::updateCBData(CBHandle* constantBuffer) {

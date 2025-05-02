@@ -43,10 +43,6 @@ VisualSystem::VisualSystem(HWND window) {
     // an intermediate target so that we can apply post processing effects
     initializeRenderTarget(width, height);
 
-    // Initialize my full screen quad. This will be used for post-processing
-    // effects.
-    initializeFullscreenQuad();
-
     // Initialize each of my managers with the resources they need
     initializeManagers();
 
@@ -228,27 +224,6 @@ void VisualSystem::initializeRenderTarget(UINT width, UINT height) {
     assert(SUCCEEDED(result));
 }
 
-// InitializeFullscreenQuad:
-// Creates a quad that covers the entire screen, so we can use the pixel shader
-// for post processing effects
-void VisualSystem::initializeFullscreenQuad() {
-    const Vector4 fullscreen_quad[6] = {
-        // First Triangle
-        Vector4(-1, -1, 0, 1), Vector4(-1, 1, 0, 1), Vector4(1, 1, 0, 1),
-        // Second Triangle
-        Vector4(-1, -1, 0, 1), Vector4(1, 1, 0, 1), Vector4(1, -1, 0, 1)};
-
-    D3D11_BUFFER_DESC buffer_desc = {};
-    buffer_desc.ByteWidth = sizeof(fullscreen_quad);
-    buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-    buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
-    D3D11_SUBRESOURCE_DATA sr_data = {};
-    sr_data.pSysMem = (void*)fullscreen_quad;
-
-    device->CreateBuffer(&buffer_desc, &sr_data, &postprocess_quad);
-}
-
 // InitializeManagers:
 // Initializes different managers that the visual system uses.
 void VisualSystem::initializeManagers() {
@@ -387,13 +362,15 @@ void VisualSystem::render() {
     // Rendering is different depending on if we're below
     // or above the surface of the water
     const Vector3& cam_pos = camera->getPosition();
-    if (cam_pos.y <= 100.f) {
+    if (cam_pos.y <= terrain->getSurfaceLevel() + 3.5f) {
+        performLightFrustumPass();
+        // Underwater rendering
         processUnderwater();
     } else {
+        // Above water rendering
         performWaterSurfacePass();
+        processSky();
     }
-
-    performLightFrustumPass();
 
 #if defined(ENABLE_DEBUG_DRAWING)
     // Debug Functionality
@@ -422,6 +399,10 @@ void VisualSystem::render() {
 void VisualSystem::pullDatamodelData() {
 #if defined(_DEBUG)
     CPUTimer::BeginCPUTimer("Render Prepare");
+#endif
+
+#if defined(_DEBUG)
+    imGuiConfig();
 #endif
 
     // Pull my object data.
@@ -1034,7 +1015,7 @@ void VisualSystem::performWaterSurfacePass() {
     pipeline_manager->bindPixelShader("WaterSurface");
 
     // Disable depth writes
-    swapActiveRenderTarget();
+    // swapActiveRenderTarget();
     bindActiveRenderTarget(EnableDepthStencil_TestAndWrite);
 
     {
@@ -1046,7 +1027,7 @@ void VisualSystem::performWaterSurfacePass() {
         const Vector3& camera_pos = camera->getPosition();
         vcb0.loadData(&camera_pos, FLOAT3);
 
-        const float surface_height = 100.f;
+        const float surface_height = terrain->getSurfaceLevel();
         vcb0.loadData(&surface_height, FLOAT);
     }
 
@@ -1064,10 +1045,9 @@ void VisualSystem::performWaterSurfacePass() {
         vcb1->loadData(nullptr, FLOAT2);
 
         for (int i = 0; i < num_waves; i++) {
-            vcb1->loadData(&wave_config[i].dimension, INT);
+            vcb1->loadData(&wave_config[i].direction, FLOAT2);
             vcb1->loadData(&wave_config[i].period, FLOAT);
             vcb1->loadData(&wave_config[i].amplitude, FLOAT);
-            vcb1->loadData(nullptr, FLOAT);
         }
 
         pipeline_manager->bindVertexCB(CB1);
@@ -1079,6 +1059,12 @@ void VisualSystem::performWaterSurfacePass() {
 
         const Vector3& pos = camera->getPosition();
         pcb0->loadData(&pos, FLOAT3);
+        pcb0->loadData(nullptr, FLOAT);
+
+        pcb0->loadData(&config.sun_direction, FLOAT3);
+        pcb0->loadData(nullptr, FLOAT);
+
+        pcb0->loadData(&config.sun_color, FLOAT3);
         pcb0->loadData(nullptr, FLOAT);
 
         pipeline_manager->bindPixelCB(CB0);
@@ -1136,6 +1122,60 @@ void VisualSystem::performWaterSurfacePass() {
     int numIndices = surface_mesh->triangle_count * 3;
     context->OMSetBlendState(blend_state, NULL, 0xffffffff);
     context->DrawIndexed(numIndices, 0, 0);
+}
+
+void VisualSystem::processSky() {
+    pipeline_manager->bindVertexShader("PostProcess");
+    pipeline_manager->bindPixelShader("Sky");
+
+    swapActiveRenderTarget();
+    bindActiveRenderTarget(DisableDepthStencil);
+
+    // Set samplers and texture resources
+    ID3D11SamplerState* mesh_texture_sampler =
+        resource_manager->getMeshSampler();
+    context->PSSetSamplers(0, 1, &mesh_texture_sampler);
+    context->PSSetShaderResources(0, 1, &render_target_src->shader_view);
+    context->PSSetShaderResources(1, 1, &depth_stencil->shader_view);
+
+    // Bind Constant Buffers
+    {
+        IConstantBuffer pcb0 = pipeline_manager->loadPixelCB(CB0);
+
+        const float f_width = (float)screen_target->width;
+        pcb0.loadData(&f_width, FLOAT);
+        const float f_height = (float)screen_target->height;
+        pcb0.loadData(&f_height, FLOAT);
+
+        const float z_near = camera->getZNear();
+        pcb0.loadData(&z_near, FLOAT);
+        const float z_far = camera->getZFar();
+        pcb0.loadData(&z_far, FLOAT);
+    }
+    {
+        IConstantBuffer pcb1 = pipeline_manager->loadPixelCB(CB1);
+
+        const Matrix4 m_proj_to_world =
+            (camera->getFrustumMatrix() * camera->getWorldToCameraMatrix())
+                .inverse();
+        pcb1.loadData(&m_proj_to_world, FLOAT4X4);
+        const Vector3& cam_pos = camera->getPosition();
+        pcb1.loadData(&cam_pos, FLOAT3);
+        pcb1.loadData(nullptr, FLOAT);
+
+        pcb1.loadData(&config.sun_direction, FLOAT3);
+        const float sun_size = 0.025f;
+        pcb1.loadData(&sun_size, FLOAT);
+
+        pcb1.loadData(&config.sun_color, FLOAT3);
+        pcb1.loadData(nullptr, FLOAT);
+        const Vector3 sky_color =
+            Vector3(173.f / 255.f, 216.f / 255.f, 230.f / 255.f);
+        pcb1.loadData(&sky_color, FLOAT3);
+        pcb1.loadData(nullptr, FLOAT);
+    }
+
+    pipeline_manager->drawPostProcessQuad();
 }
 
 void VisualSystem::processUnderwater() {
@@ -1214,14 +1254,7 @@ void VisualSystem::processUnderwater() {
     }
 
     // Bind and draw full screen quad
-    UINT vertexStride = sizeof(float) * 4;
-    UINT vertexOffset = 0;
-
-    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    context->IASetVertexBuffers(0, 1, &postprocess_quad, &vertexStride,
-                                &vertexOffset);
-
-    context->Draw(6, 0);
+    pipeline_manager->drawPostProcessQuad();
 
 #if defined(_DEBUG)
     gpu_timer.endTimer("Underwater Pass");
@@ -1261,15 +1294,7 @@ void VisualSystem::renderFinish() {
         pipeline_manager->bindPixelCB(CB0);
     }
 
-    // Bind and draw full screen quad
-    UINT vertexStride = sizeof(float) * 4;
-    UINT vertexOffset = 0;
-
-    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    context->IASetVertexBuffers(0, 1, &postprocess_quad, &vertexStride,
-                                &vertexOffset);
-
-    context->Draw(6, 0);
+    pipeline_manager->drawPostProcessQuad();
 
     // Finally, present what we rendered to
     swap_chain->Present(1, 0);
@@ -1469,6 +1494,22 @@ void VisualSystem::imGuiPrepare() {
     gpu_timer.beginFrame();
 
     // ImGui::ShowDemoWindow(); // Show demo window! :)
+}
+
+// ImGuiConfig:
+// Sets configuration parameters
+void VisualSystem::imGuiConfig() {
+    static float sun_direc[3] = {-3.0f, -1.0f, 0.0f};
+    static float sun_color[3] = {1.f, 1.f, 0.0f};
+
+    if (ImGui::CollapsingHeader("Rendering Parameters")) {
+        ImGui::SliderFloat3("Sun Direction", sun_direc, -5.f, 5.f);
+        ImGui::SliderFloat3("Sun Color", sun_color, 0.0f, 1.f);
+    }
+
+    config.sun_direction =
+        Vector3(sun_direc[0], sun_direc[1], sun_direc[2]).unit();
+    config.sun_color = Vector3(sun_color[0], sun_color[1], sun_color[2]);
 }
 
 // ImGuiFinish:

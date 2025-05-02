@@ -36,7 +36,9 @@ VisualTerrain::VisualTerrain(Terrain* _terrain, ID3D11Device* device)
     // Initialize my water surface mesh.
     water_surface = new WaterSurface();
     water_surface->generateSurfaceMesh(device, 450.f, 10);
-    water_surface->generateWaveConfig(4);
+    water_surface->generateWaveConfig(14);
+
+    surface_level = 100.f;
 }
 VisualTerrain::~VisualTerrain() = default;
 
@@ -74,6 +76,8 @@ void VisualTerrain::pullTerrainMeshes(ID3D11DeviceContext* context) {
 }
 
 // --- Accessors ---
+float VisualTerrain::getSurfaceLevel() const { return surface_level; }
+
 // Returns the chunk meshes
 BufferPool* VisualTerrain::getMesh() { return output_mesh; }
 

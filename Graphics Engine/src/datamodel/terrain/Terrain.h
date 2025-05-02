@@ -29,7 +29,7 @@ constexpr int TERRAIN_CHUNK_SAMPLES = 7;
 constexpr int TERRAIN_CHUNK_EXTENT = 7;
 
 // Water Line
-constexpr float TERRAIN_WATER_LINE = 100.f;
+constexpr float TERRAIN_FADE_LINE = 100.f;
 // ---
 
 // # Chunks in 1 dimension
