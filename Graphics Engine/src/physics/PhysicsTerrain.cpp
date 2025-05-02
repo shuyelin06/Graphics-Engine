@@ -55,10 +55,6 @@ PhysicsTerrain::PhysicsTerrain(Terrain* _terrain)
             }
         }
     }
-
-#if defined(_DEBUG)
-    Graphics::CPUTimer::CreateCPUTimer("Terrain TLAS Build");
-#endif
 }
 
 void PhysicsTerrain::pullTerrainBVHs() {
@@ -79,10 +75,6 @@ void PhysicsTerrain::pullTerrainBVHs() {
     }
 
     // Add to our TLAS and build it
-#if defined(_DEBUG)
-    Graphics::CPUTimer::BeginCPUTimer("Terrain TLAS Build");
-#endif
-
     tlas.reset();
 
     for (int i = 0; i < TERRAIN_CHUNK_COUNT; i++) {
@@ -95,10 +87,6 @@ void PhysicsTerrain::pullTerrainBVHs() {
     }
 
     tlas.buildFast();
-
-#if defined(_DEBUG)
-    Graphics::CPUTimer::EndCPUTimer("Terrain TLAS Build");
-#endif
 }
 
 // GetTerrainTLS();

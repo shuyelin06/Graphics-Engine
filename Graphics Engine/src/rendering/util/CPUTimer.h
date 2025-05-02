@@ -11,6 +11,21 @@ namespace Graphics {
 
 struct CPUTimerBatch;
 
+// ICPUTimer Class:
+// CPUTimer interface that begins and ends queries with the constructor and
+// destructor (respectively). Easier to use than manually calling begin and end
+// frame.
+// MAKE SURE THIS IS ALLOCATED ON THE STACK. Assign the output of
+// TrackCPUTime() to a local variable, and keep it until the end of the scope.
+class ICPUTimer {
+  private:
+    CPUTimerBatch* timer_batch;
+
+  public:
+    ICPUTimer(CPUTimerBatch* batch);
+    ~ICPUTimer();
+};
+
 // Class CPUTimer:
 // Can be used to track the amount of time a batch of CPU
 // commands take.
@@ -27,10 +42,7 @@ class CPUTimer {
 
   public:
     static void Initialize();
-
-    static void CreateCPUTimer(const std::string& name);
-    static void BeginCPUTimer(const std::string& name);
-    static void EndCPUTimer(const std::string& name);
+    static ICPUTimer TrackCPUTime(const std::string& name);
 
     // Display Current Frame's Times to ImGui
     static void DisplayCPUTimes();

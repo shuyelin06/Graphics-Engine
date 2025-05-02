@@ -340,8 +340,7 @@ VisualTerrain* VisualSystem::bindTerrain(Terrain* _terrain) {
 // Renders the entire scene to the screen.
 void VisualSystem::render() {
 #if defined(_DEBUG)
-    gpu_timer.beginTimer("GPU Frametime");
-    CPUTimer::BeginCPUTimer("CPU Frametime");
+    ICPUTimer cpu_timer = CPUTimer::TrackCPUTime("CPU Frametime");
 #endif
 
     // TEMP
@@ -380,8 +379,6 @@ void VisualSystem::render() {
 #endif
 
 #if defined(_DEBUG)
-    gpu_timer.endTimer("GPU Frametime");
-    CPUTimer::EndCPUTimer("CPU Frametime");
     imGuiFinish();
 #endif
 
@@ -398,7 +395,7 @@ void VisualSystem::render() {
 // data from the datamodel.
 void VisualSystem::pullDatamodelData() {
 #if defined(_DEBUG)
-    CPUTimer::BeginCPUTimer("Render Prepare");
+    ICPUTimer cpu_timer = CPUTimer::TrackCPUTime("Render Prepare");
 #endif
 
 #if defined(_DEBUG)
@@ -452,10 +449,6 @@ void VisualSystem::pullDatamodelData() {
 
     // Cluster shadows
     light_manager->clusterShadowCasters();
-
-#if defined(_DEBUG)
-    CPUTimer::EndCPUTimer("Render Prepare");
-#endif
 }
 
 // PerformShadowPass:
@@ -463,8 +456,7 @@ void VisualSystem::pullDatamodelData() {
 // its shadow map.
 void VisualSystem::performShadowPass() {
 #if defined(_DEBUG)
-    gpu_timer.beginTimer("Shadow Pass");
-    CPUTimer::BeginCPUTimer("Shadow Pass");
+    IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Shadow Pass");
 #endif
 
     pipeline_manager->bindVertexShader("ShadowMap");
@@ -533,17 +525,11 @@ void VisualSystem::performShadowPass() {
             context->DrawIndexed(num_indices, 0, 0);
         }
     }
-
-#if defined(_DEBUG)
-    gpu_timer.endTimer("Shadow Pass");
-    CPUTimer::EndCPUTimer("Shadow Pass");
-#endif
 }
 
 void VisualSystem::performTerrainPass() {
 #if defined(_DEBUG)
-    gpu_timer.beginTimer("Terrain Pass");
-    CPUTimer::BeginCPUTimer("Terrain Pass");
+    IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Terrain Pass");
 #endif
 
     pipeline_manager->bindVertexShader("Terrain");
@@ -690,16 +676,11 @@ void VisualSystem::performTerrainPass() {
         UINT numIndices = bpool->getNumTriangles() * 3;
         context->DrawIndexed(numIndices, 0, 0);
     }
-#if defined(_DEBUG)
-    gpu_timer.endTimer("Terrain Pass");
-    CPUTimer::EndCPUTimer("Terrain Pass");
-#endif
 }
 
 void VisualSystem::performRenderPass() {
 #if defined(_DEBUG)
-    gpu_timer.beginTimer("Render Pass");
-    CPUTimer::BeginCPUTimer("Render Pass");
+    IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Render Pass");
 #endif
 
     pipeline_manager->bindPixelShader("TexturedMesh");
@@ -934,14 +915,13 @@ void VisualSystem::performRenderPass() {
             context->DrawIndexed(numIndices, 0, 0);
         }
     }
-
-#if defined(_DEBUG)
-    gpu_timer.endTimer("Render Pass");
-    CPUTimer::EndCPUTimer("Render Pass");
-#endif
 }
 
 void VisualSystem::performLightFrustumPass() {
+#if defined(_DEBUG)
+    IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Light Frustum Pass");
+#endif
+
     pipeline_manager->bindVertexShader("LightFrustum");
     pipeline_manager->bindPixelShader("LightFrustum");
 
@@ -1011,6 +991,10 @@ void VisualSystem::performLightFrustumPass() {
 }
 
 void VisualSystem::performWaterSurfacePass() {
+#if defined(_DEBUG)
+    IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Water Surface Pass");
+#endif
+
     pipeline_manager->bindVertexShader("WaterSurface");
     pipeline_manager->bindPixelShader("WaterSurface");
 
@@ -1125,6 +1109,10 @@ void VisualSystem::performWaterSurfacePass() {
 }
 
 void VisualSystem::processSky() {
+#if defined(_DEBUG)
+    IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Sky Processing");
+#endif
+
     pipeline_manager->bindVertexShader("PostProcess");
     pipeline_manager->bindPixelShader("Sky");
 
@@ -1180,7 +1168,7 @@ void VisualSystem::processSky() {
 
 void VisualSystem::processUnderwater() {
 #if defined(_DEBUG)
-    gpu_timer.beginTimer("Underwater Pass");
+    IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Underwater Pass");
 #endif
 
     pipeline_manager->bindVertexShader("PostProcess");
@@ -1255,10 +1243,6 @@ void VisualSystem::processUnderwater() {
 
     // Bind and draw full screen quad
     pipeline_manager->drawPostProcessQuad();
-
-#if defined(_DEBUG)
-    gpu_timer.endTimer("Underwater Pass");
-#endif
 }
 
 void VisualSystem::renderFinish() {
@@ -1466,19 +1450,8 @@ void VisualSystem::imGuiInitialize(HWND window) {
     ImGui_ImplDX11_Init(device, context);
 
     // Create GPU + CPU Timers
-    gpu_timer.initialize(device, context);
-
-    gpu_timer.createTimer("GPU Frametime");
-    gpu_timer.createTimer("Shadow Pass");
-    gpu_timer.createTimer("Terrain Pass");
-    gpu_timer.createTimer("Render Pass");
-
+    GPUTimer::Initialize(device, context);
     CPUTimer::Initialize();
-    CPUTimer::CreateCPUTimer("CPU Frametime");
-    CPUTimer::CreateCPUTimer("Render Prepare");
-    CPUTimer::CreateCPUTimer("Shadow Pass");
-    CPUTimer::CreateCPUTimer("Terrain Pass");
-    CPUTimer::CreateCPUTimer("Render Pass");
 }
 
 // ImGuiPrepare:
@@ -1491,7 +1464,7 @@ void VisualSystem::imGuiPrepare() {
     ImGui::NewFrame();
 
     // Begin timestamping
-    gpu_timer.beginFrame();
+    GPUTimer::BeginFrame();
 
     // ImGui::ShowDemoWindow(); // Show demo window! :)
 }
@@ -1516,14 +1489,14 @@ void VisualSystem::imGuiConfig() {
 // Finish and present the ImGui window
 void VisualSystem::imGuiFinish() {
     // Finish and Display GPU + CPU Times
-    gpu_timer.endFrame();
+    GPUTimer::EndFrame();
 
     if (ImGui::CollapsingHeader("Rendering")) {
         ImGui::SeparatorText("CPU Times:");
         CPUTimer::DisplayCPUTimes();
 
         ImGui::SeparatorText("GPU Times:");
-        gpu_timer.displayTimes();
+        GPUTimer::DisplayGPUTimes();
 
         ImGui::SeparatorText("Shadow Atlas:");
         light_manager->getAtlasTexture()->displayImGui(512);

@@ -10,9 +10,19 @@ namespace Graphics {
 struct CPUTimerBatch {
     Stopwatch timer;
     float duration;
+    bool used;
 
     CPUTimerBatch() = default;
 };
+
+ICPUTimer::ICPUTimer(CPUTimerBatch* batch) {
+    timer_batch = batch;
+    timer_batch->timer.Reset();
+}
+ICPUTimer::~ICPUTimer() {
+    timer_batch->duration = (float)timer_batch->timer.Duration();
+    timer_batch->used = true;
+}
 
 CPUTimer::CPUTimer() = default;
 
@@ -20,27 +30,13 @@ CPUTimer* CPUTimer::system_timer = nullptr;
 std::mutex CPUTimer::mutex = std::mutex();
 void CPUTimer::Initialize() { system_timer = new CPUTimer(); }
 
-// CreateTimer:
-// Creates a new timer associated with some name
-void CPUTimer::CreateCPUTimer(const std::string& name) {
+// Begin, End:
+// Begin and end a CPU timer
+ICPUTimer CPUTimer::TrackCPUTime(const std::string& name) {
     std::unique_lock<std::mutex> lock(mutex);
     if (!system_timer->cpu_timers.contains(name))
         system_timer->cpu_timers[name] = new CPUTimerBatch();
-}
-
-// Begin, End:
-// Begin and end a CPU timer
-void CPUTimer::BeginCPUTimer(const std::string& name) {
-    std::unique_lock<std::mutex> lock(mutex);
-    if (system_timer->cpu_timers.contains(name))
-        system_timer->cpu_timers[name]->timer.Reset();
-}
-
-void CPUTimer::EndCPUTimer(const std::string& name) {
-    std::unique_lock<std::mutex> lock(mutex);
-    if (system_timer->cpu_timers.contains(name))
-        system_timer->cpu_timers[name]->duration =
-            (float)system_timer->cpu_timers[name]->timer.Duration();
+    return ICPUTimer(system_timer->cpu_timers[name]);
 }
 
 // DisplayTimes:
@@ -48,13 +44,16 @@ void CPUTimer::EndCPUTimer(const std::string& name) {
 // to the ImGui menu.
 void CPUTimer::DisplayCPUTimes() {
     std::unique_lock<std::mutex> lock(mutex);
-    for (const auto& pair : system_timer->cpu_timers) {
+    for (auto& pair : system_timer->cpu_timers) {
         const std::string& name = pair.first;
         const float duration = pair.second->duration;
 
+        if (pair.second->used) {
+            pair.second->used = false;
 #if defined(_DEBUG)
-        ImGui::Text("(CPU) %s: %f ms", name.c_str(), duration);
+            ImGui::Text("(CPU) %s: %f ms", name.c_str(), duration);
 #endif
+        }
     }
 }
 
