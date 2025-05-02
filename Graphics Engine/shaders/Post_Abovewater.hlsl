@@ -51,21 +51,15 @@ float4 ps_main(PS_IN input) : SV_TARGET
     
     // Set fog as we get far away
     float fog_begin = 0.98f;
-    if (depth >= fog_begin)
-    {
-        float dist = (depth - fog_begin) / (1.f - fog_begin);
-        output_color = lerp(output_color, sky_color, dist);
-    }
+    float dist = (depth - fog_begin) / (1.f - fog_begin);
+    dist = smoothstep(0.0f, 1.0f, clamp(dist, 0.0f, 1.f));
+    output_color = lerp(output_color, sky_color, dist);
     
-    // If depth == 1, we are seeing the sky. Blend between the sun and
-    // sky
+    // If depth == 1, we are seeing the sky. Blend between the sun and sky
     if (depth >= 1.f)
     {
         float dot_product = dot(-sun_direction, view_direction);
-        float blend_distance = 0.05f;
-        
-        float blend_factor = dot_product - (1 - sun_size) + blend_distance;
-        blend_factor /= blend_distance;
+        float blend_factor = (dot_product - (1 - sun_size)) / sun_size;
         blend_factor = clamp(blend_factor, 0.0f, 1.f);
         
         output_color = lerp(sky_color, sun_color, blend_factor);

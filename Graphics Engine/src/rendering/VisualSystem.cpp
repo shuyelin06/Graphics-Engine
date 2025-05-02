@@ -378,6 +378,8 @@ void VisualSystem::render() {
     VisualDebug::Clear();
 #endif
 
+    processDither();
+
 #if defined(_DEBUG)
     imGuiFinish();
 #endif
@@ -575,8 +577,7 @@ void VisualSystem::performTerrainPass() {
         // Sun Cascade Data
         const SunLight* sun_light = light_manager->getSunLight();
 
-        const Vector3 sun_direction = sun_light->getDirection();
-        pCB1->loadData(&sun_direction, FLOAT3);
+        pCB1->loadData(&config.sun_direction, FLOAT3);
         pCB1->loadData(nullptr, FLOAT);
 
         for (int i = 0; i < SUN_NUM_CASCADES; i++) {
@@ -1245,7 +1246,11 @@ void VisualSystem::processUnderwater() {
     pipeline_manager->drawPostProcessQuad();
 }
 
-void VisualSystem::renderFinish() {
+void VisualSystem::processDither() {
+#if defined(_DEBUG)
+    IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Finish + Dither");
+#endif
+
     // We will render from our most reecntly used render target to the screen
     pipeline_manager->bindVertexShader("PostProcess");
     pipeline_manager->bindPixelShader("PostProcess");
@@ -1279,7 +1284,9 @@ void VisualSystem::renderFinish() {
     }
 
     pipeline_manager->drawPostProcessQuad();
+}
 
+void VisualSystem::renderFinish() {
     // Finally, present what we rendered to
     swap_chain->Present(1, 0);
 

@@ -80,9 +80,5 @@ float4 ps_main(PS_IN input) : SV_TARGET
     float intensity = pow(10.f, 1 - intensity_drop * height) * 0.1f;
     color = color * intensity;
     
-    // Add a small dither to make the color banding less apparent
-    float dither = frac(sin(dot(uv, float2(12.9898f, 78.233f))) * 43758.5453f);
-    color += dither * (1.0f / 255.f);
-    
     return float4(color, 1.f);
 }

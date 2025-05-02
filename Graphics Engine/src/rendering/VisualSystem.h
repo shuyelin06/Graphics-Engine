@@ -135,6 +135,8 @@ class VisualSystem {
 
     void processUnderwater(); // Underwater Effect
 
+    void processDither();
+
     void renderFinish(); // Finish Rendering
 
     // --- Rendering Helper Methods ---
