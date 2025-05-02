@@ -28,7 +28,8 @@ float4 ps_main(PS_INPUT input) : SV_TARGET
 {
     input.normal = normalize(input.normal);
     
-    float3 color = float3(0.03f, 0.07f, 0.45f);
+    float3 ambient_color = float3(0.00f, 0.00f, 0.12f);
+    float3 color = float3(0.03f, 0.07f, 0.75f);
     
     // Compute my diffuse constant
     float diffuse_term = max(dot(input.normal, -sun_direction), 0);
@@ -41,7 +42,7 @@ float4 ps_main(PS_INPUT input) : SV_TARGET
     specular_term = pow(specular_term, 55);
     
     // Apply diffuse and specular term
-    color = color * diffuse_term + sun_color * specular_term;
+    color = ambient_color + color * diffuse_term + sun_color * specular_term;
     
     return float4(color, 1.f);
 }
