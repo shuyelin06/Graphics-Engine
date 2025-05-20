@@ -69,10 +69,10 @@
     <ClCompile Include="src\rendering\core\Asset.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\shaders\ShaderManager.cpp">
+    <ClCompile Include="src\rendering\pipeline\ShaderManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\shaders\Shader.cpp">
+    <ClCompile Include="src\rendering\pipeline\Shader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\math\Color.cpp">
@@ -222,7 +222,7 @@
     <ClCompile Include="include\stb\stb_image.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\shaders\PipelineManager.cpp">
+    <ClCompile Include="src\rendering\pipeline\PipelineManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\datamodel\bvh\BVH.cpp">
@@ -247,6 +247,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\terrain\WaterSurface.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rendering\resources\BumpMapBuilder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rendering\pipeline\ConstantBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -305,10 +311,10 @@
     <ClInclude Include="src\rendering\core\Asset.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\shaders\ShaderManager.h">
+    <ClInclude Include="src\rendering\pipeline\ShaderManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\shaders\Shader.h">
+    <ClInclude Include="src\rendering\pipeline\Shader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\math\Color.h">
@@ -473,7 +479,7 @@
     <ClInclude Include="include\stb\stb_image.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\shaders\PipelineManager.h">
+    <ClInclude Include="src\rendering\pipeline\PipelineManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\datamodel\bvh\BVH.h">
@@ -507,6 +513,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\terrain\WaterSurface.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rendering\resources\BumpMapBuilder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rendering\pipeline\ConstantBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

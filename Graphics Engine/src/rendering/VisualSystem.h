@@ -8,9 +8,8 @@
 #include "Direct3D11.h"
 
 #include "lights/LightManager.h"
+#include "pipeline/PipelineManager.h"
 #include "resources/ResourceManager.h"
-#include "shaders/PipelineManager.h"
-#include "shaders/ShaderManager.h"
 
 #include "core/AssetComponent.h"
 #include "datamodel/ComponentHandler.h"
@@ -75,6 +74,7 @@ class VisualSystem {
     Texture* render_target_src;  // We Read from This
 
     Texture* depth_stencil;
+    Texture* depth_stencil_copy;
     D3D11_VIEWPORT viewport;
 
     ID3D11BlendState* blend_state;
@@ -82,7 +82,7 @@ class VisualSystem {
     // Managers
     ResourceManager* resource_manager;
     LightManager* light_manager;
-    PipelineManager* pipeline_manager;
+    PipelineManager* pipeline;
 
     // Render Information:
     // Rendering configurations

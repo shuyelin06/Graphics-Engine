@@ -5,9 +5,10 @@
 namespace Engine {
 namespace Graphics {
 TextureBuilder::TextureBuilder(UINT _width, UINT _height) {
-    texture_resource = new Texture(_width, _height);
+    width = _width;
+    height = _height;
 
-    data.resize(_width * _height);
+    data.resize(width * height);
     clear({90, 34, 139, 255});
 }
 
@@ -17,10 +18,12 @@ TextureBuilder::~TextureBuilder() = default;
 // Generates a texture resource (for use in the rendering pipeline)
 // given the data stored within the builder.
 Texture* TextureBuilder::generate(ID3D11Device* device) {
+    Texture* texture_resource = new Texture(width, height);
+
     // Generate my GPU texture resource
     D3D11_TEXTURE2D_DESC tex_desc = {};
-    tex_desc.Width = texture_resource->width;
-    tex_desc.Height = texture_resource->height;
+    tex_desc.Width = width;
+    tex_desc.Height = height;
     tex_desc.MipLevels = tex_desc.ArraySize = 1;
     tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     tex_desc.SampleDesc.Count = 1;
@@ -30,9 +33,8 @@ Texture* TextureBuilder::generate(ID3D11Device* device) {
 
     D3D11_SUBRESOURCE_DATA sr_data = {};
     sr_data.pSysMem = data.data();
-    sr_data.SysMemPitch = texture_resource->width * 4; // Bytes per row
-    sr_data.SysMemSlicePitch = texture_resource->width *
-                               texture_resource->height * 4; // Total byte size
+    sr_data.SysMemPitch = width * 4;               // Bytes per row
+    sr_data.SysMemSlicePitch = width * height * 4; // Total byte size
 
     device->CreateTexture2D(&tex_desc, &sr_data, &(texture_resource->texture));
     assert(texture_resource->texture != NULL);
@@ -56,17 +58,17 @@ Texture* TextureBuilder::generate(ID3D11Device* device) {
 // SetColor:
 // Sets a pixel of the texture to some color value
 void TextureBuilder::setColor(UINT x, UINT y, const TextureColor& rgba) {
-    assert(0 <= x && x < texture_resource->width);
-    assert(0 <= y && y < texture_resource->height);
+    assert(0 <= x && x < width);
+    assert(0 <= y && y < height);
 
-    data[y * texture_resource->width + x] = rgba;
+    data[y * width + x] = rgba;
 }
 
 // Clear:
 // Clears the texture, setting all of the RGBA pixels to a particular color.
 void TextureBuilder::clear(const TextureColor& rgba) {
-    const UINT pixel_width = texture_resource->width;
-    const UINT pixel_height = texture_resource->height;
+    const UINT pixel_width = width;
+    const UINT pixel_height = height;
 
     for (int i = 0; i < pixel_width * pixel_height; i++)
         data[i] = rgba;
@@ -75,10 +77,6 @@ void TextureBuilder::clear(const TextureColor& rgba) {
 // Reset:
 // Resets the builder
 void TextureBuilder::reset(unsigned int _width, unsigned int _height) {
-    if (texture_resource != nullptr)
-        delete texture_resource;
-    texture_resource = new Texture(_width, _height);
-
     data.resize(_width * _height);
     clear({90, 34, 139, 255});
 }
@@ -87,7 +85,7 @@ void TextureBuilder::reset(unsigned int _width, unsigned int _height) {
 AtlasBuilder::AtlasBuilder(UINT atlas_width, UINT atlas_height)
     : TextureBuilder(atlas_width, atlas_height) {
     // Initialize my texture atlas
-    atlas = new TextureAtlas(texture_resource);
+    atlas = new TextureAtlas(new Texture(atlas_width, atlas_height));
 
     cur_region = nullptr;
 }
@@ -107,7 +105,8 @@ const AtlasAllocation& AtlasBuilder::allocateRegion(UINT tex_width,
 
 // Generates the texture for the atlas and returns the atlas.
 TextureAtlas* AtlasBuilder::generate(ID3D11Device* device) {
-    TextureBuilder::generate(device);
+    Texture* tex = TextureBuilder::generate(device);
+    atlas->setTexture(tex);
 
     TextureAtlas* output = atlas;
     atlas = nullptr;
@@ -117,8 +116,8 @@ TextureAtlas* AtlasBuilder::generate(ID3D11Device* device) {
 
 // Accessors:
 // Access properties of the atlas
-UINT AtlasBuilder::getAtlasWidth() const { return texture_resource->width; }
-UINT AtlasBuilder::getAtlasHeight() const { return texture_resource->height; }
+UINT AtlasBuilder::getAtlasWidth() const { return width; }
+UINT AtlasBuilder::getAtlasHeight() const { return height; }
 
 // SetColor:
 // Sets the color of a pixel relative to the current region

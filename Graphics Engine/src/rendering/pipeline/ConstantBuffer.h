@@ -1,8 +1,6 @@
 #pragma once
 
-#include <bitset>
 #include <vector>
-
 #include "../Direct3D11.h"
 
 namespace Engine {
@@ -30,7 +28,7 @@ enum CBDataFormat {
 };
 
 class CBHandle {
-    friend class PipelineManager;
+    friend class IConstantBuffer;
 
   private:
     std::vector<uint8_t> data;
@@ -54,26 +52,29 @@ class CBHandle {
     void clearData();
 };
 
-// Shaders:
-// Shaders are programs that can be invoked on the GPU. Currently,
-// the engine supports the following shaders:
-//    - Vertex Shader
-//    - Pixel Shader
-// Shaders can be bound to the graphics pipeline, and
-// can have data passed into their constant buffers.
-struct VertexShader {
-    ID3D11VertexShader* shader;
-    ID3D11InputLayout* layout;
+// IConstantBuffer Class:
+// Provides automatic clearing and binding of constant
+// buffer data on construction and destruction.
+enum IBufferType { CBVertex, CBPixel };
+class IConstantBuffer {
+  private:
+    ID3D11Device* device;
+    ID3D11DeviceContext* context;
 
-    VertexShader(ID3D11VertexShader* shader, ID3D11InputLayout* layout);
-    ~VertexShader();
-};
+    CBHandle* cb;
+    CBSlot slot;
+    IBufferType type;
 
-struct PixelShader {
-    ID3D11PixelShader* shader;
+  public:
+    IConstantBuffer(CBHandle* cb, CBSlot slot, IBufferType type,
+                    ID3D11Device* device, ID3D11DeviceContext*);
+    ~IConstantBuffer();
 
-    PixelShader(ID3D11PixelShader* shader);
-    ~PixelShader();
+    void loadData(const void* dataPtr, CBDataFormat dataFormat);
+
+  private:
+    // Upload and bind the CB to the pipeline
+    void bindCB();
 };
 
 } // namespace Graphics

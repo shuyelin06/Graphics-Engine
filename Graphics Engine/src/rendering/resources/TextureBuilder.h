@@ -20,10 +20,8 @@ struct TextureColor {
 // The texture builder only supports the building of 8-bit RGBA channels.
 class TextureBuilder {
   protected:
-    // Data for the texture
-    Texture* texture_resource;
-
     std::vector<TextureColor> data;
+    UINT width, height;
 
   public:
     TextureBuilder(UINT _width, UINT _height);

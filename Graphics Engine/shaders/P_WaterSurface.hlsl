@@ -1,3 +1,15 @@
+#include "Utility.hlsli"
+
+struct PS_INPUT
+{
+    float4 position_clip : SV_Position;
+    float3 world_position : POSITION;
+    float3 normal : NORMAL;
+};
+
+SamplerState tex_sampler : register(s0);
+Texture2D depth_map : register(t0);
+
 cbuffer CB0_LIGHTING_INFO : register(b0)
 {
     float3 view_position;
@@ -8,41 +20,50 @@ cbuffer CB0_LIGHTING_INFO : register(b0)
     
     float3 sun_color;
     float padding3;
+    
+    float2 resolution;
 }
-
-#include "PerlinNoise.hlsli"
-cbuffer CB1_NOISE_TABLE : register(b1)
-{
-    PerlinNoiseData noise_data;
-}
-
-
-struct PS_INPUT
-{
-    float4 position_clip : SV_Position;
-    float3 world_position : POSITION;
-    float3 normal : NORMAL;
-};
 
 float4 ps_main(PS_INPUT input) : SV_TARGET
 {
     input.normal = normalize(input.normal);
     
-    float3 ambient_color = float3(0.00f, 0.00f, 0.12f);
+    float3 ambient_color = float3(0.3f, 0.27f, 0.75f);
     float3 color = float3(0.03f, 0.07f, 0.75f);
-    
+    // 
     // Compute my diffuse constant
     float diffuse_term = max(dot(input.normal, -sun_direction), 0);
     
     // Compute my specular constant 
     float3 view_direction = normalize(view_position - input.world_position);
-    float3 light_direction_reflected = sun_direction - 2 * dot(sun_direction, input.normal) * input.normal;
-    light_direction_reflected = normalize(light_direction_reflected);
+    float3 light_direction_reflected = reflect(sun_direction, input.normal);
+    
+    float fresnel = pow(1.0f - saturate(dot(view_direction, input.normal)), 5.0f);
+    
     float specular_term = max(0, dot(view_direction, light_direction_reflected));
     specular_term = pow(specular_term, 55);
+    float3 specular = sun_color * specular_term;
     
     // Apply diffuse and specular term
-    color = ambient_color + color * diffuse_term + sun_color * specular_term;
+    // color = color * diffuse_term + sun_color * specular_term;
     
-    return float4(color, 1.f);
+    // Apply fresnel reflective term
+    
+    color = float3(0.0f, 0.0f, 0.12f) + fresnel * (ambient_color + specular);
+    // lerp(color, ambient_color, fresnel);
+    
+    // My alpha will depend on the sampled depth
+    float2 uv = clip_to_uv(input.position_clip, resolution);
+    float depth = depth_map.Sample(tex_sampler, uv);
+    float alpha = 1.f;
+    
+    if (depth < 1.f - 0.001f && input.position_clip.z < depth)
+    {
+        float min_alpha = 0.75f;
+        float water_depth = depth - input.position_clip.z;
+        
+        alpha = min_alpha + exp(-water_depth) * (1 - min_alpha);
+    }
+    
+    return float4(color, alpha);
 }

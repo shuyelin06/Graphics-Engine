@@ -16,7 +16,8 @@ float4 ps_main(PS_INPUT input) : SV_TARGET
     
     // Add a small dither to prevent banding
     float dither = frac(sin(distance) * 43758.5453f) * 0.01f;
-    float alpha = 0.35f / (0.5f * distance + 1.f);
+    float alpha = 0.75f / (0.5f * distance + 1.f);
+    alpha = 0.3f;
     
     return float4(1.0f, 1.0f, 0.5f, alpha + dither);
 }

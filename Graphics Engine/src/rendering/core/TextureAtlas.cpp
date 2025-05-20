@@ -37,7 +37,11 @@ const Texture* TextureAtlas::getTexture() const { return texture; }
 
 // SetTexture:
 // Modifies the texture stored by the atlas
-void TextureAtlas::setTexture(Texture* _texture) { texture = _texture; }
+void TextureAtlas::setTexture(Texture* _texture) {
+    if (texture != nullptr)
+        delete texture;
+    texture = _texture;
+}
 
 // GetAllocation:
 // Returns the allocation for a texture

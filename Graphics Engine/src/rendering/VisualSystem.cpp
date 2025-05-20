@@ -17,7 +17,7 @@ VisualSystem::VisualSystem(HWND window) {
     context = NULL;
 
     resource_manager = NULL;
-    pipeline_manager = NULL;
+    pipeline = NULL;
 
     swap_chain = NULL;
     screen_target = NULL;
@@ -168,6 +168,7 @@ void VisualSystem::initializeRenderTarget(UINT width, UINT height) {
     // Create my depth stencil which will be used for z-tests
     // 24 Bits for Depth, 8 Bits for Stencil
     depth_stencil = new Texture(width, height);
+    depth_stencil_copy = new Texture(width, height);
 
     tex_desc.Width = width;
     tex_desc.Height = height;
@@ -180,6 +181,9 @@ void VisualSystem::initializeRenderTarget(UINT width, UINT height) {
     tex_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
 
     result = device->CreateTexture2D(&tex_desc, NULL, &depth_stencil->texture);
+    assert(SUCCEEDED(result));
+    result =
+        device->CreateTexture2D(&tex_desc, NULL, &depth_stencil_copy->texture);
     assert(SUCCEEDED(result));
 
     // Create my depth view
@@ -203,6 +207,10 @@ void VisualSystem::initializeRenderTarget(UINT width, UINT height) {
         result = device->CreateShaderResourceView(depth_stencil->texture,
                                                   &resource_view_desc,
                                                   &depth_stencil->shader_view);
+        assert(SUCCEEDED(result));
+        result = device->CreateShaderResourceView(
+            depth_stencil_copy->texture, &resource_view_desc,
+            &depth_stencil_copy->shader_view);
         assert(SUCCEEDED(result));
     }
 
@@ -232,7 +240,7 @@ void VisualSystem::initializeManagers() {
     resource_manager = new ResourceManager(device, context);
     resource_manager->initializeResources();
 
-    pipeline_manager = new PipelineManager(device, context);
+    pipeline = new PipelineManager(device, context);
 
     // --- Light Manager ---
     constexpr int ATLAS_SIZE = 4096;
@@ -347,8 +355,7 @@ void VisualSystem::render() {
     light_manager->updateTimeOfDay(15.f);
 
     // Clear the the screen color
-    render_target_dest->clearAsRenderTarget(
-        context, Color(173.f / 255.f, 216.f / 255.f, 230.f / 255.f));
+    render_target_dest->clearAsRenderTarget(context, Color(0.f, 0.f, 0.f));
 
     // Prepare the shadow maps
     performShadowPass(); //..
@@ -461,8 +468,8 @@ void VisualSystem::performShadowPass() {
     IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Shadow Pass");
 #endif
 
-    pipeline_manager->bindVertexShader("ShadowMap");
-    pipeline_manager->bindPixelShader("ShadowMap");
+    pipeline->bindVertexShader("ShadowMap");
+    pipeline->bindPixelShader("ShadowMap");
 
     const Texture* shadow_texture = light_manager->getAtlasTexture();
     context->ClearDepthStencilView(shadow_texture->depth_view,
@@ -480,15 +487,12 @@ void VisualSystem::performShadowPass() {
 
         // Load light view and projection matrix
         {
-            CBHandle* vCB0 = pipeline_manager->getVertexCB(CB0);
-            vCB0->clearData();
+            IConstantBuffer vCB0 = pipeline->loadVertexCB(CB0);
 
             const Matrix4& m_world_to_local = light->getWorldMatrix().inverse();
-            vCB0->loadData(&m_world_to_local, FLOAT4X4);
+            vCB0.loadData(&m_world_to_local, FLOAT4X4);
             const Matrix4 m_local_to_frustum = light->getFrustumMatrix();
-            vCB0->loadData(&m_local_to_frustum, FLOAT4X4);
-
-            pipeline_manager->bindVertexCB(CB0);
+            vCB0.loadData(&m_local_to_frustum, FLOAT4X4);
         }
 
         // Set the light as the render target.
@@ -505,10 +509,8 @@ void VisualSystem::performShadowPass() {
             const Matrix4& mLocalToWorld = caster.m_localToWorld;
 
             {
-                CBHandle* vCB1 = pipeline_manager->getVertexCB(CB1);
-                vCB1->clearData();
-                vCB1->loadData(&mLocalToWorld, FLOAT4X4);
-                pipeline_manager->bindVertexCB(CB1);
+                IConstantBuffer vCB1 = pipeline->loadVertexCB(CB1);
+                vCB1.loadData(&mLocalToWorld, FLOAT4X4);
             }
 
             ID3D11Buffer* index_buffer = mesh->index_buffer;
@@ -534,8 +536,8 @@ void VisualSystem::performTerrainPass() {
     IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Terrain Pass");
 #endif
 
-    pipeline_manager->bindVertexShader("Terrain");
-    pipeline_manager->bindPixelShader("Terrain");
+    pipeline->bindVertexShader("Terrain");
+    pipeline->bindPixelShader("Terrain");
 
     // TEST
     bindActiveRenderTarget(EnableDepthStencil_TestAndWrite);
@@ -545,31 +547,26 @@ void VisualSystem::performTerrainPass() {
     // Vertex Constant Buffer 0:
     // Stores the camera view and projection matrices
     {
-        CBHandle* vCB0 = pipeline_manager->getVertexCB(CB0);
-        vCB0->clearData();
-
+        IConstantBuffer vCB0 = pipeline->loadVertexCB(CB0);
         const Matrix4 viewMatrix = camera->getWorldToCameraMatrix();
-        vCB0->loadData(&viewMatrix, FLOAT4X4);
+        vCB0.loadData(&viewMatrix, FLOAT4X4);
         const Matrix4 projectionMatrix = camera->getFrustumMatrix();
-        vCB0->loadData(&projectionMatrix, FLOAT4X4);
-
-        pipeline_manager->bindVertexCB(CB0);
+        vCB0.loadData(&projectionMatrix, FLOAT4X4);
     }
 
     // Pixel Constant Buffer 1: Light Data
     // Stores data that is needed for lighting / shadowing.
     {
-        CBHandle* pCB1 = pipeline_manager->getPixelCB(CB1);
-        pCB1->clearData();
+        IConstantBuffer pCB1 = pipeline->loadPixelCB(CB1);
 
         const Vector3& cameraPosition = camera->getPosition();
-        pCB1->loadData(&cameraPosition, FLOAT3);
+        pCB1.loadData(&cameraPosition, FLOAT3);
         int lightCount = light_manager->getShadowLights().size();
-        pCB1->loadData(&lightCount, INT);
+        pCB1.loadData(&lightCount, INT);
 
         const Vector3 cameraView = camera->getTransform().forward();
-        pCB1->loadData(&cameraView, FLOAT3);
-        pCB1->loadData(nullptr, FLOAT);
+        pCB1.loadData(&cameraView, FLOAT3);
+        pCB1.loadData(nullptr, FLOAT);
 
         const std::vector<ShadowLight*> shadow_lights =
             light_manager->getShadowLights();
@@ -577,30 +574,30 @@ void VisualSystem::performTerrainPass() {
         // Sun Cascade Data
         const SunLight* sun_light = light_manager->getSunLight();
 
-        pCB1->loadData(&config.sun_direction, FLOAT3);
-        pCB1->loadData(nullptr, FLOAT);
+        pCB1.loadData(&config.sun_direction, FLOAT3);
+        pCB1.loadData(nullptr, FLOAT);
 
         for (int i = 0; i < SUN_NUM_CASCADES; i++) {
             ShadowLight* light = shadow_lights[i];
 
             Vector3 position = light->getPosition();
-            pCB1->loadData(&position, FLOAT3);
+            pCB1.loadData(&position, FLOAT3);
 
-            pCB1->loadData(nullptr, FLOAT);
+            pCB1.loadData(nullptr, FLOAT);
 
             const Color& color = light->getColor();
-            pCB1->loadData(&color, FLOAT3);
-            pCB1->loadData(nullptr, INT);
+            pCB1.loadData(&color, FLOAT3);
+            pCB1.loadData(nullptr, INT);
 
             const Matrix4 m_world_to_local = light->getWorldMatrix().inverse();
-            pCB1->loadData(&m_world_to_local, FLOAT4X4);
+            pCB1.loadData(&m_world_to_local, FLOAT4X4);
 
             const Matrix4& m_local_to_frustum = light->getFrustumMatrix();
-            pCB1->loadData(&m_local_to_frustum, FLOAT4X4);
+            pCB1.loadData(&m_local_to_frustum, FLOAT4X4);
 
             const NormalizedShadowViewport normalized_view =
                 light_manager->normalizeViewport(light->getShadowmapViewport());
-            pCB1->loadData(&normalized_view, FLOAT4);
+            pCB1.loadData(&normalized_view, FLOAT4);
         }
 
         // ShadowLight Data
@@ -608,27 +605,25 @@ void VisualSystem::performTerrainPass() {
             ShadowLight* light = shadow_lights[i];
 
             Vector3 position = light->getPosition();
-            pCB1->loadData(&position, FLOAT3);
+            pCB1.loadData(&position, FLOAT3);
 
-            pCB1->loadData(nullptr, FLOAT);
+            pCB1.loadData(nullptr, FLOAT);
 
             const Color& color = light->getColor();
-            pCB1->loadData(&color, FLOAT3);
+            pCB1.loadData(&color, FLOAT3);
 
-            pCB1->loadData(nullptr, INT);
+            pCB1.loadData(nullptr, INT);
 
             const Matrix4 m_world_to_local = light->getWorldMatrix().inverse();
-            pCB1->loadData(&m_world_to_local, FLOAT4X4);
+            pCB1.loadData(&m_world_to_local, FLOAT4X4);
 
             const Matrix4& m_local_to_frustum = light->getFrustumMatrix();
-            pCB1->loadData(&m_local_to_frustum, FLOAT4X4);
+            pCB1.loadData(&m_local_to_frustum, FLOAT4X4);
 
             const NormalizedShadowViewport normalized_view =
                 light_manager->normalizeViewport(light->getShadowmapViewport());
-            pCB1->loadData(&normalized_view, FLOAT4);
+            pCB1.loadData(&normalized_view, FLOAT4);
         }
-
-        pipeline_manager->bindPixelCB(CB1);
     }
 
     // Load my Textures
@@ -684,38 +679,33 @@ void VisualSystem::performRenderPass() {
     IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Render Pass");
 #endif
 
-    pipeline_manager->bindPixelShader("TexturedMesh");
+    pipeline->bindPixelShader("TexturedMesh");
     bindActiveRenderTarget(EnableDepthStencil_TestAndWrite);
 
     // Vertex Constant Buffer 1:
     // Stores the camera view and projection matrices
     {
-        CBHandle* vCB1 = pipeline_manager->getVertexCB(CB1);
-        vCB1->clearData();
+        IConstantBuffer vCB1 = pipeline->loadVertexCB(CB1);
 
         const Matrix4 viewMatrix = camera->getWorldToCameraMatrix();
-        vCB1->loadData(&viewMatrix, FLOAT4X4);
-
+        vCB1.loadData(&viewMatrix, FLOAT4X4);
         const Matrix4 projectionMatrix = camera->getFrustumMatrix();
-        vCB1->loadData(&projectionMatrix, FLOAT4X4);
-
-        pipeline_manager->bindVertexCB(CB1);
+        vCB1.loadData(&projectionMatrix, FLOAT4X4);
     }
 
     // Pixel Constant Buffer 1: Light Data
     // Stores data that is needed for lighting / shadowing.
     {
-        CBHandle* pCB1 = pipeline_manager->getPixelCB(CB1);
-        pCB1->clearData();
+        IConstantBuffer pCB1 = pipeline->loadPixelCB(CB1);
 
         const Vector3& cameraPosition = camera->getPosition();
-        pCB1->loadData(&cameraPosition, FLOAT3);
+        pCB1.loadData(&cameraPosition, FLOAT3);
         int lightCount = light_manager->getShadowLights().size();
-        pCB1->loadData(&lightCount, INT);
+        pCB1.loadData(&lightCount, INT);
 
         const Vector3 cameraView = camera->getTransform().forward();
-        pCB1->loadData(&cameraView, FLOAT3);
-        pCB1->loadData(nullptr, FLOAT);
+        pCB1.loadData(&cameraView, FLOAT3);
+        pCB1.loadData(nullptr, FLOAT);
 
         const std::vector<ShadowLight*> shadow_lights =
             light_manager->getShadowLights();
@@ -724,30 +714,29 @@ void VisualSystem::performRenderPass() {
         const SunLight* sun_light = light_manager->getSunLight();
 
         const Vector3 sun_direction = sun_light->getDirection();
-        pCB1->loadData(&sun_direction, FLOAT3);
-        pCB1->loadData(nullptr, FLOAT);
+        pCB1.loadData(&sun_direction, FLOAT3);
+        pCB1.loadData(nullptr, FLOAT);
 
         for (int i = 0; i < SUN_NUM_CASCADES; i++) {
             ShadowLight* light = shadow_lights[i];
 
             Vector3 position = light->getPosition();
-            pCB1->loadData(&position, FLOAT3);
-
-            pCB1->loadData(nullptr, FLOAT);
+            pCB1.loadData(&position, FLOAT3);
+            pCB1.loadData(nullptr, FLOAT);
 
             const Color& color = light->getColor();
-            pCB1->loadData(&color, FLOAT3);
-            pCB1->loadData(nullptr, INT);
+            pCB1.loadData(&color, FLOAT3);
+            pCB1.loadData(nullptr, INT);
 
             const Matrix4 m_world_to_local = light->getWorldMatrix().inverse();
-            pCB1->loadData(&m_world_to_local, FLOAT4X4);
+            pCB1.loadData(&m_world_to_local, FLOAT4X4);
 
             const Matrix4& m_local_to_frustum = light->getFrustumMatrix();
-            pCB1->loadData(&m_local_to_frustum, FLOAT4X4);
+            pCB1.loadData(&m_local_to_frustum, FLOAT4X4);
 
             const NormalizedShadowViewport normalized_view =
                 light_manager->normalizeViewport(light->getShadowmapViewport());
-            pCB1->loadData(&normalized_view, FLOAT4);
+            pCB1.loadData(&normalized_view, FLOAT4);
         }
 
         // ShadowLight Data
@@ -755,27 +744,22 @@ void VisualSystem::performRenderPass() {
             ShadowLight* light = shadow_lights[i];
 
             Vector3 position = light->getPosition();
-            pCB1->loadData(&position, FLOAT3);
-
-            pCB1->loadData(nullptr, FLOAT);
+            pCB1.loadData(&position, FLOAT3);
+            pCB1.loadData(nullptr, FLOAT);
 
             const Color& color = light->getColor();
-            pCB1->loadData(&color, FLOAT3);
-
-            pCB1->loadData(nullptr, INT);
+            pCB1.loadData(&color, FLOAT3);
+            pCB1.loadData(nullptr, INT);
 
             const Matrix4 m_world_to_local = light->getWorldMatrix().inverse();
-            pCB1->loadData(&m_world_to_local, FLOAT4X4);
-
+            pCB1.loadData(&m_world_to_local, FLOAT4X4);
             const Matrix4& m_local_to_frustum = light->getFrustumMatrix();
-            pCB1->loadData(&m_local_to_frustum, FLOAT4X4);
+            pCB1.loadData(&m_local_to_frustum, FLOAT4X4);
 
             const NormalizedShadowViewport normalized_view =
                 light_manager->normalizeViewport(light->getShadowmapViewport());
-            pCB1->loadData(&normalized_view, FLOAT4);
+            pCB1.loadData(&normalized_view, FLOAT4);
         }
-
-        pipeline_manager->bindPixelCB(CB1);
     }
 
     // Load my Textures
@@ -808,10 +792,10 @@ void VisualSystem::performRenderPass() {
         const std::vector<Mesh*>& meshes = asset->getMeshes();
 
         if (asset->isSkinned()) {
-            pipeline_manager->bindVertexShader("SkinnedMesh");
+            pipeline->bindVertexShader("SkinnedMesh");
             asset->applyAnimationAtTime(1, time);
         } else
-            pipeline_manager->bindVertexShader("TexturedMesh");
+            pipeline->bindVertexShader("TexturedMesh");
 
         for (const Mesh* mesh : meshes) {
 
@@ -819,37 +803,32 @@ void VisualSystem::performRenderPass() {
 
             // Pixel CB0: Mesh Material Data
             {
-                CBHandle* pCB0 = pipeline_manager->getPixelCB(CB0);
-                pCB0->clearData();
+                IConstantBuffer pCB0 = pipeline->loadPixelCB(CB0);
 
                 const TextureRegion& region = mat.tex_region;
-                pCB0->loadData(&region.x, FLOAT);
-                pCB0->loadData(&region.y, FLOAT);
-                pCB0->loadData(&region.width, FLOAT);
-                pCB0->loadData(&region.height, FLOAT);
-
-                pipeline_manager->bindPixelCB(CB0);
+                pCB0.loadData(&region.x, FLOAT);
+                pCB0.loadData(&region.y, FLOAT);
+                pCB0.loadData(&region.width, FLOAT);
+                pCB0.loadData(&region.height, FLOAT);
             }
 
             // Vertex CB2: Transform matrices
             const Matrix4& mLocalToWorld = renderable_asset.m_localToWorld;
             {
-                CBHandle* vCB2 = pipeline_manager->getVertexCB(CB2);
-                vCB2->clearData();
+                IConstantBuffer vCB2 = pipeline->loadVertexCB(CB2);
+
                 // Load mesh vertex transformation matrix
-                vCB2->loadData(&mLocalToWorld, FLOAT4X4);
+                vCB2.loadData(&mLocalToWorld, FLOAT4X4);
                 // Load mesh normal transformation matrix
                 Matrix4 normalTransform = mLocalToWorld.inverse().transpose();
-                vCB2->loadData(&(normalTransform), FLOAT4X4);
-                pipeline_manager->bindVertexCB(CB2);
+                vCB2.loadData(&(normalTransform), FLOAT4X4);
             }
 
             // Skinning
             if (asset->isSkinned()) {
                 // Vertex CB3: Joint Matrices
                 {
-                    CBHandle* vCB3 = pipeline_manager->getVertexCB(CB3);
-                    vCB3->clearData();
+                    IConstantBuffer vCB3 = pipeline->loadVertexCB(CB3);
 
                     const std::vector<SkinJoint>& skin = asset->getSkinJoints();
                     for (int i = 0; i < skin.size(); i++) {
@@ -860,11 +839,9 @@ void VisualSystem::performRenderPass() {
                         const Matrix4 skin_normal_matrix =
                             skin_matrix.inverse().transpose();
 
-                        vCB3->loadData(&skin_matrix, FLOAT4X4);
-                        vCB3->loadData(&skin_normal_matrix, FLOAT4X4);
+                        vCB3.loadData(&skin_matrix, FLOAT4X4);
+                        vCB3.loadData(&skin_normal_matrix, FLOAT4X4);
                     }
-
-                    pipeline_manager->bindVertexCB(CB3);
                 }
             }
 
@@ -923,8 +900,8 @@ void VisualSystem::performLightFrustumPass() {
     IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Light Frustum Pass");
 #endif
 
-    pipeline_manager->bindVertexShader("LightFrustum");
-    pipeline_manager->bindPixelShader("LightFrustum");
+    pipeline->bindVertexShader("LightFrustum");
+    pipeline->bindPixelShader("LightFrustum");
 
     const std::vector<ShadowLight*>& lights = light_manager->getShadowLights();
 
@@ -935,14 +912,13 @@ void VisualSystem::performLightFrustumPass() {
     bindActiveRenderTarget(EnableDepthStencil_TestNoWrite);
 
     {
-        CBHandle* vcb0 = pipeline_manager->getVertexCB(CB0);
-        vcb0->clearData();
+        IConstantBuffer vcb0 = pipeline->loadVertexCB(CB0);
 
         // This matrix scales the unit cube to the frustum cube. The frustum
         // cube has x in [-1,1], y in [-1,1], z in [0,1].
         const Matrix4 m_camera_to_screen =
             camera->getFrustumMatrix() * camera->getWorldToCameraMatrix();
-        vcb0->loadData(&m_camera_to_screen, FLOAT4X4);
+        vcb0.loadData(&m_camera_to_screen, FLOAT4X4);
 
         const Matrix4 transform = Matrix4::T_Translate(Vector3(0, 0, 0.5f)) *
                                   Matrix4::T_Scale(2, 2, 1);
@@ -950,25 +926,20 @@ void VisualSystem::performLightFrustumPass() {
             const Frustum frust = lights[i]->frustum();
             const Matrix4 m_frustum =
                 frust.getFrustumToWorldMatrix() * transform;
-            vcb0->loadData(&m_frustum, FLOAT4X4);
+            vcb0.loadData(&m_frustum, FLOAT4X4);
 
             /*if (i == 3) {
                 VisualDebug::DrawFrustum(frust.getFrustumToWorldMatrix(),
                                          Color::Green());
             }*/
         }
-
-        pipeline_manager->bindVertexCB(CB0);
     }
 
     {
-        CBHandle* pCB0 = pipeline_manager->getPixelCB(CB0);
-        pCB0->clearData();
+        IConstantBuffer pCB0 = pipeline->loadPixelCB(CB0);
 
         const Vector3& pos = camera->getPosition();
-        pCB0->loadData(&pos, FLOAT3);
-
-        pipeline_manager->bindPixelCB(CB0);
+        pCB0.loadData(&pos, FLOAT3);
     }
 
     Asset* frustum_cube = resource_manager->getAsset("Cube");
@@ -996,15 +967,18 @@ void VisualSystem::performWaterSurfacePass() {
     IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Water Surface Pass");
 #endif
 
-    pipeline_manager->bindVertexShader("WaterSurface");
-    pipeline_manager->bindPixelShader("WaterSurface");
+    pipeline->bindVertexShader("WaterSurface");
+    pipeline->bindPixelShader("WaterSurface");
 
+    // Copy depth stencil over
+    context->CopyResource(depth_stencil_copy->texture, depth_stencil->texture);
     // Disable depth writes
     // swapActiveRenderTarget();
+
     bindActiveRenderTarget(EnableDepthStencil_TestAndWrite);
 
     {
-        IConstantBuffer vcb0 = pipeline_manager->loadVertexCB(CB0);
+        IConstantBuffer vcb0 = pipeline->loadVertexCB(CB0);
         const Matrix4 m_camera_to_screen =
             camera->getFrustumMatrix() * camera->getWorldToCameraMatrix();
         vcb0.loadData(&m_camera_to_screen, FLOAT4X4);
@@ -1022,74 +996,40 @@ void VisualSystem::performWaterSurfacePass() {
     const int num_waves = terrain->getWaterSurface()->getNumWaves();
     time_elapsed += 1 / 60.f;
     {
-        CBHandle* vcb1 = pipeline_manager->getVertexCB(CB1);
-        vcb1->clearData();
+        IConstantBuffer vcb1 = pipeline->loadVertexCB(CB1);
 
-        vcb1->loadData(&time_elapsed, FLOAT);
-        vcb1->loadData(&num_waves, INT);
-        vcb1->loadData(nullptr, FLOAT2);
+        vcb1.loadData(&time_elapsed, FLOAT);
+        vcb1.loadData(&num_waves, INT);
+        vcb1.loadData(nullptr, FLOAT2);
 
         for (int i = 0; i < num_waves; i++) {
-            vcb1->loadData(&wave_config[i].direction, FLOAT2);
-            vcb1->loadData(&wave_config[i].period, FLOAT);
-            vcb1->loadData(&wave_config[i].amplitude, FLOAT);
+            vcb1.loadData(&wave_config[i].direction, FLOAT2);
+            vcb1.loadData(&wave_config[i].period, FLOAT);
+            vcb1.loadData(&wave_config[i].amplitude, FLOAT);
         }
-
-        pipeline_manager->bindVertexCB(CB1);
     }
 
     {
-        CBHandle* pcb0 = pipeline_manager->getPixelCB(CB0);
-        pcb0->clearData();
+        IConstantBuffer pcb0 = pipeline->loadPixelCB(CB0);
 
         const Vector3& pos = camera->getPosition();
-        pcb0->loadData(&pos, FLOAT3);
-        pcb0->loadData(nullptr, FLOAT);
+        pcb0.loadData(&pos, FLOAT3);
+        pcb0.loadData(nullptr, FLOAT);
+        pcb0.loadData(&config.sun_direction, FLOAT3);
+        pcb0.loadData(nullptr, FLOAT);
 
-        pcb0->loadData(&config.sun_direction, FLOAT3);
-        pcb0->loadData(nullptr, FLOAT);
+        pcb0.loadData(&config.sun_color, FLOAT3);
+        pcb0.loadData(nullptr, FLOAT);
 
-        pcb0->loadData(&config.sun_color, FLOAT3);
-        pcb0->loadData(nullptr, FLOAT);
-
-        pipeline_manager->bindPixelCB(CB0);
+        const float f_width = (float)screen_target->width;
+        pcb0.loadData(&f_width, FLOAT);
+        const float f_height = (float)screen_target->height;
+        pcb0.loadData(&f_height, FLOAT);
     }
 
-    // PCB1: Noise
-    static PerlinNoise noise = PerlinNoise(3);
-    {
-        CBHandle* pcb1 = pipeline_manager->getPixelCB(CB1);
-        pcb1->clearData();
-
-        // Gradients for Perlin Noise
-        const Vector2 gradients[8] = {Vector2(1.0f, 0.0f),
-                                      Vector2(0.0f, 1.0f),
-                                      Vector2(-1.0f, 0.0f),
-                                      Vector2(0.0f, -1.0f),
-                                      Vector2(-1.41421356f, -1.41421356f),
-                                      Vector2(-1.41421356f, 1.41421356f),
-                                      Vector2(1.41421356f, 1.41421356f),
-                                      Vector2(1.41421356f, -1.41421356f)};
-        for (int i = 0; i < 8; i++) {
-            pcb1->loadData(&gradients[i], FLOAT2);
-            pcb1->loadData(nullptr, FLOAT2);
-        }
-
-        const unsigned char* table = noise.getPermutationTable();
-
-        for (int i = 0; i < 256; i++) {
-            const int val = table[i];
-            pcb1->loadData(&val, INT);
-            pcb1->loadData(nullptr, FLOAT3);
-        }
-        for (int i = 0; i < 256; i++) {
-            const int val = table[i];
-            pcb1->loadData(&val, INT);
-            pcb1->loadData(nullptr, FLOAT3);
-        }
-
-        pipeline_manager->bindPixelCB(CB1);
-    }
+    ID3D11SamplerState* sampler = resource_manager->getMeshSampler();
+    context->PSSetSamplers(0, 1, &sampler);
+    context->PSSetShaderResources(0, 1, &depth_stencil_copy->shader_view);
 
     const Mesh* surface_mesh = terrain->getWaterSurface()->getSurfaceMesh();
 
@@ -1114,8 +1054,8 @@ void VisualSystem::processSky() {
     IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Sky Processing");
 #endif
 
-    pipeline_manager->bindVertexShader("PostProcess");
-    pipeline_manager->bindPixelShader("Sky");
+    pipeline->bindVertexShader("PostProcess");
+    pipeline->bindPixelShader("Sky");
 
     swapActiveRenderTarget();
     bindActiveRenderTarget(DisableDepthStencil);
@@ -1129,7 +1069,7 @@ void VisualSystem::processSky() {
 
     // Bind Constant Buffers
     {
-        IConstantBuffer pcb0 = pipeline_manager->loadPixelCB(CB0);
+        IConstantBuffer pcb0 = pipeline->loadPixelCB(CB0);
 
         const float f_width = (float)screen_target->width;
         pcb0.loadData(&f_width, FLOAT);
@@ -1142,7 +1082,7 @@ void VisualSystem::processSky() {
         pcb0.loadData(&z_far, FLOAT);
     }
     {
-        IConstantBuffer pcb1 = pipeline_manager->loadPixelCB(CB1);
+        IConstantBuffer pcb1 = pipeline->loadPixelCB(CB1);
 
         const Matrix4 m_proj_to_world =
             (camera->getFrustumMatrix() * camera->getWorldToCameraMatrix())
@@ -1164,7 +1104,7 @@ void VisualSystem::processSky() {
         pcb1.loadData(nullptr, FLOAT);
     }
 
-    pipeline_manager->drawPostProcessQuad();
+    pipeline->drawPostProcessQuad();
 }
 
 void VisualSystem::processUnderwater() {
@@ -1172,8 +1112,8 @@ void VisualSystem::processUnderwater() {
     IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Underwater Pass");
 #endif
 
-    pipeline_manager->bindVertexShader("PostProcess");
-    pipeline_manager->bindPixelShader("Underwater");
+    pipeline->bindVertexShader("PostProcess");
+    pipeline->bindPixelShader("Underwater");
 
     // Set render target
     swapActiveRenderTarget();
@@ -1188,62 +1128,56 @@ void VisualSystem::processUnderwater() {
 
     // Set resolution information
     {
-        CBHandle* pCB0 = pipeline_manager->getPixelCB(CB0);
-        pCB0->clearData();
+        IConstantBuffer pCB0 = pipeline->loadPixelCB(CB0);
 
         const float f_width = (float)screen_target->width;
-        pCB0->loadData(&f_width, FLOAT);
+        pCB0.loadData(&f_width, FLOAT);
         const float f_height = (float)screen_target->height;
-        pCB0->loadData(&f_height, FLOAT);
+        pCB0.loadData(&f_height, FLOAT);
 
         const float z_near = camera->getZNear();
-        pCB0->loadData(&z_near, FLOAT);
+        pCB0.loadData(&z_near, FLOAT);
         const float z_far = camera->getZFar();
-        pCB0->loadData(&z_far, FLOAT);
-
-        pipeline_manager->bindPixelCB(CB0);
+        pCB0.loadData(&z_far, FLOAT);
     }
 
     // Set parameters
     {
-        CBHandle* pCB1 = pipeline_manager->getPixelCB(CB1);
-        pCB1->clearData();
+        IConstantBuffer pCB1 = pipeline->loadPixelCB(CB1);
 
         const Matrix4 m_project_to_world =
             (camera->getFrustumMatrix() * camera->getWorldToCameraMatrix())
                 .inverse();
-        pCB1->loadData(&m_project_to_world, FLOAT4X4);
+        pCB1.loadData(&m_project_to_world, FLOAT4X4);
 
         const Vector3& camera_pos = camera->getPosition();
-        pCB1->loadData(&camera_pos, FLOAT3);
+        pCB1.loadData(&camera_pos, FLOAT3);
 
         // The lower the value, the slower it gets darker as you go deeper
         const float intensity_drop = 0.001f;
-        pCB1->loadData(&intensity_drop, FLOAT);
+        pCB1.loadData(&intensity_drop, FLOAT);
 
         // DO NOT MODIFY. Precomputed values for the fog interpolation.
         const float d = camera->getZFar() * 0.5f;
         const Vector3 fog_params = Vector3(1.f / (d * d), -2.f / d, 1.f);
-        pCB1->loadData(&fog_params, FLOAT3);
+        pCB1.loadData(&fog_params, FLOAT3);
 
         // Water Visibility
         const float visibility = 1.5f;
-        pCB1->loadData(&visibility, FLOAT);
+        pCB1.loadData(&visibility, FLOAT);
 
         // Where the surface is. Brightest at the surface.
         const float surface_height = 100.f;
-        pCB1->loadData(&surface_height, FLOAT);
+        pCB1.loadData(&surface_height, FLOAT);
 
         const Vector3 shallow_waters = Vector3(24.f, 154.f, 180.f) / 255.f;
-        pCB1->loadData(&shallow_waters, FLOAT3);
+        pCB1.loadData(&shallow_waters, FLOAT3);
         const Vector3 deep_waters = Vector3(5.f, 68.f, 94.f) / 255.f;
-        pCB1->loadData(&deep_waters, FLOAT3);
-
-        pipeline_manager->bindPixelCB(CB1);
+        pCB1.loadData(&deep_waters, FLOAT3);
     }
 
     // Bind and draw full screen quad
-    pipeline_manager->drawPostProcessQuad();
+    pipeline->drawPostProcessQuad();
 }
 
 void VisualSystem::processDither() {
@@ -1252,8 +1186,8 @@ void VisualSystem::processDither() {
 #endif
 
     // We will render from our most reecntly used render target to the screen
-    pipeline_manager->bindVertexShader("PostProcess");
-    pipeline_manager->bindPixelShader("PostProcess");
+    pipeline->bindVertexShader("PostProcess");
+    pipeline->bindPixelShader("PostProcess");
 
     // Set render target
     context->OMSetRenderTargets(1, &screen_target->target_view, nullptr);
@@ -1267,23 +1201,20 @@ void VisualSystem::processDither() {
 
     // Set resolution information
     {
-        CBHandle* pCB0 = pipeline_manager->getPixelCB(CB0);
-        pCB0->clearData();
+        IConstantBuffer pCB0 = pipeline->loadPixelCB(CB0);
 
         const float f_width = (float)screen_target->width;
-        pCB0->loadData(&f_width, FLOAT);
+        pCB0.loadData(&f_width, FLOAT);
         const float f_height = (float)screen_target->height;
-        pCB0->loadData(&f_height, FLOAT);
+        pCB0.loadData(&f_height, FLOAT);
 
         const float z_near = camera->getZNear();
-        pCB0->loadData(&z_near, FLOAT);
+        pCB0.loadData(&z_near, FLOAT);
         const float z_far = camera->getZFar();
-        pCB0->loadData(&z_far, FLOAT);
-
-        pipeline_manager->bindPixelCB(CB0);
+        pCB0.loadData(&z_far, FLOAT);
     }
 
-    pipeline_manager->drawPostProcessQuad();
+    pipeline->drawPostProcessQuad();
 }
 
 void VisualSystem::renderFinish() {
@@ -1330,8 +1261,8 @@ void VisualSystem::renderDebugPoints() {
     if (points.size() == 0)
         return;
 
-    pipeline_manager->bindVertexShader("DebugPoint");
-    pipeline_manager->bindPixelShader("DebugPoint");
+    pipeline->bindVertexShader("DebugPoint");
+    pipeline->bindPixelShader("DebugPoint");
 
     Asset* cube = resource_manager->getAsset("Cube");
     const Mesh* mesh = cube->getMesh(0);
@@ -1352,35 +1283,31 @@ void VisualSystem::renderDebugPoints() {
 
     // Load data into the constant buffer handle, while removing points
     // which are expired
-    CBHandle* vCB0 = pipeline_manager->getVertexCB(CB0);
-    CBHandle* vCB1 = pipeline_manager->getVertexCB(CB1);
+    {
+        IConstantBuffer vCB0 = pipeline->loadVertexCB(CB0);
 
-    vCB0->clearData();
-    vCB1->clearData();
-
-    for (int i = 0; i < points.size(); i++) {
-        PointData& data = points[i];
-        vCB0->loadData(&data.position, FLOAT3);
-        vCB0->loadData(&data.scale, FLOAT);
-        vCB0->loadData(&data.color, FLOAT3);
-        vCB0->loadData(nullptr, FLOAT);
+        for (int i = 0; i < points.size(); i++) {
+            PointData& data = points[i];
+            vCB0.loadData(&data.position, FLOAT3);
+            vCB0.loadData(&data.scale, FLOAT);
+            vCB0.loadData(&data.color, FLOAT3);
+            vCB0.loadData(nullptr, FLOAT);
+        }
     }
-    pipeline_manager->bindVertexCB(CB0);
 
     points.clear();
 
     if (numPoints > 0) {
         // Vertex Constant Buffer 1:
         // Stores the camera view and projection matrices
-        vCB1->clearData();
         {
-            const Matrix4 viewMatrix = camera->getWorldToCameraMatrix();
-            vCB1->loadData(&viewMatrix, FLOAT4X4);
+            IConstantBuffer vCB1 = pipeline->loadVertexCB(CB1);
 
+            const Matrix4 viewMatrix = camera->getWorldToCameraMatrix();
+            vCB1.loadData(&viewMatrix, FLOAT4X4);
             const Matrix4 projectionMatrix = camera->getFrustumMatrix();
-            vCB1->loadData(&projectionMatrix, FLOAT4X4);
+            vCB1.loadData(&projectionMatrix, FLOAT4X4);
         }
-        pipeline_manager->bindVertexCB(CB1);
 
         context->DrawIndexedInstanced(numIndices, numPoints, 0, 0, 1);
     }
@@ -1392,12 +1319,8 @@ void VisualSystem::renderDebugLines() {
     if (lines.size() == 0)
         return;
 
-    pipeline_manager->bindVertexShader("DebugLine");
-    CBHandle* vCB1 = pipeline_manager->getVertexCB(CB1);
-
-    pipeline_manager->bindPixelShader("DebugLine");
-
-    vCB1->clearData();
+    pipeline->bindVertexShader("DebugLine");
+    pipeline->bindPixelShader("DebugLine");
 
     // Load line data into a vertex buffer
     if (line_vbuffer != nullptr)
@@ -1425,15 +1348,13 @@ void VisualSystem::renderDebugLines() {
     if (numLines > 0) {
         // Vertex Constant Buffer 1:
         // Stores the camera view and projection matrices
-        vCB1->clearData();
         {
+            IConstantBuffer vCB1 = pipeline->loadVertexCB(CB1);
             const Matrix4 viewMatrix = camera->getWorldToCameraMatrix();
-            vCB1->loadData(&viewMatrix, FLOAT4X4);
-
+            vCB1.loadData(&viewMatrix, FLOAT4X4);
             const Matrix4 projectionMatrix = camera->getFrustumMatrix();
-            vCB1->loadData(&projectionMatrix, FLOAT4X4);
+            vCB1.loadData(&projectionMatrix, FLOAT4X4);
         }
-        pipeline_manager->bindVertexCB(CB1);
 
         context->Draw(numLines, 0);
     }
