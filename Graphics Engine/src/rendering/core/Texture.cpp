@@ -17,6 +17,8 @@ Texture::Texture(UINT _width, UINT _height) {
     shader_view = nullptr;
     depth_view = nullptr;
     target_view = nullptr;
+
+    editable = false;
 }
 
 Texture::~Texture() {

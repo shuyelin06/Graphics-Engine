@@ -4,6 +4,14 @@
 
 namespace Engine {
 namespace Graphics {
+TextureColor::TextureColor() = default;
+TextureColor::TextureColor(uint8_t _r, uint8_t _g, uint8_t _b, uint8_t _a) {
+    r = _r;
+    g = _g;
+    b = _b;
+    a = _a;
+}
+
 TextureBuilder::TextureBuilder(UINT _width, UINT _height) {
     width = _width;
     height = _height;
@@ -18,6 +26,9 @@ TextureBuilder::~TextureBuilder() = default;
 // Generates a texture resource (for use in the rendering pipeline)
 // given the data stored within the builder.
 Texture* TextureBuilder::generate(ID3D11Device* device) {
+    return generate(device, false);
+}
+Texture* TextureBuilder::generate(ID3D11Device* device, bool editable) {
     Texture* texture_resource = new Texture(width, height);
 
     // Generate my GPU texture resource
@@ -27,9 +38,16 @@ Texture* TextureBuilder::generate(ID3D11Device* device) {
     tex_desc.MipLevels = tex_desc.ArraySize = 1;
     tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     tex_desc.SampleDesc.Count = 1;
-    tex_desc.Usage = D3D11_USAGE_DEFAULT;
     tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-    tex_desc.CPUAccessFlags = 0;
+
+    if (editable) {
+        texture_resource->editable = true;
+        tex_desc.Usage = D3D11_USAGE_DYNAMIC;
+        tex_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    } else {
+        tex_desc.Usage = D3D11_USAGE_DEFAULT;
+        tex_desc.CPUAccessFlags = 0;
+    }
 
     D3D11_SUBRESOURCE_DATA sr_data = {};
     sr_data.pSysMem = data.data();
@@ -53,6 +71,27 @@ Texture* TextureBuilder::generate(ID3D11Device* device) {
     texture_resource = nullptr;
 
     return output;
+}
+
+// Update:
+// Given an editable texture (editable field must be true),
+// uploads the builder's data to the texture.
+// The dimensions MUST match.
+void TextureBuilder::update(Texture* texture, ID3D11DeviceContext* context) {
+    assert(texture->editable);
+    assert(width == texture->width);
+    assert(height == texture->height);
+
+    // Write to my texture using Map / Unmap.
+    D3D11_MAPPED_SUBRESOURCE sr;
+    context->Map(texture->texture, 0, D3D11_MAP_WRITE_DISCARD, 0, &sr);
+
+    uint8_t* dest = reinterpret_cast<uint8_t*>(sr.pData);
+    uint8_t* src = reinterpret_cast<uint8_t*>(data.data());
+    for (UINT y = 0; y < height; ++y)
+        memcpy(dest + y * sr.RowPitch, src + y * width * 4, width * 4);
+
+    context->Unmap(texture->texture, 0);
 }
 
 // SetColor:

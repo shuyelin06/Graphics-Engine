@@ -14,9 +14,13 @@ namespace Graphics {
 // Texture Struct:
 // Represents a texture that can be uploaded to the GPU.
 struct Texture {
+    // GPU handle to the texture
     ID3D11Texture2D* texture;
-    UINT width, height;
-
+    
+    // Texture descriptions
+    UINT width, height; // Pixel width, height
+    bool editable;      // Can the texture be edited?
+    
     // Different views for the texture. NULL if uninitialized.
     ID3D11ShaderResourceView* shader_view;
     ID3D11DepthStencilView* depth_view;

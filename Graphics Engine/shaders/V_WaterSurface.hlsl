@@ -39,6 +39,7 @@ struct PS_INPUT
     float4 position_clip : SV_Position;
     float3 world_position : POSITION;
     float3 normal : NORMAL;
+    float3x3 m_tbn : TEXCOORD1;
 };
 
 PS_INPUT vs_main(VS_INPUT input)
@@ -81,6 +82,10 @@ PS_INPUT vs_main(VS_INPUT input)
     float3 normal = cross(float3(0.0f, dz_sample, 1.0f), float3(1.0f, dx_sample, 0.0f));
     normal = normalize(normal);
     output.normal = normal;
+    // Generate a TBN matrix for bump mapping
+    float3 T = normalize(float3(0.0f, dz_sample, 1.0f));
+    float3 B = normalize(float3(1.0f, dx_sample, 0.0f));
+    output.m_tbn = float3x3(T, B, normal);
     
     return output;
 }

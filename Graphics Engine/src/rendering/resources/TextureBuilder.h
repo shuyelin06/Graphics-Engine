@@ -12,6 +12,9 @@ struct TextureColor {
     uint8_t g;
     uint8_t b;
     uint8_t a;
+
+    TextureColor();
+    TextureColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 };
 
 // TextureBuilder Class:
@@ -29,6 +32,9 @@ class TextureBuilder {
 
     // Generates the renderable texture
     Texture* generate(ID3D11Device* device);
+    Texture* generate(ID3D11Device* device, bool editable);
+    // Updates the renderable texture with the builder's information
+    void update(Texture* texture, ID3D11DeviceContext* context);
 
     // Sets the color for a particular pixel
     void setColor(UINT x, UINT y, const TextureColor& rgba);
@@ -44,7 +50,7 @@ class TextureBuilder {
 // An extended texture builder class, that supports writing to texture atlases.
 // Can be used to build atlases of multiple textures together (reduce the total
 // number of draw calls).
-class AtlasBuilder : public TextureBuilder {
+class AtlasBuilder : private TextureBuilder {
   private:
     using TextureBuilder::reset;
 

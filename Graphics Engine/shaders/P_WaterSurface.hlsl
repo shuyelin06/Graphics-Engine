@@ -4,11 +4,15 @@ struct PS_INPUT
 {
     float4 position_clip : SV_Position;
     float3 world_position : POSITION;
+    
     float3 normal : NORMAL;
+    
+    float3x3 m_tbn : TEXCOORD1;
 };
 
 SamplerState tex_sampler : register(s0);
 Texture2D depth_map : register(t0);
+Texture2D bump_map : register(t1);
 
 cbuffer CB0_LIGHTING_INFO : register(b0)
 {
@@ -26,11 +30,14 @@ cbuffer CB0_LIGHTING_INFO : register(b0)
 
 float4 ps_main(PS_INPUT input) : SV_TARGET
 {
-    input.normal = normalize(input.normal);
+    float2 uv = clip_to_uv(input.position_clip, resolution);
+    
+    
+    input.normal = bump_to_normal(bump_map.Sample(tex_sampler, input.world_position.xz / 300.f).rgb, input.m_tbn);
     
     float3 ambient_color = float3(0.3f, 0.27f, 0.75f);
     float3 color = float3(0.03f, 0.07f, 0.75f);
-    // 
+    
     // Compute my diffuse constant
     float diffuse_term = max(dot(input.normal, -sun_direction), 0);
     
@@ -53,7 +60,7 @@ float4 ps_main(PS_INPUT input) : SV_TARGET
     // lerp(color, ambient_color, fresnel);
     
     // My alpha will depend on the sampled depth
-    float2 uv = clip_to_uv(input.position_clip, resolution);
+    
     float depth = depth_map.Sample(tex_sampler, uv);
     float alpha = 1.f;
     

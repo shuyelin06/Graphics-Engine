@@ -50,16 +50,14 @@ enum RenderTargetBindFlags {
     EnableDepthStencil_TestNoWrite
 };
 
-// Parameters for the VisualSystem
-struct VisualParameters {
-    Vector3 sun_direction;
-    Vector3 sun_color;
-};
-
 // VisualSystem Class:
 // Provides an interface for the application's graphics.
+struct VisualParameters;
 class VisualSystem {
   private:
+    // Configuration
+    VisualParameters* config;
+
     // Direct 3D 11 Interfaces
     ID3D11Device* device;
     ID3D11DeviceContext* context;
@@ -79,19 +77,14 @@ class VisualSystem {
 
     ID3D11BlendState* blend_state;
 
+    Texture* bump_tex;
+
     // Managers
     ResourceManager* resource_manager;
     LightManager* light_manager;
     PipelineManager* pipeline;
 
-    // Render Information:
-    // Rendering configurations
-    float time_elapsed;
-    float time_of_day;
-
     // Supported Components
-    VisualParameters config;
-
     CameraComponent* camera;
     ComponentHandler<AssetComponent> asset_components;
     ComponentHandler<ShadowLightComponent> light_components;

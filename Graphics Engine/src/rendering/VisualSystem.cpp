@@ -7,12 +7,27 @@
 #include "core/Frustum.h"
 #include "datamodel/Object.h"
 
+#include "resources/BumpMapBuilder.h"
+
 namespace Engine {
 
 namespace Graphics {
+struct VisualParameters {
+    float time; // Elapsed time
+
+    Vector3 sun_direction;
+    Vector3 sun_color;
+
+    VisualParameters() = default;
+};
+
 // Constructor
 // Initializes the VisualSystem
 VisualSystem::VisualSystem(HWND window) {
+    config = new VisualParameters();
+
+    bump_tex = nullptr;
+
     device = NULL;
     context = NULL;
 
@@ -24,8 +39,6 @@ VisualSystem::VisualSystem(HWND window) {
 
     camera = nullptr;
     terrain = nullptr;
-
-    time_elapsed = 0.f;
 
     HRESULT result;
 
@@ -411,6 +424,9 @@ void VisualSystem::pullDatamodelData() {
     imGuiConfig();
 #endif
 
+    // Increment time
+    config->time += 1 / 60.f;
+
     // Pull my object data.
     // Remove invalid visual objects, and update them to pull
     // the datamodel data.
@@ -444,6 +460,28 @@ void VisualSystem::pullDatamodelData() {
             light_manager->addShadowCaster(shadowCaster);
         }
     }
+
+    // ---
+    const int size = 750;
+    BumpMapBuilder bump_builder = BumpMapBuilder(size, size);
+
+    static float freq = 0.02f;
+    ImGui::SliderFloat("Frequency", &freq, 0.001f, 0.5f);
+    static float AMP = 2.f;
+    ImGui::SliderFloat("Amplitude", &AMP, 1.f, 25.f);
+
+    if (ImGui::Button("Regenerate") || bump_tex == nullptr) {
+        bump_builder.samplePerlinNoise(120512, freq, AMP);
+
+        if (bump_tex != nullptr) {
+            bump_builder.update(bump_tex, context);
+        } else
+            bump_tex = bump_builder.generate(device, true);
+    }
+
+    bump_tex->displayImGui();
+
+    // ---
 
     // Load it for shadows
     /*const std::vector<Mesh*>& terrain_meshes = terrain->getTerrainMeshes();
@@ -574,7 +612,7 @@ void VisualSystem::performTerrainPass() {
         // Sun Cascade Data
         const SunLight* sun_light = light_manager->getSunLight();
 
-        pCB1.loadData(&config.sun_direction, FLOAT3);
+        pCB1.loadData(&config->sun_direction, FLOAT3);
         pCB1.loadData(nullptr, FLOAT);
 
         for (int i = 0; i < SUN_NUM_CASCADES; i++) {
@@ -994,11 +1032,10 @@ void VisualSystem::performWaterSurfacePass() {
     const std::vector<WaveConfig>& wave_config =
         terrain->getWaterSurface()->getWaveConfig();
     const int num_waves = terrain->getWaterSurface()->getNumWaves();
-    time_elapsed += 1 / 60.f;
     {
         IConstantBuffer vcb1 = pipeline->loadVertexCB(CB1);
 
-        vcb1.loadData(&time_elapsed, FLOAT);
+        vcb1.loadData(&config->time, FLOAT);
         vcb1.loadData(&num_waves, INT);
         vcb1.loadData(nullptr, FLOAT2);
 
@@ -1015,10 +1052,10 @@ void VisualSystem::performWaterSurfacePass() {
         const Vector3& pos = camera->getPosition();
         pcb0.loadData(&pos, FLOAT3);
         pcb0.loadData(nullptr, FLOAT);
-        pcb0.loadData(&config.sun_direction, FLOAT3);
+        pcb0.loadData(&config->sun_direction, FLOAT3);
         pcb0.loadData(nullptr, FLOAT);
 
-        pcb0.loadData(&config.sun_color, FLOAT3);
+        pcb0.loadData(&config->sun_color, FLOAT3);
         pcb0.loadData(nullptr, FLOAT);
 
         const float f_width = (float)screen_target->width;
@@ -1030,6 +1067,7 @@ void VisualSystem::performWaterSurfacePass() {
     ID3D11SamplerState* sampler = resource_manager->getMeshSampler();
     context->PSSetSamplers(0, 1, &sampler);
     context->PSSetShaderResources(0, 1, &depth_stencil_copy->shader_view);
+    context->PSSetShaderResources(1, 1, &bump_tex->shader_view);
 
     const Mesh* surface_mesh = terrain->getWaterSurface()->getSurfaceMesh();
 
@@ -1092,11 +1130,11 @@ void VisualSystem::processSky() {
         pcb1.loadData(&cam_pos, FLOAT3);
         pcb1.loadData(nullptr, FLOAT);
 
-        pcb1.loadData(&config.sun_direction, FLOAT3);
+        pcb1.loadData(&config->sun_direction, FLOAT3);
         const float sun_size = 0.025f;
         pcb1.loadData(&sun_size, FLOAT);
 
-        pcb1.loadData(&config.sun_color, FLOAT3);
+        pcb1.loadData(&config->sun_color, FLOAT3);
         pcb1.loadData(nullptr, FLOAT);
         const Vector3 sky_color =
             Vector3(173.f / 255.f, 216.f / 255.f, 230.f / 255.f);
@@ -1408,9 +1446,9 @@ void VisualSystem::imGuiConfig() {
         ImGui::SliderFloat3("Sun Color", sun_color, 0.0f, 1.f);
     }
 
-    config.sun_direction =
+    config->sun_direction =
         Vector3(sun_direc[0], sun_direc[1], sun_direc[2]).unit();
-    config.sun_color = Vector3(sun_color[0], sun_color[1], sun_color[2]);
+    config->sun_color = Vector3(sun_color[0], sun_color[1], sun_color[2]);
 }
 
 // ImGuiFinish:
