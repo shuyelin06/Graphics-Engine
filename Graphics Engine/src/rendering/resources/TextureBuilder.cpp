@@ -88,6 +88,8 @@ void TextureBuilder::update(Texture* texture, ID3D11DeviceContext* context) {
 
     uint8_t* dest = reinterpret_cast<uint8_t*>(sr.pData);
     uint8_t* src = reinterpret_cast<uint8_t*>(data.data());
+    // We need to copy row-by-row, because while rows are aligned, there may be
+    // padding after each row that we're not aware about.
     for (UINT y = 0; y < height; ++y)
         memcpy(dest + y * sr.RowPitch, src + y * width * 4, width * 4);
 

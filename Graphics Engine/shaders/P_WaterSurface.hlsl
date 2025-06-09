@@ -32,7 +32,6 @@ float4 ps_main(PS_INPUT input) : SV_TARGET
 {
     float2 uv = clip_to_uv(input.position_clip, resolution);
     
-    
     input.normal = bump_to_normal(bump_map.Sample(tex_sampler, input.world_position.xz / 300.f).rgb, input.m_tbn);
     
     float3 ambient_color = float3(0.3f, 0.27f, 0.75f);

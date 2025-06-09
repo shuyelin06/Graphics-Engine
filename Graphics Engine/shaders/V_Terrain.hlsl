@@ -1,7 +1,6 @@
 cbuffer PER_VIEW_DATA : register(b0)
 {
-    float4x4 m_view; 
-    float4x4 m_projection;
+    float4x4 m_world_to_screen;
 }
 
 struct VS_IN
@@ -25,8 +24,7 @@ VS_OUT vsterrain_main(VS_IN input)
     output.normal = input.normal;
     
     float4 pos = float4(input.position_local, 1);
-    pos = mul(m_view, pos);
-    pos = mul(m_projection, pos);
+    pos = mul(m_world_to_screen, pos);
     output.position_clip = pos;
     
     return output;

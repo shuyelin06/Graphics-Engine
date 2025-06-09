@@ -13,18 +13,23 @@ namespace Engine {
 
 namespace Graphics {
 struct VisualParameters {
-    float time; // Elapsed time
-
     Vector3 sun_direction;
     Vector3 sun_color;
 
     VisualParameters() = default;
 };
 
+struct VisualCache {
+    float time;
+
+    Matrix4 m_world_to_screen;
+};
+
 // Constructor
 // Initializes the VisualSystem
 VisualSystem::VisualSystem(HWND window) {
     config = new VisualParameters();
+    cache = new VisualCache();
 
     bump_tex = nullptr;
 
@@ -424,9 +429,6 @@ void VisualSystem::pullDatamodelData() {
     imGuiConfig();
 #endif
 
-    // Increment time
-    config->time += 1 / 60.f;
-
     // Pull my object data.
     // Remove invalid visual objects, and update them to pull
     // the datamodel data.
@@ -496,6 +498,11 @@ void VisualSystem::pullDatamodelData() {
 
     // Cluster shadows
     light_manager->clusterShadowCasters();
+
+    // Update the values stored in my cache
+    cache->time += 1 / 60.f;
+    cache->m_world_to_screen =
+        camera->getFrustumMatrix() * camera->getWorldToCameraMatrix();
 }
 
 // PerformShadowPass:
@@ -586,10 +593,7 @@ void VisualSystem::performTerrainPass() {
     // Stores the camera view and projection matrices
     {
         IConstantBuffer vCB0 = pipeline->loadVertexCB(CB0);
-        const Matrix4 viewMatrix = camera->getWorldToCameraMatrix();
-        vCB0.loadData(&viewMatrix, FLOAT4X4);
-        const Matrix4 projectionMatrix = camera->getFrustumMatrix();
-        vCB0.loadData(&projectionMatrix, FLOAT4X4);
+        vCB0.loadData(&cache->m_world_to_screen, FLOAT4X4);
     }
 
     // Pixel Constant Buffer 1: Light Data
@@ -1035,7 +1039,7 @@ void VisualSystem::performWaterSurfacePass() {
     {
         IConstantBuffer vcb1 = pipeline->loadVertexCB(CB1);
 
-        vcb1.loadData(&config->time, FLOAT);
+        vcb1.loadData(&cache->time, FLOAT);
         vcb1.loadData(&num_waves, INT);
         vcb1.loadData(nullptr, FLOAT2);
 

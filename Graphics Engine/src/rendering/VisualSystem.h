@@ -50,13 +50,21 @@ enum RenderTargetBindFlags {
     EnableDepthStencil_TestNoWrite
 };
 
+// VisualParameters Struct:
+// Stores configuration parameters toggleable by the user
+struct VisualParameters;
+// VisualCache Struct:
+// Stores precomputed data so that it can be reused many times in
+// different parts of the pipeline
+struct VisualCache;
+
 // VisualSystem Class:
 // Provides an interface for the application's graphics.
-struct VisualParameters;
 class VisualSystem {
   private:
-    // Configuration
+    // Configuration + Cache
     VisualParameters* config;
+    VisualCache* cache;
 
     // Direct 3D 11 Interfaces
     ID3D11Device* device;
