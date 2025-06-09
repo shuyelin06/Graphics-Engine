@@ -123,8 +123,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     ShadowLightComponent* comp = visual_system.bindLightComponent(&light);
     camera_obj.getTransform().offsetPosition(0.0f, 125.f, 0.0f);
 
-    //// Create Object Hierarchy
-    // visual_system.bindAssetComponent(&parent_object, "Fox");
+    // Create Object Hierarchy
+    Object& fox = parent.createChild();
+    visual_system.bindAssetComponent(&fox, "Fox");
+    fox.getTransform().setScale(Vector3(5.f, 5.f, 5.f));
     // physics_system.bindPhysicsObject(&parent_object);
 
     // --- TESTING ENVIRONMENT

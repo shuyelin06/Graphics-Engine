@@ -1,7 +1,5 @@
+#include "P_Common.hlsli"
 #include "ToneMap.hlsli"
-
-SamplerState mesh_sampler : register(s0);
-Texture2D mesh_texture : register(t0);
 
 // Lighting:
 // Illumination (Global + Local)

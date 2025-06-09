@@ -8,9 +8,15 @@ float3 reflect(float3 direction, float3 normal)
 // PostProcessing:
 // Convert a clip space coordinate to a uv texture coordinate.
 // Used if we want to sample a depth buffer or frame buffer.
-float2 clip_to_uv(float4 position_clip, float2 resolution)
+float2 clip_to_uv(float4 position_clip, float4 resolution_info)
 {
-    return float2(position_clip.x / resolution.x, position_clip.y / resolution.y);
+    return float2(position_clip.x / resolution_info.x, position_clip.y / resolution_info.y);
+}
+
+float depth_clip_to_world(float depth, float4 resolution_info)
+{
+    // resolution_info w is z_far, z is z_near
+    return depth * (resolution_info.w - resolution_info.z) + resolution_info.z;
 }
 
 // Bump Map:

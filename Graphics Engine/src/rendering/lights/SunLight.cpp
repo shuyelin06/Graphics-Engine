@@ -18,11 +18,9 @@ SunLight::SunLight(ShadowLight** light_arr, int _resolution)
 
     // DEBUG: Setting the light color helps us see what cascade the pixel is
     // being shadowed from
-    /*
-    light_cascades[0]->setColor(Color::Red());
+    /*light_cascades[0]->setColor(Color::Red());
     light_cascades[1]->setColor(Color::Green());
-    light_cascades[2]->setColor(Color::Blue());
-    */
+    light_cascades[2]->setColor(Color::Blue());*/
 }
 SunLight::~SunLight() = default;
 
@@ -36,8 +34,8 @@ Vector3 SunLight::getDirection() const {
 }
 
 void SunLight::updateSunCascades(const Frustum& camera_frustum) {
-    constexpr float Z_EPSILON = 0.01f;
-    constexpr float DIVISIONS[SUN_NUM_CASCADES + 1] = {0.0f, 0.1f, 0.25f, 1.0f};
+    constexpr float Z_EPSILON = 0.005f;
+    constexpr float DIVISIONS[SUN_NUM_CASCADES + 1] = {0.0f, 0.6f, 0.85f, 1.0f};
 
     for (int i = 0; i < SUN_NUM_CASCADES; i++) {
         const float z_near = DIVISIONS[i] - Z_EPSILON;
@@ -100,7 +98,7 @@ void SunLight::updateCascade(int index, float min_z, float max_z,
     const float radius = (frustum_points[6] - frustum_points[0]).magnitude();
     constexpr float EXTENT_EPSILON = 0.2f;
     const float extent = radius * (1 + EXTENT_EPSILON);
-    light.setOrthogonalFrustum(extent, 1.f, 0.f, 500.f);
+    light.setOrthogonalFrustum(extent, 1.f, 0.f, 1000.f);
 
     // Now, set the light position and orientation.
     // We set the position so that it "snaps" to the nearest texel coordinate,
@@ -111,11 +109,11 @@ void SunLight::updateCascade(int index, float min_z, float max_z,
     Vector3 light_pos = center_point;
 
     // Offset so at a constant y value
-    constexpr float SUN_HEIGHT = 150.f;
-    light_pos += direc * ((SUN_HEIGHT - light_pos.y) / direc.y);
+    light_pos += direc * 100.f;
 
     // Snap to nearest texel
     light_pos.x = ((int)(light_pos.x / texel_distance)) * texel_distance;
+    light_pos.y = ((int)(light_pos.y / texel_distance)) * texel_distance;
     light_pos.z = ((int)(light_pos.z / texel_distance)) * texel_distance;
 
     const Matrix4 m_world =

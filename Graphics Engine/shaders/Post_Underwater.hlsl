@@ -1,20 +1,17 @@
+#include "P_Common.hlsli"
+#include "Utility.hlsli"
+
 struct PS_IN
 {
     float4 position_clip : SV_POSITION;
 };
 
-SamplerState tex_sampler : register(s0);
-
-Texture2D render_target : register(t0);
-Texture2D depth_map : register(t1);
+Texture2D render_target : register(t2);
+Texture2D depth_map : register(t3);
 
 cbuffer CB0_RESOLUTION : register(b0)
 {
-    float resolution_x;
-    float resolution_y;
-    
-    float z_near;
-    float z_far;
+    float4 resolution_info;
 }
 
 cbuffer CB1_PARAMS : register(b1)
@@ -45,14 +42,14 @@ float4 ps_main(PS_IN input) : SV_TARGET
 {
     // Figure out the texture coordinates that my pixel is on, and offsets to the 
     // next texel (if needed).
-    float2 uv = float2(input.position_clip.x / resolution_x, input.position_clip.y / resolution_y);
+    float2 uv = clip_to_uv(input.position_clip, resolution_info);
     
     // Now, sample for the current color in the render target and apply fog
     // to add a water effect.
     // The further we can see, the more "particles" there are scattering light.
     // Fog is a blend between a bright (surface) color and a dark (deep)
     // color. These colors darken as you get & look deeper.
-    float3 color = render_target.Sample(tex_sampler, uv);
+    float3 color = render_target.Sample(s_point, uv);
     
     // Compute the world position and viewing vector, to see what color fog we see.
     // The higher we look, the brighter the color is
@@ -67,8 +64,8 @@ float4 ps_main(PS_IN input) : SV_TARGET
     // Sample for the depth of our view in world coordinates, to determine how much
     // our fog contributes to the color we see. The further we can see, the more contribution 
     // our fog has.
-    float depth = depth_map.Sample(tex_sampler, uv).x;
-    float world_depth = depth * (z_far - z_near) + z_near;
+    float depth = depth_map.Sample(s_point, uv).x;
+    float world_depth = depth_clip_to_world(depth, resolution_info);
     
     float fog_factor = fog_params.x * world_depth * world_depth + fog_params.y * world_depth + fog_params.z;
     fog_factor = pow(fog_factor, visibility);

@@ -2,6 +2,7 @@
 
 #include <assert.h>
 
+#include "../core/Asset.h"
 #include "math/Vector4.h"
 
 namespace Engine {
@@ -39,12 +40,20 @@ PipelineManager::PipelineManager(ID3D11Device* _device,
 
         device->CreateBuffer(&buffer_desc, &sr_data, &postprocess_quad);
     }
+
+    initializeSamplers();
+    bindSamplers();
 }
 
 PipelineManager::~PipelineManager() {
     for (int i = 0; i < CBSlot::CBCOUNT; i++) {
         delete vcb_handles[i];
         delete pcb_handles[i];
+    }
+
+    for (int i = 0; i < SamplerSlot::SamplerCount; i++) {
+        if (samplers[i] != nullptr)
+            samplers[i]->Release();
     }
 
     delete shader_manager;
@@ -87,6 +96,10 @@ bool PipelineManager::bindPixelShader(const std::string& ps_name) {
     return true;
 }
 
+void PipelineManager::bindSamplers() {
+    context->PSSetSamplers(0, SamplerCount, samplers);
+}
+
 void PipelineManager::drawPostProcessQuad() {
     UINT vertexStride = sizeof(float) * 4;
     UINT vertexOffset = 0;
@@ -106,6 +119,47 @@ void PipelineManager::initializeTargets(HWND window) {
     const UINT height = rect.bottom - rect.top;
 
     // Create my swap chain and screen target
+}
+
+// InitializeSamplers:
+// Initializes the most commonly used samplers in the pipeline.
+// These samplers will not be rebound over the entire program.
+void PipelineManager::initializeSamplers() {
+    D3D11_SAMPLER_DESC sampler_desc = {};
+    ID3D11SamplerState* sampler = NULL;
+
+    for (int i = 0; i < SamplerCount; i++)
+        samplers[i] = NULL;
+
+    // Point Sampler: Index 0
+    sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+    sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+    sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+    sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+
+    device->CreateSamplerState(&sampler_desc, &sampler);
+    assert(sampler != NULL);
+
+    samplers[Point] = sampler;
+
+    // Shadow Sampler: Index 1
+    sampler_desc.Filter =
+        D3D11_FILTER_MIN_MAG_MIP_LINEAR; // Linear Filtering for PCF
+    sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
+    sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
+    sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
+    sampler_desc.BorderColor[0] = 0.f;
+    sampler_desc.BorderColor[1] = 0.f;
+    sampler_desc.BorderColor[2] = 0.f;
+    sampler_desc.BorderColor[3] = 0.f;
+    sampler_desc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+    sampler_desc.MinLOD = 0;
+    sampler_desc.MaxLOD = 1.0f;
+
+    device->CreateSamplerState(&sampler_desc, &sampler);
+    assert(sampler != NULL);
+
+    samplers[Shadow] = sampler;
 }
 
 } // namespace Graphics

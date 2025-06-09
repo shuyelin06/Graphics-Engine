@@ -1,7 +1,5 @@
+#include "P_Common.hlsli"
 #include "ToneMap.hlsli"
-
-SamplerState mesh_sampler : register(s0);
-Texture2D mesh_texture : register(t0);
 
 cbuffer CB0_MATERIAL_INFO : register(b0)
 {
@@ -34,7 +32,7 @@ float4 ps_main(VS_OUT input) : SV_TARGET
        
     // FORCE USAGE OF MESH TEXTURE?
     float2 uv = float2(input.tex_coord.x * tex_width + tex_x, input.tex_coord.y * tex_height + tex_y);
-    float3 mesh_color = mesh_texture.Sample(mesh_sampler, uv); // TODO
+    float3 mesh_color = color_atlas.Sample(s_point, uv); // TODO
     
     // Ambient Lighting
     color.rgb += mesh_color * 0.1f;

@@ -1,12 +1,12 @@
+#include "P_Common.hlsli"
+
 struct PS_IN
 {
     float4 position_clip : SV_POSITION;
 };
 
-SamplerState tex_sampler : register(s0);
-
-Texture2D render_target : register(t0);
-Texture2D depth_map : register(t1);
+Texture2D render_target : register(t2);
+Texture2D depth_map : register(t3);
 
 cbuffer CB0_RESOLUTION : register(b0)
 {
@@ -41,8 +41,8 @@ float4 ps_main(PS_IN input) : SV_TARGET
     // Figure out the texture coordinates that my pixel is on
     float2 uv = float2(input.position_clip.x / resolution_x, input.position_clip.y / resolution_y);
     // Sample my textures at this UV coordinate
-    float depth = depth_map.Sample(tex_sampler, uv);
-    float3 output_color = render_target.Sample(tex_sampler, uv);
+    float depth = depth_map.Sample(s_point, uv);
+    float3 output_color = render_target.Sample(s_point, uv);
     
     // Convert this to a viewing direction 
     float4 world_pos = mul(m_proj_to_world, float4(uv.x * 2.f - 1, (1 - uv.y) * 2.f - 1, 0.5f, 1.f));

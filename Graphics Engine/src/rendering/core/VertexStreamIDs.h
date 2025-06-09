@@ -3,20 +3,6 @@
 namespace Engine {
 namespace Graphics {
 
-// VertexDataPin:
-// Pins for vertex data. Can be combined with bitwise operators to
-// specify an input layout.
-enum VertexDataPin {
-    PIN_NONE = 0,
-    PIN_POSITION = 1 << 1,
-    PIN_NORMAL = 1 << 2,
-    PIN_TEXTURE = 1 << 3,
-    PIN_COLOR = 1 << 4,
-    PIN_JOINTS = 1 << 5,
-    PIN_WEIGHTS = 1 << 6,
-    PIN_INSTANCING = 1 << 7
-};
-
 // VertexDataStream:
 // Indices of vertex data that are available for the pipeline.
 // Each stream is its own vertex buffer that a mesh stores. The indices

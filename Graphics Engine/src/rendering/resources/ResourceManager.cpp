@@ -34,10 +34,6 @@ static ID3D11DepthStencilState* LoadDSTestAndWrite(ID3D11Device* device);
 static ID3D11DepthStencilState* LoadDSTestNoWrite(ID3D11Device* device);
 
 void ResourceManager::initializeResources() {
-    // Create my samplers
-    shadowmap_sampler = LoadShadowMapSampler();
-    mesh_sampler = LoadMeshTextureSampler();
-
     // Create my depth stencil states
     ds_test_and_write = LoadDSTestAndWrite(device);
     ds_test_no_write = LoadDSTestNoWrite(device);
@@ -104,12 +100,6 @@ const Texture* ResourceManager::getColorAtlas() {
     return color_atlas->getTexture();
 }
 
-ID3D11SamplerState* ResourceManager::getShadowMapSampler() {
-    return shadowmap_sampler;
-}
-
-ID3D11SamplerState* ResourceManager::getMeshSampler() { return mesh_sampler; }
-
 ID3D11DepthStencilState* ResourceManager::DSState_TestNoWrite() {
     return ds_test_no_write;
 }
@@ -172,45 +162,6 @@ bool ResourceManager::LoadCube() {
     return registerAsset("Cube", cube);
 }
 
-// Load___Sampler:
-// Create Texture Samplers!
-ID3D11SamplerState* ResourceManager::LoadShadowMapSampler() {
-    ID3D11SamplerState* sampler;
-
-    D3D11_SAMPLER_DESC sampler_desc = {};
-    sampler_desc.Filter =
-        D3D11_FILTER_MIN_MAG_MIP_LINEAR; // Linear Filtering for PCF
-    sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
-    sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
-    sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
-    sampler_desc.BorderColor[0] = 0.f;
-    sampler_desc.BorderColor[1] = 0.f;
-    sampler_desc.BorderColor[2] = 0.f;
-    sampler_desc.BorderColor[3] = 0.f;
-    sampler_desc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-    sampler_desc.MinLOD = 0;
-    sampler_desc.MaxLOD = 1.0f;
-
-    device->CreateSamplerState(&sampler_desc, &sampler);
-    assert(sampler != NULL);
-
-    return sampler;
-}
-
-ID3D11SamplerState* ResourceManager::LoadMeshTextureSampler() {
-    ID3D11SamplerState* sampler;
-
-    D3D11_SAMPLER_DESC sampler_desc = {};
-    sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
-    sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-    sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-    sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-
-    device->CreateSamplerState(&sampler_desc, &sampler);
-    assert(sampler != NULL);
-
-    return sampler;
-}
 
 ID3D11DepthStencilState* LoadDSTestAndWrite(ID3D11Device* device) {
     D3D11_DEPTH_STENCIL_DESC desc = {};

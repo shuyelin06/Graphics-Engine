@@ -7,6 +7,7 @@
 #include "core/Frustum.h"
 #include "datamodel/Object.h"
 
+#include "math/Vector4.h"
 #include "resources/BumpMapBuilder.h"
 
 namespace Engine {
@@ -23,6 +24,9 @@ struct VisualCache {
     float time;
 
     Matrix4 m_world_to_screen;
+    Matrix4 m_screen_to_world;
+
+    Vector4 resolution_info;
 };
 
 // Constructor
@@ -378,6 +382,12 @@ void VisualSystem::render() {
     // Prepare the shadow maps
     performShadowPass(); //..
 
+    // Bind my atlases
+    const Texture* color_atlas = resource_manager->getColorAtlas();
+    context->PSSetShaderResources(0, 1, &color_atlas->shader_view);
+    const Texture* shadow_atlas = light_manager->getAtlasTexture();
+    context->PSSetShaderResources(1, 1, &shadow_atlas->shader_view);
+
     // Render terrain
     performTerrainPass();
     // Render meshes
@@ -485,16 +495,7 @@ void VisualSystem::pullDatamodelData() {
 
     // ---
 
-    // Load it for shadows
-    /*const std::vector<Mesh*>& terrain_meshes = terrain->getTerrainMeshes();
-    for (Mesh* terrain_mesh : terrain_meshes) {
-        if (terrain_mesh == nullptr)
-            continue;
-
-        ShadowCaster terrain_shadow;
-        terrain_shadow.m_localToWorld = Matrix4::Identity();
-        terrain_shadow.mesh = terrain_mesh;
-    }*/
+    // TODO: Terrain is not included in shadows
 
     // Cluster shadows
     light_manager->clusterShadowCasters();
@@ -503,6 +504,10 @@ void VisualSystem::pullDatamodelData() {
     cache->time += 1 / 60.f;
     cache->m_world_to_screen =
         camera->getFrustumMatrix() * camera->getWorldToCameraMatrix();
+    cache->m_screen_to_world = cache->m_world_to_screen.inverse();
+    cache->resolution_info =
+        Vector4((float)screen_target->width, (float)screen_target->height,
+                camera->getZNear(), camera->getZFar());
 }
 
 // PerformShadowPass:
@@ -668,32 +673,6 @@ void VisualSystem::performTerrainPass() {
         }
     }
 
-    // Load my Textures
-    {
-        // Texture* tex = resource_manager->getTexture("TerrainGrass");
-        // context->PSSetShaderResources(0, 1, &tex->shader_view);
-
-        const Texture* shadow_texture = light_manager->getAtlasTexture();
-        context->PSSetShaderResources(1, 1, &shadow_texture->shader_view);
-    }
-
-    // Load my Samplers
-    {
-        ID3D11SamplerState* mesh_texture_sampler =
-            resource_manager->getMeshSampler();
-        context->PSSetSamplers(0, 1, &mesh_texture_sampler);
-
-        ID3D11SamplerState* shadowmap_sampler =
-            resource_manager->getShadowMapSampler();
-        context->PSSetSamplers(1, 1, &shadowmap_sampler);
-    }
-
-    // TEMP
-    /* const std::vector<Mesh*>& terrain_meshes = terrain->getTerrainMeshes();
-     for (Mesh* mesh : terrain_meshes) {
-         if (mesh == nullptr)
-             continue;*/
-
     BufferPool* bpool = terrain->getMesh();
     if (bpool->getNumTriangles() > 0) {
         context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -804,38 +783,14 @@ void VisualSystem::performRenderPass() {
         }
     }
 
-    // Load my Textures
-    {
-        const Texture* shadow_texture = light_manager->getAtlasTexture();
-        context->PSSetShaderResources(1, 1, &shadow_texture->shader_view);
-    }
-
-    // Load my Samplers
-    {
-        ID3D11SamplerState* mesh_texture_sampler =
-            resource_manager->getMeshSampler();
-        context->PSSetSamplers(0, 1, &mesh_texture_sampler);
-
-        ID3D11SamplerState* shadowmap_sampler =
-            resource_manager->getShadowMapSampler();
-        context->PSSetSamplers(1, 1, &shadowmap_sampler);
-    }
-
-    const Texture* color_tex = resource_manager->getColorAtlas();
-    context->PSSetShaderResources(0, 1, &color_tex->shader_view);
-
     // Testing for animations
-    static float time = 0.0f;
-    time += 0.01f;
-    time = time - (int)time;
-
     for (const RenderableAsset& renderable_asset : renderable_meshes) {
         const Asset* asset = renderable_asset.asset;
         const std::vector<Mesh*>& meshes = asset->getMeshes();
 
         if (asset->isSkinned()) {
             pipeline->bindVertexShader("SkinnedMesh");
-            asset->applyAnimationAtTime(1, time);
+            asset->applyAnimationAtTime(1, cache->time - (int)cache->time);
         } else
             pipeline->bindVertexShader("TexturedMesh");
 
@@ -947,8 +902,10 @@ void VisualSystem::performLightFrustumPass() {
 
     const std::vector<ShadowLight*>& lights = light_manager->getShadowLights();
 
-    if (lights.size() == 0)
+    if (lights.size() <= SUN_NUM_CASCADES)
         return;
+
+    const int num_lights = lights.size() - SUN_NUM_CASCADES;
 
     // Disable depth writes
     bindActiveRenderTarget(EnableDepthStencil_TestNoWrite);
@@ -964,8 +921,8 @@ void VisualSystem::performLightFrustumPass() {
 
         const Matrix4 transform = Matrix4::T_Translate(Vector3(0, 0, 0.5f)) *
                                   Matrix4::T_Scale(2, 2, 1);
-        for (int i = 0; i < lights.size(); i++) {
-            const Frustum frust = lights[i]->frustum();
+        for (int i = 0; i < num_lights; i++) {
+            const Frustum frust = lights[i + SUN_NUM_CASCADES]->frustum();
             const Matrix4 m_frustum =
                 frust.getFrustumToWorldMatrix() * transform;
             vcb0.loadData(&m_frustum, FLOAT4X4);
@@ -1001,7 +958,7 @@ void VisualSystem::performLightFrustumPass() {
                                 &vertexOffset);
     context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
-    context->DrawIndexedInstanced(numIndices, lights.size(), 0, 0, 1);
+    context->DrawIndexedInstanced(numIndices, num_lights, 0, 0, 1);
 }
 
 void VisualSystem::performWaterSurfacePass() {
@@ -1068,10 +1025,8 @@ void VisualSystem::performWaterSurfacePass() {
         pcb0.loadData(&f_height, FLOAT);
     }
 
-    ID3D11SamplerState* sampler = resource_manager->getMeshSampler();
-    context->PSSetSamplers(0, 1, &sampler);
-    context->PSSetShaderResources(0, 1, &depth_stencil_copy->shader_view);
-    context->PSSetShaderResources(1, 1, &bump_tex->shader_view);
+    context->PSSetShaderResources(2, 1, &depth_stencil_copy->shader_view);
+    context->PSSetShaderResources(3, 1, &bump_tex->shader_view);
 
     const Mesh* surface_mesh = terrain->getWaterSurface()->getSurfaceMesh();
 
@@ -1103,33 +1058,19 @@ void VisualSystem::processSky() {
     bindActiveRenderTarget(DisableDepthStencil);
 
     // Set samplers and texture resources
-    ID3D11SamplerState* mesh_texture_sampler =
-        resource_manager->getMeshSampler();
-    context->PSSetSamplers(0, 1, &mesh_texture_sampler);
-    context->PSSetShaderResources(0, 1, &render_target_src->shader_view);
-    context->PSSetShaderResources(1, 1, &depth_stencil->shader_view);
+    context->PSSetShaderResources(2, 1, &render_target_src->shader_view);
+    context->PSSetShaderResources(3, 1, &depth_stencil->shader_view);
 
     // Bind Constant Buffers
     {
         IConstantBuffer pcb0 = pipeline->loadPixelCB(CB0);
-
-        const float f_width = (float)screen_target->width;
-        pcb0.loadData(&f_width, FLOAT);
-        const float f_height = (float)screen_target->height;
-        pcb0.loadData(&f_height, FLOAT);
-
-        const float z_near = camera->getZNear();
-        pcb0.loadData(&z_near, FLOAT);
-        const float z_far = camera->getZFar();
-        pcb0.loadData(&z_far, FLOAT);
+        pcb0.loadData(&cache->resolution_info, FLOAT4);
     }
+
     {
         IConstantBuffer pcb1 = pipeline->loadPixelCB(CB1);
 
-        const Matrix4 m_proj_to_world =
-            (camera->getFrustumMatrix() * camera->getWorldToCameraMatrix())
-                .inverse();
-        pcb1.loadData(&m_proj_to_world, FLOAT4X4);
+        pcb1.loadData(&cache->m_screen_to_world, FLOAT4X4);
         const Vector3& cam_pos = camera->getPosition();
         pcb1.loadData(&cam_pos, FLOAT3);
         pcb1.loadData(nullptr, FLOAT);
@@ -1162,35 +1103,20 @@ void VisualSystem::processUnderwater() {
     bindActiveRenderTarget(DisableDepthStencil);
 
     // Set samplers and texture resources
-    ID3D11SamplerState* mesh_texture_sampler =
-        resource_manager->getMeshSampler();
-    context->PSSetSamplers(0, 1, &mesh_texture_sampler);
-    context->PSSetShaderResources(0, 1, &render_target_src->shader_view);
-    context->PSSetShaderResources(1, 1, &depth_stencil->shader_view);
+    context->PSSetShaderResources(2, 1, &render_target_src->shader_view);
+    context->PSSetShaderResources(3, 1, &depth_stencil->shader_view);
 
     // Set resolution information
     {
         IConstantBuffer pCB0 = pipeline->loadPixelCB(CB0);
-
-        const float f_width = (float)screen_target->width;
-        pCB0.loadData(&f_width, FLOAT);
-        const float f_height = (float)screen_target->height;
-        pCB0.loadData(&f_height, FLOAT);
-
-        const float z_near = camera->getZNear();
-        pCB0.loadData(&z_near, FLOAT);
-        const float z_far = camera->getZFar();
-        pCB0.loadData(&z_far, FLOAT);
+        pCB0.loadData(&cache->resolution_info, FLOAT4);
     }
 
     // Set parameters
     {
         IConstantBuffer pCB1 = pipeline->loadPixelCB(CB1);
 
-        const Matrix4 m_project_to_world =
-            (camera->getFrustumMatrix() * camera->getWorldToCameraMatrix())
-                .inverse();
-        pCB1.loadData(&m_project_to_world, FLOAT4X4);
+        pCB1.loadData(&cache->m_screen_to_world, FLOAT4X4);
 
         const Vector3& camera_pos = camera->getPosition();
         pCB1.loadData(&camera_pos, FLOAT3);
@@ -1205,7 +1131,7 @@ void VisualSystem::processUnderwater() {
         pCB1.loadData(&fog_params, FLOAT3);
 
         // Water Visibility
-        const float visibility = 1.5f;
+        const float visibility = 0.5f;
         pCB1.loadData(&visibility, FLOAT);
 
         // Where the surface is. Brightest at the surface.
@@ -1236,24 +1162,12 @@ void VisualSystem::processDither() {
     context->RSSetViewports(1, &viewport);
 
     // Set samplers and texture resources
-    ID3D11SamplerState* mesh_texture_sampler =
-        resource_manager->getMeshSampler();
-    context->PSSetSamplers(0, 1, &mesh_texture_sampler);
     context->PSSetShaderResources(0, 1, &render_target_dest->shader_view);
 
     // Set resolution information
     {
         IConstantBuffer pCB0 = pipeline->loadPixelCB(CB0);
-
-        const float f_width = (float)screen_target->width;
-        pCB0.loadData(&f_width, FLOAT);
-        const float f_height = (float)screen_target->height;
-        pCB0.loadData(&f_height, FLOAT);
-
-        const float z_near = camera->getZNear();
-        pCB0.loadData(&z_near, FLOAT);
-        const float z_far = camera->getZFar();
-        pCB0.loadData(&z_far, FLOAT);
+        pCB0.loadData(&cache->resolution_info, FLOAT4);
     }
 
     pipeline->drawPostProcessQuad();

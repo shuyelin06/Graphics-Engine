@@ -27,9 +27,6 @@ class ResourceManager {
     std::unordered_map<std::string, uint16_t> texture_map;
     std::vector<Texture*> textures;
 
-    ID3D11SamplerState* shadowmap_sampler;
-    ID3D11SamplerState* mesh_sampler;
-
     // Depth stencil states
     ID3D11DepthStencilState* ds_test_and_write;
     ID3D11DepthStencilState* ds_test_no_write;
@@ -52,10 +49,6 @@ class ResourceManager {
 
     const Texture* getColorAtlas();
 
-    // Get a sampler by name
-    ID3D11SamplerState* getShadowMapSampler();
-    ID3D11SamplerState* getMeshSampler();
-
     // Get depth stencil states
     ID3D11DepthStencilState* DSState_TestNoWrite();
     ID3D11DepthStencilState* DSState_TestAndWrite();
@@ -75,10 +68,6 @@ class ResourceManager {
                             const std::string& path, TextureBuilder& builder);
     bool WriteTextureToPNG(ID3D11Texture2D* texture, std::string path,
                            std::string file);
-
-    // Load Samplers
-    ID3D11SamplerState* LoadShadowMapSampler();
-    ID3D11SamplerState* LoadMeshTextureSampler();
 };
 
 } // namespace Graphics
