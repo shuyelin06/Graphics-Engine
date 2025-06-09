@@ -1,5 +1,6 @@
 #include "P_Common.hlsli"
 #include "Utility.hlsli"
+#include "Noise.hlsli"
 
 struct PS_IN
 {
@@ -75,7 +76,11 @@ float4 ps_main(PS_IN input) : SV_TARGET
     // we see.
     float height = max(0, surface_height - view_position.y);
     float intensity = pow(10.f, 1 - intensity_drop * height) * 0.1f;
-    color = color * intensity;
+    color *= intensity;
+    
+    // Add a dither to reduce banding
+    float3 dither = gradient3D(world_pos.xyz, float3(10, 11, 17));
+    color += (dither / 255.f);
     
     return float4(color, 1.f);
 }

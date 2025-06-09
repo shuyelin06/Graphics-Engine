@@ -790,7 +790,7 @@ void VisualSystem::performRenderPass() {
 
         if (asset->isSkinned()) {
             pipeline->bindVertexShader("SkinnedMesh");
-            asset->applyAnimationAtTime(1, cache->time - (int)cache->time);
+            asset->applyAnimationAtTime(1, cache->time);
         } else
             pipeline->bindVertexShader("TexturedMesh");
 
