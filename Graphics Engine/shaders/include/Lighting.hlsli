@@ -1,4 +1,4 @@
-#include "P_Common.hlsli" // ShadowMap Sampler Binding
+// #include "P_Common.hlsli" // ShadowMap Sampler Binding
 
 // Lighting.hlsli
 // Contains the data and methods neeeded for lighting calculations.
@@ -23,21 +23,19 @@ struct LightData
     float tex_height;
 };
 
-cbuffer CB1_LIGHT_DATA : register(b1)
+cbuffer CB1_LIGHTING_DATA : register(b1)
 {
-    float3 view_world_position;
     int light_count;
     
-    float3 view_direction;
-    float padding;
-    
-    // Cascades for the sun light.
+    // Global Lighting (Sunlight) Information
     // The # Cascades should match the SUN_NUM_CASCADES value defined in Sunlight.h
     float3 sun_direction;
-    float padding_2;
-    LightData sun_cascades[3];
     
-    // Other shadowed light instances
+    float2 cascade_thresholds; // NUM_CASCADES - 1
+    float2 cb1_p0;
+    LightData sun_cascades[3];
+
+    // Local Lighting Data
     LightData light_instances[7];
 };
 
@@ -47,13 +45,13 @@ float selectCascade(float3 world_position)
 {
     // Compute the distance of the pixel position to the camera,
     // and normalize it so that it is between [0,1].
-    float distance = length(world_position - view_world_position) - 5.f;
+    float distance = length(world_position - view_pos) - view_znear;
     
     // Based on the distance, select a cascade index and return it.
     // These distance thresholds should match what's defined in SunLight.h.
     float cascade = 0;
-    cascade = cascade + step(0.10f * 295.f, distance);
-    cascade = cascade + step(0.25f * 295.f, distance);
+    cascade = cascade + step(cascade_thresholds.x * view_zfar, distance);
+    cascade = cascade + step(cascade_thresholds.y * view_zfar, distance);
         
     return cascade;
 }

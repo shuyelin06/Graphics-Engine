@@ -10,6 +10,7 @@
 
 namespace Engine {
 namespace Graphics {
+class CBHandle;
 
 // Struct ShadowMapViewport
 // Represents where in the shadowmap_atlas the light's

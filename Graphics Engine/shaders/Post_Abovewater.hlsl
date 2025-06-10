@@ -8,22 +8,8 @@ struct PS_IN
 Texture2D render_target : register(t2);
 Texture2D depth_map : register(t3);
 
-cbuffer CB0_RESOLUTION : register(b0)
+cbuffer CB2_PARAMS : register(b2)
 {
-    float resolution_x;
-    float resolution_y;
-    
-    float z_near;
-    float z_far;
-}
-
-cbuffer CB1_PARAMS : register(b1)
-{
-    // Viewport Information
-    float4x4 m_proj_to_world;
-    float3 view_position;
-    float padding;
-    
     // Sun direction
     float3 sun_direction;
     // Sun size
@@ -45,9 +31,9 @@ float4 ps_main(PS_IN input) : SV_TARGET
     float3 output_color = render_target.Sample(s_point, uv);
     
     // Convert this to a viewing direction 
-    float4 world_pos = mul(m_proj_to_world, float4(uv.x * 2.f - 1, (1 - uv.y) * 2.f - 1, 0.5f, 1.f));
+    float4 world_pos = mul(m_screen_to_world, float4(uv.x * 2.f - 1, (1 - uv.y) * 2.f - 1, 0.5f, 1.f));
     world_pos = world_pos / world_pos.w;
-    float3 view_direction = normalize(world_pos.xyz - view_position);
+    float3 view_direction = normalize(world_pos.xyz - view_pos);
     
     // Set fog as we get far away
     float fog_begin = 0.98f;

@@ -15,23 +15,18 @@ struct PS_INPUT
 Texture2D depth_map : register(t2);
 Texture2D bump_map : register(t3);
 
-cbuffer CB0_LIGHTING_INFO : register(b0)
-{
-    float3 view_position;
-    float padding;
-    
+cbuffer CB2_LIGHTING_INFO : register(b2)
+{    
     float3 sun_direction;
     float padding2;
     
     float3 sun_color;
     float padding3;
-    
-    float2 resolution;
 }
 
 float4 ps_main(PS_INPUT input) : SV_TARGET
 {
-    float2 uv = clip_to_uv(input.position_clip, float4(resolution, 0., 0.));
+    float2 uv = float2(input.position_clip.x / resolution_x, input.position_clip.y / resolution_y);
     
     input.normal = bump_to_normal(bump_map.Sample(s_point, input.world_position.xz / 300.f).rgb, input.m_tbn);
     
@@ -42,7 +37,7 @@ float4 ps_main(PS_INPUT input) : SV_TARGET
     float diffuse_term = max(dot(input.normal, -sun_direction), 0);
     
     // Compute my specular constant 
-    float3 view_direction = normalize(view_position - input.world_position);
+    float3 view_direction = normalize(view_pos - input.world_position);
     float3 light_direction_reflected = reflect(sun_direction, input.normal);
     
     float fresnel = pow(1.0f - saturate(dot(view_direction, input.normal)), 5.0f);

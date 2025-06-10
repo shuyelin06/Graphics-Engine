@@ -11,7 +11,7 @@ struct PointData
 // Maximum Allowable Points:
 // 4096 Vectors * 4 Components per Vector / 8 Components per Point
 // = ~2048 Points
-cbuffer CB0 : register(b0)
+cbuffer CB0 : register(b2)
 {
     // Stores data for each point
     PointData points[2048];

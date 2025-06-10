@@ -50,6 +50,7 @@ struct ShadowCaster {
 // This is one large texture which has dedicated sections
 // for different light shadow maps.
 class CameraFrustum;
+class IConstantBuffer;
 
 class LightManager {
   private:
@@ -95,8 +96,12 @@ class LightManager {
     void addShadowCaster(const ShadowCaster& caster);
     void clusterShadowCasters();
 
+    // Bind data to pipeline
+    void bindLightData(IConstantBuffer& cb);
+
   private:
     void createSunLight(ShadowMapQuality quality);
+    void bindLight(ShadowLight* light, IConstantBuffer& cb);
 };
 
 } // namespace Graphics

@@ -121,6 +121,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     Object& light = parent.createChild();
     ShadowLightComponent* comp = visual_system.bindLightComponent(&light);
+    light.getTransform().offsetPosition(10.f, 0.f, 2.f);
+
     camera_obj.getTransform().offsetPosition(0.0f, 125.f, 0.0f);
 
     // Create Object Hierarchy
@@ -165,7 +167,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                         ThreadPool::GetThreadPool()->countActiveWorkers());
         }
 
-        // light.getTransform().offsetRotation(Vector3::PositiveY(), 0.1f);
+        light.getTransform().offsetRotation(Vector3::PositiveY(), 0.05f);
 #endif
 
         // Dispatch Input Data

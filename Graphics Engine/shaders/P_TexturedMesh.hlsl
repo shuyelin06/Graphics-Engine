@@ -1,7 +1,7 @@
 #include "P_Common.hlsli"
 #include "ToneMap.hlsli"
 
-cbuffer CB0_MATERIAL_INFO : register(b0)
+cbuffer CB0_MATERIAL_INFO : register(b2)
 {
     float tex_x;
     float tex_y;

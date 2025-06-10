@@ -2,6 +2,8 @@
 
 #include <assert.h>
 
+#include "../pipeline/ConstantBuffer.h"
+
 namespace Engine {
 namespace Graphics {
 // ToD3D11:
@@ -28,7 +30,7 @@ ShadowLight::ShadowLight(const ShadowMapViewport& view_port) {
     color = Color(1.0f, 1.0f, 1.0f);
     shadow_viewport = view_port;
 
-    setOrthogonalFrustum(10.f, 1.0f, 5.0f, 500.f);
+    setPerspectiveFrustum(1.f, 1.f, 5.0f, 500.f);
 }
 
 ShadowLight::~ShadowLight() = default;

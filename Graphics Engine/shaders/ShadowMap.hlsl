@@ -1,7 +1,7 @@
 // Vertex CB0:
 // Stores the light view and projection matrices,
 // so that we can transform a world point into the light's view
-cbuffer LIGHT_TRANSFORM : register(b0)
+cbuffer LIGHT_TRANSFORM : register(b2)
 {
     float4x4 m_view;
     float4x4 m_projection;

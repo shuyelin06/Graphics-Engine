@@ -7,15 +7,6 @@ struct PS_IN
 
 Texture2D render_target : register(t0);
 
-cbuffer CB0_RESOLUTION : register(b0)
-{
-    float resolution_x;
-    float resolution_y;
-    
-    float z_near;
-    float z_far;
-}
-
 float4 ps_main(PS_IN input) : SV_TARGET
 {
     // Read from the render target texture and write what we read.

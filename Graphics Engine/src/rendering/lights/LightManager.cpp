@@ -1,6 +1,7 @@
 #include "LightManager.h"
 
 #include "../ImGui.h"
+#include "../pipeline/ConstantBuffer.h"
 
 namespace Engine {
 namespace Graphics {
@@ -163,6 +164,55 @@ void LightManager::createSunLight(ShadowMapQuality quality) {
     }
 
     sun_light = new SunLight(lights, quality);
+}
+
+// --- Binding ---
+// BindLightData:
+// Binds lighting data to a provided constant buffer handle.
+void LightManager::bindLightData(IConstantBuffer& cb) {
+    const int lightCount = shadow_lights.size();
+    cb.loadData(&lightCount, INT);
+
+    // Global Lighting Data
+    const Vector3 sun_direc = sun_light->getDirection();
+    cb.loadData(&sun_direc, FLOAT3);
+
+    const Vector2 thresholds = Vector2(0.4f, 0.75f);
+    cb.loadData(&thresholds, FLOAT2);
+    cb.loadData(nullptr, FLOAT2);
+
+    for (int i = 0; i < SUN_NUM_CASCADES; i++) {
+        ShadowLight* light = shadow_lights[i];
+        bindLight(light, cb);
+    }
+
+    // Local Lighting Data
+    for (int i = SUN_NUM_CASCADES; i < shadow_lights.size(); i++) {
+        ShadowLight* light = shadow_lights[i];
+        bindLight(light, cb);
+    }
+}
+
+void LightManager::bindLight(ShadowLight* light, IConstantBuffer& cb) {
+    Vector3 position = light->getPosition();
+    cb.loadData(&position, FLOAT3);
+
+    cb.loadData(nullptr, FLOAT);
+
+    const Color& color = light->getColor();
+    cb.loadData(&color, FLOAT3);
+
+    cb.loadData(nullptr, INT);
+
+    const Matrix4 m_world_to_local = light->getWorldMatrix().inverse();
+    cb.loadData(&m_world_to_local, FLOAT4X4);
+
+    const Matrix4& m_local_to_frustum = light->getFrustumMatrix();
+    cb.loadData(&m_local_to_frustum, FLOAT4X4);
+
+    const NormalizedShadowViewport normalized_view =
+        normalizeViewport(light->getShadowmapViewport());
+    cb.loadData(&normalized_view, FLOAT4);
 }
 
 } // namespace Graphics

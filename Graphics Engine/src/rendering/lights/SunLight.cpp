@@ -35,7 +35,7 @@ Vector3 SunLight::getDirection() const {
 
 void SunLight::updateSunCascades(const Frustum& camera_frustum) {
     constexpr float Z_EPSILON = 0.005f;
-    constexpr float DIVISIONS[SUN_NUM_CASCADES + 1] = {0.0f, 0.6f, 0.85f, 1.0f};
+    constexpr float DIVISIONS[SUN_NUM_CASCADES + 1] = {0.0f, 0.4f, 0.75f, 1.0f};
 
     for (int i = 0; i < SUN_NUM_CASCADES; i++) {
         const float z_near = DIVISIONS[i] - Z_EPSILON;
@@ -92,6 +92,18 @@ void SunLight::updateCascade(int index, float min_z, float max_z,
 
     center_point = center_point / 8;
 
+    // VisualDebug::DrawPoint(center_point, 3.f);
+
+    // Find the light position
+    const Vector3 direc = -(direction.rotationMatrix3() * Vector3::PositiveZ());
+    constexpr float SUN_HEIGHT = 500.f;
+    const float t = ((SUN_HEIGHT - center_point.y) / -direc.y);
+    Vector3 light_pos = center_point + direc * t;
+    // alternative: light_pos = center_point + direc * 300
+
+    // VisualDebug::DrawPoint(light_pos, 3.f);
+    // VisualDebug::DrawLine(light_pos, light_pos + direc * 10.f);
+
     // Find the furthest distance from the center point to the edges.
     // This will define the size of our orthographic projection.
     // We add an epsilon to the projection extents to handle imprecision.
@@ -105,16 +117,12 @@ void SunLight::updateCascade(int index, float min_z, float max_z,
     // defined by extent_radius / pixel_resolution, to avoid shadow jittering
     const float texel_distance = extent / resolution;
 
-    const Vector3 direc = direction.rotationMatrix3() * Vector3::PositiveZ();
-    Vector3 light_pos = center_point;
-
     // Offset so at a constant y value
-    light_pos += direc * 100.f;
 
     // Snap to nearest texel
-    light_pos.x = ((int)(light_pos.x / texel_distance)) * texel_distance;
+    /*light_pos.x = ((int)(light_pos.x / texel_distance)) * texel_distance;
     light_pos.y = ((int)(light_pos.y / texel_distance)) * texel_distance;
-    light_pos.z = ((int)(light_pos.z / texel_distance)) * texel_distance;
+    light_pos.z = ((int)(light_pos.z / texel_distance)) * texel_distance;*/
 
     const Matrix4 m_world =
         Matrix4::T_Translate(light_pos) * direction.rotationMatrix4();
