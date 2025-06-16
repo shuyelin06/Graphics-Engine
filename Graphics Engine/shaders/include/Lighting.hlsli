@@ -1,4 +1,4 @@
-// #include "P_Common.hlsli" // ShadowMap Sampler Binding
+#include "P_Common.hlsli" // ShadowMap Sampler Binding
 
 // Lighting.hlsli
 // Contains the data and methods neeeded for lighting calculations.
@@ -32,7 +32,7 @@ cbuffer CB1_LIGHTING_DATA : register(b1)
     float3 sun_direction;
     
     float2 cascade_thresholds; // NUM_CASCADES - 1
-    float2 cb1_p0;
+    float2 cb1_p0; // Padding
     LightData sun_cascades[3];
 
     // Local Lighting Data
@@ -56,7 +56,7 @@ float selectCascade(float3 world_position)
     return cascade;
 }
 
-// --- Shadowing ---
+// ShadowValue:
 // Given data for a light and the world position of a pixel, computes the shadow value
 // of the pixel. This is a value from [0,1], indicating how "shadowed" the pixel is.
 // For hard shadowing, this value will be 0 or 1, but can be imbetween with soft shadows.
@@ -102,4 +102,13 @@ float shadowValue(float3 world_position, LightData light, float bias)
     }
     
     return shadow_value;
+}
+
+// Diffuse:
+// Evaluate the diffuse contribution for a light
+float diffuseValue(LightData light, float3 world_pos, float3 normal)
+{
+    float3 light_direc = normalize(light.position - world_pos);
+    float diffuse = max(0, dot(light_direc, normal));
+    return diffuse;
 }

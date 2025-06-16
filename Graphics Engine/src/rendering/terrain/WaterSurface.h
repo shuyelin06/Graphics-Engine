@@ -17,6 +17,8 @@ struct WaveConfig {
 // Stores information regarding the terrain's water surface.
 class WaterSurface {
   private:
+    float size;
+
     Mesh* surface_mesh;
 
     int num_waves;
@@ -33,6 +35,13 @@ class WaterSurface {
     const Mesh* getSurfaceMesh() const;
     int getNumWaves() const;
     const std::vector<WaveConfig>& getWaveConfig() const;
+
+  private:
+    // Determines how many subdivisions we need to make for the
+    // water surface
+    int levelOfDetail(float distance);
+    void subdivideSurface(MeshBuilder& builder, UINT a, UINT b, UINT c, UINT d,
+                          int depth);
 };
 
 } // namespace Graphics

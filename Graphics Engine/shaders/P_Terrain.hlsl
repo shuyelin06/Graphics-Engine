@@ -39,14 +39,14 @@ float4 psterrain_main(PS_IN input) : SV_TARGET
     color.rgb += (shadow_factor * diffuse_factor) * (mesh_color * sun_light.color);
     
     // --- Light Contributions ---
-    for (int i = 3; i < light_count; i++)
+    for (int i = 0; i < light_count - 3; i++)
     {
         LightData light = light_instances[i];
         
         shadow_factor = shadowValue(input.world_position, light, 0.01f);
         
         float3 light_direc = normalize(light.position - input.world_position);
-        diffuse_factor = max(0, dot(-light_direc, normal));
+        diffuse_factor = max(0, dot(light_direc, normal));
         
         color.rgb += (shadow_factor * diffuse_factor) * (mesh_color * light.color);
     }

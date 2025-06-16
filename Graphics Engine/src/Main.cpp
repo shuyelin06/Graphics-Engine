@@ -121,7 +121,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     Object& light = parent.createChild();
     ShadowLightComponent* comp = visual_system.bindLightComponent(&light);
-    light.getTransform().offsetPosition(10.f, 0.f, 2.f);
+    light.getTransform().offsetPosition(25.f, 0.f, 25.f);
 
     camera_obj.getTransform().offsetPosition(0.0f, 125.f, 0.0f);
 

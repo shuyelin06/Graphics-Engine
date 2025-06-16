@@ -491,6 +491,9 @@ void VisualSystem::pullDatamodelData() {
     for (const AssetComponent* object : asset_components.getComponents()) {
         const Asset* asset = object->getAsset();
 
+        if (asset->isSkinned())
+            asset->applyAnimationAtTime(1, cache->time);
+
         RenderableAsset renderable_asset;
         renderable_asset.asset = asset;
         renderable_asset.m_localToWorld = object->getObject()->getLocalMatrix();
@@ -695,7 +698,6 @@ void VisualSystem::performRenderPass() {
 
         if (asset->isSkinned()) {
             pipeline->bindVertexShader("SkinnedMesh");
-            asset->applyAnimationAtTime(1, cache->time);
         } else
             pipeline->bindVertexShader("TexturedMesh");
 
