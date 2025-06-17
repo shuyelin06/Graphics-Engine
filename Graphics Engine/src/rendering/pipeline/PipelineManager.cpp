@@ -16,6 +16,20 @@ PipelineManager::PipelineManager(ID3D11Device* _device,
     shader_manager = new ShaderManager(device);
     shader_manager->initializeShaders();
 
+    // Initialize my vertex buffers / offsets / strides
+    memset(vb_buffers, 0, sizeof(ID3D11Buffer*) * BINDABLE_STREAM_COUNT);
+    memset(vb_strides, 0, sizeof(UINT) * BINDABLE_STREAM_COUNT);
+    memset(vb_offsets, 0, sizeof(UINT) * BINDABLE_STREAM_COUNT);
+
+    vb_strides[POSITION] = sizeof(float) * 3;
+    vb_strides[TEXTURE] = sizeof(float) * 2;
+    vb_strides[NORMAL] = sizeof(float) * 3;
+    vb_strides[COLOR] = sizeof(float) * 3;
+    vb_strides[DEBUG_LINE] = sizeof(float) * 6;
+    vb_strides[SV_POSITION] = sizeof(float) * 4;
+    vb_strides[JOINTS] = sizeof(float) * 4;
+    vb_strides[WEIGHTS] = sizeof(float) * 4;
+
     // Initialize my constant buffer handles
     for (int i = 0; i < CBSlot::CBCOUNT; i++) {
         vcb_handles[i] = new CBHandle();
@@ -100,9 +114,43 @@ void PipelineManager::bindSamplers() {
     context->PSSetSamplers(0, SamplerCount, samplers);
 }
 
+void PipelineManager::drawMesh(const Mesh* mesh, int tri_start, int tri_end,
+                               UINT instance_count) {
+    // All meshes are assumed to havae a triangle list topology.
+    // While there are more efficient representations, this is done
+    // for simplicity.
+    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    // Bind my index buffer. All meshes are assumed to have one index buffer,
+    // associated with multiple vertex buffers.
+    context->IASetIndexBuffer(mesh->index_buffer, DXGI_FORMAT_R32_UINT, 0);
+
+    // Iterate through the layout of my vertex shader
+    // and bind the vertex buffers that the vertex shader needs.
+    memset(vb_buffers, 0, sizeof(ID3D11Buffer*) * BINDABLE_STREAM_COUNT);
+    for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
+        if ((1 << i) & vs_active->layout_pin) {
+            vb_buffers[i] = mesh->vertex_streams[i];
+        }
+    }
+
+    context->IASetVertexBuffers(0, BINDABLE_STREAM_COUNT, vb_buffers,
+                                vb_strides, vb_offsets);
+
+    // Issue my draw call. We will always draw indexed instanced, even if the
+    // number of instances is 1.
+    const UINT index_start = tri_start * 3;
+    const UINT num_indices = (tri_end == -1)
+                                 ? mesh->triangle_count * 3 - index_start
+                                 : tri_end * 3 - index_start;
+
+    context->DrawIndexedInstanced(num_indices, instance_count, index_start, 0,
+                                  0);
+}
+
 void PipelineManager::drawPostProcessQuad() {
-    UINT vertexStride = sizeof(float) * 4;
-    UINT vertexOffset = 0;
+    const UINT vertexStride = sizeof(float) * 4;
+    const UINT vertexOffset = 0;
 
     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     context->IASetVertexBuffers(0, 1, &postprocess_quad, &vertexStride,

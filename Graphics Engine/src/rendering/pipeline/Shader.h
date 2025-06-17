@@ -18,6 +18,11 @@ struct VertexShader {
     ID3D11VertexShader* shader;
     ID3D11InputLayout* layout;
 
+    // Each bit tells us if the VertexDataStream
+    // at that bit (slot) position is to be used
+    // (see VertexStreamIDs.h)
+    uint16_t layout_pin; 
+
     VertexShader(ID3D11VertexShader* shader, ID3D11InputLayout* layout);
     ~VertexShader();
 };

@@ -14,15 +14,20 @@ enum VertexDataStream {
     TEXTURE = 1,  // 2D Texture Coordinates (2 Floats)
     NORMAL = 2,   // 3D Normal Direction (3 Floats)
     COLOR = 3,
-    INSTANCE_ID = 4,
-    DEBUG_LINE = 5, // Position + RGB Color; Debug Line Rendering
-    SV_POSITION = 6,
+    DEBUG_LINE = 4, // Position + RGB Color; Debug Line Rendering
     // Skinning Properties
-    JOINTS = 7,  // 4D Integer Vector of Node Indices (4 Integers)
-    WEIGHTS = 8, // 4D Vector of Skin Weights (4 Floats)
+    JOINTS = 5,  // 4D Integer Vector of Node Indices (4 Integers)
+    WEIGHTS = 6, // 4D Vector of Skin Weights (4 Floats)
 
-    STREAM_COUNT,
+    BINDABLE_STREAM_COUNT,
 
+    // These data streams are not bindable by the engine, and will not
+    // be stored in meshes. However, they are still valid
+    // vertex streams that have assigned slots
+    // INSTANCE_ID: Used for instancing
+    INSTANCE_ID = BINDABLE_STREAM_COUNT,
+    // SV_POSITION: Used for post-processing
+    SV_POSITION,
 };
 
 } // namespace Graphics

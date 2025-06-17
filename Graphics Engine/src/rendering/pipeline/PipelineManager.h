@@ -6,6 +6,9 @@
 
 constexpr int SAMPLER_COUNT = 4;
 
+#define INDEX_LIST_START 0
+#define INDEX_LIST_END -1
+
 namespace Engine {
 namespace Graphics {
 // SamplerSlot Enum:
@@ -39,6 +42,11 @@ class PipelineManager {
     // Samplers
     ID3D11SamplerState* samplers[SAMPLER_COUNT];
 
+    // Bound Vertex / Index Buffer
+    ID3D11Buffer* vb_buffers[BINDABLE_STREAM_COUNT];
+    UINT vb_strides[BINDABLE_STREAM_COUNT];
+    UINT vb_offsets[BINDABLE_STREAM_COUNT];
+
     // Constant Buffer Handles
     CBHandle* vcb_handles[CBCOUNT];
     CBHandle* pcb_handles[CBCOUNT];
@@ -70,8 +78,10 @@ class PipelineManager {
     void swapActiveRenderTarget();
     void bindActiveRenderTarget();
 
-    // Draw Calls
-    void drawMesh(const Mesh* mesh, VertexDataStream* data_layout, int size);
+    // Draw Calls. Set tri_end to -1 if you want it to draw all triangles
+    // after tri_start.
+    void drawMesh(const Mesh* mesh, int tri_start, int tri_end,
+                  UINT instance_count);
     void drawPostProcessQuad();
 
     // Render to Screen

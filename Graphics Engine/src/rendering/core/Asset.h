@@ -50,7 +50,7 @@ struct Mesh {
     UINT triangle_count;
 
     // My different vertex streams
-    ID3D11Buffer* vertex_streams[STREAM_COUNT];
+    ID3D11Buffer* vertex_streams[BINDABLE_STREAM_COUNT];
 
     // AABB for the Mesh
     Math::AABB aabb;

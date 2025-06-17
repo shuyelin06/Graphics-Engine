@@ -390,11 +390,13 @@ void ShaderManager::createVertexShader(const ShaderConfig& config) {
     device->CreateVertexShader(shader_blob->GetBufferPointer(),
                                shader_blob->GetBufferSize(), NULL,
                                &vertexShader);
+    shader_blob->Release(); // Free shader blob memory
 
-    // Free shader blob memory
-    shader_blob->Release();
-
+    // Create my vertex shader
     VertexShader* v_shader = new VertexShader(vertexShader, inputLayout);
+    for (const VertexDataStream& stream : input_layout_arr)
+        v_shader->layout_pin |= (1 << stream);
+
     vertex_shaders[config.shader_name] = v_shader;
 }
 

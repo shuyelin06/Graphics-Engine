@@ -749,52 +749,8 @@ void VisualSystem::performRenderPass() {
                 }
             }
 
-            // Load each mesh
-            context->IASetPrimitiveTopology(
-                D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-            ID3D11Buffer* buffer;
-            UINT stride, offset;
-
-            stride = sizeof(float) * 3;
-            offset = 0;
-
-            buffer = mesh->vertex_streams[POSITION];
-            context->IASetVertexBuffers(POSITION, 1, &buffer, &stride, &offset);
-
-            stride = sizeof(float) * 2;
-            offset = 0;
-
-            buffer = mesh->vertex_streams[TEXTURE];
-            context->IASetVertexBuffers(TEXTURE, 1, &buffer, &stride, &offset);
-
-            stride = sizeof(float) * 3;
-            offset = 0;
-
-            buffer = mesh->vertex_streams[NORMAL];
-            context->IASetVertexBuffers(NORMAL, 1, &buffer, &stride, &offset);
-
-            if (asset->isSkinned()) {
-                stride = sizeof(float) * 4;
-                offset = 0;
-
-                buffer = mesh->vertex_streams[JOINTS];
-                context->IASetVertexBuffers(JOINTS, 1, &buffer, &stride,
-                                            &offset);
-
-                stride = sizeof(float) * 4;
-                offset = 0;
-
-                buffer = mesh->vertex_streams[WEIGHTS];
-                context->IASetVertexBuffers(WEIGHTS, 1, &buffer, &stride,
-                                            &offset);
-            }
-
-            context->IASetIndexBuffer(mesh->index_buffer, DXGI_FORMAT_R32_UINT,
-                                      0);
-
-            UINT numIndices = mesh->triangle_count * 3;
-            context->DrawIndexed(numIndices, 0, 0);
+            // Draw each mesh
+            pipeline->drawMesh(mesh, 0, INDEX_LIST_END, 1);
         }
     }
 }
@@ -841,24 +797,11 @@ void VisualSystem::performLightFrustumPass() {
         }
     }
 
-    Asset* frustum_cube = resource_manager->getAsset("Cube");
-    const Mesh* mesh = frustum_cube->getMesh(0);
-
-    ID3D11Buffer* indexBuffer = mesh->index_buffer;
-    ID3D11Buffer* vertexBuffer = mesh->vertex_streams[POSITION];
-    int numIndices = mesh->triangle_count * 3;
-
-    UINT vertexStride = sizeof(float) * 3;
-    UINT vertexOffset = 0;
-
     context->OMSetBlendState(blend_state, NULL, 0xffffffff);
 
-    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    context->IASetVertexBuffers(POSITION, 1, &vertexBuffer, &vertexStride,
-                                &vertexOffset);
-    context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
-
-    context->DrawIndexedInstanced(numIndices, num_lights, 0, 0, 1);
+    Asset* frustum_cube = resource_manager->getAsset("Cube");
+    const Mesh* cube_mesh = frustum_cube->getMesh(0);
+    pipeline->drawMesh(cube_mesh, INDEX_LIST_START, INDEX_LIST_END, num_lights);
 }
 
 void VisualSystem::performWaterSurfacePass() {
@@ -961,28 +904,16 @@ void VisualSystem::performWaterSurfacePass() {
         }
     }
 
-    const Mesh* surface_mesh = terrain->getWaterSurface()->getSurfaceMesh();
-
-    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-    ID3D11Buffer* indexBuffer = surface_mesh->index_buffer;
-    context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
-
-    ID3D11Buffer* vertexBuffer = surface_mesh->vertex_streams[POSITION];
-    UINT vertexStride = sizeof(float) * 3;
-    UINT vertexOffset = 0;
-    context->IASetVertexBuffers(POSITION, 1, &vertexBuffer, &vertexStride,
-                                &vertexOffset);
-
-    int numIndices = surface_mesh->triangle_count * 3;
-    int num_inner_tri = terrain->getWaterSurface()->getNumInnerTriangles() * 3;
     context->OMSetBlendState(blend_state, NULL, 0xffffffff);
 
-    // Draw the inner ring
-    context->DrawIndexedInstanced(num_inner_tri, 4, 0, 0, 0);
-    // Draw every LOD
-    context->DrawIndexedInstanced(numIndices - num_inner_tri, NUM_LODS * 4,
-                                  num_inner_tri, 0, 0);
+    const Mesh* surface_mesh = terrain->getWaterSurface()->getSurfaceMesh();
+    const int total_triangles = surface_mesh->triangle_count;
+    const int num_inner_tri =
+        terrain->getWaterSurface()->getNumInnerTriangles();
+
+    pipeline->drawMesh(surface_mesh, 0, num_inner_tri, 4);
+    pipeline->drawMesh(surface_mesh, num_inner_tri, total_triangles,
+                       NUM_LODS * 4);
 }
 
 void VisualSystem::processSky() {
