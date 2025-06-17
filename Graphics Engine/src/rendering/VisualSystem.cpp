@@ -920,6 +920,47 @@ void VisualSystem::performWaterSurfacePass() {
     context->PSSetShaderResources(2, 1, &depth_stencil_copy->shader_view);
     context->PSSetShaderResources(3, 1, &bump_tex->shader_view);
 
+    const float STARTING_SCALE = 5.f;
+    constexpr int NUM_LODS = 3;
+    {
+        IConstantBuffer vCB2 = pipeline->loadVertexCB(CB2);
+
+        float scale = STARTING_SCALE;
+        for (int i = 0; i < NUM_LODS; i++) {
+            Vector2 m_scale;
+
+            m_scale = Vector2(scale, 0);
+            vCB2.loadData(&m_scale, FLOAT2);
+            vCB2.loadData(nullptr, FLOAT2);
+            m_scale = Vector2(0, scale);
+            vCB2.loadData(&m_scale, FLOAT2);
+            vCB2.loadData(nullptr, FLOAT2);
+
+            m_scale = Vector2(0, scale);
+            vCB2.loadData(&m_scale, FLOAT2);
+            vCB2.loadData(nullptr, FLOAT2);
+            m_scale = Vector2(-scale, 0);
+            vCB2.loadData(&m_scale, FLOAT2);
+            vCB2.loadData(nullptr, FLOAT2);
+
+            m_scale = Vector2(-scale, 0);
+            vCB2.loadData(&m_scale, FLOAT2);
+            vCB2.loadData(nullptr, FLOAT2);
+            m_scale = Vector2(0, -scale);
+            vCB2.loadData(&m_scale, FLOAT2);
+            vCB2.loadData(nullptr, FLOAT2);
+
+            m_scale = Vector2(0, -scale);
+            vCB2.loadData(&m_scale, FLOAT2);
+            vCB2.loadData(nullptr, FLOAT2);
+            m_scale = Vector2(scale, 0);
+            vCB2.loadData(&m_scale, FLOAT2);
+            vCB2.loadData(nullptr, FLOAT2);
+
+            scale *= 2;
+        }
+    }
+
     const Mesh* surface_mesh = terrain->getWaterSurface()->getSurfaceMesh();
 
     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -934,8 +975,14 @@ void VisualSystem::performWaterSurfacePass() {
                                 &vertexOffset);
 
     int numIndices = surface_mesh->triangle_count * 3;
+    int num_inner_tri = terrain->getWaterSurface()->getNumInnerTriangles() * 3;
     context->OMSetBlendState(blend_state, NULL, 0xffffffff);
-    context->DrawIndexed(numIndices, 0, 0);
+
+    // Draw the inner ring
+    context->DrawIndexedInstanced(num_inner_tri, 4, 0, 0, 0);
+    // Draw every LOD
+    context->DrawIndexedInstanced(numIndices - num_inner_tri, NUM_LODS * 4,
+                                  num_inner_tri, 0, 0);
 }
 
 void VisualSystem::processSky() {

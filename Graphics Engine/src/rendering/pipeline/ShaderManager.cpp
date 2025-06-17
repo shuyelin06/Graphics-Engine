@@ -132,7 +132,7 @@ void ShaderManager::initializeShaders() {
         {"LightFrustum", "V_LightFrustum.hlsl", "vs_main", false});
     createPixelShader({"LightFrustum", "P_LightFrustum.hlsl", "ps_main"});
 
-    input_layout_arr = {POSITION};
+    input_layout_arr = {POSITION, INSTANCE_ID};
     createVertexShader(
         {"WaterSurface", "V_WaterSurface.hlsl", "vs_main", false});
     createPixelShader({"WaterSurface", "P_WaterSurface.hlsl", "ps_main"});

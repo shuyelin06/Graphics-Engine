@@ -1,5 +1,8 @@
 #include "WaterSurface.h"
 
+#include <algorithm>
+#include <queue>
+
 #include "math/Compute.h"
 
 namespace Engine {
@@ -7,105 +10,277 @@ namespace Graphics {
 WaterSurface::WaterSurface() = default;
 WaterSurface::~WaterSurface() = default;
 
-// LevelOfDetail:
-// Determines the level of detail for the water surface.
-// As distance increases, the level of detail we need should decrease
-int WaterSurface::levelOfDetail(float dist) {
-    constexpr int LOD_MAX = 9;
-    const float DIST_MAX = size * 15.f;
-
-    const float a = LOD_MAX / (DIST_MAX * DIST_MAX);
-    const float b = -2 * LOD_MAX / DIST_MAX;
-    const float c = LOD_MAX;
-
-    return (dist * (a * dist + b)) + c;
-}
-
 // GenerateSurfaceMesh
 // Generates a surface mesh for the water. Does this by creating a
 // plane, which has been subdivided N times. The vertices of this
 // plane will be transformed in the vertex shader to the appropriate
 // water heights.
-void WaterSurface::generateSurfaceMesh(ID3D11Device* device, float _size,
-                                       int subdivisions) {
+struct IndexPair {
+    int x, z;
+    IndexPair(int _x, int _z) {
+        x = _x;
+        z = _z;
+    }
+};
+
+// GenerateSurfaceMesh:
+// Generates a water surface mesh. This is done in a way where the mesh, when
+// scaled by a factor of 2, can seamlessly fit onto the next mesh. This lets us
+// implement LODs for the water using instancing. To work, the generated mesh
+// creates a "ring" like mesh in a single quadrant. This has a few implications:
+// 1) The inner ring must be rendered separately. It is, however, included in
+// the mesh in the first XX triangles 2) Every render of this mesh must be
+// repeated 3 more times for each of the other 3 quadrants.
+//    The mesh has to be rotated to fit the other quadrants.
+// These requirements make it really convenient to render this mesh with
+// instancing. Width determines how many tiles this LOD layer will have before
+// transitioning to the next. The larger the width, the larger an LOD will be.
+void WaterSurface::generateSurfaceMesh(ID3D11Device* device, int width) {
+
     MeshBuilder builder = MeshBuilder(BUILDER_POSITION);
-    size = _size;
+    // Saves how many of the initial triangles belong to the inner mesh that
+    // fills in the ring. This mesh should only be rendered once, for the
+    // closest water surface mesh.
+    num_inner_tri = 0;
 
-    /*
-    a1 -- a2 -- a3
-    |     |     |
-    b1 -- b2 -- b3
-    |     |     |
-    c1 -- c2 -- c3
-    We create these vertices and subdivide them.
-    When subdividing, the 4 corners will be given in CW order, with
-    the first corner given being the closest to the center
-    */
-    const UINT a1 = builder.addVertex(Vector3(-size, 0, size));
-    const UINT a2 = builder.addVertex(Vector3(0, 0, size));
-    const UINT a3 = builder.addVertex(Vector3(size, 0, size));
+    std::queue<IndexPair> queue;
 
-    const UINT b1 = builder.addVertex(Vector3(-size, 0, 0));
-    const UINT b2 = builder.addVertex(Vector3(0, 0, 0));
-    const UINT b3 = builder.addVertex(Vector3(size, 0, 0));
+    // We generate our mesh in 2 passes. The first pass will generate the inner
+    // mesh that fills in the ring. This mesh will be in the first XX
+    // triangles of the index buffer, and should only be rendered for the first
+    // water LOD.
+    // Generation works by radially traversing outwards in a grid-like mannner,
+    // where each tile is split into 4 quadrants as so:
+    //
+    // B -- BC -- C
+    // |    |     |
+    // AB - CEN - CD
+    // |    |     |
+    // A -- DA -- D
+    //
+    // The choice of what points in that tile to include are given in the loop
+    // below.
+    queue.push({0, 0});
 
-    const UINT c1 = builder.addVertex(Vector3(-size, 0, -size));
-    const UINT c2 = builder.addVertex(Vector3(0, 0, -size));
-    const UINT c3 = builder.addVertex(Vector3(size, 0, -size));
+    while (!queue.empty()) {
+        const int num_elements = queue.size();
+        for (int i = 0; i < num_elements; i++) {
+            IndexPair pair = queue.front();
+            queue.pop();
 
-    subdivideSurface(builder, b2, b1, a1, a2, 0);
-    subdivideSurface(builder, b2, a2, a3, b3, 0);
-    subdivideSurface(builder, b2, c2, c1, b1, 0);
-    subdivideSurface(builder, b2, b3, c3, c2, 0);
+            // 1) If radius < width, we need to triangulate the tile into 4
+            // quadrants. 2) If radius == widt, we need to only triangulate the
+            // closest quadrants
+            //    to (0,0)
+            const int radius = max(pair.x, pair.z);
+            if (radius <= width) {
+                const Vector3 A = Vector3(pair.x, 0.f, pair.z);
+                const Vector3 B = A + Vector3(0, 0, 1);
+                const Vector3 C = B + Vector3(1, 0, 0);
+                const Vector3 D = C + Vector3(0, 0, -1);
+
+                const Vector3 AB = (A + B) / 2.f;
+                const Vector3 BC = (B + C) / 2.f;
+                const Vector3 CD = (C + D) / 2.f;
+                const Vector3 DA = (D + A) / 2.f;
+                const Vector3 CENTER = (AB + CD) / 2.f;
+
+                // Here, we want to generate all 4 quadrants of each tile.
+                if (radius < width) {
+                    const UINT a = builder.addVertex(A);
+                    const UINT ab = builder.addVertex(AB);
+                    const UINT b = builder.addVertex(B);
+                    const UINT bc = builder.addVertex(BC);
+                    const UINT c = builder.addVertex(C);
+                    const UINT cd = builder.addVertex(CD);
+                    const UINT d = builder.addVertex(D);
+                    const UINT da = builder.addVertex(DA);
+                    const UINT cen = builder.addVertex(CENTER);
+
+                    addQuad(builder, cen, da, a, ab);
+                    addQuad(builder, cen, ab, b, bc);
+                    addQuad(builder, cen, bc, c, cd);
+                    addQuad(builder, cen, cd, d, da);
+                    num_inner_tri += 8;
+                }
+                // Here, we only add the closest quadrants to (0,0)
+                else {
+                    const UINT a = builder.addVertex(A);
+                    const UINT ab = builder.addVertex(AB);
+                    const UINT cen = builder.addVertex(CENTER);
+                    const UINT da = builder.addVertex(DA);
+                    addQuad(builder, a, ab, cen, da);
+                    num_inner_tri += 2;
+
+                    if (pair.x < pair.z) {
+                        const UINT cd = builder.addVertex(CD);
+                        const UINT d = builder.addVertex(D);
+                        addQuad(builder, cen, cd, d, da);
+                        num_inner_tri += 2;
+                    } else if (pair.z < pair.x) {
+                        const UINT b = builder.addVertex(B);
+                        const UINT bc = builder.addVertex(BC);
+                        addQuad(builder, ab, b, bc, cen);
+                        num_inner_tri += 2;
+                    }
+                }
+
+                // Continue my iteration
+                if (radius < width) {
+                    if (pair.x <= pair.z)
+                        queue.push({pair.x, pair.z + 1});
+                    if (pair.z <= pair.x)
+                        queue.push({pair.x + 1, pair.z});
+                    if (pair.x == pair.z)
+                        queue.push({pair.x + 1, pair.z + 1});
+                }
+            }
+        }
+    }
+
+    // In the second pass, we will generate the actual LOD part of the mesh.
+    queue.push({0, 0});
+
+    while (!queue.empty()) {
+        const int num_elements = queue.size();
+        for (int i = 0; i < num_elements; i++) {
+            IndexPair pair = queue.front();
+            queue.pop();
+
+            // The radius of our index from the center determines how we will
+            // triangulate this tile.
+            // 1) If radius < width, do nothing
+            // 2) If radius == width, triangulate the furthest quadrants of the
+            // tile 3) If width < radius < 2 * width, triangulate all 4
+            // quadrants 4) If radius == 2 * width, triangulate the tile as 1
+            // quad
+            const int radius = max(pair.x, pair.z);
+            if (width <= radius && radius <= 2 * width) {
+                const Vector3 A = Vector3(pair.x, 0.f, pair.z);
+                const Vector3 B = A + Vector3(0, 0, 1);
+                const Vector3 C = B + Vector3(1, 0, 0);
+                const Vector3 D = C + Vector3(0, 0, -1);
+
+                const Vector3 AB = (A + B) / 2.f;
+                const Vector3 BC = (B + C) / 2.f;
+                const Vector3 CD = (C + D) / 2.f;
+                const Vector3 DA = (D + A) / 2.f;
+                const Vector3 CENTER = (AB + CD) / 2.f;
+
+                if (radius == width) {
+                    const UINT bc = builder.addVertex(BC);
+                    const UINT c = builder.addVertex(C);
+                    const UINT cd = builder.addVertex(CD);
+                    const UINT cen = builder.addVertex(CENTER);
+                    addQuad(builder, bc, c, cd, cen);
+
+                    if (pair.x <= pair.z) {
+                        const UINT ab = builder.addVertex(AB);
+                        const UINT b = builder.addVertex(B);
+                        addQuad(builder, ab, b, bc, cen);
+                    }
+                    if (pair.z <= pair.x) {
+                        const UINT d = builder.addVertex(D);
+                        const UINT da = builder.addVertex(DA);
+                        addQuad(builder, cd, d, da, cen);
+                    }
+                }
+                // Here, we need to blend our tile with the next LOD.
+                // We do this by triangulating the tile in such a way that it
+                // shares points along the border with the next LOD, and does
+                // not generate any extra.
+                else if (radius == 2 * width - 1) {
+                    if (pair.x < pair.z) {
+                        const UINT a = builder.addVertex(A);
+                        const UINT ab = builder.addVertex(AB);
+                        const UINT b = builder.addVertex(B);
+                        const UINT c = builder.addVertex(C);
+                        const UINT cd = builder.addVertex(CD);
+                        const UINT d = builder.addVertex(D);
+                        const UINT da = builder.addVertex(DA);
+                        const UINT cen = builder.addVertex(CENTER);
+
+                        builder.addTriangle(ab, b, cen);
+                        builder.addTriangle(cen, b, c);
+                        builder.addTriangle(cen, c, cd);
+
+                        addQuad(builder, a, ab, cen, da);
+                        addQuad(builder, da, cen, cd, d);
+                    } else if (pair.z < pair.x) {
+                        const UINT a = builder.addVertex(A);
+                        const UINT ab = builder.addVertex(AB);
+                        const UINT b = builder.addVertex(B);
+                        const UINT bc = builder.addVertex(BC);
+                        const UINT c = builder.addVertex(C);
+                        const UINT d = builder.addVertex(D);
+                        const UINT da = builder.addVertex(DA);
+                        const UINT cen = builder.addVertex(CENTER);
+
+                        builder.addTriangle(bc, c, cen);
+                        builder.addTriangle(cen, c, d);
+                        builder.addTriangle(cen, d, da);
+
+                        addQuad(builder, ab, b, bc, cen);
+                        addQuad(builder, a, ab, cen, da);
+                    } else {
+                        const UINT a = builder.addVertex(A);
+                        const UINT ab = builder.addVertex(AB);
+                        const UINT b = builder.addVertex(B);
+                        const UINT c = builder.addVertex(C);
+                        const UINT d = builder.addVertex(D);
+                        const UINT da = builder.addVertex(DA);
+                        const UINT cen = builder.addVertex(CENTER);
+
+                        builder.addTriangle(cen, ab, b);
+                        builder.addTriangle(cen, b, c);
+                        builder.addTriangle(cen, c, d);
+                        builder.addTriangle(cen, d, da);
+
+                        addQuad(builder, a, ab, cen, da);
+                    }
+                } else if (radius == 2 * width) {
+                    const UINT a = builder.addVertex(A);
+                    const UINT b = builder.addVertex(B);
+                    const UINT c = builder.addVertex(C);
+                    const UINT d = builder.addVertex(D);
+
+                    addQuad(builder, a, b, c, d);
+                } else {
+                    const UINT a = builder.addVertex(A);
+                    const UINT ab = builder.addVertex(AB);
+                    const UINT b = builder.addVertex(B);
+                    const UINT bc = builder.addVertex(BC);
+                    const UINT c = builder.addVertex(C);
+                    const UINT cd = builder.addVertex(CD);
+                    const UINT d = builder.addVertex(D);
+                    const UINT da = builder.addVertex(DA);
+                    const UINT cen = builder.addVertex(CENTER);
+
+                    addQuad(builder, cen, da, a, ab);
+                    addQuad(builder, cen, ab, b, bc);
+                    addQuad(builder, cen, bc, c, cd);
+                    addQuad(builder, cen, cd, d, da);
+                }
+            }
+
+            if (radius <= 2 * width) {
+                if (pair.x <= pair.z)
+                    queue.push({pair.x, pair.z + 1});
+                if (pair.z <= pair.x)
+                    queue.push({pair.x + 1, pair.z});
+                if (pair.x == pair.z)
+                    queue.push({pair.x + 1, pair.z + 1});
+            }
+        }
+    }
 
     surface_mesh = builder.generateMesh(device);
 }
 
-// Given a quad formed by points a,b,c,d (in a rectangle)
-// a -- b
-// |    |
-// d -- c
-// We assume that vertex a is closest to the center of the plane's surface
-// Recursivly subdivides this plane into quadrants.
-void WaterSurface::subdivideSurface(MeshBuilder& builder, UINT a, UINT b,
-                                    UINT c, UINT d, int depth) {
-    // Get the position of A, and see how far it is from the center.
-    const Vector3 A = builder.getPosition(a);
-    const float dist = sqrtf(A.x * A.x + A.z * A.z); // Manual since y = 0
-
-    // We plug this distance into a function, telling us the level of
-    // subdivisions we want at that distance. This tells us if we need to
-    // subdivide more or not. This should be a decreasing function
-    const int lod = levelOfDetail(dist);
-
-    // Recursive Case:
-    // Subdivide further
-    if (depth < lod) {
-        const Vector3 ab = (A + builder.getPosition(b)) / 2.f;
-        const Vector3 bc =
-            (builder.getPosition(b) + builder.getPosition(c)) / 2.f;
-        const Vector3 cd =
-            (builder.getPosition(c) + builder.getPosition(d)) / 2.f;
-        const Vector3 da = (builder.getPosition(d) + A) / 2.f;
-        const Vector3 center = (ab + cd) / 2.f;
-
-        const UINT ab_i = builder.addVertex(ab);
-        const UINT bc_i = builder.addVertex(bc);
-        const UINT cd_i = builder.addVertex(cd);
-        const UINT da_i = builder.addVertex(da);
-        const UINT center_i = builder.addVertex(center);
-
-        subdivideSurface(builder, a, ab_i, center_i, da_i, depth + 1);
-        subdivideSurface(builder, ab_i, b, bc_i, center_i, depth + 1);
-        subdivideSurface(builder, da_i, center_i, cd_i, d, depth + 1);
-        subdivideSurface(builder, center_i, bc_i, c, cd_i, depth + 1);
-    }
-    // Base Case:
-    // Add triangles to make the quad
-    else {
-        builder.addTriangle(d, a, b);
-        builder.addTriangle(c, d, b);
-    }
+void WaterSurface::addQuad(MeshBuilder& builder, UINT a, UINT b, UINT c,
+                           UINT d) {
+    builder.addTriangle(a, b, c);
+    builder.addTriangle(c, d, a);
 }
 
 // GenerateWaveConfig:
@@ -136,6 +311,7 @@ void WaterSurface::generateWaveConfig(int wave_count) {
 // --- Accessors ---
 // GetSurfaceMesh:
 const Mesh* WaterSurface::getSurfaceMesh() const { return surface_mesh; }
+int WaterSurface::getNumInnerTriangles() const { return num_inner_tri; }
 
 // GetNumWaves:
 int WaterSurface::getNumWaves() const { return num_waves; }

@@ -20,6 +20,7 @@ class WaterSurface {
     float size;
 
     Mesh* surface_mesh;
+    int num_inner_tri;
 
     int num_waves;
     std::vector<WaveConfig> wave_config;
@@ -28,20 +29,16 @@ class WaterSurface {
     WaterSurface();
     ~WaterSurface();
 
-    void generateSurfaceMesh(ID3D11Device* device, float size,
-                             int num_subdivisions);
+    void generateSurfaceMesh(ID3D11Device* device, int lod_width);
     void generateWaveConfig(int wave_count);
 
     const Mesh* getSurfaceMesh() const;
+    int getNumInnerTriangles() const;
     int getNumWaves() const;
     const std::vector<WaveConfig>& getWaveConfig() const;
 
   private:
-    // Determines how many subdivisions we need to make for the
-    // water surface
-    int levelOfDetail(float distance);
-    void subdivideSurface(MeshBuilder& builder, UINT a, UINT b, UINT c, UINT d,
-                          int depth);
+    void addQuad(MeshBuilder& builder, UINT a, UINT b, UINT c, UINT d);
 };
 
 } // namespace Graphics

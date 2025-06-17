@@ -28,10 +28,20 @@ cbuffer CB1_WAVE_INFO : register(b1)
     WaveConfig waves[100];
 }
 
+#define NUM_LODS 8
+cbuffer CB2_SCALE : register(b2)
+{
+    float2x2 m_scale[NUM_LODS * 4];
+}
+
 struct VS_INPUT
 {
     // Position of the water surface
     float3 surface_point : POSITION;
+    
+    // Unique identifier telling us what LOD this
+    // mesh is in
+    uint instance : SV_InstanceID;
 };
 
 struct PS_INPUT
@@ -48,8 +58,9 @@ PS_INPUT vs_main(VS_INPUT input)
     
     // Transform the point so that the water surface is centered
     // around the camera
-    float x = input.surface_point.x + camera_position.x;
-    float z = input.surface_point.z + camera_position.z;
+    float2 scaled_xz = mul(m_scale[input.instance], float2(input.surface_point.x, input.surface_point.z));
+    float x = scaled_xz.x + camera_position.x;
+    float z = scaled_xz.y + camera_position.z;
     
     // Sample our function to determine the water surface height.
     // We will also sample the function's x,z derivatives, so we can
