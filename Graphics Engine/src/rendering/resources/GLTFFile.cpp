@@ -63,7 +63,8 @@ static void ParseVertexProperty(const cgltf_accessor* accessor,
 }
 
 Asset* GLTFFile::readFromFile(MeshBuilder& mesh_builder,
-                              AtlasBuilder& tex_builder, ID3D11Device* device) {
+                              AtlasBuilder& tex_builder, ID3D11Device* device,
+                              ID3D11DeviceContext* context) {
     cgltf_options options = {};
     cgltf_data* data = NULL;
 
@@ -120,28 +121,28 @@ Asset* GLTFFile::readFromFile(MeshBuilder& mesh_builder,
 
                     switch (type) {
                     case cgltf_attribute_type_position:
-                        mesh_builder.addLayout(BUILDER_POSITION);
+                        mesh_builder.addLayout(POSITION);
                         ParseVertexProperty(attr.data,
                                             MeshVertex::AddressPosition,
                                             sizeof(Vector3), vertex_data);
                         break;
 
-                    case cgltf_attribute_type_normal:
-                        mesh_builder.addLayout(BUILDER_NORMAL);
-                        ParseVertexProperty(attr.data,
-                                            MeshVertex::AddressNormal,
-                                            sizeof(Vector3), vertex_data);
-                        break;
-
                     case cgltf_attribute_type_texcoord:
-                        mesh_builder.addLayout(BUILDER_TEXTURE);
+                        mesh_builder.addLayout(TEXTURE);
                         ParseVertexProperty(attr.data,
                                             MeshVertex::AddressTexture,
                                             sizeof(Vector2), vertex_data);
                         break;
 
+                    case cgltf_attribute_type_normal:
+                        mesh_builder.addLayout(NORMAL);
+                        ParseVertexProperty(attr.data,
+                                            MeshVertex::AddressNormal,
+                                            sizeof(Vector3), vertex_data);
+                        break;
+
                     case cgltf_attribute_type_joints: {
-                        mesh_builder.addLayout(BUILDER_JOINTS);
+                        mesh_builder.addLayout(JOINTS);
                         ParseAccessor<Uint4>(attr.data, u4b_data);
                         vertex_data.resize(u4b_data.size());
                         for (int i = 0; i < u4b_data.size(); i++) {
@@ -154,7 +155,7 @@ Asset* GLTFFile::readFromFile(MeshBuilder& mesh_builder,
                     } break;
 
                     case cgltf_attribute_type_weights:
-                        mesh_builder.addLayout(BUILDER_WEIGHTS);
+                        mesh_builder.addLayout(WEIGHTS);
                         ParseVertexProperty(attr.data,
                                             MeshVertex::AddressWeights,
                                             sizeof(Vector4), vertex_data);
@@ -178,10 +179,16 @@ Asset* GLTFFile::readFromFile(MeshBuilder& mesh_builder,
                 mesh_builder.addTriangles(triangle_data, start_index);
 
                 // Parse the material information
-                parseMaterial(prim.material, material, tex_builder);
+                parseMaterial(prim.material, mesh_builder, material,
+                              tex_builder);
 
                 // Register mesh under the asset
-                Mesh* generated_mesh = mesh_builder.generateMesh(device, material);
+                // TESTING: Using 1 pool to hold all GLTF meshes to see if this
+                // works
+                static MeshPool* pool =
+                    new MeshPool(device, 0xFFFF, 100000, 100000);
+                Mesh* generated_mesh =
+                    mesh_builder.generateMesh(context, pool, material);
                 asset->addMesh(generated_mesh);
             }
         }
@@ -352,9 +359,12 @@ Asset* GLTFFile::readFromFile(MeshBuilder& mesh_builder,
 }
 
 // --- Parsing ---
-void GLTFFile::parseMaterial(const cgltf_material* mat_data, Material& material,
+void GLTFFile::parseMaterial(const cgltf_material* mat_data,
+                             MeshBuilder& builder, Material& material,
                              AtlasBuilder& tex_builder) {
     if (mat_data->has_pbr_metallic_roughness) {
+        builder.addLayout(TEXTURE);
+
         const cgltf_pbr_metallic_roughness roughness =
             mat_data->pbr_metallic_roughness;
 

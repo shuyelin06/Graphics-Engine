@@ -22,11 +22,12 @@ class GLTFFile {
     GLTFFile(const std::string& path);
 
     Asset* readFromFile(MeshBuilder& mesh_builder, AtlasBuilder& tex_builder,
-                        ID3D11Device* device);
+                        ID3D11Device* device, ID3D11DeviceContext* context);
 
   private:
     // Material Parsing
-    void parseMaterial(const cgltf_material* mat_data, Material& material,
+    void parseMaterial(const cgltf_material* mat_data,
+                       MeshBuilder& mesh_builder, Material& material,
                        AtlasBuilder& tex_builder);
     const AtlasAllocation& parseBaseColorTex(const cgltf_texture* tex,
                                              AtlasBuilder& tex_builder);

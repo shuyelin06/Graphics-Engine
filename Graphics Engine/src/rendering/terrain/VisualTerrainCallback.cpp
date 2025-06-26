@@ -23,6 +23,9 @@ VisualTerrainCallback::VisualTerrainCallback() = default;
 
 void VisualTerrainCallback::initialize(ID3D11Device* _device) {
     device = _device;
+
+    builder.addLayout(POSITION);
+    builder.addLayout(NORMAL);
 }
 
 // LoadMesh:
@@ -60,6 +63,8 @@ bool VisualTerrainCallback::isDirty() {
 // and stores it in output_mesh for the visual terrain interface to use.
 void VisualTerrainCallback::reloadTerrainData(const TerrainChunk* chunk_data) {
     builder.reset();
+    builder.addLayout(POSITION);
+    builder.addLayout(NORMAL);
 
     // Hashes vertices to their index in the mesh builder, so that we can reuse
     // vertices to get smooth normals.

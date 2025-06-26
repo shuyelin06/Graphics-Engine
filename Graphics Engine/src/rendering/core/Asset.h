@@ -43,20 +43,56 @@ struct Material {
 // Specifies a mesh, which is a collection of vertices that has the same
 // material (renderable configuration). Vertices are stored in separate vertex
 // streams, so that they have an easier time being passed as input into shaders.
-struct Mesh {
-    // Index buffer pointing to indices in the vertex stream, to create
-    // vertices.
-    ID3D11Buffer* index_buffer;
-    UINT triangle_count;
 
-    // My different vertex streams
-    ID3D11Buffer* vertex_streams[BINDABLE_STREAM_COUNT];
+// TODO: MeshPool will let us group meshes into shared buffers
+struct MeshPool {
+  private:
+    friend class MeshBuilder;
+    MeshPool();
+
+  public:
+    // Layout, i.e. the streams that the pool stores
+    uint16_t layout;
+    // Tracks whether or not the buffers are mappable
+    bool mappable;
+
+    // Index / Vertex Buffers
+    ID3D11Buffer* ibuffer;
+    uint32_t triangle_size;     // # Tris Currently in the Buffer
+    uint32_t triangle_capacity; // # Tris the Buffer can Hold
+
+    ID3D11Buffer* vbuffers[BINDABLE_STREAM_COUNT];
+    uint32_t vertex_size;     // # Vertices Currently in the Buffer
+    uint32_t vertex_capacity; // # Vertices the Buffer can Hold
+
+    MeshPool(ID3D11Device* device, uint16_t layout, uint32_t triangle_max,
+             uint32_t vertex_max);
+    ~MeshPool();
+};
+
+struct Mesh {
+    // MeshPool (Collection of Buffers) Containing the Mesh.
+    uint16_t layout;
+    MeshPool* buffer_pool;
+    // Tracks if the mesh knows the pool is not shared. If the pool is not shared,
+    // then the mesh will automatically deallocate the pool when it is destroyed.
+    bool is_pool_mine; 
+
+    // Vertex / Index Starts and Offsets into the MeshPool
+    uint32_t vertex_start;
+    uint32_t num_vertices;
+
+    uint32_t triangle_start;
+    uint32_t num_triangles;
 
     // AABB for the Mesh
     Math::AABB aabb;
 
     // Renderable Properties
     Material material;
+
+    Mesh();
+    ~Mesh();
 };
 
 // --- Node ---

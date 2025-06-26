@@ -73,10 +73,10 @@ void LightManager::clusterShadowCasters() {
             const AABB aabb = obj.mesh->aabb;
             const Matrix4 m_local = obj.m_localToWorld;
             OBB obb = OBB(aabb, m_local);
-            if (frustum.intersectsOBB(obb)) {
-                shadow_cluster_indices.push_back(j);
-                cluster.caster_offset++;
-            }
+            // if (frustum.intersectsOBB(obb)) {
+            shadow_cluster_indices.push_back(j);
+            cluster.caster_offset++;
+            // }
         }
 
         if (cluster.caster_offset > 0)

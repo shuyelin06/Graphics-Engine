@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 namespace Engine {
 namespace Graphics {
 
@@ -9,6 +11,10 @@ namespace Graphics {
 // of each stream are aligned (vertex 0 has position at index 0, texture at
 // position 0, normal at position 0...)
 // We separate into data streams so that it's easier to configure shader inputs.
+//
+// These stream indices can be converted to a layout pin, by treating each
+// index as a bit position. For example, if a layout needs POSITION, TEX, then
+// flip the bits at POSITION (0) and TEXTURE (1).
 enum VertexDataStream {
     POSITION = 0, // 3D XYZ Position (3 Floats)
     TEXTURE = 1,  // 2D Texture Coordinates (2 Floats)
@@ -29,6 +35,20 @@ enum VertexDataStream {
     // SV_POSITION: Used for post-processing
     SV_POSITION,
 };
+
+static inline bool LayoutPinHas(uint16_t pin, VertexDataStream stream) {
+    return (pin & (1 << stream)) == (1 << stream);
+}
+
+static inline uint16_t VertexStreamLayoutPin(VertexDataStream* streams,
+                                             size_t size) {
+    uint16_t pin = 0;
+
+    for (int i = 0; i < size; i++)
+        pin |= (1 << streams[i]);
+
+    return pin;
+}
 
 } // namespace Graphics
 } // namespace Engine

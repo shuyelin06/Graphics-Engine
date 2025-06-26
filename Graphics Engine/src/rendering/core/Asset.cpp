@@ -10,7 +10,87 @@ namespace Graphics {
 Material::Material() { diffuse_factor = 0.5f; }
 
 // --- Mesh ---
-// ...
+MeshPool::MeshPool() {
+    layout = 0;
+    mappable = false;
+    ibuffer = NULL;
+    triangle_size = triangle_capacity = 0;
+    memset(vbuffers, 0, sizeof(ID3D11Buffer*) * BINDABLE_STREAM_COUNT);
+    vertex_size = vertex_capacity = 0;
+}
+
+MeshPool::MeshPool(ID3D11Device* device, uint16_t _layout, uint32_t i_size,
+                   uint32_t v_size) {
+    D3D11_BUFFER_DESC buff_desc = {};
+
+    layout = _layout;
+    mappable = true;
+
+    // Create my index buffer
+    triangle_size = 0;
+    triangle_capacity = i_size;
+    buff_desc.ByteWidth = triangle_capacity * 3 * sizeof(UINT);
+    buff_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+    buff_desc.Usage = D3D11_USAGE_DYNAMIC;
+    buff_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    device->CreateBuffer(&buff_desc, NULL, &ibuffer);
+
+    // Create my vertex buffers
+    vertex_size = 0;
+    vertex_capacity = v_size;
+    buff_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    buff_desc.Usage = D3D11_USAGE_DYNAMIC;
+    buff_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+    if (LayoutPinHas(layout, POSITION)) {
+        buff_desc.ByteWidth = vertex_capacity * sizeof(Vector3);
+        device->CreateBuffer(&buff_desc, NULL, &vbuffers[POSITION]);
+    }
+    if (LayoutPinHas(layout, TEXTURE)) {
+        buff_desc.ByteWidth = vertex_capacity * sizeof(Vector2);
+        device->CreateBuffer(&buff_desc, NULL, &vbuffers[TEXTURE]);
+    }
+    if (LayoutPinHas(layout, NORMAL)) {
+        buff_desc.ByteWidth = vertex_capacity * sizeof(Vector3);
+        device->CreateBuffer(&buff_desc, NULL, &vbuffers[NORMAL]);
+    }
+    if (LayoutPinHas(layout, COLOR)) {
+        buff_desc.ByteWidth = vertex_capacity * sizeof(Vector3);
+        device->CreateBuffer(&buff_desc, NULL, &vbuffers[COLOR]);
+    }
+    if (LayoutPinHas(layout, JOINTS)) {
+        buff_desc.ByteWidth = vertex_capacity * sizeof(Vector4);
+        device->CreateBuffer(&buff_desc, NULL, &vbuffers[JOINTS]);
+    }
+    if (LayoutPinHas(layout, WEIGHTS)) {
+        buff_desc.ByteWidth = vertex_capacity * sizeof(Vector4);
+        device->CreateBuffer(&buff_desc, NULL, &vbuffers[WEIGHTS]);
+    }
+}
+
+MeshPool::~MeshPool() {
+    ibuffer->Release();
+
+    for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
+        if (vbuffers[i] != nullptr)
+            vbuffers[i]->Release();
+    }
+}
+
+Mesh::Mesh() {
+    layout = 0;
+    buffer_pool = NULL;
+    is_pool_mine = false;
+    vertex_start = num_vertices = 0;
+    triangle_start = num_triangles = 0;
+    aabb = AABB();
+    material = Material();
+}
+
+Mesh::~Mesh() {
+    if (is_pool_mine)
+        delete buffer_pool;
+}
 
 // --- Node ---
 Node::Node() : children(0), parent(nullptr) { transform = Transform(); }

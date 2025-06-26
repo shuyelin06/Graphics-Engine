@@ -363,7 +363,7 @@ VisualSystem::bindAssetComponent(Object* object,
 }
 
 ShadowLightComponent* VisualSystem::bindLightComponent(Object* object) {
-    ShadowLight* light = light_manager->createShadowLight(QUALITY_1);
+    ShadowLight* light = light_manager->createShadowLight(QUALITY_5);
     ShadowLightComponent* light_obj = new ShadowLightComponent(object, light);
     light_components.newComponent(object, light_obj);
     return light_obj;
@@ -531,6 +531,18 @@ void VisualSystem::pullDatamodelData() {
     // ---
 
     // TODO: Terrain is not included in shadows
+    /*BufferPool* bpool_terrain = terrain->getMesh();
+    static Mesh* t_mesh = new Mesh();
+    t_mesh->index_buffer = bpool_terrain->getIndexBuffer();
+    t_mesh->triangle_count = bpool_terrain->getNumTriangles();
+    t_mesh->vertex_streams[POSITION] = bpool_terrain->getPositionBuffer();
+    t_mesh->aabb = AABB();
+    t_mesh->aabb.expandToContain(Vector3(-500, -500, -500));
+    t_mesh->aabb.expandToContain(Vector3(500, 500, 500));
+    ShadowCaster shadowCaster;
+    shadowCaster.mesh = t_mesh;
+    shadowCaster.m_localToWorld = Matrix4::Identity();
+    light_manager->addShadowCaster(shadowCaster);*/
 
     // Cluster shadows
     light_manager->clusterShadowCasters();
@@ -598,20 +610,7 @@ void VisualSystem::performShadowPass() {
                 vCB1.loadData(&mLocalToWorld, FLOAT4X4);
             }
 
-            ID3D11Buffer* index_buffer = mesh->index_buffer;
-            ID3D11Buffer* position_stream = mesh->vertex_streams[POSITION];
-            UINT num_indices = mesh->triangle_count * 3;
-
-            UINT vertexStride = sizeof(float) * 3;
-            UINT vertexOffset = 0;
-
-            context->IASetPrimitiveTopology(
-                D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-            context->IASetVertexBuffers(POSITION, 1, &position_stream,
-                                        &vertexStride, &vertexOffset);
-            context->IASetIndexBuffer(index_buffer, DXGI_FORMAT_R32_UINT, 0);
-
-            context->DrawIndexed(num_indices, 0, 0);
+            pipeline->drawMesh(mesh, INDEX_LIST_START, INDEX_LIST_END, 1);
         }
     }
 }
@@ -750,7 +749,7 @@ void VisualSystem::performRenderPass() {
             }
 
             // Draw each mesh
-            pipeline->drawMesh(mesh, 0, INDEX_LIST_END, 1);
+            pipeline->drawMesh(mesh, INDEX_LIST_START, INDEX_LIST_END, 1);
         }
     }
 }
@@ -907,7 +906,7 @@ void VisualSystem::performWaterSurfacePass() {
     context->OMSetBlendState(blend_state, NULL, 0xffffffff);
 
     const Mesh* surface_mesh = terrain->getWaterSurface()->getSurfaceMesh();
-    const int total_triangles = surface_mesh->triangle_count;
+    const int total_triangles = surface_mesh->num_triangles;
     const int num_inner_tri =
         terrain->getWaterSurface()->getNumInnerTriangles();
 
@@ -1064,9 +1063,9 @@ void VisualSystem::renderDebugPoints() {
     Asset* cube = resource_manager->getAsset("Cube");
     const Mesh* mesh = cube->getMesh(0);
 
-    ID3D11Buffer* indexBuffer = mesh->index_buffer;
-    ID3D11Buffer* vertexBuffer = mesh->vertex_streams[POSITION];
-    int numIndices = mesh->triangle_count * 3;
+    ID3D11Buffer* indexBuffer = mesh->buffer_pool->ibuffer;
+    ID3D11Buffer* vertexBuffer = mesh->buffer_pool->vbuffers[POSITION];
+    int numIndices = mesh->num_triangles * 3;
 
     UINT vertexStride = sizeof(float) * 3;
     UINT vertexOffset = 0;

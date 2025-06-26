@@ -43,6 +43,7 @@ class PipelineManager {
     ID3D11SamplerState* samplers[SAMPLER_COUNT];
 
     // Bound Vertex / Index Buffer
+    const void* active_pool_addr;
     ID3D11Buffer* vb_buffers[BINDABLE_STREAM_COUNT];
     UINT vb_strides[BINDABLE_STREAM_COUNT];
     UINT vb_offsets[BINDABLE_STREAM_COUNT];

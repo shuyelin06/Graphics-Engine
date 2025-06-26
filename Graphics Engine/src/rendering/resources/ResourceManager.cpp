@@ -114,7 +114,8 @@ bool ResourceManager::LoadAssetFromGLTF(const std::string& asset_name,
                                         AtlasBuilder& tex_builder) {
     MeshBuilder mesh_builder = MeshBuilder();
     GLTFFile gltf_file = GLTFFile(path);
-    Asset* asset = gltf_file.readFromFile(mesh_builder, tex_builder, device);
+    Asset* asset =
+        gltf_file.readFromFile(mesh_builder, tex_builder, device, context);
 
     if (asset != nullptr) {
         registerAsset(asset_name, asset);
@@ -153,7 +154,9 @@ bool ResourceManager::WriteTextureToPNG(ID3D11Texture2D* texture,
 // Hard-Coded Cube Creator
 // Used in debugging
 bool ResourceManager::LoadCube() {
-    MeshBuilder builder = MeshBuilder(BUILDER_POSITION);
+    MeshBuilder builder = MeshBuilder();
+    builder.addLayout(POSITION);
+
     builder.addCube(Vector3(0, 0, 0), Quaternion(), 1.f);
 
     Asset* cube = new Asset();
@@ -161,7 +164,6 @@ bool ResourceManager::LoadCube() {
 
     return registerAsset("Cube", cube);
 }
-
 
 ID3D11DepthStencilState* LoadDSTestAndWrite(ID3D11Device* device) {
     D3D11_DEPTH_STENCIL_DESC desc = {};

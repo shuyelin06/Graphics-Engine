@@ -37,7 +37,9 @@ struct IndexPair {
 // transitioning to the next. The larger the width, the larger an LOD will be.
 void WaterSurface::generateSurfaceMesh(ID3D11Device* device, int width) {
 
-    MeshBuilder builder = MeshBuilder(BUILDER_POSITION);
+    MeshBuilder builder = MeshBuilder();
+    builder.addLayout(POSITION);
+
     // Saves how many of the initial triangles belong to the inner mesh that
     // fills in the ring. This mesh should only be rendered once, for the
     // closest water surface mesh.

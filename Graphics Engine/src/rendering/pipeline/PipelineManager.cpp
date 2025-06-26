@@ -17,6 +17,7 @@ PipelineManager::PipelineManager(ID3D11Device* _device,
     shader_manager->initializeShaders();
 
     // Initialize my vertex buffers / offsets / strides
+    active_pool_addr = NULL;
     memset(vb_buffers, 0, sizeof(ID3D11Buffer*) * BINDABLE_STREAM_COUNT);
     memset(vb_strides, 0, sizeof(UINT) * BINDABLE_STREAM_COUNT);
     memset(vb_offsets, 0, sizeof(UINT) * BINDABLE_STREAM_COUNT);
@@ -83,12 +84,19 @@ IConstantBuffer PipelineManager::loadPixelCB(CBSlot slot) {
 
 // --- Pipeline Binding ---
 bool PipelineManager::bindVertexShader(const std::string& vs_name) {
-    // Save the active vertex shader
-    vs_active = shader_manager->getVertexShader(vs_name);
+    VertexShader* new_shader = shader_manager->getVertexShader(vs_name);
 
     // Check if shader exists
-    if (vs_active == nullptr)
+    if (new_shader == nullptr)
         assert(false);
+
+    // If the new vertex shader has a different layout, invalidate
+    // the active mesh pool as we'll have to upload additional stream data
+    if (active_pool_addr != NULL && vs_active->layout != new_shader->layout)
+        active_pool_addr = NULL;
+
+    // Save the active vertex shader
+    vs_active = new_shader;
 
     // Bind shader and input layout
     context->IASetInputLayout(vs_active->layout);
@@ -116,36 +124,44 @@ void PipelineManager::bindSamplers() {
 
 void PipelineManager::drawMesh(const Mesh* mesh, int tri_start, int tri_end,
                                UINT instance_count) {
+    assert((vs_active->layout_pin & mesh->layout) == vs_active->layout_pin);
+    const MeshPool* pool = mesh->buffer_pool;
+
     // All meshes are assumed to havae a triangle list topology.
     // While there are more efficient representations, this is done
     // for simplicity.
     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    // Bind my index buffer. All meshes are assumed to have one index buffer,
-    // associated with multiple vertex buffers.
-    context->IASetIndexBuffer(mesh->index_buffer, DXGI_FORMAT_R32_UINT, 0);
+    // UNTESTED: If the MeshPool is the same, we don't need to rebind anything
+    if (pool != active_pool_addr) {
+        active_pool_addr = pool;
 
-    // Iterate through the layout of my vertex shader
-    // and bind the vertex buffers that the vertex shader needs.
-    memset(vb_buffers, 0, sizeof(ID3D11Buffer*) * BINDABLE_STREAM_COUNT);
-    for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
-        if ((1 << i) & vs_active->layout_pin) {
-            vb_buffers[i] = mesh->vertex_streams[i];
+        // Bind my index buffer. All meshes are assumed to have one index
+        // buffer, associated with multiple vertex buffers.
+        context->IASetIndexBuffer(pool->ibuffer, DXGI_FORMAT_R32_UINT, 0);
+
+        // Iterate through the layout of my vertex shader
+        // and bind the vertex buffers that the vertex shader needs.
+        memset(vb_buffers, 0, sizeof(ID3D11Buffer*) * BINDABLE_STREAM_COUNT);
+        for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
+            if (((1 << i) & vs_active->layout_pin) == (1 << i)) {
+                vb_buffers[i] = pool->vbuffers[i];
+            }
         }
-    }
 
-    context->IASetVertexBuffers(0, BINDABLE_STREAM_COUNT, vb_buffers,
-                                vb_strides, vb_offsets);
+        context->IASetVertexBuffers(0, BINDABLE_STREAM_COUNT, vb_buffers,
+                                    vb_strides, vb_offsets);
+    }
 
     // Issue my draw call. We will always draw indexed instanced, even if the
     // number of instances is 1.
-    const UINT index_start = tri_start * 3;
-    const UINT num_indices = (tri_end == -1)
-                                 ? mesh->triangle_count * 3 - index_start
-                                 : tri_end * 3 - index_start;
+    const UINT index_start = (mesh->triangle_start + tri_start) * 3;
+    const UINT num_indices =
+        (tri_end == -1) ? mesh->num_triangles * 3 : (tri_end - tri_start) * 3;
+    const UINT index_offset = mesh->vertex_start;
 
-    context->DrawIndexedInstanced(num_indices, instance_count, index_start, 0,
-                                  0);
+    context->DrawIndexedInstanced(num_indices, instance_count, index_start,
+                                  index_offset, 0);
 }
 
 void PipelineManager::drawPostProcessQuad() {

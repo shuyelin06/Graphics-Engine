@@ -129,6 +129,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     Object& fox = parent.createChild();
     visual_system.bindAssetComponent(&fox, "Fox");
     fox.getTransform().setScale(Vector3(5.f, 5.f, 5.f));
+
+    Object& man = parent.createChild();
+    visual_system.bindAssetComponent(&man, "Man");
+    man.getTransform().setScale(Vector3(5.f, 5.f, 5.f));
     // physics_system.bindPhysicsObject(&parent_object);
 
     // --- TESTING ENVIRONMENT
