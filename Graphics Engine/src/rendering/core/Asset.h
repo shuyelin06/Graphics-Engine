@@ -60,21 +60,22 @@ struct MeshPool {
     // Tracks whether or not the buffers are mappable
     bool mappable;
 
-    // Tracks the Meshes Allocated to this Pool.
-    // Only allocated if mappable == true
-    std::optional<std::vector<Mesh*>> meshes;
-
     // Index / Vertex Buffers
     ID3D11Buffer* ibuffer;
-    uint8_t* cpu_ibuffer;   // CPU Copy of the Data. NULL if mappable = false
-    uint32_t triangle_size; // # Tris Currently in the Buffer
+    uint32_t triangle_size;     // # Tris Currently in the Buffer
     uint32_t triangle_capacity; // # Tris the Buffer can Hold
 
     ID3D11Buffer* vbuffers[BINDABLE_STREAM_COUNT];
-    uint8_t* cpu_vbuffers[BINDABLE_STREAM_COUNT]; // CPU Copy of the Data. NULL
-                                                  // if mappable = false
     uint32_t vertex_size;     // # Vertices Currently in the Buffer
     uint32_t vertex_capacity; // # Vertices the Buffer can Hold
+
+    // CPU-Side buffers, for the clean and compact operation.
+    // Only allocated if mappable == true
+    // Tracks the Meshes Allocated to this Pool.
+    std::optional<std::vector<Mesh*>> meshes;
+
+    uint8_t* cpu_ibuffer;
+    uint8_t* cpu_vbuffers[BINDABLE_STREAM_COUNT];
 
   public:
     MeshPool(ID3D11Device* device, uint16_t layout, uint32_t triangle_max,
@@ -84,7 +85,9 @@ struct MeshPool {
     // Only possible if mappable == true.
     // Iterates through the meshes allocated to this pool, and compacts them
     // to remove fragmentation.
-    void cleanAndCompact(ID3D11DeviceContext* context);
+    // First call cleanAndCompact(), then upload this new data to the GPU
+    void cleanAndCompact();
+    void updateGPUResources(ID3D11DeviceContext* context);
 };
 
 struct Mesh {

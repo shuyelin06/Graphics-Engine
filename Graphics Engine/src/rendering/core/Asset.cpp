@@ -65,7 +65,7 @@ MeshPool::MeshPool(ID3D11Device* device, uint16_t _layout, uint32_t i_size,
     }
 }
 
-void MeshPool::cleanAndCompact(ID3D11DeviceContext* context) {
+void MeshPool::cleanAndCompact() {
     assert(mappable);
 
     const std::vector<Mesh*>& allocs = meshes.value();
@@ -90,13 +90,6 @@ void MeshPool::cleanAndCompact(ID3D11DeviceContext* context) {
 
     triangle_size = head;
 
-    // Copy index buffer to the GPU
-    D3D11_MAPPED_SUBRESOURCE sr = {0};
-    context->Map(ibuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &sr);
-    memcpy(static_cast<uint8_t*>(sr.pData), cpu_ibuffer,
-           triangle_capacity * 3 * sizeof(UINT));
-    context->Unmap(ibuffer, 0);
-
     // Remove fragmentation in the vertex buffers on the CPU-side
     head = 0;
 
@@ -119,8 +112,19 @@ void MeshPool::cleanAndCompact(ID3D11DeviceContext* context) {
     }
 
     vertex_size = head;
+}
 
-    // Upload updated data to the GPU
+void MeshPool::updateGPUResources(ID3D11DeviceContext* context) {
+    assert(mappable);
+
+    // Copy index buffer to the GPU
+    D3D11_MAPPED_SUBRESOURCE sr = {0};
+    context->Map(ibuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &sr);
+    memcpy(static_cast<uint8_t*>(sr.pData), cpu_ibuffer,
+           triangle_capacity * 3 * sizeof(UINT));
+    context->Unmap(ibuffer, 0);
+
+    // Copy vertex data to the GPU
     for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
         if (cpu_vbuffers[i] != nullptr) {
             context->Map(vbuffers[i], 0, D3D11_MAP_WRITE_DISCARD, 0, &sr);
@@ -129,7 +133,6 @@ void MeshPool::cleanAndCompact(ID3D11DeviceContext* context) {
             context->Unmap(vbuffers[i], 0);
         }
     }
-    
 }
 
 MeshPool::~MeshPool() {
