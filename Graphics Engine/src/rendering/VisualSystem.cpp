@@ -382,73 +382,76 @@ VisualTerrain* VisualSystem::bindTerrain(Terrain* _terrain) {
 void VisualSystem::render() {
 #if defined(_DEBUG)
     ICPUTimer cpu_timer = CPUTimer::TrackCPUTime("CPU Frametime");
+    {
+        IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("GPU Frametime");
 #endif
 
-    // TEMP
-    light_manager->updateTimeOfDay(15.f);
+        // TEMP
+        light_manager->updateTimeOfDay(15.f);
 
-    // Clear the the screen color
-    render_target_dest->clearAsRenderTarget(context, Color(0.f, 0.f, 0.f));
+        // Clear the the screen color
+        render_target_dest->clearAsRenderTarget(context, Color(0.f, 0.f, 0.f));
 
-    // Upload CB0
-    {
-        IConstantBuffer pcb0_common = pipeline->loadPixelCB(CB0);
+        // Upload CB0
+        {
+            IConstantBuffer pcb0_common = pipeline->loadPixelCB(CB0);
 
-        const Vector3 cam_pos = camera->getPosition();
-        const Vector3 cam_direc = camera->getTransform().forward();
-        const float z_near = camera->getZNear();
-        const float z_far = camera->getZFar();
+            const Vector3 cam_pos = camera->getPosition();
+            const Vector3 cam_direc = camera->getTransform().forward();
+            const float z_near = camera->getZNear();
+            const float z_far = camera->getZFar();
 
-        pcb0_common.loadData(&cam_pos, FLOAT3);
-        pcb0_common.loadData(&z_near, FLOAT);
-        pcb0_common.loadData(&cam_direc, FLOAT3);
-        pcb0_common.loadData(&z_far, FLOAT);
+            pcb0_common.loadData(&cam_pos, FLOAT3);
+            pcb0_common.loadData(&z_near, FLOAT);
+            pcb0_common.loadData(&cam_direc, FLOAT3);
+            pcb0_common.loadData(&z_far, FLOAT);
 
-        pcb0_common.loadData(&cache->m_screen_to_world, FLOAT4X4);
-        pcb0_common.loadData(&cache->m_world_to_screen, FLOAT4X4);
+            pcb0_common.loadData(&cache->m_screen_to_world, FLOAT4X4);
+            pcb0_common.loadData(&cache->m_world_to_screen, FLOAT4X4);
 
-        pcb0_common.loadData(&cache->resolution_info.x, FLOAT);
-        pcb0_common.loadData(&cache->resolution_info.y, FLOAT);
-    }
+            pcb0_common.loadData(&cache->resolution_info.x, FLOAT);
+            pcb0_common.loadData(&cache->resolution_info.y, FLOAT);
+        }
 
-    // Prepare the shadow maps
-    performShadowPass(); //..
+        // Prepare the shadow maps
+        performShadowPass(); //..
 
-    // Bind my atlases
-    const Texture* color_atlas = resource_manager->getColorAtlas();
-    context->PSSetShaderResources(0, 1, &color_atlas->shader_view);
-    const Texture* shadow_atlas = light_manager->getAtlasTexture();
-    context->PSSetShaderResources(1, 1, &shadow_atlas->shader_view);
+        // Bind my atlases
+        const Texture* color_atlas = resource_manager->getColorAtlas();
+        context->PSSetShaderResources(0, 1, &color_atlas->shader_view);
+        const Texture* shadow_atlas = light_manager->getAtlasTexture();
+        context->PSSetShaderResources(1, 1, &shadow_atlas->shader_view);
 
-    // Render terrain
-    performTerrainPass();
-    // Render meshes
-    performRenderPass();
+        // Render terrain
+        performTerrainPass();
+        // Render meshes
+        performRenderPass();
 
-    // Rendering is different depending on if we're below
-    // or above the surface of the water
-    const Vector3& cam_pos = camera->getPosition();
-    if (cam_pos.y <= terrain->getSurfaceLevel() + 3.5f) {
-        performLightFrustumPass();
-        // Underwater rendering
-        processUnderwater();
-    } else {
-        // Above water rendering
-        performWaterSurfacePass();
-        processSky();
-    }
+        // Rendering is different depending on if we're below
+        // or above the surface of the water
+        const Vector3& cam_pos = camera->getPosition();
+        if (cam_pos.y <= terrain->getSurfaceLevel() + 3.5f) {
+            performLightFrustumPass();
+            // Underwater rendering
+            processUnderwater();
+        } else {
+            // Above water rendering
+            performWaterSurfacePass();
+            processSky();
+        }
 
 #if defined(ENABLE_DEBUG_DRAWING)
-    // Debug Functionality
-    renderDebugPoints();
-    renderDebugLines();
-    VisualDebug::Clear();
+        // Debug Functionality
+        renderDebugPoints();
+        renderDebugLines();
+        VisualDebug::Clear();
 #endif
 
-    processDither();
+        processDither();
 
 #if defined(_DEBUG)
-    imGuiFinish();
+        imGuiFinish();
+    }
 #endif
 
     renderFinish();
@@ -510,14 +513,17 @@ void VisualSystem::pullDatamodelData() {
 
     // ---
     const int size = 750;
-    BumpMapBuilder bump_builder = BumpMapBuilder(size, size);
+    static BumpMapBuilder bump_builder = BumpMapBuilder(size, size);
 
     static float freq = 0.02f;
-    ImGui::SliderFloat("Frequency", &freq, 0.001f, 0.5f);
     static float AMP = 2.f;
-    ImGui::SliderFloat("Amplitude", &AMP, 1.f, 25.f);
 
-    if (ImGui::Button("Regenerate") || bump_tex == nullptr) {
+#if defined(_DEBUG)
+    ImGui::SliderFloat("Frequency", &freq, 0.001f, 0.5f);
+    ImGui::SliderFloat("Amplitude", &AMP, 1.f, 25.f);
+#endif
+
+    if (bump_tex == nullptr) {
         bump_builder.samplePerlinNoise(120512, freq, AMP);
 
         if (bump_tex != nullptr) {
@@ -526,7 +532,7 @@ void VisualSystem::pullDatamodelData() {
             bump_tex = bump_builder.generate(device, true);
     }
 
-    bump_tex->displayImGui();
+    // bump_tex->displayImGui();
 
     // ---
 
@@ -543,6 +549,14 @@ void VisualSystem::pullDatamodelData() {
     shadowCaster.mesh = t_mesh;
     shadowCaster.m_localToWorld = Matrix4::Identity();
     light_manager->addShadowCaster(shadowCaster);*/
+
+    /*const std::vector<Mesh*> chunk_meshes = terrain->getMeshes();
+    visible_chunks.clear();
+    for (Mesh* mesh : chunk_meshes) {
+        OBB obb = OBB(mesh->aabb, Matrix4::Identity());
+        if (cam_frustum.intersectsOBB(obb))
+            visible_chunks.push_back(mesh);
+    }*/
 
     // Cluster shadows
     light_manager->clusterShadowCasters();
@@ -642,26 +656,18 @@ void VisualSystem::performTerrainPass() {
         light_manager->bindLightData(pCB1);
     }
 
-    BufferPool* bpool = terrain->getMesh();
-    if (bpool->getNumTriangles() > 0) {
-        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    context->IASetIndexBuffer(NULL, DXGI_FORMAT_R32_UINT, 0);
 
-        UINT buffer_stride = sizeof(float) * 3;
-        UINT buffer_offset = 0;
+    terrain->getDescriptorSB().VSBindResource(context, 0);
+    terrain->getIndexSB().VSBindResource(context, 1);
+    terrain->getPositionSB().VSBindResource(context, 2);
+    terrain->getNormalSB().VSBindResource(context, 3);
 
-        ID3D11Buffer* p_buffer = bpool->getPositionBuffer();
-        context->IASetVertexBuffers(POSITION, 1, &p_buffer, &buffer_stride,
-                                    &buffer_offset);
-        ID3D11Buffer* n_buffer = bpool->getNormalBuffer();
-        context->IASetVertexBuffers(NORMAL, 1, &n_buffer, &buffer_stride,
-                                    &buffer_offset);
-
-        ID3D11Buffer* i_buffer = bpool->getIndexBuffer();
-        context->IASetIndexBuffer(i_buffer, DXGI_FORMAT_R32_UINT, 0);
-
-        UINT numIndices = bpool->getNumTriangles() * 3;
-        context->DrawIndexed(numIndices, 0, 0);
-    }
+    // We draw instanced without indices, so the index buffer has no influence
+    // on the final result.
+    const int num_chunks = terrain->getActiveChunkCount();
+    const int max_tris = terrain->getMaxChunkTriangleCount();
+    context->DrawInstanced(max_tris * 3, num_chunks, 0, 0);
 }
 
 void VisualSystem::performRenderPass() {
@@ -736,6 +742,7 @@ void VisualSystem::performRenderPass() {
                     const std::vector<SkinJoint>& skin = asset->getSkinJoints();
                     for (int i = 0; i < skin.size(); i++) {
                         // SUPER INEFFICIENT RN
+                        // TODO: THIS IS BOTTLE NECKING MY CODE
                         const Matrix4 skin_matrix =
                             skin[i].getTransform(skin[i].node) *
                             skin[i].m_inverse_bind;

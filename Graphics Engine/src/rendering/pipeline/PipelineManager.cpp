@@ -26,8 +26,6 @@ PipelineManager::PipelineManager(ID3D11Device* _device,
     vb_strides[TEXTURE] = sizeof(float) * 2;
     vb_strides[NORMAL] = sizeof(float) * 3;
     vb_strides[COLOR] = sizeof(float) * 3;
-    vb_strides[DEBUG_LINE] = sizeof(float) * 6;
-    vb_strides[SV_POSITION] = sizeof(float) * 4;
     vb_strides[JOINTS] = sizeof(float) * 4;
     vb_strides[WEIGHTS] = sizeof(float) * 4;
 

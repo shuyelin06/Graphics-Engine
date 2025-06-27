@@ -13,21 +13,28 @@ using namespace Datamodel;
 namespace Graphics {
 VisualTerrain::VisualTerrain(Terrain* _terrain, ID3D11Device* device)
     : terrain(_terrain), callbacks() {
-    // Initialize our buffer pool. This will consolidate our mesh data
-    // into a few vertex / index buffers, to dramatically reduce the number of
-    // draw calls we make.
-    // Empirical testing has shown that 300,000 vertices, 200,000 indices is
-    // enough.
-    output_mesh = new BufferPool(device, 300000, 200000);
+    // Initialize our buffer pools and structured buffers. This will consolidate
+    // our mesh data to dramatically reduce
+    // the number of draw calls we make. Empirical testing has shown that
+    // 300,000 vertices, 200,000 indices is enough.
+    uint16_t layout = (1 << POSITION) | (1 << NORMAL);
+    mesh_pool = new MeshPool(device, layout, 200000, 300000);
+
+    sb_descriptors.initialize(device, TERRAIN_CHUNK_COUNT *
+                                          TERRAIN_CHUNK_COUNT *
+                                          TERRAIN_CHUNK_COUNT);
+    sb_indices.initialize(device, 200000 * 3);
+    sb_positions.initialize(device, 300000);
+    sb_normals.initialize(device, 300000);
 
     // Set all current chunk_meshes to null, and initialize my terrain
     // callbacks.
     for (int i = 0; i < TERRAIN_CHUNK_COUNT; i++) {
         for (int j = 0; j < TERRAIN_CHUNK_COUNT; j++) {
             for (int k = 0; k < TERRAIN_CHUNK_COUNT; k++) {
-                allocations[i][j][k] = nullptr;
+                meshes[i][j][k] = nullptr;
 
-                callbacks[i][j][k].initialize(device);
+                callbacks[i][j][k].initialize();
                 terrain->registerTerrainCallback(i, j, k, &callbacks[i][j][k]);
             }
         }
@@ -55,31 +62,71 @@ void VisualTerrain::pullTerrainMeshes(ID3D11DeviceContext* context) {
                 VisualTerrainCallback& callback = callbacks[i][j][k];
 
                 if (callback.isDirty()) {
-                    dirty = true;
-
-                    if (allocations[i][j][k] != nullptr) {
-                        allocations[i][j][k]->valid = false;
-                        allocations[i][j][k] = nullptr;
+                    if (meshes[i][j][k] != nullptr) {
+                        dirty = true;
+                        delete meshes[i][j][k];
+                        meshes[i][j][k] = nullptr;
                     }
-                    allocations[i][j][k] = callback.loadMesh(*output_mesh);
+
+                    meshes[i][j][k] = callback.loadMesh(context, mesh_pool);
                 }
             }
         }
     }
 
+    // Clean and compact my mesh pool
     // CLEANING MAY CAUSE THE ALLOCATION POINTERS TO CAUSE A MEMORY
     // CORRUPTION...
     if (dirty) {
-        output_mesh->cleanAndCompact();
-        output_mesh->updateGPUResources(context);
+        mesh_pool->cleanAndCompact(context);
     }
+
+    // Upload my data to the structured buffers
+    std::vector<TBChunkDescriptor> descriptors;
+
+    num_active_chunks = mesh_pool->meshes.value().size();
+    max_chunk_triangles = 0;
+    for (Mesh* mesh : mesh_pool->meshes.value()) {
+        TBChunkDescriptor desc;
+        desc.index_start = mesh->triangle_start * 3;
+        desc.index_count = mesh->num_triangles * 3;
+        desc.vertex_start = mesh->vertex_start;
+        desc.vertex_count = mesh->num_vertices;
+        descriptors.push_back(desc);
+
+        max_chunk_triangles = max(max_chunk_triangles, mesh->num_triangles);
+    }
+
+    sb_descriptors.uploadData(context, descriptors.data(), descriptors.size());
+    sb_indices.uploadData(context, mesh_pool->cpu_ibuffer,
+                          mesh_pool->triangle_size * 3);
+    sb_positions.uploadData(context, mesh_pool->cpu_vbuffers[POSITION],
+                            mesh_pool->vertex_size);
+    sb_normals.uploadData(context, mesh_pool->cpu_vbuffers[NORMAL],
+                          mesh_pool->vertex_size);
 }
 
 // --- Accessors ---
 float VisualTerrain::getSurfaceLevel() const { return surface_level; }
 
 // Returns the chunk meshes
-BufferPool* VisualTerrain::getMesh() { return output_mesh; }
+const StructuredBuffer<TBChunkDescriptor>&
+VisualTerrain::getDescriptorSB() const {
+    return sb_descriptors;
+}
+const StructuredBuffer<unsigned int>& VisualTerrain::getIndexSB() const {
+    return sb_indices;
+}
+const StructuredBuffer<Vector3>& VisualTerrain::getPositionSB() const {
+    return sb_positions;
+}
+const StructuredBuffer<Vector3>& VisualTerrain::getNormalSB() const {
+    return sb_normals;
+}
+int VisualTerrain::getActiveChunkCount() const { return num_active_chunks; }
+int VisualTerrain::getMaxChunkTriangleCount() const {
+    return max_chunk_triangles;
+}
 
 // Returns the water surface mesh
 const WaterSurface* VisualTerrain::getWaterSurface() const {

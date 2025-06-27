@@ -176,9 +176,9 @@
     <ClCompile Include="src\datamodel\terrain\Terrain.cpp" />
     <ClCompile Include="src\core\ThreadPool.cpp" />
     <ClCompile Include="src\physics\PhysicsTerrain.cpp" />
+    <ClCompile Include="src\rendering\core\VertexStreamIDs.cpp" />
     <ClCompile Include="src\rendering\resources\BumpMapBuilder.cpp" />
     <ClCompile Include="src\rendering\pipeline\ConstantBuffer.cpp" />
-    <ClCompile Include="src\rendering\terrain\BufferPool.cpp" />
     <ClCompile Include="src\rendering\terrain\WaterSurface.cpp" />
     <ClCompile Include="src\rendering\terrain\VisualTerrainCallback.cpp" />
     <ClCompile Include="src\_DEP_\TreeGenerator.cpp" />
@@ -257,11 +257,12 @@
     <ClInclude Include="src\datamodel\ComponentHandler.h" />
     <ClInclude Include="src\core\ThreadPool.h" />
     <ClInclude Include="src\datamodel\terrain\TerrainCallback.h" />
+    <ClInclude Include="src\GlobalConfig.h" />
     <ClInclude Include="src\physics\PhysicsTerrain.h" />
     <ClInclude Include="src\rendering\core\VertexPool.h" />
     <ClInclude Include="src\rendering\resources\BumpMapBuilder.h" />
     <ClInclude Include="src\rendering\pipeline\ConstantBuffer.h" />
-    <ClInclude Include="src\rendering\terrain\BufferPool.h" />
+    <ClInclude Include="src\rendering\pipeline\StructuredBuffer.h" />
     <ClInclude Include="src\rendering\terrain\WaterSurface.h" />
     <ClInclude Include="src\rendering\terrain\VisualTerrainCallback.h" />
     <ClInclude Include="src\_DEP_\ResourceManager.h" />
@@ -337,6 +338,9 @@
     <ClInclude Include="src\rendering\terrain\VisualTerrain.h" />
     <ClInclude Include="src\utility\FileReader.h" />
     <ClInclude Include="src\utility\Stopwatch.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cpp.hint" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

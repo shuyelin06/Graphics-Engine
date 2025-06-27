@@ -8,8 +8,6 @@
 #include "../core/Asset.h"
 #include "../resources/AssetBuilder.h"
 
-#include "BufferPool.h"
-
 namespace Engine {
 using namespace Datamodel;
 
@@ -19,13 +17,8 @@ namespace Graphics {
 // asynchronously.
 class VisualTerrainCallback : public TerrainCallback {
   private:
-    ID3D11Device* device;
-
-    Mesh* output_mesh;
     MeshBuilder builder;
-
-    std::vector<MeshVertex> vertices;
-    std::vector<MeshTriangle> indices;
+    MeshBuilder output_builder;
 
     bool dirty;
 
@@ -35,10 +28,9 @@ class VisualTerrainCallback : public TerrainCallback {
   public:
     VisualTerrainCallback();
 
-    void initialize(ID3D11Device* device);
+    void initialize();
 
-    BufferAllocation* loadMesh(BufferPool& pool);
-    Mesh* extractMesh();
+    Mesh* loadMesh(ID3D11DeviceContext* context, MeshPool* pool);
     bool isDirty();
 
     void reloadTerrainData(const TerrainChunk* chunk_data);

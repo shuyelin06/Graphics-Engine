@@ -3,8 +3,8 @@
 #include "datamodel/terrain/Terrain.h"
 
 #include "../core/Asset.h"
+#include "../pipeline/StructuredBuffer.h"
 #include "../resources/AssetBuilder.h"
-#include "BufferPool.h"
 #include "VisualTerrainCallback.h"
 #include "WaterSurface.h"
 
@@ -12,6 +12,17 @@ namespace Engine {
 using namespace Datamodel;
 
 namespace Graphics {
+// Data Structures for the terrain structured buffers. These buffers
+// will be used in the vertex shader to generate the terrain mesh using vertex
+// pulling
+struct TBChunkDescriptor {
+    unsigned int index_start;
+    unsigned int index_count;
+
+    unsigned int vertex_start;
+    unsigned int vertex_count;
+};
+
 // VisualTerrain Class:
 // Interfaces with the datamodel to pull and generate terrain data for the
 // visual system. This primarily consists of mesh data. To reduce the number of
@@ -26,10 +37,20 @@ class VisualTerrain {
     float surface_level;
 
     // Output Chunk Meshes
-    BufferPool* output_mesh;
+    MeshPool* mesh_pool;
     // Stores the most recent terrain meshes
-    BufferAllocation* allocations[TERRAIN_CHUNK_COUNT][TERRAIN_CHUNK_COUNT]
-                                 [TERRAIN_CHUNK_COUNT];
+    Mesh* meshes[TERRAIN_CHUNK_COUNT][TERRAIN_CHUNK_COUNT][TERRAIN_CHUNK_COUNT];
+
+    // Output data structures. These are used in the vertex shader with vertex
+    // pulling to create the terrain mesh.
+    StructuredBuffer<TBChunkDescriptor> sb_descriptors;
+    StructuredBuffer<unsigned int> sb_indices;
+    StructuredBuffer<Vector3> sb_positions;
+    StructuredBuffer<Vector3> sb_normals;
+
+    int num_active_chunks;
+    int max_chunk_triangles;
+
     // Stores callback functions that may update with new terrain data
     VisualTerrainCallback callbacks[TERRAIN_CHUNK_COUNT][TERRAIN_CHUNK_COUNT]
                                    [TERRAIN_CHUNK_COUNT];
@@ -42,11 +63,17 @@ class VisualTerrain {
     // functions
     void pullTerrainMeshes(ID3D11DeviceContext* context);
 
-    // Return the current meshes for rendering.
+    // Return water surface data
+    const WaterSurface* getWaterSurface() const;
     float getSurfaceLevel() const;
 
-    BufferPool* getMesh();
-    const WaterSurface* getWaterSurface() const;
+    // Return terrain data
+    const StructuredBuffer<TBChunkDescriptor>& getDescriptorSB() const;
+    const StructuredBuffer<unsigned int>& getIndexSB() const;
+    const StructuredBuffer<Vector3>& getPositionSB() const;
+    const StructuredBuffer<Vector3>& getNormalSB() const;
+    int getActiveChunkCount() const;
+    int getMaxChunkTriangleCount() const;
 };
 
 } // namespace Graphics

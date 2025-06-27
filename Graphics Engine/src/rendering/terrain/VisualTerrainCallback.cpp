@@ -21,34 +21,23 @@ namespace Graphics {
 // --- VisualTerrainCallback ---
 VisualTerrainCallback::VisualTerrainCallback() = default;
 
-void VisualTerrainCallback::initialize(ID3D11Device* _device) {
-    device = _device;
-
+void VisualTerrainCallback::initialize() {
     builder.addLayout(POSITION);
     builder.addLayout(NORMAL);
 }
 
 // LoadMesh:
 // Loads the MeshBuilder's data into a buffer pool.
-BufferAllocation* VisualTerrainCallback::loadMesh(BufferPool& pool) {
+Mesh* VisualTerrainCallback::loadMesh(ID3D11DeviceContext* context,
+                                      MeshPool* pool) {
     std::unique_lock<std::mutex> lock(mutex);
     dirty = false;
-    if (indices.size() > 0)
-        return pool.allocate(vertices, indices);
-    else
+    if (!output_builder.isEmpty()) {
+        Mesh* mesh = output_builder.generateMesh(context, pool);
+        output_builder.reset();
+        return mesh;
+    } else
         return nullptr;
-}
-
-// ExtractMesh:
-// Pulls the mesh from the callback function, and sets its reference to nullptr.
-Mesh* VisualTerrainCallback::extractMesh() {
-    std::unique_lock<std::mutex> lock(mutex);
-    Mesh* mesh = output_mesh;
-    output_mesh = nullptr;
-
-    dirty = false;
-
-    return mesh;
 }
 
 // IsDirty:
@@ -143,15 +132,7 @@ void VisualTerrainCallback::reloadTerrainData(const TerrainChunk* chunk_data) {
         std::unique_lock<std::mutex> lock(mutex);
 
         dirty = true;
-
-        vertices.assign(builder.getVertices().begin(),
-                        builder.getVertices().end());
-        indices.assign(builder.getIndices().begin(),
-                       builder.getIndices().end());
-
-        if (output_mesh != nullptr)
-            delete output_mesh;
-        output_mesh = builder.generateMesh(device);
+        output_builder = builder;
     }
 }
 

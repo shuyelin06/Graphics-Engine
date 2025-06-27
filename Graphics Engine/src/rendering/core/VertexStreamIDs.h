@@ -15,15 +15,18 @@ namespace Graphics {
 // These stream indices can be converted to a layout pin, by treating each
 // index as a bit position. For example, if a layout needs POSITION, TEX, then
 // flip the bits at POSITION (0) and TEXTURE (1).
+//
+// IMPORTANT:
+// If this is modified, the following must also be updated:
+// 1) The StreamStrides array in VertexStreamIDs.cpp
+// 2) The VertexAddressors array in AssetBuilder.cpp
 enum VertexDataStream {
     POSITION = 0, // 3D XYZ Position (3 Floats)
     TEXTURE = 1,  // 2D Texture Coordinates (2 Floats)
     NORMAL = 2,   // 3D Normal Direction (3 Floats)
-    COLOR = 3,
-    DEBUG_LINE = 4, // Position + RGB Color; Debug Line Rendering
-    // Skinning Properties
-    JOINTS = 5,  // 4D Integer Vector of Node Indices (4 Integers)
-    WEIGHTS = 6, // 4D Vector of Skin Weights (4 Floats)
+    COLOR = 3,    // RGB Color (3 Floats)
+    JOINTS = 4,   // 4D Integer Vector of Node Indices (4 Integers)
+    WEIGHTS = 5,  // 4D Vector of Skin Weights (4 Floats)
 
     BINDABLE_STREAM_COUNT,
 
@@ -32,23 +35,18 @@ enum VertexDataStream {
     // vertex streams that have assigned slots
     // INSTANCE_ID: Used for instancing
     INSTANCE_ID = BINDABLE_STREAM_COUNT,
+    // VERTEX_ID: Used for vertex pulling
+    VERTEX_ID,
     // SV_POSITION: Used for post-processing
     SV_POSITION,
+    // Position + RGB Color; Debug Line Rendering
+    DEBUG_LINE,
 };
 
-static inline bool LayoutPinHas(uint16_t pin, VertexDataStream stream) {
-    return (pin & (1 << stream)) == (1 << stream);
-}
+bool LayoutPinHas(uint16_t pin, unsigned int stream);
+unsigned int StreamVertexStride(unsigned int stream);
 
-static inline uint16_t VertexStreamLayoutPin(VertexDataStream* streams,
-                                             size_t size) {
-    uint16_t pin = 0;
-
-    for (int i = 0; i < size; i++)
-        pin |= (1 << streams[i]);
-
-    return pin;
-}
+uint16_t VertexStreamLayoutPin(VertexDataStream* streams, size_t size);
 
 } // namespace Graphics
 } // namespace Engine

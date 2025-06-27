@@ -6,7 +6,9 @@
 #include "math/Matrix4.h"
 #include "math/Vector3.h"
 
+#if defined(_DEBUG)
 #define ENABLE_DEBUG_DRAWING
+#endif
 
 namespace Engine {
 using namespace Math;

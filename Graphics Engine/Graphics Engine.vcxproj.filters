@@ -243,9 +243,6 @@
     <ClCompile Include="src\rendering\terrain\VisualTerrainCallback.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\terrain\BufferPool.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\rendering\terrain\WaterSurface.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -253,6 +250,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\pipeline\ConstantBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rendering\core\VertexStreamIDs.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -509,9 +509,6 @@
     <ClInclude Include="src\rendering\terrain\VisualTerrainCallback.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\terrain\BufferPool.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\rendering\terrain\WaterSurface.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -524,5 +521,14 @@
     <ClInclude Include="src\rendering\core\VertexPool.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\rendering\pipeline\StructuredBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\GlobalConfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cpp.hint" />
   </ItemGroup>
 </Project>

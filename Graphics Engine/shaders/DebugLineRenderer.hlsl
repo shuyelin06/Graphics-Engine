@@ -9,6 +9,9 @@ struct VS_INPUT
     // Represents one point of a line
     float3 position : POSITION;
     float3 color : COLOR;
+    
+    uint vertex_id : SV_VertexID;
+    uint instance_id : SV_InstanceID;
 };
 
 struct PS_INPUT

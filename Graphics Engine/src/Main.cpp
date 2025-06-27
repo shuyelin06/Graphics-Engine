@@ -30,6 +30,7 @@
 #include <mutex>
 #include <thread>
 
+#include "GlobalConfig.h"
 #include "core/ThreadPool.h"
 #include "datamodel/SceneGraph.h"
 #include "input/InputSystem.h"
@@ -43,6 +44,7 @@
 
 // ---
 
+using namespace std::chrono;
 using namespace Engine;
 using namespace Engine::Physics;
 using namespace Engine::Datamodel;
@@ -132,7 +134,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     Object& man = parent.createChild();
     visual_system.bindAssetComponent(&man, "Man");
-    man.getTransform().setScale(Vector3(5.f, 5.f, 5.f));
+    man.getTransform().setScale(Vector3(20.f, 5.f, 5.f));
     // physics_system.bindPhysicsObject(&parent_object);
 
     // --- TESTING ENVIRONMENT
@@ -143,13 +145,21 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     MSG msg = {};
     bool close = false;
 
-    Utility::Stopwatch framerate_watch = Utility::Stopwatch();
+    // These variables are being used to enforce the application's framerate.
+    const auto fps_limit_inv = duration_cast<system_clock::duration>(
+        duration<double>{1.f / FRAMES_PER_SECOND});
+    auto frame_begin = system_clock::now();
+    auto frame_end = frame_begin + fps_limit_inv;
+#if defined(_DEBUG)
+    // These variables are being used to track the application's framerate
+    auto cur_time_in_seconds = time_point_cast<seconds>(frame_begin);
+    auto prev_time_in_seconds = cur_time_in_seconds;
+    unsigned int cur_fps_count = 0;
+    unsigned int prev_fps_count = 0;
+#endif
 
     // Main loop: runs once per frame
     while (!close) {
-        // Begin counting milliseconds elapsed for framerate
-        framerate_watch.Reset();
-
         // --- Process Input Data ---
         // Drain and process all queued messages
         while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
@@ -204,9 +214,24 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             VisualDebug::DrawLine(triangle.vertex(2), triangle.vertex(0));
         }*/
 
-        // Stall until enough time has elapsed for 60 frames / second
-        while (framerate_watch.Duration() < 1 / 60.f) {
+        // We finished our frame. See how many milliseconds we took
+        // and stall (if needed) until the next frame
+#if defined(_DEBUG) 
+        cur_time_in_seconds = time_point_cast<seconds>(system_clock::now());
+        cur_fps_count++;
+
+        if (cur_time_in_seconds != prev_time_in_seconds) {
+            prev_fps_count = cur_fps_count;
+            prev_time_in_seconds = cur_time_in_seconds;
+            cur_fps_count = 0;
         }
+
+        ImGui::Text("FPS: %i", prev_fps_count);
+#endif 
+
+        std::this_thread::sleep_until(frame_end);
+        frame_begin = frame_end;
+        frame_end = frame_begin + fps_limit_inv;
     }
 
     // Shutdown all systems

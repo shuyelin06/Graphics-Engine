@@ -52,10 +52,9 @@ class MeshBuilder {
     std::vector<MeshVertex> vertex_buffer;
     std::vector<MeshTriangle> index_buffer;
 
-    Color active_color;
-
   public:
     MeshBuilder();
+    MeshBuilder(const MeshBuilder& builder);
     ~MeshBuilder();
 
     // Generates the mesh for use in the rendering pipeline.
@@ -70,9 +69,8 @@ class MeshBuilder {
 
     const std::vector<MeshVertex>& getVertices() const;
     const std::vector<MeshTriangle>& getIndices() const;
+    bool isEmpty() const;
 
-    // Set the active color
-    void setColor(const Color& color);
     // Add a stream to the builder's output
     void addLayout(VertexDataStream stream);
 

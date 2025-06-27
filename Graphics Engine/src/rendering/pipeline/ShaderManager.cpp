@@ -89,7 +89,7 @@ void ShaderManager::initializeShaders() {
     // Terrain Shader:
     // Handles rendering of the scene's terrain. Done in a separate shader than
     // the meshes as terrain is procedurally textured with a tri-planar mapping
-    input_layout_arr = {POSITION, NORMAL};
+    input_layout_arr = {INSTANCE_ID, VERTEX_ID};
     createVertexShader({"Terrain", "V_Terrain.hlsl", "vsterrain_main"});
 
     createPixelShader({"Terrain", "P_Terrain.hlsl", "psterrain_main"});
@@ -331,18 +331,6 @@ void ShaderManager::createVertexShader(const ShaderConfig& config) {
                     0};
             break;
 
-        // Instance ID Stream:
-        // A buffer of instance IDs, which can be used in instance rendering
-        case INSTANCE_ID:
-            desc = {"SV_InstanceID",
-                    0,
-                    DXGI_FORMAT_R32_UINT,
-                    INSTANCE_ID,
-                    0,
-                    D3D11_INPUT_PER_VERTEX_DATA,
-                    0};
-            break;
-
         // Joints ID Stream:
         // A buffer of integers, which index a joint array for the asset.
         // This array tells us what joints influence a mesh in an asset.
@@ -359,6 +347,29 @@ void ShaderManager::createVertexShader(const ShaderConfig& config) {
                     0};
             break;
 
+        // Instance ID Stream:
+        // A buffer of instance IDs, which can be used in instance rendering
+        case INSTANCE_ID:
+            desc = {"SV_InstanceID",
+                    0,
+                    DXGI_FORMAT_R32_UINT,
+                    INSTANCE_ID,
+                    0,
+                    D3D11_INPUT_PER_VERTEX_DATA,
+                    0};
+            break;
+
+        // Vertex ID Stream:
+        // A buffer of vertex IDs, which can be used in vertex pulling
+        case VERTEX_ID:
+            desc = {"SV_VertexID",
+                    0,
+                    DXGI_FORMAT_R32_UINT,
+                    VERTEX_ID,
+                    0,
+                    D3D11_INPUT_PER_VERTEX_DATA,
+                    0};
+            break;
         // Debug Line:
         // A buffer of positions and colors, used for rendering lines
         case DEBUG_LINE: {

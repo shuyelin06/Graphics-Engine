@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -45,9 +46,12 @@ struct Material {
 // streams, so that they have an easier time being passed as input into shaders.
 
 // TODO: MeshPool will let us group meshes into shared buffers
+struct Mesh;
 struct MeshPool {
   private:
     friend class MeshBuilder;
+    // Default Constructor, used by MeshBuilder to create
+    // a MeshPool that is not mappable
     MeshPool();
 
   public:
@@ -56,27 +60,42 @@ struct MeshPool {
     // Tracks whether or not the buffers are mappable
     bool mappable;
 
+    // Tracks the Meshes Allocated to this Pool.
+    // Only allocated if mappable == true
+    std::optional<std::vector<Mesh*>> meshes;
+
     // Index / Vertex Buffers
     ID3D11Buffer* ibuffer;
-    uint32_t triangle_size;     // # Tris Currently in the Buffer
+    uint8_t* cpu_ibuffer;   // CPU Copy of the Data. NULL if mappable = false
+    uint32_t triangle_size; // # Tris Currently in the Buffer
     uint32_t triangle_capacity; // # Tris the Buffer can Hold
 
     ID3D11Buffer* vbuffers[BINDABLE_STREAM_COUNT];
+    uint8_t* cpu_vbuffers[BINDABLE_STREAM_COUNT]; // CPU Copy of the Data. NULL
+                                                  // if mappable = false
     uint32_t vertex_size;     // # Vertices Currently in the Buffer
     uint32_t vertex_capacity; // # Vertices the Buffer can Hold
 
+  public:
     MeshPool(ID3D11Device* device, uint16_t layout, uint32_t triangle_max,
              uint32_t vertex_max);
     ~MeshPool();
+
+    // Only possible if mappable == true.
+    // Iterates through the meshes allocated to this pool, and compacts them
+    // to remove fragmentation.
+    void cleanAndCompact(ID3D11DeviceContext* context);
 };
 
 struct Mesh {
+  private:
+    friend class MeshBuilder;
+    Mesh(MeshPool* pool);
+
+  public:
     // MeshPool (Collection of Buffers) Containing the Mesh.
-    uint16_t layout;
     MeshPool* buffer_pool;
-    // Tracks if the mesh knows the pool is not shared. If the pool is not shared,
-    // then the mesh will automatically deallocate the pool when it is destroyed.
-    bool is_pool_mine; 
+    uint16_t layout;
 
     // Vertex / Index Starts and Offsets into the MeshPool
     uint32_t vertex_start;
@@ -91,7 +110,6 @@ struct Mesh {
     // Renderable Properties
     Material material;
 
-    Mesh();
     ~Mesh();
 };
 

@@ -12,10 +12,16 @@ Material::Material() { diffuse_factor = 0.5f; }
 // --- Mesh ---
 MeshPool::MeshPool() {
     layout = 0;
+
     mappable = false;
+    meshes = std::nullopt;
+
     ibuffer = NULL;
+    cpu_ibuffer = NULL;
     triangle_size = triangle_capacity = 0;
+
     memset(vbuffers, 0, sizeof(ID3D11Buffer*) * BINDABLE_STREAM_COUNT);
+    memset(cpu_vbuffers, 0, sizeof(uint8_t*) * BINDABLE_STREAM_COUNT);
     vertex_size = vertex_capacity = 0;
 }
 
@@ -25,6 +31,7 @@ MeshPool::MeshPool(ID3D11Device* device, uint16_t _layout, uint32_t i_size,
 
     layout = _layout;
     mappable = true;
+    meshes = std::vector<Mesh*>();
 
     // Create my index buffer
     triangle_size = 0;
@@ -35,61 +42,143 @@ MeshPool::MeshPool(ID3D11Device* device, uint16_t _layout, uint32_t i_size,
     buff_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
     device->CreateBuffer(&buff_desc, NULL, &ibuffer);
 
+    cpu_ibuffer = new uint8_t[triangle_capacity * 3 * sizeof(UINT)];
+
     // Create my vertex buffers
+    memset(vbuffers, 0, sizeof(ID3D11Buffer*) * BINDABLE_STREAM_COUNT);
+    memset(cpu_vbuffers, 0, sizeof(uint8_t*) * BINDABLE_STREAM_COUNT);
+
     vertex_size = 0;
     vertex_capacity = v_size;
     buff_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
     buff_desc.Usage = D3D11_USAGE_DYNAMIC;
     buff_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
-    if (LayoutPinHas(layout, POSITION)) {
-        buff_desc.ByteWidth = vertex_capacity * sizeof(Vector3);
-        device->CreateBuffer(&buff_desc, NULL, &vbuffers[POSITION]);
+    for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
+        if (LayoutPinHas(layout, i)) {
+            buff_desc.ByteWidth = vertex_capacity * StreamVertexStride(i);
+            device->CreateBuffer(&buff_desc, NULL, &vbuffers[i]);
+
+            cpu_vbuffers[i] =
+                new uint8_t[vertex_capacity * StreamVertexStride(i)];
+        }
     }
-    if (LayoutPinHas(layout, TEXTURE)) {
-        buff_desc.ByteWidth = vertex_capacity * sizeof(Vector2);
-        device->CreateBuffer(&buff_desc, NULL, &vbuffers[TEXTURE]);
+}
+
+void MeshPool::cleanAndCompact(ID3D11DeviceContext* context) {
+    assert(mappable);
+
+    const std::vector<Mesh*>& allocs = meshes.value();
+
+    // Iterate through meshes, removing fragmentation in the index buffer
+    // We do this on the CPU side first.
+    int head = 0;
+
+    for (int i = 0; i < allocs.size(); i++) {
+        Mesh* mesh = allocs[i];
+
+        if (head != mesh->triangle_start) {
+            const UINT STRIDE = 3 * sizeof(UINT);
+            std::memmove(cpu_ibuffer + STRIDE * head,
+                         cpu_ibuffer + STRIDE * mesh->triangle_start,
+                         STRIDE * mesh->num_triangles);
+            mesh->triangle_start = head;
+        }
+
+        head += mesh->num_triangles;
     }
-    if (LayoutPinHas(layout, NORMAL)) {
-        buff_desc.ByteWidth = vertex_capacity * sizeof(Vector3);
-        device->CreateBuffer(&buff_desc, NULL, &vbuffers[NORMAL]);
+
+    triangle_size = head;
+
+    // Copy index buffer to the GPU
+    D3D11_MAPPED_SUBRESOURCE sr = {0};
+    context->Map(ibuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &sr);
+    memcpy(static_cast<uint8_t*>(sr.pData), cpu_ibuffer,
+           triangle_capacity * 3 * sizeof(UINT));
+    context->Unmap(ibuffer, 0);
+
+    // Remove fragmentation in the vertex buffers on the CPU-side
+    head = 0;
+
+    for (int i = 0; i < allocs.size(); i++) {
+        Mesh* mesh = allocs[i];
+
+        if (head != mesh->vertex_start) {
+            for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
+                if (cpu_vbuffers[i] != nullptr) {
+                    const UINT STRIDE = StreamVertexStride(i);
+                    std::memmove(cpu_vbuffers[i] + STRIDE * head,
+                                 cpu_vbuffers[i] + STRIDE * mesh->vertex_start,
+                                 STRIDE * mesh->num_vertices);
+                }
+            }
+            mesh->vertex_start = head;
+        }
+
+        head += mesh->num_vertices;
     }
-    if (LayoutPinHas(layout, COLOR)) {
-        buff_desc.ByteWidth = vertex_capacity * sizeof(Vector3);
-        device->CreateBuffer(&buff_desc, NULL, &vbuffers[COLOR]);
+
+    vertex_size = head;
+
+    // Upload updated data to the GPU
+    for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
+        if (cpu_vbuffers[i] != nullptr) {
+            context->Map(vbuffers[i], 0, D3D11_MAP_WRITE_DISCARD, 0, &sr);
+            memcpy(static_cast<uint8_t*>(sr.pData), cpu_vbuffers[i],
+                   vertex_capacity * StreamVertexStride(i));
+            context->Unmap(vbuffers[i], 0);
+        }
     }
-    if (LayoutPinHas(layout, JOINTS)) {
-        buff_desc.ByteWidth = vertex_capacity * sizeof(Vector4);
-        device->CreateBuffer(&buff_desc, NULL, &vbuffers[JOINTS]);
-    }
-    if (LayoutPinHas(layout, WEIGHTS)) {
-        buff_desc.ByteWidth = vertex_capacity * sizeof(Vector4);
-        device->CreateBuffer(&buff_desc, NULL, &vbuffers[WEIGHTS]);
-    }
+    
 }
 
 MeshPool::~MeshPool() {
     ibuffer->Release();
+    if (cpu_ibuffer != nullptr)
+        delete[] cpu_ibuffer;
 
     for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
-        if (vbuffers[i] != nullptr)
+        if (vbuffers[i] != nullptr) {
             vbuffers[i]->Release();
+
+            if (cpu_vbuffers[i] != nullptr)
+                delete[] cpu_vbuffers;
+        }
     }
 }
 
-Mesh::Mesh() {
+Mesh::Mesh(MeshPool* pool) {
+    buffer_pool = pool;
+
     layout = 0;
-    buffer_pool = NULL;
-    is_pool_mine = false;
     vertex_start = num_vertices = 0;
     triangle_start = num_triangles = 0;
     aabb = AABB();
     material = Material();
+
+    // If the pool is mappable, add this mesh to the
+    // meshes tracked by the pool
+    if (buffer_pool->mappable) {
+        std::vector<Mesh*>& pool_meshes = buffer_pool->meshes.value();
+        pool_meshes.push_back(this);
+    }
 }
 
 Mesh::~Mesh() {
-    if (is_pool_mine)
+    // If the buffer pool is not mappable, then
+    // this is the only mesh in that pool.
+    // We can also free the memory for the pool as well then.
+    if (!buffer_pool->mappable)
         delete buffer_pool;
+    // If the buffer pool is mappable, then we cannot free it
+    // (other meshes may still use it), but we can remove this mesh from
+    // the meshes that the pool tracks.
+    else {
+        std::vector<Mesh*>& pool_meshes = buffer_pool->meshes.value();
+        pool_meshes.erase(
+            std::remove(pool_meshes.begin(), pool_meshes.end(), this),
+            pool_meshes.end());
+    }
 }
 
 // --- Node ---

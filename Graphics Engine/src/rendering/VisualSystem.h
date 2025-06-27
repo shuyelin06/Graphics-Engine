@@ -98,6 +98,7 @@ class VisualSystem {
     ComponentHandler<ShadowLightComponent> light_components;
     VisualTerrain* terrain;
 
+    std::vector<Mesh*> visible_chunks;
     std::vector<RenderableAsset> renderable_meshes;
 
   public:
