@@ -24,10 +24,6 @@ class ShaderManager {
     std::unordered_map<std::string, VertexShader*> vertex_shaders;
     std::unordered_map<std::string, PixelShader*> pixel_shaders;
 
-    // Common variables for initialization
-    std::vector<VertexDataStream> input_layout_arr;
-    std::vector<std::string> pins_arr;
-
     // Used in compilation
     std::vector<D3D_SHADER_MACRO> shader_macros;
 

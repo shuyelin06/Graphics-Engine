@@ -30,14 +30,7 @@ ResourceManager::~ResourceManager() = default;
 
 // Initialize:
 // Loads assets into the asset manager.
-static ID3D11DepthStencilState* LoadDSTestAndWrite(ID3D11Device* device);
-static ID3D11DepthStencilState* LoadDSTestNoWrite(ID3D11Device* device);
-
 void ResourceManager::initializeResources() {
-    // Create my depth stencil states
-    ds_test_and_write = LoadDSTestAndWrite(device);
-    ds_test_no_write = LoadDSTestNoWrite(device);
-
     // Stores an atlas of material colors to avoid the need for rebinds later
     AtlasBuilder atlas_builder = AtlasBuilder(4096, 4096);
 
@@ -100,13 +93,6 @@ const Texture* ResourceManager::getColorAtlas() {
     return color_atlas->getTexture();
 }
 
-ID3D11DepthStencilState* ResourceManager::DSState_TestNoWrite() {
-    return ds_test_no_write;
-}
-ID3D11DepthStencilState* ResourceManager::DSState_TestAndWrite() {
-    return ds_test_and_write;
-}
-
 // LoadAssetFromGLTF:
 // Uses the GLTFFile interface to load an asset from a GLTF file
 bool ResourceManager::LoadAssetFromGLTF(const std::string& asset_name,
@@ -163,42 +149,6 @@ bool ResourceManager::LoadCube() {
     cube->addMesh(builder.generateMesh(device));
 
     return registerAsset("Cube", cube);
-}
-
-ID3D11DepthStencilState* LoadDSTestAndWrite(ID3D11Device* device) {
-    D3D11_DEPTH_STENCIL_DESC desc = {};
-    // Enable depth testing
-    desc.DepthEnable = TRUE;
-    // Standard depth test
-    desc.DepthFunc = D3D11_COMPARISON_LESS;
-    // Enable depth writing
-    desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-    // No stencil testing
-    desc.StencilEnable = FALSE;
-
-    ID3D11DepthStencilState* state = nullptr;
-    HRESULT result = device->CreateDepthStencilState(&desc, &state);
-    assert(SUCCEEDED(result));
-
-    return state;
-}
-
-ID3D11DepthStencilState* LoadDSTestNoWrite(ID3D11Device* device) {
-    D3D11_DEPTH_STENCIL_DESC desc = {};
-    // Enable depth testing
-    desc.DepthEnable = TRUE;
-    // Standard depth test
-    desc.DepthFunc = D3D11_COMPARISON_LESS;
-    // Disable depth writing
-    desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-    // No stencil testing
-    desc.StencilEnable = FALSE;
-
-    ID3D11DepthStencilState* state = nullptr;
-    HRESULT result = device->CreateDepthStencilState(&desc, &state);
-    assert(SUCCEEDED(result));
-
-    return state;
 }
 
 } // namespace Graphics

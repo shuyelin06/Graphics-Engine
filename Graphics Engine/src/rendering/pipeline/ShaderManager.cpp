@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include <assert.h>
+#include <optional>
 
 constexpr bool ALLOW_CACHING = true;
 
@@ -13,6 +14,129 @@ namespace Graphics {
 
 static const std::string cache_folder = "bin/";
 static const std::string shader_folder = "shaders/";
+
+ShaderManager::ShaderManager(ID3D11Device* _device) { device = _device; }
+ShaderManager::~ShaderManager() = default;
+
+// InitializeShaders:
+// Creates all of the shaders usable by the engine. To create a shader, populate
+// the ShaderConfig struct with data, and pass in an array of "pins" (defines).
+// We can use pins to make one shader file usable for multiple different input
+// types or configurations. Pass in NULL if there are no pins.
+// For vertex shaders, an additional array of input layouts is needed.
+struct ShaderConfig {
+    ShaderType shader_type;
+
+    std::string shader_name; // Name of Shader in Engine
+
+    std::string source_file; // Source File
+    std::string entry_point; // Entrypoint Name
+
+    // Input data semantics; only valid for vertex shaders
+    std::vector<VertexDataStream> input_layout;
+    // Pins
+    std::vector<std::string> pins;
+};
+
+void ShaderManager::initializeShaders() {
+    const std::vector<ShaderConfig> shaders = {
+        // DebugPoint:
+        // Uses instancing to draw colored points in the scene. Only
+        // available if the debug flag is flipped.
+        {Vertex,
+         "DebugPoint",
+         "DebugPointRenderer.hlsl",
+         "vs_main",
+         {POSITION, INSTANCE_ID},
+         {}},
+        {Pixel, "DebugPoint", "DebugPointRenderer.hlsl", "ps_main", {}, {}},
+        // DebugLine:
+        // Uses instancing to draw colored lines in the scene. Only
+        // available if the debug flag is flipped.
+        {Vertex,
+         "DebugLine",
+         "DebugLineRenderer.hlsl",
+         "vs_main",
+         {DEBUG_LINE},
+         {}},
+        {Pixel, "DebugLine", "DebugLineRenderer.hlsl", "ps_main"},
+        // ShadowMap Shader:
+        // Takes vertex triangle data, as well as
+        // matrix transforms and writes them to a light's shadow map (depth
+        // buffer).
+        {Vertex, "ShadowMap", "ShadowMap.hlsl", "vs_main", {POSITION}, {}},
+        {Pixel, "ShadowMap", "ShadowMap.hlsl", "ps_main", {}, {}},
+        // Terrain Shader:
+        // Handles rendering of the scene's terrain.
+        {Vertex,
+         "Terrain",
+         "V_Terrain.hlsl",
+         "vsterrain_main",
+         {INSTANCE_ID, VERTEX_ID},
+         {}},
+        {Pixel, "Terrain", "P_Terrain.hlsl", "psterrain_main", {}, {}},
+        // Shadow:
+        // Draws a mesh with dynamic lights enabled
+        {Vertex,
+         "ShadowShader",
+         "ShadowShaderV.hlsl",
+         "vs_main",
+         {POSITION, NORMAL, COLOR},
+         {}},
+        {Pixel, "ShadowShader", "ShadowShaderP.hlsl", "ps_main", {}, {}},
+        // Shadow (Textured):
+        // Draws a mesh with dynamic lights enabled
+        {Vertex,
+         "TexturedMesh",
+         "V_TexturedMesh.hlsl",
+         "vs_main",
+         {POSITION, TEXTURE, NORMAL},
+         {}},
+        {Vertex,
+         "SkinnedMesh",
+         "V_TexturedMesh.hlsl",
+         "vs_main",
+         {POSITION, TEXTURE, NORMAL, JOINTS, WEIGHTS},
+         {"SKINNED_MESH"}},
+        {Pixel, "TexturedMesh", "P_TexturedMesh.hlsl", "ps_main", {}, {}},
+        // Light Frustum:
+        // Responsible for rendering light frustums
+        {Vertex,
+         "LightFrustum",
+         "V_LightFrustum.hlsl",
+         "vs_main",
+         {POSITION, INSTANCE_ID},
+         {}},
+        {Pixel, "LightFrustum", "P_LightFrustum.hlsl", "ps_main", {}, {}},
+        // Water Surface
+        {Vertex,
+         "WaterSurface",
+         "V_WaterSurface.hlsl",
+         "vs_main",
+         {POSITION, INSTANCE_ID},
+         {}},
+        {Pixel, "WaterSurface", "P_WaterSurface.hlsl", "ps_main", {}, {}},
+        // --- Post Processing Effects ---
+        // Generic vertex shader for post process effects
+        {Vertex,
+         "PostProcess",
+         "Post_VertexShader.hlsl",
+         "vs_main",
+         {SV_POSITION},
+         {}},
+        {Pixel, "PostProcess", "Post_PixelShader.hlsl", "ps_main", {}, {}},
+        {Pixel, "Sky", "Post_Abovewater.hlsl", "ps_main", {}, {}},
+        {Pixel, "Underwater", "Post_Underwater.hlsl", "ps_main", {}, {}}
+        // ...
+    };
+
+    for (const ShaderConfig& config : shaders) {
+        if (config.shader_type == Vertex)
+            createVertexShader(config);
+        else
+            createPixelShader(config);
+    }
+}
 
 // ShaderIncludeHandler Class:
 // Allows shaders to use the #include directive, by searching for the contents
@@ -59,99 +183,6 @@ class ShaderIncludeHandler : public ID3DInclude {
     }
 };
 
-ShaderManager::ShaderManager(ID3D11Device* _device) { device = _device; }
-ShaderManager::~ShaderManager() = default;
-
-// InitializeShaders:
-// Creates all of the shaders usable by the engine. To create a shader, populate
-// the ShaderConfig struct with data, and pass in an array of "pins" (defines).
-// We can use pins to make one shader file usable for multiple different input
-// types or configurations. Pass in NULL if there are no pins.
-// For vertex shaders, an additional array of input layouts is needed.
-struct ShaderConfig {
-    std::string shader_name; // Name of Shader in Engine
-
-    std::string source_file; // Source File
-    std::string entry_point; // Entrypoint Name
-
-    bool use_pins;
-};
-
-void ShaderManager::initializeShaders() {
-    // ShadowMap Shader:
-    // A very simple shader that takes vertex triangle data, as well as matrix
-    // transforms and writes them to a light's shadow map (depth buffer).
-    input_layout_arr = {POSITION};
-    createVertexShader({"ShadowMap", "ShadowMap.hlsl", "vs_main"});
-
-    createPixelShader({"ShadowMap", "ShadowMap.hlsl", "ps_main"});
-
-    // Terrain Shader:
-    // Handles rendering of the scene's terrain. Done in a separate shader than
-    // the meshes as terrain is procedurally textured with a tri-planar mapping
-    input_layout_arr = {INSTANCE_ID, VERTEX_ID};
-    createVertexShader({"Terrain", "V_Terrain.hlsl", "vsterrain_main"});
-
-    createPixelShader({"Terrain", "P_Terrain.hlsl", "psterrain_main"});
-
-    // DebugPoint:
-    // Uses instancing to draw colored points in the scene. Only available if
-    // the debug flag is flipped.
-    input_layout_arr = {POSITION, INSTANCE_ID};
-    createVertexShader({"DebugPoint", "DebugPointRenderer.hlsl", "vs_main"});
-
-    createPixelShader({"DebugPoint", "DebugPointRenderer.hlsl", "ps_main"});
-
-    // DebugLine:
-    // Uses instancing to draw colored lines in the scene. Only available if the
-    // debug flag is flipped.
-    input_layout_arr = {DEBUG_LINE};
-    createVertexShader({"DebugLine", "DebugLineRenderer.hlsl", "vs_main"});
-
-    createPixelShader({"DebugLine", "DebugLineRenderer.hlsl", "ps_main"});
-
-    // Shadow:
-    // Draws a mesh with dynamic lights enabled
-    input_layout_arr = {POSITION, NORMAL, COLOR};
-    createVertexShader({"ShadowShader", "ShadowShaderV.hlsl", "vs_main"});
-    createPixelShader({"ShadowShader", "ShadowShaderP.hlsl", "ps_main"});
-
-    // Shadow (Textured):
-    // Draws a mesh with dynamic lights enabled
-    input_layout_arr = {POSITION, TEXTURE, NORMAL};
-    createVertexShader({"TexturedMesh", "V_TexturedMesh.hlsl", "vs_main"});
-
-    input_layout_arr = {POSITION, TEXTURE, NORMAL, JOINTS, WEIGHTS};
-    pins_arr = {"SKINNED_MESH"};
-    createVertexShader({"SkinnedMesh", "V_TexturedMesh.hlsl", "vs_main", true});
-
-    createPixelShader({"TexturedMesh", "P_TexturedMesh.hlsl", "ps_main"});
-
-    input_layout_arr = {POSITION, INSTANCE_ID};
-    createVertexShader(
-        {"LightFrustum", "V_LightFrustum.hlsl", "vs_main", false});
-    createPixelShader({"LightFrustum", "P_LightFrustum.hlsl", "ps_main"});
-
-    input_layout_arr = {POSITION, INSTANCE_ID};
-    createVertexShader(
-        {"WaterSurface", "V_WaterSurface.hlsl", "vs_main", false});
-    createPixelShader({"WaterSurface", "P_WaterSurface.hlsl", "ps_main"});
-
-    // --- Post Processing Effects ---
-    // Generic vertex shader for post process effects
-    input_layout_arr = {SV_POSITION};
-    createVertexShader({"PostProcess", "Post_VertexShader.hlsl", "vs_main"});
-    createPixelShader({"PostProcess", "Post_PixelShader.hlsl", "ps_main"});
-
-    // Sky:
-    // Draws a sun and shades the sky
-    createPixelShader({"Sky", "Post_Abovewater.hlsl", "ps_main"});
-
-    // Underwater:
-    // Creates an underwater effect
-    createPixelShader({"Underwater", "Post_Underwater.hlsl", "ps_main"});
-}
-
 // GetVertexShader:
 // Returns a vertex shader by a given slot, which internally
 // indexes an array.
@@ -186,8 +217,8 @@ ID3DBlob* ShaderManager::compileShaderBlob(ShaderType type,
 
     std::string cached_blob_path =
         cache_folder + config.source_file + "--" + config.entry_point;
-    if (config.use_pins) {
-        for (const std::string& pin : pins_arr) {
+    if (!config.pins.empty()) {
+        for (const std::string& pin : config.pins) {
             cached_blob_path += ", " + pin;
         }
     }
@@ -230,10 +261,10 @@ ID3DBlob* ShaderManager::compileShaderBlob(ShaderType type,
     // the shader code.
     D3D_SHADER_MACRO* macros = NULL;
 
-    if (config.use_pins) {
+    if (!config.pins.empty()) {
         shader_macros.clear();
 
-        const std::vector<std::string>& pins = pins_arr;
+        const std::vector<std::string>& pins = config.pins;
         for (const std::string& pin : pins) {
             D3D_SHADER_MACRO macro;
             macro.Name = pin.c_str();
@@ -285,7 +316,7 @@ void ShaderManager::createVertexShader(const ShaderConfig& config) {
 
     std::vector<D3D11_INPUT_ELEMENT_DESC> input_desc;
 
-    for (const VertexDataStream& stream : input_layout_arr) {
+    for (const VertexDataStream& stream : config.input_layout) {
         D3D11_INPUT_ELEMENT_DESC desc;
 
         switch (stream) {
@@ -405,7 +436,7 @@ void ShaderManager::createVertexShader(const ShaderConfig& config) {
 
     // Create my vertex shader
     VertexShader* v_shader = new VertexShader(vertexShader, inputLayout);
-    for (const VertexDataStream& stream : input_layout_arr)
+    for (const VertexDataStream& stream : config.input_layout)
         if (stream < BINDABLE_STREAM_COUNT)
             v_shader->layout_pin |= (1 << stream);
 
@@ -415,6 +446,8 @@ void ShaderManager::createVertexShader(const ShaderConfig& config) {
 // CreatePixelShader:
 // Creates a pixel shader and adds it to the array of pixel shaders
 void ShaderManager::createPixelShader(const ShaderConfig& config) {
+    assert(config.input_layout.empty());
+
     // Obtain shader blob
     ID3DBlob* shader_blob = compileShaderBlob(Pixel, config);
 

@@ -34,20 +34,9 @@
 namespace Engine {
 namespace Graphics {
 
-// Render Information
-struct RenderableTerrain {
-    Mesh* mesh;
-    Vector3 terrain_offset;
-};
 struct RenderableAsset {
     const Asset* asset;
     Matrix4 m_localToWorld;
-};
-
-enum RenderTargetBindFlags {
-    DisableDepthStencil,
-    EnableDepthStencil_TestAndWrite,
-    EnableDepthStencil_TestNoWrite
 };
 
 // VisualParameters Struct:
@@ -70,19 +59,6 @@ class VisualSystem {
     ID3D11Device* device;
     ID3D11DeviceContext* context;
 
-    // Screen render target information
-    IDXGISwapChain* swap_chain;
-    Texture* screen_target;
-
-    // Render target information. Lets us ping pong
-    // between two render targets for post processing effects.
-    Texture* render_target_dest; // We Render to This
-    Texture* render_target_src;  // We Read from This
-
-    Texture* depth_stencil;
-    Texture* depth_stencil_copy;
-    D3D11_VIEWPORT viewport;
-
     ID3D11BlendState* blend_state;
 
     Texture* bump_tex;
@@ -104,28 +80,19 @@ class VisualSystem {
   public:
     VisualSystem(HWND window);
 
-    // Renders an entire scene
-    void pullDatamodelData(); // Call First
-    void render();
-
-    // Shutdown Visual System
-    void shutdown();
-
-  public: // Visual System Bindings
+    // Visual System Bindings
     CameraComponent* bindCameraComponent(Object* object);
     AssetComponent* bindAssetComponent(Object* object,
                                        const std::string& asset_name);
     ShadowLightComponent* bindLightComponent(Object* object);
     VisualTerrain* bindTerrain(Terrain* terrain);
 
-  private: // Initialization Stages
-    void initializeScreenTarget(HWND window, UINT width, UINT height);
-    void initializeRenderTarget(UINT width, UINT height);
-    void initializeManagers();
-    void initializeComponents();
+    // Renders an entire scene
+    void pullDatamodelData(); // Call First
+    void render();
 
   private:                     // Rendering Stages
-    void performShadowPass();  // Shadow Pass
+    void performPrepass();     // Prepass (Shadowmaps)
     void performTerrainPass(); // Render Terrain
     void performRenderPass();  // Render Pass
 
@@ -134,31 +101,11 @@ class VisualSystem {
     // Above Water Processing
     void performWaterSurfacePass(); // Water Surface Pass
     void processSky();
-
     void processUnderwater(); // Underwater Effect
-
-    void processDither();
-
-    void renderFinish(); // Finish Rendering
-
-    // --- Rendering Helper Methods ---
-    // Set the render targets for a given pass
-    void bindActiveRenderTarget(RenderTargetBindFlags bind_flags);
-    void swapActiveRenderTarget();
 
 #if defined(_DEBUG)
   private:
-    // Debug via ImGui
-    // Frametime Tracking (CPU + GPU)
-    GPUTimer gpu_timer;
-
-    void imGuiInitialize(HWND window);
-
-    void imGuiPrepare();
     void imGuiConfig();
-    void imGuiFinish();
-
-    void imGuiShutdown();
 #endif
 
 #if defined(ENABLE_DEBUG_DRAWING)

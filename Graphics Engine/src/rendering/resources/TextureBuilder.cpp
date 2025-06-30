@@ -29,7 +29,7 @@ Texture* TextureBuilder::generate(ID3D11Device* device) {
     return generate(device, false);
 }
 Texture* TextureBuilder::generate(ID3D11Device* device, bool editable) {
-    Texture* texture_resource = new Texture(width, height);
+    ID3D11Texture2D* tex = nullptr;
 
     // Generate my GPU texture resource
     D3D11_TEXTURE2D_DESC tex_desc = {};
@@ -41,7 +41,6 @@ Texture* TextureBuilder::generate(ID3D11Device* device, bool editable) {
     tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 
     if (editable) {
-        texture_resource->editable = true;
         tex_desc.Usage = D3D11_USAGE_DYNAMIC;
         tex_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
     } else {
@@ -54,8 +53,12 @@ Texture* TextureBuilder::generate(ID3D11Device* device, bool editable) {
     sr_data.SysMemPitch = width * 4;               // Bytes per row
     sr_data.SysMemSlicePitch = width * height * 4; // Total byte size
 
-    device->CreateTexture2D(&tex_desc, &sr_data, &(texture_resource->texture));
-    assert(texture_resource->texture != NULL);
+    HRESULT result = device->CreateTexture2D(&tex_desc, &sr_data, &tex);
+    assert(SUCCEEDED(result));
+
+    Texture* texture_resource = new Texture(tex, width, height);
+    if (editable)
+        texture_resource->editable = true;
 
     // Generate a shader view for my texture
     D3D11_SHADER_RESOURCE_VIEW_DESC tex_view;
@@ -67,10 +70,7 @@ Texture* TextureBuilder::generate(ID3D11Device* device, bool editable) {
     device->CreateShaderResourceView(texture_resource->texture, &tex_view,
                                      &(texture_resource->shader_view));
 
-    Texture* output = texture_resource;
-    texture_resource = nullptr;
-
-    return output;
+    return texture_resource;
 }
 
 // Update:
@@ -126,7 +126,7 @@ void TextureBuilder::reset(unsigned int _width, unsigned int _height) {
 AtlasBuilder::AtlasBuilder(UINT atlas_width, UINT atlas_height)
     : TextureBuilder(atlas_width, atlas_height) {
     // Initialize my texture atlas
-    atlas = new TextureAtlas(new Texture(atlas_width, atlas_height));
+    atlas = new TextureAtlas(new Texture(nullptr, atlas_width, atlas_height));
 
     cur_region = nullptr;
 }

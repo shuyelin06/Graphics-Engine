@@ -16,24 +16,34 @@ namespace Graphics {
 struct Texture {
     // GPU handle to the texture
     ID3D11Texture2D* texture;
-    
+
     // Texture descriptions
     UINT width, height; // Pixel width, height
     bool editable;      // Can the texture be edited?
-    
+
     // Different views for the texture. NULL if uninitialized.
     ID3D11ShaderResourceView* shader_view;
     ID3D11DepthStencilView* depth_view;
     ID3D11RenderTargetView* target_view;
 
-    Texture(UINT width, UINT height);
+  public:
+    Texture(ID3D11Texture2D* tex, UINT width, UINT height);
+    Texture(ID3D11Device* device, const D3D11_TEXTURE2D_DESC& desc);
     ~Texture();
 
-    void clearAsRenderTarget(ID3D11DeviceContext* context, const Color& color);
-    void bindAsRenderTarget(ID3D11DeviceContext* context);
+    // View Initialization
+    void createShaderResourceView(ID3D11Device* device,
+                                  D3D11_SHADER_RESOURCE_VIEW_DESC& desc);
+    void createDepthStencilView(ID3D11Device* device,
+                                D3D11_DEPTH_STENCIL_VIEW_DESC& desc);
+    void createRenderTargetView(ID3D11Device* device);
 
-    void clearAsDepthStencil(ID3D11DeviceContext* context);
-    void bindAsDepthStencil(ID3D11DeviceContext* context);
+    // Texture Operations
+    void VSBindResource(ID3D11DeviceContext* context, unsigned int slot) const;
+    void PSBindResource(ID3D11DeviceContext* context, unsigned int slot) const;
+    void clearAsRenderTarget(ID3D11DeviceContext* context,
+                             const Color& color) const;
+    void clearAsDepthStencil(ID3D11DeviceContext* context) const;
 
 #if defined(_DEBUG)
     void displayImGui() const;

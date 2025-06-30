@@ -5,8 +5,50 @@
 
 namespace Engine {
 namespace Graphics {
-LightManager::LightManager(TextureAtlas* atlas) : shadow_lights() {
-    shadow_atlas = atlas;
+LightManager::LightManager(ID3D11Device* device, unsigned int atlas_size)
+    : shadow_lights() {
+    D3D11_TEXTURE2D_DESC tex_desc = {};
+    D3D11_DEPTH_STENCIL_VIEW_DESC ds_desc = {};
+    D3D11_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
+
+    // Create my shadow atlas.
+    // This will have 24 Bits for R Channel (depth), 8 Bits for G Channel
+    // (stencil).
+    // The resource will be able to be accessed as a depth stencil and shader resource.
+    tex_desc.Width = atlas_size;
+    tex_desc.Height = atlas_size;
+    tex_desc.MipLevels = tex_desc.ArraySize = 1;
+    tex_desc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+    tex_desc.SampleDesc.Count = 1;
+    tex_desc.Usage = D3D11_USAGE_DEFAULT;
+    tex_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+    tex_desc.CPUAccessFlags = 0;
+    tex_desc.MiscFlags = 0;
+
+    Texture* atlas_texture = new Texture(device, tex_desc);
+
+    // Initialize a depth stencil view, to allow the texture to be used as a
+    // depth buffer. DXGI_FORMAT_D24_UNORM_S8_UINT specifies 24 bits for depth,
+    // 8 bits for stencil
+    ds_desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    ds_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+    ds_desc.Texture2D.MipSlice = 0;
+
+    atlas_texture->createDepthStencilView(device, ds_desc);
+
+    // Initialize a shader resource view, so that the texture data
+    // can be sampled in the shader.
+    // DXGI_FORMAT_R24_UNORM_X8_TYPELESS specifies 24 bits in the R channel
+    // UNORM (0.0f -> 1.0f), and 8 bits to be ignored
+    srv_desc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+    srv_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    srv_desc.Texture2D.MostDetailedMip = 0;
+    srv_desc.Texture2D.MipLevels = 1;
+
+    atlas_texture->createShaderResourceView(device, srv_desc);
+
+    // Create my shadow atlas with this texture 
+    shadow_atlas = new TextureAtlas(atlas_texture);
 
     // Create sun light
     createSunLight(QUALITY_5);

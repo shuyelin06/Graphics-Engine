@@ -69,7 +69,7 @@ class LightManager {
     std::vector<ShadowCaster> shadow_casters;
 
   public:
-    LightManager(TextureAtlas* shadow_atlas);
+    LightManager(ID3D11Device* device, unsigned int atlas_size);
 
     // Get the light manager's data
     const Texture* getAtlasTexture(void) const;

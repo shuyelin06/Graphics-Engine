@@ -31,6 +31,29 @@ struct VisualParameters {
     }
 };
 
+#if defined(_DEBUG)
+// ImGuiConfig:
+// Sets configuration parameters
+void VisualSystem::imGuiConfig() {
+    static float sun_direc[3] = {-3.0f, -1.0f, 0.0f};
+    static float sun_color[3] = {1.f, 1.f, 0.0f};
+
+    if (ImGui::CollapsingHeader("Rendering Parameters")) {
+        ImGui::SliderFloat3("Sun Direction", sun_direc, -5.f, 5.f);
+        ImGui::SliderFloat3("Sun Color", sun_color, 0.0f, 1.f);
+
+        ImGui::SeparatorText("Underwater Parameters");
+        ImGui::SliderFloat("Intensity Drop", &config->intensity_drop, 0.00001f,
+                           0.5f);
+        ImGui::SliderFloat("Visibility", &config->visibility, 0.f, 1.f);
+    }
+
+    config->sun_direction =
+        Vector3(sun_direc[0], sun_direc[1], sun_direc[2]).unit();
+    config->sun_color = Vector3(sun_color[0], sun_color[1], sun_color[2]);
+}
+#endif
+
 struct VisualCache {
     float time;
 
@@ -48,298 +71,42 @@ VisualSystem::VisualSystem(HWND window) {
 
     bump_tex = nullptr;
 
-    device = NULL;
-    context = NULL;
-
     resource_manager = NULL;
     pipeline = NULL;
-
-    swap_chain = NULL;
-    screen_target = NULL;
 
     camera = nullptr;
     terrain = nullptr;
 
+    // Initialize my pipeline
     HRESULT result;
+    pipeline = new PipelineManager(window);
 
-    // Get window width and height
-    RECT rect;
-    GetClientRect(window, &rect);
-    const UINT width = rect.right - rect.left;
-    const UINT height = rect.bottom - rect.top;
+    device = pipeline->getDevice();
+    context = pipeline->getContext();
 
-    // Create my swap chain and set up its buffer as a render target. This is
-    // what will be displayed on our screen
-    initializeScreenTarget(window, width, height);
+    {
+        D3D11_BLEND_DESC blend_desc = {};
+        blend_desc.RenderTarget[0].BlendEnable = TRUE;
 
-    // Create another render target and depth stencil. We will render to this as
-    // an intermediate target so that we can apply post processing effects
-    initializeRenderTarget(width, height);
+        blend_desc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+        blend_desc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+        blend_desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+
+        blend_desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
+        blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+        blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_MAX;
+
+        blend_desc.RenderTarget[0].RenderTargetWriteMask =
+            D3D11_COLOR_WRITE_ENABLE_ALL;
+        result = device->CreateBlendState(&blend_desc, &blend_state);
+        assert(SUCCEEDED(result));
+    }
 
     // Initialize each of my managers with the resources they need
-    initializeManagers();
-
-    // Initialize My Components
-    initializeComponents();
-
-#if defined(_DEBUG)
-    imGuiInitialize(window);
-    imGuiPrepare(); // Pre-Prepare a Frame
-#endif
-}
-
-// InitializeScreenTarget:
-// Create swap chain, device, and context.
-// The swap chain is responsible for swapping between textures
-// for rendering, and the device + context give us interfaces to work with the
-// GPU.
-void VisualSystem::initializeScreenTarget(HWND window, UINT width,
-                                          UINT height) {
-    HRESULT result;
-
-    // Create my swap chain. This will let me swap between textures for
-    // rendering, so the user doesn't see the next frame while it's being
-    // rendered.
-    DXGI_SWAP_CHAIN_DESC swap_chain_descriptor = {0};
-
-    swap_chain_descriptor.BufferDesc.RefreshRate.Numerator = 0;
-    swap_chain_descriptor.BufferDesc.RefreshRate.Denominator = 1;
-    swap_chain_descriptor.BufferDesc.Width = width;
-    swap_chain_descriptor.BufferDesc.Height = height;
-    swap_chain_descriptor.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-    swap_chain_descriptor.SampleDesc.Count = 1;
-    swap_chain_descriptor.SampleDesc.Quality = 0;
-    swap_chain_descriptor.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    swap_chain_descriptor.BufferCount = 1; // # Back Buffers
-    swap_chain_descriptor.OutputWindow = window;
-    swap_chain_descriptor.Windowed = true; // Displaying to a Window
-
-    D3D_FEATURE_LEVEL feature_level; // Stores the GPU functionality
-    result = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL,
-                                           0, // Flags
-                                           NULL, 0, D3D11_SDK_VERSION,
-                                           &swap_chain_descriptor, &swap_chain,
-                                           &device, &feature_level, &context);
-
-    assert(S_OK == result && swap_chain && device && context);
-
-    // Create my render target with the swap chain's frame buffer. This
-    // will store my output image.
-    screen_target = new Texture(width, height);
-
-    result = swap_chain->GetBuffer(0, __uuidof(ID3D11Texture2D),
-                                   (void**)&screen_target->texture);
-    assert(SUCCEEDED(result));
-
-    result = device->CreateRenderTargetView(screen_target->texture, 0,
-                                            &screen_target->target_view);
-    assert(SUCCEEDED(result));
-
-    screen_target->texture->Release(); // Free frame buffer (no longer needed)
-
-    // Create my viewport
-    viewport = {0.0f, 0.0f, (float)width, (float)height, 0.0f, 1.0f};
-}
-
-// InitializeRenderTarget:
-// Initializes a render target and depth stencil we will use as an intermediate
-// render target for post processing effects
-void VisualSystem::initializeRenderTarget(UINT width, UINT height) {
-    HRESULT result;
-
-    // Create 2 render targets. We will ping pong between
-    // these two render targets during post processing.
-    render_target_dest = new Texture(width, height);
-    render_target_src = new Texture(width, height);
-
-    D3D11_TEXTURE2D_DESC tex_desc = {};
-    tex_desc.Width = width;
-    tex_desc.Height = height;
-    tex_desc.MipLevels = 1;
-    tex_desc.ArraySize = 1;
-    tex_desc.MipLevels = 1;
-    tex_desc.ArraySize = 1;
-    tex_desc.SampleDesc.Count = 1;
-    tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-    tex_desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-
-    // Create my texture resources
-    result =
-        device->CreateTexture2D(&tex_desc, NULL, &render_target_src->texture);
-    assert(SUCCEEDED(result));
-    result =
-        device->CreateTexture2D(&tex_desc, NULL, &render_target_dest->texture);
-    assert(SUCCEEDED(result));
-
-    // Create render target views
-    result = device->CreateRenderTargetView(render_target_dest->texture, 0,
-                                            &render_target_dest->target_view);
-    assert(SUCCEEDED(result));
-    result = device->CreateRenderTargetView(render_target_src->texture, 0,
-                                            &render_target_src->target_view);
-    assert(SUCCEEDED(result));
-
-    // Create shader views so we can access them in the GPU
-    {
-        D3D11_SHADER_RESOURCE_VIEW_DESC resource_view_desc = {};
-        resource_view_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-        resource_view_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-        resource_view_desc.Texture2D.MostDetailedMip = 0;
-        resource_view_desc.Texture2D.MipLevels = 1;
-
-        result = device->CreateShaderResourceView(
-            render_target_dest->texture, &resource_view_desc,
-            &render_target_dest->shader_view);
-        assert(SUCCEEDED(result));
-        result = device->CreateShaderResourceView(
-            render_target_src->texture, &resource_view_desc,
-            &render_target_src->shader_view);
-        assert(SUCCEEDED(result));
-    }
-
-    // Create another texture as a depth stencil, for z-testing
-    // Create my depth stencil which will be used for z-tests
-    // 24 Bits for Depth, 8 Bits for Stencil
-    depth_stencil = new Texture(width, height);
-    depth_stencil_copy = new Texture(width, height);
-
-    tex_desc.Width = width;
-    tex_desc.Height = height;
-    tex_desc.MipLevels = 1;
-    tex_desc.ArraySize = 1;
-    tex_desc.MipLevels = 1;
-    tex_desc.ArraySize = 1;
-    tex_desc.SampleDesc.Count = 1;
-    tex_desc.Format = DXGI_FORMAT_R24G8_TYPELESS;
-    tex_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
-
-    result = device->CreateTexture2D(&tex_desc, NULL, &depth_stencil->texture);
-    assert(SUCCEEDED(result));
-    result =
-        device->CreateTexture2D(&tex_desc, NULL, &depth_stencil_copy->texture);
-    assert(SUCCEEDED(result));
-
-    // Create my depth view
-    D3D11_DEPTH_STENCIL_VIEW_DESC desc_stencil = {};
-    desc_stencil.Format =
-        DXGI_FORMAT_D24_UNORM_S8_UINT; // Same format as texture
-    desc_stencil.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
-
-    result = device->CreateDepthStencilView(
-        depth_stencil->texture, &desc_stencil, &depth_stencil->depth_view);
-    assert(SUCCEEDED(result));
-
-    // Create my shader view for the depth texture
-    {
-        D3D11_SHADER_RESOURCE_VIEW_DESC resource_view_desc = {};
-        resource_view_desc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
-        resource_view_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-        resource_view_desc.Texture2D.MostDetailedMip = 0;
-        resource_view_desc.Texture2D.MipLevels = 1;
-
-        result = device->CreateShaderResourceView(depth_stencil->texture,
-                                                  &resource_view_desc,
-                                                  &depth_stencil->shader_view);
-        assert(SUCCEEDED(result));
-        result = device->CreateShaderResourceView(
-            depth_stencil_copy->texture, &resource_view_desc,
-            &depth_stencil_copy->shader_view);
-        assert(SUCCEEDED(result));
-    }
-
-    // Create a blend state
-    D3D11_BLEND_DESC blend_desc = {};
-    blend_desc.RenderTarget[0].BlendEnable = TRUE;
-
-    blend_desc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-    blend_desc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-    blend_desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-
-    blend_desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
-    blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
-    blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_MAX;
-
-    blend_desc.RenderTarget[0].RenderTargetWriteMask =
-        D3D11_COLOR_WRITE_ENABLE_ALL;
-    result = device->CreateBlendState(&blend_desc, &blend_state);
-    assert(SUCCEEDED(result));
-}
-
-// InitializeManagers:
-// Initializes different managers that the visual system uses.
-void VisualSystem::initializeManagers() {
-    HRESULT result;
-
     resource_manager = new ResourceManager(device, context);
     resource_manager->initializeResources();
 
-    pipeline = new PipelineManager(device, context);
-
-    // --- Light Manager ---
-    constexpr int ATLAS_SIZE = 4096;
-    Texture* atlas_texture = new Texture(ATLAS_SIZE, ATLAS_SIZE);
-
-    // Create my texture resource. This will have 24 Bits for R Channel (depth),
-    // 8 Bits for G Channel (stencil). The resource will be able to be accessed
-    // as a depth stencil and shader resource.
-    D3D11_TEXTURE2D_DESC tex_desc = {};
-    tex_desc.Width = ATLAS_SIZE;
-    tex_desc.Height = ATLAS_SIZE;
-    tex_desc.MipLevels = tex_desc.ArraySize = 1;
-    tex_desc.Format = DXGI_FORMAT_R24G8_TYPELESS;
-    tex_desc.SampleDesc.Count = 1;
-    tex_desc.Usage = D3D11_USAGE_DEFAULT;
-    tex_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
-    tex_desc.CPUAccessFlags = 0;
-    tex_desc.MiscFlags = 0;
-
-    result = device->CreateTexture2D(&tex_desc, NULL, &atlas_texture->texture);
-    assert(SUCCEEDED(result));
-
-    // Initialize a depth stencil view, to allow the texture to be used as a
-    // depth buffer. DXGI_FORMAT_D24_UNORM_S8_UINT specifies 24 bits for depth,
-    // 8 bits for stencil
-    D3D11_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc = {};
-    depth_stencil_view_desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    depth_stencil_view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-    depth_stencil_view_desc.Texture2D.MipSlice = 0;
-
-    result = device->CreateDepthStencilView(atlas_texture->texture,
-                                            &depth_stencil_view_desc,
-                                            &atlas_texture->depth_view);
-    assert(SUCCEEDED(result));
-
-    // Initialize a shader resource view, so that the texture data
-    // can be sampled in the shader.
-    // DXGI_FORMAT_R24_UNORM_X8_TYPELESS specifies 24 bits in the R channel
-    // UNORM (0.0f -> 1.0f), and 8 bits to be ignored
-    D3D11_SHADER_RESOURCE_VIEW_DESC shader_resource_view_description = {};
-    shader_resource_view_description.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
-    shader_resource_view_description.ViewDimension =
-        D3D11_SRV_DIMENSION_TEXTURE2D;
-    shader_resource_view_description.Texture2D.MostDetailedMip = 0;
-    shader_resource_view_description.Texture2D.MipLevels = 1;
-
-    result = device->CreateShaderResourceView(atlas_texture->texture,
-                                              &shader_resource_view_description,
-                                              &atlas_texture->shader_view);
-    assert(SUCCEEDED(result));
-
-    light_manager = new LightManager(new TextureAtlas(atlas_texture));
-}
-
-// InitializeComponents:
-// Register components of the visual system.
-void VisualSystem::initializeComponents() {
-    // ...
-}
-
-// Shutdown:
-// Closes the visual system.
-void VisualSystem::shutdown() {
-#if defined(_DEBUG)
-    imGuiShutdown();
-#endif
+    light_manager = new LightManager(device, 4096);
 }
 
 // --- Component Bindings ---
@@ -380,6 +147,8 @@ VisualTerrain* VisualSystem::bindTerrain(Terrain* _terrain) {
 // Render:
 // Renders the entire scene to the screen.
 void VisualSystem::render() {
+    pipeline->prepare();
+
 #if defined(_DEBUG)
     ICPUTimer cpu_timer = CPUTimer::TrackCPUTime("CPU Frametime");
     {
@@ -388,9 +157,6 @@ void VisualSystem::render() {
 
         // TEMP
         light_manager->updateTimeOfDay(15.f);
-
-        // Clear the the screen color
-        render_target_dest->clearAsRenderTarget(context, Color(0.f, 0.f, 0.f));
 
         // Upload CB0
         {
@@ -414,13 +180,11 @@ void VisualSystem::render() {
         }
 
         // Prepare the shadow maps
-        performShadowPass(); //..
+        performPrepass(); //..
 
         // Bind my atlases
-        const Texture* color_atlas = resource_manager->getColorAtlas();
-        context->PSSetShaderResources(0, 1, &color_atlas->shader_view);
-        const Texture* shadow_atlas = light_manager->getAtlasTexture();
-        context->PSSetShaderResources(1, 1, &shadow_atlas->shader_view);
+        resource_manager->getColorAtlas()->PSBindResource(context, 0);
+        light_manager->getAtlasTexture()->PSBindResource(context, 1);
 
         // Render terrain
         performTerrainPass();
@@ -447,19 +211,13 @@ void VisualSystem::render() {
         VisualDebug::Clear();
 #endif
 
-        processDither();
-
 #if defined(_DEBUG)
-        imGuiFinish();
     }
 #endif
 
-    renderFinish();
-
-#if defined(_DEBUG)
-    // Prepare for the next frame
-    imGuiPrepare();
-#endif
+    // Finish rendering and present
+    pipeline->present();
+    renderable_meshes.clear();
 }
 
 // RenderPrepare:
@@ -562,19 +320,21 @@ void VisualSystem::pullDatamodelData() {
     light_manager->clusterShadowCasters();
 
     // Update the values stored in my cache
+    Texture* target = pipeline->getRenderTargetDest();
+
     cache->time += 1 / 60.f;
     cache->m_world_to_screen =
         camera->getFrustumMatrix() * camera->getWorldToCameraMatrix();
     cache->m_screen_to_world = cache->m_world_to_screen.inverse();
     cache->resolution_info =
-        Vector4((float)screen_target->width, (float)screen_target->height,
-                camera->getZNear(), camera->getZFar());
+        Vector4((float)target->width, (float)target->height, camera->getZNear(),
+                camera->getZFar());
 }
 
 // PerformShadowPass:
 // Render the scene from each light's point of view, to populate
 // its shadow map.
-void VisualSystem::performShadowPass() {
+void VisualSystem::performPrepass() {
 #if defined(_DEBUG)
     IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Shadow Pass");
 #endif
@@ -583,8 +343,7 @@ void VisualSystem::performShadowPass() {
     pipeline->bindPixelShader("ShadowMap");
 
     const Texture* shadow_texture = light_manager->getAtlasTexture();
-    context->ClearDepthStencilView(shadow_texture->depth_view,
-                                   D3D11_CLEAR_DEPTH, 1.0f, 0);
+    shadow_texture->clearAsDepthStencil(context);
 
     const std::vector<ShadowLight*>& lights = light_manager->getShadowLights();
     const std::vector<ShadowCluster>& clusters =
@@ -638,9 +397,9 @@ void VisualSystem::performTerrainPass() {
     pipeline->bindPixelShader("Terrain");
 
     // TEST
-    bindActiveRenderTarget(EnableDepthStencil_TestAndWrite);
-    context->ClearDepthStencilView(depth_stencil->depth_view, D3D11_CLEAR_DEPTH,
-                                   1.0f, 0);
+    Texture* depth_stencil = pipeline->getDepthStencil();
+    pipeline->setActiveTarget(EnableDepthStencil_TestAndWrite);
+    depth_stencil->clearAsDepthStencil(context);
 
     // Vertex Constant Buffer 0:
     // Stores the camera view and projection matrices
@@ -676,7 +435,7 @@ void VisualSystem::performRenderPass() {
 #endif
 
     pipeline->bindPixelShader("TexturedMesh");
-    bindActiveRenderTarget(EnableDepthStencil_TestAndWrite);
+    pipeline->setActiveTarget(EnableDepthStencil_TestAndWrite);
 
     // Vertex Constant Buffer 1:
     // Stores the camera view and projection matrices
@@ -777,7 +536,7 @@ void VisualSystem::performLightFrustumPass() {
     const int num_lights = lights.size() - SUN_NUM_CASCADES;
 
     // Disable depth writes
-    bindActiveRenderTarget(EnableDepthStencil_TestNoWrite);
+    pipeline->setActiveTarget(EnableDepthStencil_TestNoWrite);
 
     {
         IConstantBuffer vcb0 = pipeline->loadVertexCB(CB0);
@@ -795,11 +554,6 @@ void VisualSystem::performLightFrustumPass() {
             const Matrix4 m_frustum =
                 frust.getFrustumToWorldMatrix() * transform;
             vcb0.loadData(&m_frustum, FLOAT4X4);
-
-            /*if (i == 3) {
-                VisualDebug::DrawFrustum(frust.getFrustumToWorldMatrix(),
-                                         Color::Green());
-            }*/
         }
     }
 
@@ -819,11 +573,14 @@ void VisualSystem::performWaterSurfacePass() {
     pipeline->bindPixelShader("WaterSurface");
 
     // Copy depth stencil over
+    Texture* depth_stencil = pipeline->getDepthStencil();
+    Texture* depth_stencil_copy = pipeline->getDepthStencilCopy();
     context->CopyResource(depth_stencil_copy->texture, depth_stencil->texture);
+
     // Disable depth writes
     // swapActiveRenderTarget();
 
-    bindActiveRenderTarget(EnableDepthStencil_TestAndWrite);
+    pipeline->setActiveTarget(EnableDepthStencil_TestAndWrite);
 
     {
         IConstantBuffer vcb0 = pipeline->loadVertexCB(CB0);
@@ -930,12 +687,12 @@ void VisualSystem::processSky() {
     pipeline->bindVertexShader("PostProcess");
     pipeline->bindPixelShader("Sky");
 
-    swapActiveRenderTarget();
-    bindActiveRenderTarget(DisableDepthStencil);
+    pipeline->swapActiveTarget();
+    pipeline->setActiveTarget(DisableDepthStencil);
 
-    // Set samplers and texture resources
-    context->PSSetShaderResources(2, 1, &render_target_src->shader_view);
-    context->PSSetShaderResources(3, 1, &depth_stencil->shader_view);
+    // Set samplers and texture
+    pipeline->bindInactiveTarget(2);
+    pipeline->bindDepthStencil(3);
 
     {
         IConstantBuffer pcb2 = pipeline->loadPixelCB(CB2);
@@ -964,12 +721,12 @@ void VisualSystem::processUnderwater() {
     pipeline->bindPixelShader("Underwater");
 
     // Set render target
-    swapActiveRenderTarget();
-    bindActiveRenderTarget(DisableDepthStencil);
+    pipeline->swapActiveTarget();
+    pipeline->setActiveTarget(DisableDepthStencil);
 
     // Set samplers and texture resources
-    context->PSSetShaderResources(2, 1, &render_target_src->shader_view);
-    context->PSSetShaderResources(3, 1, &depth_stencil->shader_view);
+    pipeline->bindInactiveTarget(2);
+    pipeline->bindDepthStencil(3);
 
     // Set parameters
     {
@@ -999,62 +756,6 @@ void VisualSystem::processUnderwater() {
 
     // Bind and draw full screen quad
     pipeline->drawPostProcessQuad();
-}
-
-void VisualSystem::processDither() {
-#if defined(_DEBUG)
-    IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Finish + Dither");
-#endif
-
-    // We will render from our most reecntly used render target to the screen
-    pipeline->bindVertexShader("PostProcess");
-    pipeline->bindPixelShader("PostProcess");
-
-    // Set render target
-    context->OMSetRenderTargets(1, &screen_target->target_view, nullptr);
-    context->RSSetViewports(1, &viewport);
-
-    // Set samplers and texture resources
-    context->PSSetShaderResources(0, 1, &render_target_dest->shader_view);
-
-    pipeline->drawPostProcessQuad();
-}
-
-void VisualSystem::renderFinish() {
-    // Finally, present what we rendered to
-    swap_chain->Present(1, 0);
-
-    renderable_meshes.clear();
-}
-
-// --- Rendering Helper Methods ---
-// BindActiveRenderTarget:
-// Binds the currently active render target. There is an option
-// to bind the depth stencil too, if needed.
-void VisualSystem::bindActiveRenderTarget(RenderTargetBindFlags bind_flags) {
-    ID3D11DepthStencilView* depth_view = nullptr;
-
-    if (bind_flags == EnableDepthStencil_TestAndWrite ||
-        bind_flags == EnableDepthStencil_TestNoWrite) {
-        depth_view = depth_stencil->depth_view;
-
-        ID3D11DepthStencilState* state = nullptr;
-        if (bind_flags == EnableDepthStencil_TestAndWrite)
-            state = resource_manager->DSState_TestAndWrite();
-        else if (bind_flags == EnableDepthStencil_TestNoWrite)
-            state = resource_manager->DSState_TestNoWrite();
-        context->OMSetDepthStencilState(state, 0);
-    }
-
-    context->OMSetRenderTargets(1, &render_target_dest->target_view,
-                                depth_view);
-    context->RSSetViewports(1, &viewport);
-}
-
-void VisualSystem::swapActiveRenderTarget() {
-    Texture* temp = render_target_dest;
-    render_target_dest = render_target_src;
-    render_target_src = temp;
 }
 
 #if defined(ENABLE_DEBUG_DRAWING)
@@ -1162,95 +863,6 @@ void VisualSystem::renderDebugLines() {
         context->Draw(numLines, 0);
     }
 }
-#endif
-
-#if defined(_DEBUG)
-// ImGui Initialize:
-// Initializes the ImGui menu and associated data.
-void VisualSystem::imGuiInitialize(HWND window) {
-    // Initialize ImGui
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |=
-        ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-    io.ConfigFlags |=
-        ImGuiConfigFlags_NavEnableGamepad; // Enable Gamepad Controls
-
-    ImGui_ImplWin32_Init(window);
-    ImGui_ImplDX11_Init(device, context);
-
-    // Create GPU + CPU Timers
-    GPUTimer::Initialize(device, context);
-    CPUTimer::Initialize();
-}
-
-// ImGuiPrepare:
-// Creates a new frame for the ImGui system and begin tracking GPU time
-// for the current frame
-void VisualSystem::imGuiPrepare() {
-    // Start the Dear ImGui frame
-    ImGui_ImplDX11_NewFrame();
-    ImGui_ImplWin32_NewFrame();
-    ImGui::NewFrame();
-
-    // Begin timestamping
-    GPUTimer::BeginFrame();
-
-    // ImGui::ShowDemoWindow(); // Show demo window! :)
-}
-
-// ImGuiConfig:
-// Sets configuration parameters
-void VisualSystem::imGuiConfig() {
-    static float sun_direc[3] = {-3.0f, -1.0f, 0.0f};
-    static float sun_color[3] = {1.f, 1.f, 0.0f};
-
-    if (ImGui::CollapsingHeader("Rendering Parameters")) {
-        ImGui::SliderFloat3("Sun Direction", sun_direc, -5.f, 5.f);
-        ImGui::SliderFloat3("Sun Color", sun_color, 0.0f, 1.f);
-
-        ImGui::SeparatorText("Underwater Parameters");
-        ImGui::SliderFloat("Intensity Drop", &config->intensity_drop, 0.00001f,
-                           0.5f);
-        ImGui::SliderFloat("Visibility", &config->visibility, 0.f, 1.f);
-    }
-
-    config->sun_direction =
-        Vector3(sun_direc[0], sun_direc[1], sun_direc[2]).unit();
-    config->sun_color = Vector3(sun_color[0], sun_color[1], sun_color[2]);
-}
-
-// ImGuiFinish:
-// Finish and present the ImGui window
-void VisualSystem::imGuiFinish() {
-    // Finish and Display GPU + CPU Times
-    GPUTimer::EndFrame();
-
-    if (ImGui::CollapsingHeader("Rendering")) {
-        ImGui::SeparatorText("CPU Times:");
-        CPUTimer::DisplayCPUTimes();
-
-        ImGui::SeparatorText("GPU Times:");
-        GPUTimer::DisplayGPUTimes();
-
-        ImGui::SeparatorText("Shadow Atlas:");
-        light_manager->getAtlasTexture()->displayImGui(512);
-    }
-
-    // Finish the ImGui Frame
-    ImGui::Render();
-    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-}
-
-// ImGuiShutDown:
-// Shut down the ImGui system
-void VisualSystem::imGuiShutdown() {
-    ImGui_ImplDX11_Shutdown();
-    ImGui_ImplWin32_Shutdown();
-    ImGui::DestroyContext();
-}
-
 #endif
 
 } // namespace Graphics

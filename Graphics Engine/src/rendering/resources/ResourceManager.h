@@ -27,10 +27,6 @@ class ResourceManager {
     std::unordered_map<std::string, uint16_t> texture_map;
     std::vector<Texture*> textures;
 
-    // Depth stencil states
-    ID3D11DepthStencilState* ds_test_and_write;
-    ID3D11DepthStencilState* ds_test_no_write;
-
     TextureAtlas* color_atlas;
 
   public:
@@ -48,10 +44,6 @@ class ResourceManager {
     Texture* getTexture(uint16_t id);
 
     const Texture* getColorAtlas();
-
-    // Get depth stencil states
-    ID3D11DepthStencilState* DSState_TestNoWrite();
-    ID3D11DepthStencilState* DSState_TestAndWrite();
 
   private:
     // Registers an asset by name, and returns it's ID

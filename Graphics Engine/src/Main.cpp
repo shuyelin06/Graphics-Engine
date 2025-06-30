@@ -216,7 +216,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
         // We finished our frame. See how many milliseconds we took
         // and stall (if needed) until the next frame
-#if defined(_DEBUG) 
+#if defined(_DEBUG)
         cur_time_in_seconds = time_point_cast<seconds>(system_clock::now());
         cur_fps_count++;
 
@@ -227,7 +227,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         }
 
         ImGui::Text("FPS: %i", prev_fps_count);
-#endif 
+#endif
 
         std::this_thread::sleep_until(frame_end);
         frame_begin = frame_end;
@@ -235,8 +235,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     }
 
     // Shutdown all systems
-    visual_system.shutdown();
-
     ThreadPool::DestroyThreadPool();
 
     // Finish
