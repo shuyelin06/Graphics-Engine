@@ -38,7 +38,7 @@ void VisualSystem::imGuiConfig() {
     static float sun_direc[3] = {-3.0f, -1.0f, 0.0f};
     static float sun_color[3] = {1.f, 1.f, 0.0f};
 
-    if (ImGui::CollapsingHeader("Rendering Parameters")) {
+    if (ImGui::BeginMenu("Rendering Parameters")) {
         ImGui::SliderFloat3("Sun Direction", sun_direc, -5.f, 5.f);
         ImGui::SliderFloat3("Sun Color", sun_color, 0.0f, 1.f);
 
@@ -46,6 +46,8 @@ void VisualSystem::imGuiConfig() {
         ImGui::SliderFloat("Intensity Drop", &config->intensity_drop, 0.00001f,
                            0.5f);
         ImGui::SliderFloat("Visibility", &config->visibility, 0.f, 1.f);
+
+        ImGui::EndMenu();
     }
 
     config->sun_direction =
@@ -195,7 +197,7 @@ void VisualSystem::render() {
         // or above the surface of the water
         const Vector3& cam_pos = camera->getPosition();
         if (cam_pos.y <= terrain->getSurfaceLevel() + 3.5f) {
-            performLightFrustumPass();
+            // performLightFrustumPass();
             // Underwater rendering
             processUnderwater();
         } else {
@@ -277,8 +279,12 @@ void VisualSystem::pullDatamodelData() {
     static float AMP = 2.f;
 
 #if defined(_DEBUG)
-    ImGui::SliderFloat("Frequency", &freq, 0.001f, 0.5f);
-    ImGui::SliderFloat("Amplitude", &AMP, 1.f, 25.f);
+    if (ImGui::BeginMenu("Misc")) {
+        ImGui::SliderFloat("Frequency", &freq, 0.001f, 0.5f);
+        ImGui::SliderFloat("Amplitude", &AMP, 1.f, 25.f);
+
+        ImGui::EndMenu();
+    }
 #endif
 
     if (bump_tex == nullptr) {
@@ -732,26 +738,49 @@ void VisualSystem::processUnderwater() {
     {
         IConstantBuffer pCB2 = pipeline->loadPixelCB(CB2);
 
-        // DO NOT MODIFY. Precomputed values for the fog interpolation.
-        const float d = camera->getZFar() * 0.5f;
-        const Vector3 fog_params = Vector3(1.f / (d * d), -2.f / d, 1.f);
-        pCB2.loadData(&fog_params, FLOAT3);
-
-        // Water Visibility
-        pCB2.loadData(&config->visibility, FLOAT);
-
-        // Where the surface is. Brightest at the surface.
+        const Vector3 sun_direc = config->sun_direction.unit();
+        pCB2.loadData(&sun_direc, FLOAT3);
         const float surface_height = terrain->getSurfaceLevel();
         pCB2.loadData(&surface_height, FLOAT);
 
-        const Vector3 shallow_waters = Vector3(24.f, 154.f, 180.f) / 255.f;
-        pCB2.loadData(&shallow_waters, FLOAT3);
+        const Vector3 sky_color = Vector3(1.f, 1.f, 1.f);
+        pCB2.loadData(&sky_color, FLOAT3);
+        static float water_density = 7.f;
+        pCB2.loadData(&water_density, FLOAT);
 
-        // The lower the value, the slower it gets darker as you go deeper
-        pCB2.loadData(&config->intensity_drop, FLOAT);
+        static float r = 0.42f;
+        static float g = 0.08f;
+        static float b = 0.11f;
+        pCB2.loadData(&r, FLOAT);
+        pCB2.loadData(&g, FLOAT);
+        pCB2.loadData(&b, FLOAT);
 
-        const Vector3 deep_waters = Vector3(5.f, 68.f, 94.f) / 255.f;
-        pCB2.loadData(&deep_waters, FLOAT3);
+        static float attenuation_multiplier = 0.01f;
+        pCB2.loadData(&attenuation_multiplier, FLOAT);
+
+        static int num_steps = 15;
+        pCB2.loadData(&num_steps, INT);
+
+        static float fog_factor = 20.f;
+        pCB2.loadData(&fog_factor, FLOAT);
+
+        static float sky_brightness = 1.f;
+        pCB2.loadData(&sky_brightness, FLOAT);
+
+        if (ImGui::BeginMenu("Misc")) {
+            ImGui::SliderFloat("Scattering Multiplier", &water_density, 0.0f,
+                               7.f);
+            ImGui::SliderFloat("R Attenuation", &r, 0.0f, 1.f);
+            ImGui::SliderFloat("G Attenuation", &g, 0.0f, 1.f);
+            ImGui::SliderFloat("B Attenuation", &b, 0.0f, 1.f);
+            ImGui::SliderFloat("Attenation Multiplier", &attenuation_multiplier,
+                               0.f, 0.2f);
+            ImGui::SliderInt("Num Steps", &num_steps, 3, 30);
+            ImGui::SliderFloat("Fog", &fog_factor, 1.f, 30.f);
+            ImGui::SliderFloat("Sky Brightness", &sky_brightness, 0.0f, 5.f);
+
+            ImGui::EndMenu();
+        }
     }
 
     // Bind and draw full screen quad

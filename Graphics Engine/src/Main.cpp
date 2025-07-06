@@ -121,20 +121,20 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     // Bind Movement Physics
     physics_system.bindPhysicsObject(&camera_obj);
 
-    Object& light = parent.createChild();
+    /*Object& light = parent.createChild();
     ShadowLightComponent* comp = visual_system.bindLightComponent(&light);
-    light.getTransform().offsetPosition(25.f, 0.f, 25.f);
+    light.getTransform().offsetPosition(25.f, 0.f, 25.f);*/
 
-    camera_obj.getTransform().offsetPosition(0.0f, 125.f, 0.0f);
+    // camera_obj.getTransform().offsetPosition(0.0f, 125.f, 0.0f);
 
     // Create Object Hierarchy
-    Object& fox = parent.createChild();
+    /*Object& fox = parent.createChild();
     visual_system.bindAssetComponent(&fox, "Fox");
     fox.getTransform().setScale(Vector3(5.f, 5.f, 5.f));
 
     Object& man = parent.createChild();
     visual_system.bindAssetComponent(&man, "Man");
-    man.getTransform().setScale(Vector3(20.f, 5.f, 5.f));
+    man.getTransform().setScale(Vector3(20.f, 5.f, 5.f));*/
     // physics_system.bindPhysicsObject(&parent_object);
 
     // --- TESTING ENVIRONMENT
@@ -171,17 +171,16 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         }
 
 #if defined(_DEBUG)
-        VisualDebug::DrawPoint(light.getTransform().getPosition(), 2.5f);
-
         // ImGui Display
-        if (ImGui::CollapsingHeader("Core")) {
+        if (ImGui::BeginMenu("Core")) {
+            ImGui::Text("FPS: %i", prev_fps_count);
+            ImGui::Separator();
             ImGui::Text("Pending Jobs: %i",
                         ThreadPool::GetThreadPool()->countPendingJobs());
             ImGui::Text("Active Workers: %i",
                         ThreadPool::GetThreadPool()->countActiveWorkers());
+            ImGui::EndMenu();
         }
-
-        light.getTransform().offsetRotation(Vector3::PositiveY(), 0.05f);
 #endif
 
         // Dispatch Input Data
@@ -204,16 +203,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         const Vector3 pos = camera_obj.getTransform().getPosition();
         scene_graph.invalidateTerrainChunks(pos.x, pos.y, pos.z);
 
-        // TEST
-        /*const Vector3 direc = camera_obj.getTransform().forward();
-        BVHRayCast raycast = physics_system.raycast(pos, direc);
-        if (raycast.hit) {
-            const Triangle& triangle = raycast.hit_triangle->triangle;
-            VisualDebug::DrawLine(triangle.vertex(0), triangle.vertex(1));
-            VisualDebug::DrawLine(triangle.vertex(1), triangle.vertex(2));
-            VisualDebug::DrawLine(triangle.vertex(2), triangle.vertex(0));
-        }*/
-
         // We finished our frame. See how many milliseconds we took
         // and stall (if needed) until the next frame
 #if defined(_DEBUG)
@@ -225,8 +214,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             prev_time_in_seconds = cur_time_in_seconds;
             cur_fps_count = 0;
         }
-
-        ImGui::Text("FPS: %i", prev_fps_count);
 #endif
 
         std::this_thread::sleep_until(frame_end);

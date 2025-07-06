@@ -93,11 +93,6 @@ float shadowValue(float3 world_position, LightData light, float bias)
             // no contribution to the color at that point (point is in shadow). 
             // We add a bias in the test to reduce shadow acne due to imprecision.
             shadow_value = step(cur_depth, depth + bias);
-            
-            /*
-            float sampled_depth = shadow_atlas.Sample(shadowmap_sampler, shadowmap_coords).r;
-            shadow_value = step(cur_depth, sampled_depth + bias);
-            */
         }
     }
     

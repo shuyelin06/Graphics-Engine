@@ -206,7 +206,7 @@ static const std::string SymbolStrings[SymbolCount] = {
 // ImGui Display:
 // Display input state in the ImGui system
 void InputSystem::imGuiDisplay() {
-    if (ImGui::CollapsingHeader("Input")) {
+    if (ImGui::BeginMenu("Input")) {
 #if defined(DISPLAY_DEVICE_STATE)
         ImGui::SeparatorText("Device Info:");
         ImGui::Text("Device x: %f", InputState::device_x);
@@ -221,6 +221,8 @@ void InputSystem::imGuiDisplay() {
                         InputState::IsSymbolActive(symbol));
         }
 #endif
+
+        ImGui::EndMenu();
     }
 }
 #endif
