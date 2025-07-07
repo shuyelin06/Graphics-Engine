@@ -772,45 +772,49 @@ void VisualSystem::processUnderwater() {
 
         const Vector3 sun_direc = config->sun_direction.unit();
         pCB2.loadData(&sun_direc, FLOAT3);
-        const float surface_height = terrain->getSurfaceLevel();
+        const float surface_height = terrain->getSurfaceLevel() + 1.f;
         pCB2.loadData(&surface_height, FLOAT);
 
-        const Vector3 sky_color =
-            Vector3(173.f / 255.f, 216.f / 255.f, 230.f / 255.f);
-        pCB2.loadData(&sky_color, FLOAT3);
-        static float water_density = 0.44f;
-        pCB2.loadData(&water_density, FLOAT);
+        static float sky_multiplier = 0.35f;
+        pCB2.loadData(&sky_multiplier, FLOAT);
+        static float scattering_multiplier = 0.002f;
+        pCB2.loadData(&scattering_multiplier, FLOAT);
+        static float attenuation_multiplier = 0.02f;
+        pCB2.loadData(&attenuation_multiplier, FLOAT);
+        static float fog_factor = 20.f;
+        pCB2.loadData(&fog_factor, FLOAT);
 
         static float r = 0.42f;
-        static float g = 0.08f;
+        static float g = 0.1f;
         static float b = 0.11f;
         pCB2.loadData(&r, FLOAT);
         pCB2.loadData(&g, FLOAT);
         pCB2.loadData(&b, FLOAT);
-
-        static float attenuation_multiplier = 0.03f;
-        pCB2.loadData(&attenuation_multiplier, FLOAT);
-
         static int num_steps = 15;
         pCB2.loadData(&num_steps, INT);
 
-        static float fog_factor = 20.f;
-        pCB2.loadData(&fog_factor, FLOAT);
+        static float max_distance = 1000.f;
+        pCB2.loadData(&max_distance, FLOAT);
 
-        static float sky_brightness = 1.f;
-        pCB2.loadData(&sky_brightness, FLOAT);
+        static float temp = 1.f;
+        pCB2.loadData(&temp, FLOAT);
 
         if (ImGui::BeginMenu("Misc")) {
-            ImGui::SliderFloat("Scattering Multiplier", &water_density, 0.0f,
-                               1.f);
+            ImGui::SliderFloat("Sky Multiplier", &sky_multiplier,
+                               0.0f, 1.f);
+            ImGui::SliderFloat("Scattering Multiplier", &scattering_multiplier,
+                               0.0f, 0.005f);
+            ImGui::SliderFloat("Attenation Multiplier", &attenuation_multiplier,
+                               0.f, 0.03f);
+            ImGui::SliderFloat("Fog", &fog_factor, 1.f, 30.f);
+
             ImGui::SliderFloat("R Attenuation", &r, 0.0f, 1.f);
             ImGui::SliderFloat("G Attenuation", &g, 0.0f, 1.f);
             ImGui::SliderFloat("B Attenuation", &b, 0.0f, 1.f);
-            ImGui::SliderFloat("Attenation Multiplier", &attenuation_multiplier,
-                               0.f, 0.2f);
             ImGui::SliderInt("Num Steps", &num_steps, 3, 30);
-            ImGui::SliderFloat("Fog", &fog_factor, 1.f, 30.f);
-            ImGui::SliderFloat("Sky Brightness", &sky_brightness, 0.0f, 5.f);
+
+            ImGui::SliderFloat("Max Distance", &max_distance, 500, 2000);
+            ImGui::SliderFloat("Temp", &temp, 0.f, 200.f);
 
             ImGui::EndMenu();
         }

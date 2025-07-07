@@ -13,32 +13,32 @@ Texture2D depth_map : register(t3);
 cbuffer CB1_PARAMS : register(b2)
 {
     float3 sun_direction;
-    float water_surface_height; // Water Surface Height 
+    float water_surface_height;
     
-    float3 sky_color;
+    float sky_multiplier;
     float scattering_multiplier;
+    float attenuation_multiplier;
+    float fog_multiplier;
     
     float3 rgb_attenuation;
-    float attenuation_multiplier;
-    
     int num_steps;
-    float fog;
-    float reflection_multiplier;
+    
+    float max_distance;
+    float multiplier;
 }
 
-// Water Surface Point:
-// For any world position, determines the point on the water surface obtained that can be seen
-// along the sun's direction
-float3 water_surface_point(float3 world_pos)
+float ray_surface_distance(float3 ray_position, float3 ray_direction, float surface_height)
 {
-    float t = ((water_surface_height - world_pos.y) / sun_direction.y);
-    return world_pos + sun_direction * t;
+    float t = ray_plane_intersection(ray_position, ray_direction, float3(0, surface_height, 0), float3(0, -1, 0));
+    t = min(max_distance, t);
+    t = lerp(t, max_distance, t < 0);
+    
+    return t;
 }
 
 // Transmittance:
 // Determines the amount of light transmitted (in range [0,1]) based on the optical depth.
-// This is calculated by integration of density over an entire viewing ray; alternatively,
-// this can iterativelysampled through sum(density_at_point * step_size)
+// This is the integration of density over an entire viewing ray.
 float3 transmittance(float depth)
 {
     return exp(-rgb_attenuation * depth * attenuation_multiplier);
@@ -68,61 +68,52 @@ float4 ps_main(PS_IN input) : SV_TARGET
     // Use this uv to obtain the following:
     // 1) The current color + depth at this pixel. This represents the light 
     //    directly reflected towards the camera at this angle
+    // 2) My viewing directional vector
     float3 color = render_target.Sample(s_point, uv);
     float depth = depth_map.Sample(s_point, uv).x;
-    // 2) My viewing directional vector
+    color = lerp(color, float3(0, 0, 0), pow(depth, fog_multiplier));
+    
     float4 world_pos = float4(uv.x * 2.f - 1, 1.f - 2.f * uv.y, depth, 1.f);
     world_pos = mul(m_screen_to_world, world_pos);
     world_pos /= world_pos.w;
+    float world_depth = length(world_pos.xyz - view_pos);
     float3 view_vector = normalize(world_pos.xyz - view_pos);
-    float world_depth = depth * (view_zfar - view_znear) + view_znear;
     
-    // Determine the amount of reflected light reaching the view. Blend the reflected out light to hide the
-    // max view
-    float3 reflect_contribution = color * reflection_multiplier;
-    reflect_contribution *= transmittance(length(water_surface_point(world_pos.xyz) - world_pos.xyz));
-    // trans *= phase_rayleigh(view_vector, sun_direction);
-    reflect_contribution *= transmittance(world_depth);
-    
-    output_color += lerp(reflect_contribution, float3(0, 0, 0), pow(depth, fog));
-    
-    // We will now raymarch to find the total light entering the view.
+    // Determine the amount of light reaching the view. To do this, we will start with an
+    // initial color, and raymarch towards our camera.
+    // During this march, we will add in ambient contribution and attenuate.
     float3 ray_position = view_pos;
     float3 ray_direction = view_vector;
     
-    float ray_length = view_zfar * 2.f;
+    float ray_length = ray_surface_distance(ray_position, ray_direction, water_surface_height);
+    ray_length = min(world_depth, ray_length);
     float ray_step = ray_length / (num_steps - 1);
     
-    float3 ambient_contribution = float3(0, 0, 0);
-    float steps_taken = 0.f;
+    float3 ray_end = ray_position + ray_length * ray_direction;
+    
+    // Start with the color we see. Attenuate it based on how far it is from the surface
+    output_color = color; // Initial Color
+    float dist = ray_surface_distance(world_pos.xyz, -sun_direction, water_surface_height);
+    output_color *= transmittance(dist);
+    
+    // Add direct lighting from the sky.
+    if (ray_end.y >= water_surface_height - 0.01f)
+    {
+        output_color += float3(0, 1, 1) * transmittance(ray_length) * sky_multiplier;
+    }
     
     for (int i = 0; i < num_steps; i++)
     {
-        if (i * ray_step > world_depth || ray_position.y > water_surface_height)
-            break;
-            
-        steps_taken += 1.f;
+        float d_surface_to_point = ray_surface_distance(ray_end, -sun_direction, water_surface_height);
+        float3 ambient_contribution = transmittance(d_surface_to_point) * ray_step * scattering_multiplier;
+        output_color += ambient_contribution;
         
-        float d_surface_to_point = length(water_surface_point(ray_position) - ray_position);
-        float d_point_to_camera = length(ray_position - view_pos);
+        output_color *= transmittance(ray_step);
         
-        float3 light_contribution = sky_color;
-        light_contribution *= transmittance(d_surface_to_point);
-        // light_contribution *= phase_rayleigh(sun_direction, view_direction);
-        light_contribution *= transmittance(d_point_to_camera);
-        
-        ambient_contribution += light_contribution;
+        ray_end -= ray_direction * ray_step;
     }
     
-    ambient_contribution /= steps_taken;
-    output_color += ambient_contribution * scattering_multiplier;
-    
-    if (world_pos.y > water_surface_height)
-    {
-        float dist = length(water_surface_point(world_pos.xyz) - view_pos);
-        output_color += sky_color * transmittance(dist);
-    }
-    
+    // Dither my pixels to reduce banding
     float3 dither = gradient3D(world_pos.xyz, float3(10, 11, 17));
     output_color += (dither / 255.f);
     

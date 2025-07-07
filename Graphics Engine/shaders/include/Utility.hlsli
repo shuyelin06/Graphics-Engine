@@ -26,7 +26,7 @@ float ray_plane_intersection(float3 ray_origin, float3 ray_direc, float3 plane_o
     float denom = dot(ray_direc, plane_normal);
     float t = -1.f;
     
-    if (abs(denom) >= 0.001f)
+    if (abs(denom) >= 0.0001f)
     {
         t = (dot(plane_normal, plane_origin) - dot(ray_origin, plane_normal)) / denom;
     }
