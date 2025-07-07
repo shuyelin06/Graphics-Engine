@@ -158,7 +158,7 @@ void VisualSystem::render() {
 #endif
 
         // TEMP
-        light_manager->updateTimeOfDay(15.f);
+        // light_manager->updateTimeOfDay(15.f);
 
         // Upload CB0
         {
@@ -247,6 +247,7 @@ void VisualSystem::pullDatamodelData() {
 
     // Prepare managers for data
     const Frustum cam_frustum = camera->frustum();
+    light_manager->updateSunDirection(config->sun_direction);
     light_manager->updateSunCascades(camera->frustum());
 
     light_manager->resetShadowCasters();
@@ -704,15 +705,46 @@ void VisualSystem::processSky() {
         IConstantBuffer pcb2 = pipeline->loadPixelCB(CB2);
 
         pcb2.loadData(&config->sun_direction, FLOAT3);
-        const float sun_size = 0.025f;
+        const float sun_size = 0.0125f;
         pcb2.loadData(&sun_size, FLOAT);
-
         pcb2.loadData(&config->sun_color, FLOAT3);
         pcb2.loadData(nullptr, FLOAT);
-        const Vector3 sky_color =
-            Vector3(173.f / 255.f, 216.f / 255.f, 230.f / 255.f);
-        pcb2.loadData(&sky_color, FLOAT3);
-        pcb2.loadData(nullptr, FLOAT);
+
+        static float density_falloff = 8.f;
+        pcb2.loadData(&density_falloff, FLOAT);
+        static float atmosphere_height = 500.f;
+        pcb2.loadData(&atmosphere_height, FLOAT);
+        static float max_distance = 1000.f;
+        pcb2.loadData(&max_distance, FLOAT);
+        static int num_steps_atmosphere = 8;
+        pcb2.loadData(&num_steps_atmosphere, INT);
+
+        static float scattering = 0.135f;
+        const Vector3 scattering_coefficients =
+            Vector3(powf(200.f / 700.f, 4), powf(200.f / 530.f, 4),
+                    powf(200.f / 440.f, 4)) *
+            scattering;
+        pcb2.loadData(&scattering_coefficients, FLOAT3);
+        static int num_steps_optical_depth = 8;
+        pcb2.loadData(&num_steps_optical_depth, INT);
+
+        static float reflective_strength = 1.f;
+        pcb2.loadData(&reflective_strength, FLOAT);
+
+        if (ImGui::BeginMenu("Misc")) {
+            ImGui::SliderFloat("Density Falloff", &density_falloff, 0.f, 8.f);
+            ImGui::SliderFloat("Atmosphere Height", &atmosphere_height, 0.f,
+                               500.f);
+            ImGui::SliderFloat("Max Distance", &max_distance, 0.f, 1000.f);
+            ImGui::SliderFloat("Scattering", &scattering, 0.0f, 0.5f);
+
+            ImGui::SliderInt("Steps Atmosphere", &num_steps_atmosphere, 0, 20);
+            ImGui::SliderInt("Steps Optical Depth", &num_steps_optical_depth, 0,
+                             20);
+            ImGui::SliderFloat("Reflective Strength", &reflective_strength, 0.f,
+                               2.f);
+            ImGui::EndMenu();
+        }
     }
 
     pipeline->drawPostProcessQuad();
@@ -743,9 +775,10 @@ void VisualSystem::processUnderwater() {
         const float surface_height = terrain->getSurfaceLevel();
         pCB2.loadData(&surface_height, FLOAT);
 
-        const Vector3 sky_color = Vector3(1.f, 1.f, 1.f);
+        const Vector3 sky_color =
+            Vector3(173.f / 255.f, 216.f / 255.f, 230.f / 255.f);
         pCB2.loadData(&sky_color, FLOAT3);
-        static float water_density = 7.f;
+        static float water_density = 0.44f;
         pCB2.loadData(&water_density, FLOAT);
 
         static float r = 0.42f;
@@ -755,7 +788,7 @@ void VisualSystem::processUnderwater() {
         pCB2.loadData(&g, FLOAT);
         pCB2.loadData(&b, FLOAT);
 
-        static float attenuation_multiplier = 0.01f;
+        static float attenuation_multiplier = 0.03f;
         pCB2.loadData(&attenuation_multiplier, FLOAT);
 
         static int num_steps = 15;
@@ -769,7 +802,7 @@ void VisualSystem::processUnderwater() {
 
         if (ImGui::BeginMenu("Misc")) {
             ImGui::SliderFloat("Scattering Multiplier", &water_density, 0.0f,
-                               7.f);
+                               1.f);
             ImGui::SliderFloat("R Attenuation", &r, 0.0f, 1.f);
             ImGui::SliderFloat("G Attenuation", &g, 0.0f, 1.f);
             ImGui::SliderFloat("B Attenuation", &b, 0.0f, 1.f);

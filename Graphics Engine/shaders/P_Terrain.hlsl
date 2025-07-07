@@ -31,7 +31,8 @@ float4 psterrain_main(PS_IN input) : SV_TARGET
     // Select the cascade that our point is in.
     LightData sun_light = sun_cascades[selectCascade(input.world_position)];
     // Then, select the shadow value of the point
-    float shadow_factor = shadowValue(input.world_position, sun_light, 0.01f);
+    // float shadow_factor = shadowValue(input.world_position, sun_light, 0.01f);
+    float shadow_factor = 1.f;
     
     // Diffuse lighting (flip the sun direction since it points from 
     // the light -> surface).

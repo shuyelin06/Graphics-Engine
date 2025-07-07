@@ -111,15 +111,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     Object& parent = scene_graph.createObject();
 
     // Bind a Camera
-    Object& camera_obj = parent.createChild();
-    visual_system.bindCameraComponent(&camera_obj);
+    Object& camera = parent.createChild();
+    visual_system.bindCameraComponent(&camera);
+    physics_system.bindPhysicsObject(&camera);
 
     // Bind Terrain
     visual_system.bindTerrain(scene_graph.getTerrain());
     physics_system.bindTerrain(scene_graph.getTerrain());
-
-    // Bind Movement Physics
-    physics_system.bindPhysicsObject(&camera_obj);
 
     /*Object& light = parent.createChild();
     ShadowLightComponent* comp = visual_system.bindLightComponent(&light);
@@ -173,6 +171,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 #if defined(_DEBUG)
         // ImGui Display
         if (ImGui::BeginMenu("Core")) {
+            const Vector3& cam_pos = camera.getTransform().getPosition();
+            ImGui::Text("Position: %f %f %f", cam_pos.x, cam_pos.y, cam_pos.z);
+            ImGui::Separator();
             ImGui::Text("FPS: %i", prev_fps_count);
             ImGui::Separator();
             ImGui::Text("Pending Jobs: %i",
@@ -200,7 +201,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         // Update Datamodel
         scene_graph.updateObjects();
 
-        const Vector3 pos = camera_obj.getTransform().getPosition();
+        const Vector3 pos = camera.getTransform().getPosition();
         scene_graph.invalidateTerrainChunks(pos.x, pos.y, pos.z);
 
         // We finished our frame. See how many milliseconds we took

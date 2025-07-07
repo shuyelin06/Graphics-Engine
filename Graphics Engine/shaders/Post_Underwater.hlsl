@@ -70,28 +70,61 @@ float4 ps_main(PS_IN input) : SV_TARGET
     //    directly reflected towards the camera at this angle
     float3 color = render_target.Sample(s_point, uv);
     float depth = depth_map.Sample(s_point, uv).x;
-    // 2) My viewing directional vector (un-normalized).
+    // 2) My viewing directional vector
     float4 world_pos = float4(uv.x * 2.f - 1, 1.f - 2.f * uv.y, depth, 1.f);
     world_pos = mul(m_screen_to_world, world_pos);
     world_pos /= world_pos.w;
-    float world_depth = length(world_pos.xyz - view_pos);
-    float3 view_vector = world_pos.xyz - view_pos;
+    float3 view_vector = normalize(world_pos.xyz - view_pos);
+    float world_depth = depth * (view_zfar - view_znear) + view_znear;
     
-    // Compute the amount of light reaching the view reflected off of some surface
-    float3 reflect_contribution = color * sky_color * reflection_multiplier;
-    float3 ambient_contribution = sky_color * reflection_multiplier * transmittance(750 + (water_surface_height - view_pos.y) * scattering_multiplier);
+    // Determine the amount of reflected light reaching the view. Blend the reflected out light to hide the
+    // max view
+    float3 reflect_contribution = color * reflection_multiplier;
+    reflect_contribution *= transmittance(length(water_surface_point(world_pos.xyz) - world_pos.xyz));
+    // trans *= phase_rayleigh(view_vector, sun_direction);
+    reflect_contribution *= transmittance(world_depth);
     
-    float3 trans = transmittance(length(water_surface_point(world_pos.xyz) - world_pos.xyz));
-    trans *= phase_rayleigh(view_vector, sun_direction);
-    trans *= transmittance(world_depth);
-    reflect_contribution *= trans;
+    output_color += lerp(reflect_contribution, float3(0, 0, 0), pow(depth, fog));
     
-    output_color = lerp(reflect_contribution, ambient_contribution, pow(depth, fog));
+    // We will now raymarch to find the total light entering the view.
+    float3 ray_position = view_pos;
+    float3 ray_direction = view_vector;
     
-    /*
+    float ray_length = view_zfar * 2.f;
+    float ray_step = ray_length / (num_steps - 1);
+    
+    float3 ambient_contribution = float3(0, 0, 0);
+    float steps_taken = 0.f;
+    
+    for (int i = 0; i < num_steps; i++)
+    {
+        if (i * ray_step > world_depth || ray_position.y > water_surface_height)
+            break;
+            
+        steps_taken += 1.f;
+        
+        float d_surface_to_point = length(water_surface_point(ray_position) - ray_position);
+        float d_point_to_camera = length(ray_position - view_pos);
+        
+        float3 light_contribution = sky_color;
+        light_contribution *= transmittance(d_surface_to_point);
+        // light_contribution *= phase_rayleigh(sun_direction, view_direction);
+        light_contribution *= transmittance(d_point_to_camera);
+        
+        ambient_contribution += light_contribution;
+    }
+    
+    ambient_contribution /= steps_taken;
+    output_color += ambient_contribution * scattering_multiplier;
+    
+    if (world_pos.y > water_surface_height)
+    {
+        float dist = length(water_surface_point(world_pos.xyz) - view_pos);
+        output_color += sky_color * transmittance(dist);
+    }
+    
     float3 dither = gradient3D(world_pos.xyz, float3(10, 11, 17));
     output_color += (dither / 255.f);
-    */
     
     return float4(output_color, 1.f);
 }

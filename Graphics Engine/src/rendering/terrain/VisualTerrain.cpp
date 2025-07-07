@@ -45,7 +45,7 @@ VisualTerrain::VisualTerrain(Terrain* _terrain, ID3D11Device* device)
     water_surface->generateSurfaceMesh(device, 15);
     water_surface->generateWaveConfig(14);
 
-    surface_level = 100.f;
+    surface_level = 0.f;
 }
 VisualTerrain::~VisualTerrain() = default;
 
