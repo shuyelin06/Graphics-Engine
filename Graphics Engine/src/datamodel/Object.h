@@ -11,16 +11,6 @@
 namespace Engine {
 using namespace Math;
 
-namespace Physics {
-class PhysicsObject;
-}
-using namespace Physics;
-
-namespace Graphics {
-class VisualObject;
-}
-using namespace Graphics;
-
 namespace Datamodel {
 // Object Class
 // Stores data regarding a generic object in our engine.
@@ -30,6 +20,11 @@ namespace Datamodel {
 // registered.
 class Object {
   protected:
+#if defined(_DEBUG)
+    // Name (To be Displayed in the ImGui)
+    std::string name;
+#endif
+    
     // Parent & Children for the Object
     Object* parent;
     std::vector<Object*> children;
@@ -45,12 +40,20 @@ class Object {
   public:
     // Constructor & Destructor
     Object();
+#if defined(_DEBUG)
+    Object(const std::string& name);
+#endif
     ~Object();
+
+#if defined(_DEBUG)
+    const std::string& getName();
+#endif
 
     // Object Hierarchy Methods
     Object* getParent() const; // Can return nullptr if parent does not exist
     std::vector<Object*>& getChildren();
 
+    Object& createChild(const std::string& name);
     Object& createChild();
 
     // Transform Methods
@@ -70,6 +73,7 @@ class Object {
 
     // Retrieve an object component by tag.
     Component* getComponent(unsigned int tag);
+    std::vector<Component*> getComponents();
 };
 
 } // namespace Datamodel

@@ -106,20 +106,27 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     // --- Create my Scene ---
     Scene scene_graph = Scene();
+    scene_graph.enableTerrain();
+
     scene_graph.invalidateTerrainChunks(0.f, 0.f, 0.f);
 
-    Object& parent = scene_graph.createObject();
+    Object& parent = scene_graph.createObject("Root");
 
     // Bind a Camera
-    Object& camera = parent.createChild();
-    visual_system.bindCameraComponent(&camera);
+    Object& camera = parent.createChild("Camera");
+    scene_graph.bindComponent(camera, "Camera");
+
+    // visual_system.bindCameraComponent(&camera);
     physics_system.bindPhysicsObject(&camera);
 
     // Bind Terrain
-    visual_system.bindTerrain(scene_graph.getTerrain());
     physics_system.bindTerrain(scene_graph.getTerrain());
 
-    /*Object& light = parent.createChild();
+    Object& fox = parent.createChild();
+    Object& fox1 = parent.createChild();
+
+    scene_graph.createObject();
+    /*
     ShadowLightComponent* comp = visual_system.bindLightComponent(&light);
     light.getTransform().offsetPosition(25.f, 0.f, 25.f);*/
 
@@ -158,8 +165,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     // Main loop: runs once per frame
     while (!close) {
-        // --- Process Input Data ---
-        // Drain and process all queued messages
+        // Drain and process all queued input messages
         while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
@@ -168,8 +174,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                 close = true;
         }
 
-#if defined(_DEBUG)
-        // ImGui Display
+#if defined(_DEBUG) // ImGui Display
+        scene_graph.imGuiDisplay();
+
         if (ImGui::BeginMenu("Core")) {
             const Vector3& cam_pos = camera.getTransform().getPosition();
             ImGui::Text("Position: %f %f %f", cam_pos.x, cam_pos.y, cam_pos.z);
@@ -184,11 +191,15 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         }
 #endif
 
+        // Sync datamodel components with the engine systems
+        visual_system.bindComponents(scene_graph.getVisualComponentRequests());
+        scene_graph.clearVisualComponentRequests();
+
         // Dispatch Input Data
         input_system.update();
 
         // Pull Data for Rendering
-        visual_system.pullDatamodelData();
+        visual_system.pullSceneData(&scene_graph);
 
         // Render Objects
         visual_system.render();

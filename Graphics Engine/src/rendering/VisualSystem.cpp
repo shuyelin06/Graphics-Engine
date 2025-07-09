@@ -79,6 +79,9 @@ VisualSystem::VisualSystem(HWND window) {
     camera = nullptr;
     terrain = nullptr;
 
+    // Register my system components
+    registerComponents();
+
     // Initialize my pipeline
     HRESULT result;
     pipeline = new PipelineManager(window);
@@ -112,14 +115,25 @@ VisualSystem::VisualSystem(HWND window) {
 }
 
 // --- Component Bindings ---
-CameraComponent* VisualSystem::bindCameraComponent(Object* object) {
-    if (camera != nullptr)
-        delete camera;
-    CameraComponent* new_cam = new CameraComponent(object);
-    object->bindComponent(new_cam);
-    camera = new_cam;
+void VisualSystem::registerComponents() {
+    Component::registerNewTag("Camera");
+    Component::registerNewTag("Asset");
+    Component::registerNewTag("Light");
+}
+void VisualSystem::bindComponents(
+    const std::vector<ComponentBindRequest>& requests) {
+    for (const ComponentBindRequest& request : requests) {
+        Object* object = request.target_object;
+        const unsigned int tag = request.component_id;
 
-    return camera;
+        if (tag == Component::getTag("Camera")) {
+            if (camera != nullptr)
+                delete camera;
+            CameraComponent* new_cam = new CameraComponent(object);
+            object->bindComponent(new_cam);
+            camera = new_cam;
+        }
+    }
 }
 
 AssetComponent*
@@ -136,14 +150,6 @@ ShadowLightComponent* VisualSystem::bindLightComponent(Object* object) {
     ShadowLightComponent* light_obj = new ShadowLightComponent(object, light);
     light_components.newComponent(object, light_obj);
     return light_obj;
-}
-
-VisualTerrain* VisualSystem::bindTerrain(Terrain* _terrain) {
-    if (terrain != nullptr)
-        delete terrain;
-    terrain = new VisualTerrain(_terrain, device);
-
-    return terrain;
 }
 
 // Render:
@@ -222,10 +228,10 @@ void VisualSystem::render() {
     renderable_meshes.clear();
 }
 
-// RenderPrepare:
+// PullSceneData:
 // Prepares the engine for rendering, by pulling all necessary
 // data from the datamodel.
-void VisualSystem::pullDatamodelData() {
+void VisualSystem::pullSceneData(Scene* scene) {
 #if defined(_DEBUG)
     ICPUTimer cpu_timer = CPUTimer::TrackCPUTime("Render Prepare");
 #endif
@@ -234,6 +240,21 @@ void VisualSystem::pullDatamodelData() {
     imGuiConfig();
 #endif
 
+    // Pull my terrain data (if it exists).
+    Terrain* scene_terrain = scene->getTerrain();
+
+    if (scene_terrain == nullptr) {
+        if (terrain != nullptr) {
+            delete terrain;
+            terrain = nullptr;
+        }
+    } else {
+        if (terrain == nullptr)
+            terrain = new VisualTerrain(scene_terrain, device);
+
+        terrain->pullTerrainMeshes(context);
+    }
+
     // Pull my object data.
     // Remove invalid visual objects, and update them to pull
     // the datamodel data.
@@ -241,9 +262,6 @@ void VisualSystem::pullDatamodelData() {
         camera->update();
     asset_components.cleanAndUpdate();
     light_components.cleanAndUpdate();
-
-    // Pull my terrain meshes
-    terrain->pullTerrainMeshes(context);
 
     // Prepare managers for data
     const Frustum cam_frustum = camera->frustum();
@@ -731,6 +749,7 @@ void VisualSystem::processSky() {
         static float reflective_strength = 1.f;
         pcb2.loadData(&reflective_strength, FLOAT);
 
+#if defined(_DEBUG)
         if (ImGui::BeginMenu("Misc")) {
             ImGui::SliderFloat("Density Falloff", &density_falloff, 0.f, 8.f);
             ImGui::SliderFloat("Atmosphere Height", &atmosphere_height, 0.f,
@@ -745,6 +764,7 @@ void VisualSystem::processSky() {
                                2.f);
             ImGui::EndMenu();
         }
+#endif
     }
 
     pipeline->drawPostProcessQuad();
@@ -772,14 +792,14 @@ void VisualSystem::processUnderwater() {
 
         const Vector3 sun_direc = config->sun_direction.unit();
         pCB2.loadData(&sun_direc, FLOAT3);
-        const float surface_height = terrain->getSurfaceLevel() + 1.f;
+        const float surface_height = terrain->getSurfaceLevel() + 3.f;
         pCB2.loadData(&surface_height, FLOAT);
 
         static float sky_multiplier = 0.35f;
         pCB2.loadData(&sky_multiplier, FLOAT);
-        static float scattering_multiplier = 0.002f;
+        static float scattering_multiplier = 0.005f;
         pCB2.loadData(&scattering_multiplier, FLOAT);
-        static float attenuation_multiplier = 0.02f;
+        static float attenuation_multiplier = 0.014f;
         pCB2.loadData(&attenuation_multiplier, FLOAT);
         static float fog_factor = 20.f;
         pCB2.loadData(&fog_factor, FLOAT);
@@ -799,11 +819,11 @@ void VisualSystem::processUnderwater() {
         static float temp = 1.f;
         pCB2.loadData(&temp, FLOAT);
 
+#if defined(_DEBUG)
         if (ImGui::BeginMenu("Misc")) {
-            ImGui::SliderFloat("Sky Multiplier", &sky_multiplier,
-                               0.0f, 1.f);
+            ImGui::SliderFloat("Sky Multiplier", &sky_multiplier, 0.0f, 1.f);
             ImGui::SliderFloat("Scattering Multiplier", &scattering_multiplier,
-                               0.0f, 0.005f);
+                               0.0f, 0.01f);
             ImGui::SliderFloat("Attenation Multiplier", &attenuation_multiplier,
                                0.f, 0.03f);
             ImGui::SliderFloat("Fog", &fog_factor, 1.f, 30.f);
@@ -813,11 +833,12 @@ void VisualSystem::processUnderwater() {
             ImGui::SliderFloat("B Attenuation", &b, 0.0f, 1.f);
             ImGui::SliderInt("Num Steps", &num_steps, 3, 30);
 
-            ImGui::SliderFloat("Max Distance", &max_distance, 500, 2000);
+            ImGui::SliderFloat("Max Distance", &max_distance, 500, 10000.f);
             ImGui::SliderFloat("Temp", &temp, 0.f, 200.f);
 
             ImGui::EndMenu();
         }
+#endif
     }
 
     // Bind and draw full screen quad

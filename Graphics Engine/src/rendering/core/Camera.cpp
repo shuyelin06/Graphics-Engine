@@ -19,6 +19,14 @@ CameraComponent::~CameraComponent() = default;
 
 // --- Update ---
 void CameraComponent::update() { transform = object->getTransform(); }
+void CameraComponent::imGuiConfig() {
+#if defined(_DEBUG)
+    if (ImGui::SliderFloat("FOV", &fov, 0.1f, 2.f)) {
+        setFrustumMatrix(fov, z_near, z_far);
+    }
+
+#endif
+}
 
 // --- Accessors ---
 float CameraComponent::getZNear() const { return z_near; }
@@ -38,9 +46,11 @@ Frustum CameraComponent::frustum() const {
 
 // SetFrustuMatrix:
 // Updates the camera frustum (projection) matrix
-void CameraComponent::setFrustumMatrix(float fov, float _z_near, float _z_far) {
+void CameraComponent::setFrustumMatrix(float _fov, float _z_near,
+                                       float _z_far) {
     z_near = _z_near;
     z_far = _z_far;
+    fov = _fov;
 
     Matrix4 projection_matrix = Matrix4();
 

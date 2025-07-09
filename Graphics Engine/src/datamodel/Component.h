@@ -3,6 +3,8 @@
 #include <string>
 #include <unordered_map>
 
+#include "rendering/ImGui.h"
+
 #define COMPONENT_TAG_NONE 0
 
 namespace Engine {
@@ -45,7 +47,9 @@ class Component {
     // Component Modifiers
     void markInvalid();
     // Optionally Overridable -- Pull Datamodel Data
-    virtual void update(); 
+    virtual void update();
+    // Optionally Overridable -- Configuration via ImGui
+    virtual void imGuiConfig();
 
     // Generate a new tag. Systems that want to create components
     // should register them here, so that each component has a unique tag.

@@ -65,6 +65,7 @@ float4 ps_main(PS_IN input) : SV_TARGET
     // Figure out the corresponding texture coordinate for my pixel
     float2 uv = float2(input.position_clip.x / resolution_x, input.position_clip.y / resolution_y);
     
+    // Goal: https://mpt.pbslearningmedia.org/resource/buac20-68-sci-ps-colorsunderwater/colors-underwater/
     // Use this uv to obtain the following:
     // 1) The current color + depth at this pixel. This represents the light 
     //    directly reflected towards the camera at this angle
@@ -101,11 +102,12 @@ float4 ps_main(PS_IN input) : SV_TARGET
     {
         output_color += float3(0, 1, 1) * transmittance(ray_length) * sky_multiplier;
     }
-    
+     
     for (int i = 0; i < num_steps; i++)
     {
         float d_surface_to_point = ray_surface_distance(ray_end, -sun_direction, water_surface_height);
         float3 ambient_contribution = transmittance(d_surface_to_point) * ray_step * scattering_multiplier;
+        ambient_contribution *= phase_rayleigh(sun_direction, ray_direction);
         output_color += ambient_contribution;
         
         output_color *= transmittance(ray_step);

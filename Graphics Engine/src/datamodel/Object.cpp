@@ -21,7 +21,26 @@ Object::Object() {
     // Default transform
     transform = Transform();
     m_local = Matrix4::Identity();
+
+#if defined(_DEBUG)
+    name = "Object";
+#endif
 }
+
+#if defined(_DEBUG)
+Object::Object(const std::string& _name) {
+    // Objects start with no parent and no children
+    parent = nullptr;
+    children = std::vector<Object*>(0);
+    components = std::vector<Component*>(0);
+
+    // Default transform
+    transform = Transform();
+    m_local = Matrix4::Identity();
+
+    name = _name;
+}
+#endif
 
 // Destructor:
 // Frees all memory allocated for this object, including children
@@ -36,6 +55,10 @@ Object::~Object() {
         component->markInvalid();
 }
 
+#if defined(_DEBUG)
+const std::string& Object::getName() { return name; }
+#endif
+
 /* --- Object Hierarchy Methods --- */
 // GetParent:
 // Returns the object's parent. Returns nullptr if the parent does
@@ -48,6 +71,19 @@ std::vector<Object*>& Object::getChildren() { return children; }
 
 // CreateChild:
 // Creates a child of the object and returns it
+Object& Object::createChild(const std::string& name) {
+#if defined(_DEBUG)
+    Object* child = new Object(name);
+#else
+    Object* child = new Object();
+#endif
+
+    child->parent = this;
+    children.push_back(child);
+
+    return *child;
+}
+
 Object& Object::createChild() {
     Object* child = new Object();
     child->parent = this;
@@ -142,6 +178,7 @@ Component* Object::getComponent(unsigned int tag) {
     else
         return nullptr;
 }
+std::vector<Component*> Object::getComponents() { return components; }
 
 } // namespace Datamodel
 } // namespace Engine

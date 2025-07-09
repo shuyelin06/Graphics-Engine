@@ -43,6 +43,7 @@ class CameraComponent : public Component {
     // OVERRIDE:
     // Pulls the object's transform
     void update();
+    void imGuiConfig();
 
     // Get the camera's attributes
     float getZNear() const;

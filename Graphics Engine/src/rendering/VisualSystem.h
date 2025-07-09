@@ -6,6 +6,9 @@
 #include <vector>
 
 #include "Direct3D11.h"
+#include "ImGui.h"
+
+#include "datamodel/SceneGraph.h"
 
 #include "lights/LightManager.h"
 #include "pipeline/PipelineManager.h"
@@ -19,12 +22,10 @@
 #include "rendering/core/Camera.h"
 
 #if defined(_DEBUG)
-// imgui Includes
-#include "ImGui.h"
-
 #include "util/CPUTimer.h"
 #include "util/GPUTimer.h"
 #endif
+
 #include "VisualDebug.h"
 
 // TESTING
@@ -32,6 +33,8 @@
 #include "math/Compute.h"
 
 namespace Engine {
+using namespace Datamodel;
+
 namespace Graphics {
 
 struct RenderableAsset {
@@ -81,14 +84,15 @@ class VisualSystem {
     VisualSystem(HWND window);
 
     // Visual System Bindings
-    CameraComponent* bindCameraComponent(Object* object);
+    void registerComponents();
+    void bindComponents(const std::vector<ComponentBindRequest>& requests);
+
     AssetComponent* bindAssetComponent(Object* object,
                                        const std::string& asset_name);
     ShadowLightComponent* bindLightComponent(Object* object);
-    VisualTerrain* bindTerrain(Terrain* terrain);
 
-    // Renders an entire scene
-    void pullDatamodelData(); // Call First
+    // Call these functions to render the scene. Renders an entire scene
+    void pullSceneData(Scene* scene); // Call First
     void render();
 
   private:                     // Rendering Stages

@@ -18,9 +18,9 @@ unsigned int Component::registerNewTag(const std::string& name) {
 }
 unsigned int Component::getTag(const std::string& name) {
     if (tag_map.contains(name))
-        return COMPONENT_TAG_NONE;
-    else
         return tag_map[name];
+    else
+        return COMPONENT_TAG_NONE;
 }
 
 Component::Component(Object* _object) : object(_object) {
@@ -42,6 +42,7 @@ Object* Component::getObject() { return object; }
 
 void Component::markInvalid() { valid = false; }
 void Component::update() {}
+void Component::imGuiConfig() {}
 
 } // namespace Datamodel
 } // namespace Engine
