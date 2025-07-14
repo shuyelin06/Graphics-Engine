@@ -67,5 +67,5 @@ float4 ps_main(PS_INPUT input) : SV_TARGET
         alpha = min_alpha + exp(-water_depth) * (1 - min_alpha);
     }
     
-    return float4(color, alpha);
+    return float4(color, 1.f);
 }

@@ -20,11 +20,13 @@ struct PS_INPUT
 {
     float4 position_clip : SV_Position;
     float3 world_position : POSITION;
+    uint instance : SV_InstanceID;
 };
 
 PS_INPUT vs_main(VS_INPUT input)
 {
     PS_INPUT output = (PS_INPUT) 0;
+    output.instance = input.instance;
     
     // Compute world position
     float4 clip_point = float4(input.frustum_point, 1.f);

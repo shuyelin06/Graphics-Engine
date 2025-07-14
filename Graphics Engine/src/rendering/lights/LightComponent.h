@@ -16,7 +16,7 @@ class ShadowLightComponent : public Component {
     ShadowLightComponent(Object* object, ShadowLight* light);
     ~ShadowLightComponent();
 
-    // OVERRIDE: Updates the light's internal data with data from the datamodel.
+    // OVERRIDE
     void update();
 };
 

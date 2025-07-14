@@ -30,12 +30,17 @@ static int displayObjectInfo(Object* object, int next_id, Object** active_obj) {
     const std::string name_unique =
         object->getName() + "##" + std::to_string(next_id++);
     const std::string button_unique =
-        "Object Config##" + std::to_string(next_id++);
+        "Open Config##" + std::to_string(next_id++);
 
-    if (ImGui::TreeNodeEx(name_unique.c_str())) {
+    ImGuiBackendFlags flags = 0;
+    if (object->getChildren().empty())
+        flags |= ImGuiTreeNodeFlags_Leaf;
+
+    if (ImGui::TreeNodeEx(name_unique.c_str(), flags)) {
         if (ImGui::Button(button_unique.c_str())) {
             *active_obj = object;
         }
+
         for (Object* child : object->getChildren())
             next_id = displayObjectInfo(child, next_id, active_obj);
 
@@ -57,6 +62,18 @@ void Scene::imGuiDisplay() {
         // Display the active object config
         if (selected_object != nullptr) {
             ImGui::SeparatorText(selected_object->getName().c_str());
+
+            constexpr int MAX_NAME_LENGTH = 20;
+            static char component_name[MAX_NAME_LENGTH];
+            ImGui::InputText("Bind New Component", component_name,
+                             MAX_NAME_LENGTH);
+            ImGui::SameLine();
+            if (ImGui::Button("Bind")) {
+                bindComponent(*selected_object, component_name);
+            }
+
+            ImGui::Separator();
+
             for (Component* component : selected_object->getComponents()) {
                 component->imGuiConfig();
             }

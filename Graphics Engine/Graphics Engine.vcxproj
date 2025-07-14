@@ -181,7 +181,6 @@
     <ClCompile Include="src\rendering\pipeline\ConstantBuffer.cpp" />
     <ClCompile Include="src\rendering\terrain\WaterSurface.cpp" />
     <ClCompile Include="src\rendering\terrain\VisualTerrainCallback.cpp" />
-    <ClCompile Include="src\_DEP_\TreeGenerator.cpp" />
     <ClCompile Include="src\input\components\MovementHandler.cpp" />
     <ClCompile Include="src\input\InputFrame.cpp" />
     <ClCompile Include="src\math\AABB.cpp" />
@@ -264,11 +263,9 @@
     <ClInclude Include="src\rendering\pipeline\StructuredBuffer.h" />
     <ClInclude Include="src\rendering\terrain\WaterSurface.h" />
     <ClInclude Include="src\rendering\terrain\VisualTerrainCallback.h" />
-    <ClInclude Include="src\_DEP_\ResourceManager.h" />
     <ClInclude Include="src\datamodel\SceneGraph.h" />
     <ClInclude Include="src\datamodel\terrain\MarchingCube.h" />
     <ClInclude Include="src\datamodel\terrain\Terrain.h" />
-    <ClInclude Include="src\_DEP_\TreeGenerator.h" />
     <ClInclude Include="src\input\InputFrame.h" />
     <ClInclude Include="src\input\SymbolData.h" />
     <ClInclude Include="src\math\AABB.h" />

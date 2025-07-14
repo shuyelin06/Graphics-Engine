@@ -206,12 +206,16 @@ void PipelineManager::initializeTargets(HWND _window) {
         depth_stencil->createShaderResourceView(device, srv_desc);
 
         depth_stencil_copy = new Texture(device, tex_desc);
+        // TEMP
+        depth_stencil_copy->createDepthStencilView(device, desc_stencil);
         depth_stencil_copy->createShaderResourceView(device, srv_desc);
     }
 
     // Create my depth states
     {
         D3D11_DEPTH_STENCIL_DESC desc = {};
+
+        depth_states[Depth_Disabled] = nullptr;
 
         // Enable depth testing
         desc.DepthEnable = TRUE;
@@ -222,7 +226,8 @@ void PipelineManager::initializeTargets(HWND _window) {
         // No stencil testing
         desc.StencilEnable = FALSE;
 
-        result = device->CreateDepthStencilState(&desc, &ds_test_and_write);
+        result = device->CreateDepthStencilState(
+            &desc, &depth_states[Depth_TestAndWrite]);
         assert(SUCCEEDED(result));
 
         // Enable depth testing
@@ -234,8 +239,39 @@ void PipelineManager::initializeTargets(HWND _window) {
         // No stencil testing
         desc.StencilEnable = FALSE;
 
-        HRESULT result =
-            device->CreateDepthStencilState(&desc, &ds_test_no_write);
+        HRESULT result = device->CreateDepthStencilState(
+            &desc, &depth_states[Depth_TestNoWrite]);
+        assert(SUCCEEDED(result));
+    }
+
+    // Create my blend states
+    {
+        D3D11_BLEND_DESC blend_desc = {};
+
+        blend_desc.RenderTarget[0].BlendEnable = TRUE;
+        blend_desc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+        blend_desc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+        blend_desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+        blend_desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
+        blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+        blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_MAX;
+        blend_desc.RenderTarget[0].RenderTargetWriteMask =
+            D3D11_COLOR_WRITE_ENABLE_ALL;
+        result = device->CreateBlendState(&blend_desc,
+                                          &blend_states[Blend_SrcAlphaOnly]);
+        assert(SUCCEEDED(result));
+
+        blend_desc.RenderTarget[0].BlendEnable = TRUE;
+        blend_desc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+        blend_desc.RenderTarget[0].DestBlend = D3D11_BLEND_DEST_ALPHA;
+        blend_desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+        blend_desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
+        blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_DEST_ALPHA;
+        blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_MAX;
+        blend_desc.RenderTarget[0].RenderTargetWriteMask =
+            D3D11_COLOR_WRITE_ENABLE_ALL;
+        result = device->CreateBlendState(&blend_desc,
+                                          &blend_states[Blend_UseSrcAndDest]);
         assert(SUCCEEDED(result));
     }
 }
@@ -337,25 +373,42 @@ bool PipelineManager::bindPixelShader(const std::string& ps_name) {
 }
 
 // Render Target Binding
-void PipelineManager::setActiveTarget(RenderTargetBindFlags bind_flags) {
+void PipelineManager::bindRenderTarget(TargetFlags f_target,
+                                       DepthStencilFlags f_depth,
+                                       BlendFlags f_blend) {
+    flag_target = f_target;
+    flag_depth = f_depth;
+    flag_blend = f_blend;
+
+    // Handle render target flags
+    ID3D11RenderTargetView* target_view = nullptr;
+
+    switch (f_target) {
+    case Target_SwapTarget:
+        swapActiveTarget();
+        [[fallthrough]];
+    case Target_UseExisting:
+        target_view = render_target_dest->target_view;
+        break;
+
+    default:
+        break;
+    }
+
+    // Handle depth stencil flags
     ID3D11DepthStencilView* depth_view = nullptr;
-    target_setting = bind_flags;
 
-    if (bind_flags == EnableDepthStencil_TestAndWrite ||
-        bind_flags == EnableDepthStencil_TestNoWrite) {
+    if (f_depth != Depth_Disabled) {
         depth_view = depth_stencil->depth_view;
-
-        ID3D11DepthStencilState* state = nullptr;
-        if (bind_flags == EnableDepthStencil_TestAndWrite)
-            state = ds_test_and_write;
-        else if (bind_flags == EnableDepthStencil_TestNoWrite)
-            state = ds_test_no_write;
+        ID3D11DepthStencilState* state = depth_states[f_depth];
         context->OMSetDepthStencilState(state, 0);
     }
 
-    context->OMSetRenderTargets(1, &render_target_dest->target_view,
-                                depth_view);
+    context->OMSetRenderTargets(1, &target_view, depth_view);
     context->RSSetViewports(1, &viewport);
+
+    // Handle blend flags
+    context->OMSetBlendState(blend_states[f_blend], nullptr, 0xFFFFFFFF);
 }
 
 void PipelineManager::swapActiveTarget() {
@@ -368,8 +421,7 @@ void PipelineManager::bindInactiveTarget(int slot) {
     context->PSSetShaderResources(slot, 1, &render_target_src->shader_view);
 }
 void PipelineManager::bindDepthStencil(int slot) {
-    assert(target_setting == DisableDepthStencil ||
-           target_setting == EnableDepthStencil_TestNoWrite);
+    assert(flag_depth == Depth_Disabled || flag_depth == Depth_TestNoWrite);
     context->PSSetShaderResources(slot, 1, &depth_stencil->shader_view);
 }
 
@@ -453,6 +505,9 @@ void PipelineManager::present() {
 
         context->OMSetRenderTargets(1, &screen_target->target_view, nullptr);
         context->RSSetViewports(1, &viewport);
+        context->OMSetBlendState(blend_states[Blend_SrcAlphaOnly], nullptr,
+                                 0xFFFFFFFF);
+
         context->PSSetShaderResources(0, 1, &render_target_dest->shader_view);
 
         drawPostProcessQuad();

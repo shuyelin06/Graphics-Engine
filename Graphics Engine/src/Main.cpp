@@ -110,22 +110,22 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     scene_graph.invalidateTerrainChunks(0.f, 0.f, 0.f);
 
-    Object& parent = scene_graph.createObject("Root");
+    Object& root = scene_graph.createObject("Root");
 
     // Bind a Camera
-    Object& camera = parent.createChild("Camera");
+    Object& camera = root.createChild("Camera");
     scene_graph.bindComponent(camera, "Camera");
-
-    // visual_system.bindCameraComponent(&camera);
     physics_system.bindPhysicsObject(&camera);
 
     // Bind Terrain
     physics_system.bindTerrain(scene_graph.getTerrain());
 
-    Object& fox = parent.createChild();
-    Object& fox1 = parent.createChild();
+    // Extra
+    Object& light = root.createChild("Sample Light");
+    scene_graph.bindComponent(light, "Light");
+    // light.getTransform().offsetPosition(Vector3(5.f,0,0));
+    light.getTransform().offsetRotation(Vector3(0, 1, 0), 3.f);
 
-    scene_graph.createObject();
     /*
     ShadowLightComponent* comp = visual_system.bindLightComponent(&light);
     light.getTransform().offsetPosition(25.f, 0.f, 25.f);*/
@@ -194,6 +194,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         // Sync datamodel components with the engine systems
         visual_system.bindComponents(scene_graph.getVisualComponentRequests());
         scene_graph.clearVisualComponentRequests();
+
+        // light.getTransform().offsetRotation(Vector3(0, 1, 0), 0.01f);
 
         // Dispatch Input Data
         input_system.update();

@@ -45,21 +45,21 @@ void ShaderManager::initializeShaders() {
         // available if the debug flag is flipped.
         {Vertex,
          "DebugPoint",
-         "DebugPointRenderer.hlsl",
+         "misc/DebugPointRenderer.hlsl",
          "vs_main",
          {POSITION, INSTANCE_ID},
          {}},
-        {Pixel, "DebugPoint", "DebugPointRenderer.hlsl", "ps_main", {}, {}},
+        {Pixel, "DebugPoint", "misc/DebugPointRenderer.hlsl", "ps_main", {}, {}},
         // DebugLine:
         // Uses instancing to draw colored lines in the scene. Only
         // available if the debug flag is flipped.
         {Vertex,
          "DebugLine",
-         "DebugLineRenderer.hlsl",
+         "misc/DebugLineRenderer.hlsl",
          "vs_main",
          {DEBUG_LINE},
          {}},
-        {Pixel, "DebugLine", "DebugLineRenderer.hlsl", "ps_main"},
+        {Pixel, "DebugLine", "misc/DebugLineRenderer.hlsl", "ps_main"},
         // ShadowMap Shader:
         // Takes vertex triangle data, as well as
         // matrix transforms and writes them to a light's shadow map (depth
@@ -107,6 +107,7 @@ void ShaderManager::initializeShaders() {
          "vs_main",
          {POSITION, INSTANCE_ID},
          {}},
+        {Pixel, "PreLightFrustum", "P_LightFrustum.hlsl", "forward_pass", {}, {}},
         {Pixel, "LightFrustum", "P_LightFrustum.hlsl", "ps_main", {}, {}},
         // Water Surface
         {Vertex,

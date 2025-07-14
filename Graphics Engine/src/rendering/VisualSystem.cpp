@@ -14,46 +14,58 @@ namespace Engine {
 
 namespace Graphics {
 struct VisualParameters {
-    Vector3 sun_direction;
-    Vector3 sun_color;
+    VisualParameters() = default;
+
+    Vector3 sun_direction = Vector3(-3.0f, -1.0f, 0.0f).unit();
+    Vector3 sun_color = Vector3(1.f, 1.f, 0.0f);
 
     // Underwater Parameters
-    float intensity_drop;
-    float visibility;
+    struct {
+        float sky_multiplier = 0.35f;
+        float scattering_multiplier = 0.005f;
+        float attenuation_multiplier = 0.014f;
+        float fog_factor = 20.f;
 
-    VisualParameters() {
-        sun_direction = Vector3(-3.0f, -1.0f, 0.0f);
-        sun_direction.inplaceNormalize();
-        sun_color = Vector3(1.f, 1.f, 0.0f);
+        Vector3 rgb_attenuation = Vector3(0.42f, 0.1f, 0.11f);
+        int num_steps = 15;
 
-        intensity_drop = 0.001f;
-        visibility = 0.5f;
+        float max_distance = 1000.f;
+    } underwater;
+
+#if defined(_DEBUG)
+    void imGuiConfig() {
+        if (ImGui::BeginMenu("Rendering Parameters")) {
+            ImGui::SliderFloat3("Sun Direction", Vec3ImGuiAddr(sun_direction),
+                                -5.f, 5.f);
+            sun_direction.inplaceNormalize();
+            ImGui::SliderFloat3("Sun Color", Vec3ImGuiAddr(sun_color), 0.0f,
+                                1.f);
+
+            ImGui::SeparatorText("Underwater Parameters");
+            ImGui::SliderFloat("Sky Multiplier", &underwater.sky_multiplier,
+                               0.0f, 1.f);
+            ImGui::SliderFloat("Scattering Multiplier",
+                               &underwater.scattering_multiplier, 0.0f, 0.01f);
+            ImGui::SliderFloat("Attenation Multiplier",
+                               &underwater.attenuation_multiplier, 0.f, 0.03f);
+            ImGui::SliderFloat("Fog", &underwater.fog_factor, 1.f, 30.f);
+            ImGui::SliderFloat3(
+                "RGB Attenuation",
+                static_cast<float*>(&underwater.rgb_attenuation.x), 0.0f, 1.f);
+            ImGui::SliderInt("Num Steps", &underwater.num_steps, 3, 30);
+            ImGui::SliderFloat("Max Distance", &underwater.max_distance, 500,
+                               10000.f);
+
+            ImGui::EndMenu();
+        }
     }
+#endif
 };
 
 #if defined(_DEBUG)
 // ImGuiConfig:
 // Sets configuration parameters
-void VisualSystem::imGuiConfig() {
-    static float sun_direc[3] = {-3.0f, -1.0f, 0.0f};
-    static float sun_color[3] = {1.f, 1.f, 0.0f};
-
-    if (ImGui::BeginMenu("Rendering Parameters")) {
-        ImGui::SliderFloat3("Sun Direction", sun_direc, -5.f, 5.f);
-        ImGui::SliderFloat3("Sun Color", sun_color, 0.0f, 1.f);
-
-        ImGui::SeparatorText("Underwater Parameters");
-        ImGui::SliderFloat("Intensity Drop", &config->intensity_drop, 0.00001f,
-                           0.5f);
-        ImGui::SliderFloat("Visibility", &config->visibility, 0.f, 1.f);
-
-        ImGui::EndMenu();
-    }
-
-    config->sun_direction =
-        Vector3(sun_direc[0], sun_direc[1], sun_direc[2]).unit();
-    config->sun_color = Vector3(sun_color[0], sun_color[1], sun_color[2]);
-}
+void VisualSystem::imGuiConfig() { config->imGuiConfig(); }
 #endif
 
 struct VisualCache {
@@ -90,20 +102,11 @@ VisualSystem::VisualSystem(HWND window) {
     context = pipeline->getContext();
 
     {
-        D3D11_BLEND_DESC blend_desc = {};
-        blend_desc.RenderTarget[0].BlendEnable = TRUE;
-
-        blend_desc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-        blend_desc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-        blend_desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-
-        blend_desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
-        blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
-        blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_MAX;
-
-        blend_desc.RenderTarget[0].RenderTargetWriteMask =
-            D3D11_COLOR_WRITE_ENABLE_ALL;
-        result = device->CreateBlendState(&blend_desc, &blend_state);
+        D3D11_RASTERIZER_DESC rast_desc = {};
+        rast_desc.FillMode = D3D11_FILL_SOLID;
+        rast_desc.CullMode = D3D11_CULL_FRONT;
+        rast_desc.FrontCounterClockwise = 0;
+        result = device->CreateRasterizerState(&rast_desc, &rast_state);
         assert(SUCCEEDED(result));
     }
 
@@ -132,6 +135,11 @@ void VisualSystem::bindComponents(
             CameraComponent* new_cam = new CameraComponent(object);
             object->bindComponent(new_cam);
             camera = new_cam;
+        } else if (tag == Component::getTag("Light")) {
+            ShadowLight* light = light_manager->createShadowLight(QUALITY_5);
+            ShadowLightComponent* light_obj =
+                new ShadowLightComponent(object, light);
+            light_components.newComponent(object, light_obj);
         }
     }
 }
@@ -143,13 +151,6 @@ VisualSystem::bindAssetComponent(Object* object,
     AssetComponent* asset_obj = new AssetComponent(object, asset);
     asset_components.newComponent(object, asset_obj);
     return asset_obj;
-}
-
-ShadowLightComponent* VisualSystem::bindLightComponent(Object* object) {
-    ShadowLight* light = light_manager->createShadowLight(QUALITY_5);
-    ShadowLightComponent* light_obj = new ShadowLightComponent(object, light);
-    light_components.newComponent(object, light_obj);
-    return light_obj;
 }
 
 // Render:
@@ -202,10 +203,10 @@ void VisualSystem::render() {
         // Rendering is different depending on if we're below
         // or above the surface of the water
         const Vector3& cam_pos = camera->getPosition();
-        if (cam_pos.y <= terrain->getSurfaceLevel() + 3.5f) {
-            // performLightFrustumPass();
+        if (cam_pos.y <= terrain->getSurfaceLevel() + 6.5f) {
             // Underwater rendering
             processUnderwater();
+            performLightFrustumPass();
         } else {
             // Above water rendering
             performWaterSurfacePass();
@@ -423,7 +424,8 @@ void VisualSystem::performTerrainPass() {
 
     // TEST
     Texture* depth_stencil = pipeline->getDepthStencil();
-    pipeline->setActiveTarget(EnableDepthStencil_TestAndWrite);
+    pipeline->bindRenderTarget(Target_UseExisting, Depth_TestAndWrite,
+                               Blend_Default);
     depth_stencil->clearAsDepthStencil(context);
 
     // Vertex Constant Buffer 0:
@@ -460,7 +462,8 @@ void VisualSystem::performRenderPass() {
 #endif
 
     pipeline->bindPixelShader("TexturedMesh");
-    pipeline->setActiveTarget(EnableDepthStencil_TestAndWrite);
+    pipeline->bindRenderTarget(Target_UseExisting, Depth_TestAndWrite,
+                               Blend_Default);
 
     // Vertex Constant Buffer 1:
     // Stores the camera view and projection matrices
@@ -550,18 +553,12 @@ void VisualSystem::performLightFrustumPass() {
     IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Light Frustum Pass");
 #endif
 
-    pipeline->bindVertexShader("LightFrustum");
-    pipeline->bindPixelShader("LightFrustum");
-
     const std::vector<ShadowLight*>& lights = light_manager->getShadowLights();
 
     if (lights.size() <= SUN_NUM_CASCADES)
         return;
 
     const int num_lights = lights.size() - SUN_NUM_CASCADES;
-
-    // Disable depth writes
-    pipeline->setActiveTarget(EnableDepthStencil_TestNoWrite);
 
     {
         IConstantBuffer vcb0 = pipeline->loadVertexCB(CB0);
@@ -582,11 +579,65 @@ void VisualSystem::performLightFrustumPass() {
         }
     }
 
-    context->OMSetBlendState(blend_state, NULL, 0xffffffff);
+    {
+        IConstantBuffer pCB2 = pipeline->loadPixelCB(CB2);
+
+        const Vector3 sun_direc = config->sun_direction.unit();
+        pCB2.loadData(&sun_direc, FLOAT3);
+        const float surface_height = terrain->getSurfaceLevel() + 3.f;
+        pCB2.loadData(&surface_height, FLOAT);
+
+        const auto& underwater_params = config->underwater;
+        pCB2.loadData(&underwater_params.sky_multiplier, FLOAT);
+        pCB2.loadData(&underwater_params.scattering_multiplier, FLOAT);
+        pCB2.loadData(&underwater_params.attenuation_multiplier, FLOAT);
+        pCB2.loadData(&underwater_params.fog_factor, FLOAT);
+        pCB2.loadData(&underwater_params.rgb_attenuation, FLOAT3);
+        pCB2.loadData(&underwater_params.num_steps, INT);
+        pCB2.loadData(&underwater_params.max_distance, FLOAT);
+
+        static float temp = 0.05f;
+        static float temp2 = 1.f;
+        if (ImGui::BeginMenu("Misc")) {
+            ImGui::SliderFloat("Multiplier", &temp, 0.f, 0.5f);
+            ImGui::SliderFloat("Multiplier2", &temp2, 0.f, 1000.f);
+            ImGui::EndMenu();
+        }
+        pCB2.loadData(&temp, FLOAT);
+        pCB2.loadData(&temp2, FLOAT);
+    }
+
+    // Render front of frustum
+    pipeline->bindVertexShader("LightFrustum");
+    pipeline->bindPixelShader("PreLightFrustum");
+    pipeline->bindRenderTarget(Target_Disabled, Depth_TestAndWrite,
+                               Blend_Default);
+
+    const Texture* depth_copy = pipeline->getDepthStencilCopy();
+    depth_copy->clearAsDepthStencil(context);
+    ID3D11RenderTargetView* render_view =
+        pipeline->getRenderTargetDest()->target_view;
+    ID3D11DepthStencilView* depth_view = depth_copy->depth_view;
+    context->OMSetRenderTargets(0, nullptr, depth_view);
 
     Asset* frustum_cube = resource_manager->getAsset("Cube");
     const Mesh* cube_mesh = frustum_cube->getMesh(0);
+
     pipeline->drawMesh(cube_mesh, INDEX_LIST_START, INDEX_LIST_END, num_lights);
+
+    // Render the Rest
+    pipeline->bindVertexShader("LightFrustum");
+    pipeline->bindPixelShader("LightFrustum");
+    pipeline->bindRenderTarget(Target_UseExisting, Depth_Disabled,
+                               Blend_UseSrcAndDest);
+    context->RSSetState(rast_state);
+
+    pipeline->bindDepthStencil(3);
+    context->PSSetShaderResources(4, 1, &depth_copy->shader_view);
+
+    pipeline->drawMesh(cube_mesh, INDEX_LIST_START, INDEX_LIST_END, num_lights);
+
+    context->RSSetState(NULL);
 }
 
 void VisualSystem::performWaterSurfacePass() {
@@ -603,9 +654,8 @@ void VisualSystem::performWaterSurfacePass() {
     context->CopyResource(depth_stencil_copy->texture, depth_stencil->texture);
 
     // Disable depth writes
-    // swapActiveRenderTarget();
-
-    pipeline->setActiveTarget(EnableDepthStencil_TestAndWrite);
+    pipeline->bindRenderTarget(Target_UseExisting, Depth_TestAndWrite,
+                               Blend_SrcAlphaOnly);
 
     {
         IConstantBuffer vcb0 = pipeline->loadVertexCB(CB0);
@@ -692,8 +742,6 @@ void VisualSystem::performWaterSurfacePass() {
         }
     }
 
-    context->OMSetBlendState(blend_state, NULL, 0xffffffff);
-
     const Mesh* surface_mesh = terrain->getWaterSurface()->getSurfaceMesh();
     const int total_triangles = surface_mesh->num_triangles;
     const int num_inner_tri =
@@ -711,9 +759,8 @@ void VisualSystem::processSky() {
 
     pipeline->bindVertexShader("PostProcess");
     pipeline->bindPixelShader("Sky");
-
-    pipeline->swapActiveTarget();
-    pipeline->setActiveTarget(DisableDepthStencil);
+    pipeline->bindRenderTarget(Target_SwapTarget, Depth_Disabled,
+                               Blend_Default);
 
     // Set samplers and texture
     pipeline->bindInactiveTarget(2);
@@ -777,10 +824,8 @@ void VisualSystem::processUnderwater() {
 
     pipeline->bindVertexShader("PostProcess");
     pipeline->bindPixelShader("Underwater");
-
-    // Set render target
-    pipeline->swapActiveTarget();
-    pipeline->setActiveTarget(DisableDepthStencil);
+    pipeline->bindRenderTarget(Target_SwapTarget, Depth_Disabled,
+                               Blend_Default);
 
     // Set samplers and texture resources
     pipeline->bindInactiveTarget(2);
@@ -795,50 +840,14 @@ void VisualSystem::processUnderwater() {
         const float surface_height = terrain->getSurfaceLevel() + 3.f;
         pCB2.loadData(&surface_height, FLOAT);
 
-        static float sky_multiplier = 0.35f;
-        pCB2.loadData(&sky_multiplier, FLOAT);
-        static float scattering_multiplier = 0.005f;
-        pCB2.loadData(&scattering_multiplier, FLOAT);
-        static float attenuation_multiplier = 0.014f;
-        pCB2.loadData(&attenuation_multiplier, FLOAT);
-        static float fog_factor = 20.f;
-        pCB2.loadData(&fog_factor, FLOAT);
-
-        static float r = 0.42f;
-        static float g = 0.1f;
-        static float b = 0.11f;
-        pCB2.loadData(&r, FLOAT);
-        pCB2.loadData(&g, FLOAT);
-        pCB2.loadData(&b, FLOAT);
-        static int num_steps = 15;
-        pCB2.loadData(&num_steps, INT);
-
-        static float max_distance = 1000.f;
-        pCB2.loadData(&max_distance, FLOAT);
-
-        static float temp = 1.f;
-        pCB2.loadData(&temp, FLOAT);
-
-#if defined(_DEBUG)
-        if (ImGui::BeginMenu("Misc")) {
-            ImGui::SliderFloat("Sky Multiplier", &sky_multiplier, 0.0f, 1.f);
-            ImGui::SliderFloat("Scattering Multiplier", &scattering_multiplier,
-                               0.0f, 0.01f);
-            ImGui::SliderFloat("Attenation Multiplier", &attenuation_multiplier,
-                               0.f, 0.03f);
-            ImGui::SliderFloat("Fog", &fog_factor, 1.f, 30.f);
-
-            ImGui::SliderFloat("R Attenuation", &r, 0.0f, 1.f);
-            ImGui::SliderFloat("G Attenuation", &g, 0.0f, 1.f);
-            ImGui::SliderFloat("B Attenuation", &b, 0.0f, 1.f);
-            ImGui::SliderInt("Num Steps", &num_steps, 3, 30);
-
-            ImGui::SliderFloat("Max Distance", &max_distance, 500, 10000.f);
-            ImGui::SliderFloat("Temp", &temp, 0.f, 200.f);
-
-            ImGui::EndMenu();
-        }
-#endif
+        const auto& underwater_params = config->underwater;
+        pCB2.loadData(&underwater_params.sky_multiplier, FLOAT);
+        pCB2.loadData(&underwater_params.scattering_multiplier, FLOAT);
+        pCB2.loadData(&underwater_params.attenuation_multiplier, FLOAT);
+        pCB2.loadData(&underwater_params.fog_factor, FLOAT);
+        pCB2.loadData(&underwater_params.rgb_attenuation, FLOAT3);
+        pCB2.loadData(&underwater_params.num_steps, INT);
+        pCB2.loadData(&underwater_params.max_distance, FLOAT);
     }
 
     // Bind and draw full screen quad

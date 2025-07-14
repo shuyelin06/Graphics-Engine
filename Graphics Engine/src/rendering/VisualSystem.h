@@ -62,7 +62,8 @@ class VisualSystem {
     ID3D11Device* device;
     ID3D11DeviceContext* context;
 
-    ID3D11BlendState* blend_state;
+    ID3D11RasterizerState* og_rast_state;
+    ID3D11RasterizerState* rast_state;
 
     Texture* bump_tex;
 
@@ -89,7 +90,6 @@ class VisualSystem {
 
     AssetComponent* bindAssetComponent(Object* object,
                                        const std::string& asset_name);
-    ShadowLightComponent* bindLightComponent(Object* object);
 
     // Call these functions to render the scene. Renders an entire scene
     void pullSceneData(Scene* scene); // Call First
