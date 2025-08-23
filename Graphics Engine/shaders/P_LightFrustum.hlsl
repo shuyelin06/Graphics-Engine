@@ -117,7 +117,7 @@ float4 ps_main(PS_INPUT input) : SV_TARGET
         float3 step_contribution = transmittance(d_light_to_point) * ray_step * scattering_multiplier;
         step_contribution *= shadow_factor;
         step_contribution *= multiplier2 / (1 + multiplier * d_light_to_point * d_light_to_point);
-        // step_contribution *= phase_rayleigh(normalize(ray_end - light.position), -ray_direction);
+        // step_contribution *= phase_rayleigh(normalize(ray_position - light.position), -ray_direction);
         step_contribution *= transmittance(i * ray_step) * scattering_multiplier;
         
         light_contribution += step_contribution;

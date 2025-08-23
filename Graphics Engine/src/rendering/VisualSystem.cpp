@@ -96,7 +96,7 @@ VisualSystem::VisualSystem(HWND window) {
 
     // Initialize my pipeline
     HRESULT result;
-    pipeline = new PipelineManager(window);
+    pipeline = new Pipeline(window);
 
     device = pipeline->getDevice();
     context = pipeline->getContext();
@@ -121,7 +121,7 @@ VisualSystem::VisualSystem(HWND window) {
 void VisualSystem::registerComponents() {
     Component::registerNewTag("Camera");
     Component::registerNewTag("Asset");
-    Component::registerNewTag("Light");
+    light_manager->registerComponents();
 }
 void VisualSystem::bindComponents(
     const std::vector<ComponentBindRequest>& requests) {
@@ -129,17 +129,17 @@ void VisualSystem::bindComponents(
         Object* object = request.target_object;
         const unsigned int tag = request.component_id;
 
+        // Check if the tag matches any the visual system recognizes. If not,
+        // pass to the visual subsystems to continue trying.
         if (tag == Component::getTag("Camera")) {
             if (camera != nullptr)
                 delete camera;
             CameraComponent* new_cam = new CameraComponent(object);
             object->bindComponent(new_cam);
             camera = new_cam;
-        } else if (tag == Component::getTag("Light")) {
-            ShadowLight* light = light_manager->createShadowLight(QUALITY_5);
-            ShadowLightComponent* light_obj =
-                new ShadowLightComponent(object, light);
-            light_components.newComponent(object, light_obj);
+        } else {
+            if (light_manager->bindComponent(request))
+                continue;
         }
     }
 }
@@ -226,7 +226,6 @@ void VisualSystem::render() {
 
     // Finish rendering and present
     pipeline->present();
-    renderable_meshes.clear();
 }
 
 // PullSceneData:
@@ -259,13 +258,11 @@ void VisualSystem::pullSceneData(Scene* scene) {
     // Pull my object data.
     // Remove invalid visual objects, and update them to pull
     // the datamodel data.
-    if (camera != nullptr)
-        camera->update();
+    camera->update();
     asset_components.cleanAndUpdate();
-    light_components.cleanAndUpdate();
+    light_manager->pullSceneData();
 
     // Prepare managers for data
-    const Frustum cam_frustum = camera->frustum();
     light_manager->updateSunDirection(config->sun_direction);
     light_manager->updateSunCascades(camera->frustum());
 
@@ -276,11 +273,6 @@ void VisualSystem::pullSceneData(Scene* scene) {
 
         if (asset->isSkinned())
             asset->applyAnimationAtTime(1, cache->time);
-
-        RenderableAsset renderable_asset;
-        renderable_asset.asset = asset;
-        renderable_asset.m_localToWorld = object->getObject()->getLocalMatrix();
-        renderable_meshes.push_back(renderable_asset);
 
         const std::vector<Mesh*>& meshes = asset->getMeshes();
         for (const Mesh* mesh : meshes) {
@@ -484,8 +476,8 @@ void VisualSystem::performRenderPass() {
     }
 
     // Testing for animations
-    for (const RenderableAsset& renderable_asset : renderable_meshes) {
-        const Asset* asset = renderable_asset.asset;
+    for (const AssetComponent* comp : asset_components.getComponents()) {
+        const Asset* asset = comp->getAsset();
         const std::vector<Mesh*>& meshes = asset->getMeshes();
 
         if (asset->isSkinned()) {
@@ -509,7 +501,7 @@ void VisualSystem::performRenderPass() {
             }
 
             // Vertex CB2: Transform matrices
-            const Matrix4& mLocalToWorld = renderable_asset.m_localToWorld;
+            const Matrix4& mLocalToWorld = comp->getLocalToWorldMatrix();
             {
                 IConstantBuffer vCB2 = pipeline->loadVertexCB(CB2);
 
@@ -600,12 +592,17 @@ void VisualSystem::performLightFrustumPass() {
         static float temp2 = 1.f;
         if (ImGui::BeginMenu("Misc")) {
             ImGui::SliderFloat("Multiplier", &temp, 0.f, 0.5f);
-            ImGui::SliderFloat("Multiplier2", &temp2, 0.f, 1000.f);
+            ImGui::SliderFloat("Multiplier2", &temp2, 0.f, 3000.f);
             ImGui::EndMenu();
         }
         pCB2.loadData(&temp, FLOAT);
         pCB2.loadData(&temp2, FLOAT);
     }
+
+    // TODO:
+    // All frustums render to the same spot in the depth buffer, which can
+    // exaggerate the total light reaching the camera. They should instead
+    // render to different parts, kind of like a shadow map.
 
     // Render front of frustum
     pipeline->bindVertexShader("LightFrustum");

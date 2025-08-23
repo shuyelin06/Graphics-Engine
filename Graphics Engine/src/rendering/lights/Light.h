@@ -3,12 +3,15 @@
 #include "../Direct3D11.h"
 #include "../core/Frustum.h"
 #include "../core/TextureAtlas.h"
+#include "datamodel/Component.h"
 
 #include "math/Color.h"
 #include "math/Matrix4.h"
 #include "math/Transform.h"
 
 namespace Engine {
+using namespace Datamodel;
+
 namespace Graphics {
 class CBHandle;
 
@@ -26,7 +29,7 @@ struct ShadowMapViewport {
 // shadows shadow mapping. The "direction" of the light's view is given by the
 // direction of its rotated +Z axis. Lights have a position and rotation in
 // space that defines what regions they light up.
-class ShadowLight {
+class ShadowLight : public Component {
   private:
     Color color;
     ShadowMapViewport shadow_viewport;
@@ -34,9 +37,15 @@ class ShadowLight {
     Matrix4 m_world;      // Local to World
     Matrix4 m_projection; // World to Projection
 
+    float brightness;
+    float range;
+
   public:
-    ShadowLight(const ShadowMapViewport& view_port);
+    ShadowLight(Object* object, const ShadowMapViewport& view_port);
     ~ShadowLight();
+
+    // Override
+    void update();
 
     // Accessors
     const Color& getColor() const;

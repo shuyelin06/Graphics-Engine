@@ -16,7 +16,6 @@
 
 #include "core/AssetComponent.h"
 #include "datamodel/ComponentHandler.h"
-#include "lights/LightComponent.h"
 #include "terrain/VisualTerrain.h"
 
 #include "rendering/core/Camera.h"
@@ -36,11 +35,6 @@ namespace Engine {
 using namespace Datamodel;
 
 namespace Graphics {
-
-struct RenderableAsset {
-    const Asset* asset;
-    Matrix4 m_localToWorld;
-};
 
 // VisualParameters Struct:
 // Stores configuration parameters toggleable by the user
@@ -62,24 +56,20 @@ class VisualSystem {
     ID3D11Device* device;
     ID3D11DeviceContext* context;
 
-    ID3D11RasterizerState* og_rast_state;
-    ID3D11RasterizerState* rast_state;
-
-    Texture* bump_tex;
-
     // Managers
     ResourceManager* resource_manager;
     LightManager* light_manager;
-    PipelineManager* pipeline;
+    Pipeline* pipeline;
 
     // Supported Components
     CameraComponent* camera;
     ComponentHandler<AssetComponent> asset_components;
-    ComponentHandler<ShadowLightComponent> light_components;
     VisualTerrain* terrain;
 
-    std::vector<Mesh*> visible_chunks;
-    std::vector<RenderableAsset> renderable_meshes;
+    // Temp for now; should be moved later.
+    ID3D11RasterizerState* og_rast_state;
+    ID3D11RasterizerState* rast_state;
+    Texture* bump_tex;
 
   public:
     VisualSystem(HWND window);

@@ -15,7 +15,7 @@ namespace Engine {
 using namespace Math;
 
 namespace Graphics {
-PipelineManager::PipelineManager(HWND window) {
+Pipeline::Pipeline(HWND window) {
     // Initialize my device, context, and render targets
     initializeTargets(window);
 
@@ -70,7 +70,7 @@ PipelineManager::PipelineManager(HWND window) {
 #endif
 }
 
-PipelineManager::~PipelineManager() {
+Pipeline::~Pipeline() {
 #if defined(_DEBUG)
     imGuiShutdown();
 #endif
@@ -88,7 +88,7 @@ PipelineManager::~PipelineManager() {
     delete shader_manager;
 }
 
-void PipelineManager::initializeTargets(HWND _window) {
+void Pipeline::initializeTargets(HWND _window) {
     HRESULT result;
 
     // Get my window width and height
@@ -279,7 +279,7 @@ void PipelineManager::initializeTargets(HWND _window) {
 // InitializeSamplers:
 // Initializes the most commonly used samplers in the pipeline.
 // These samplers will not be rebound over the entire program.
-void PipelineManager::initializeSamplers() {
+void Pipeline::initializeSamplers() {
     D3D11_SAMPLER_DESC sampler_desc = {};
     ID3D11SamplerState* sampler = NULL;
 
@@ -317,27 +317,27 @@ void PipelineManager::initializeSamplers() {
     samplers[Shadow] = sampler;
 }
 
-ID3D11Device* PipelineManager::getDevice() const { return device; }
-ID3D11DeviceContext* PipelineManager::getContext() const { return context; }
-Texture* PipelineManager::getRenderTargetDest() const {
+ID3D11Device* Pipeline::getDevice() const { return device; }
+ID3D11DeviceContext* Pipeline::getContext() const { return context; }
+Texture* Pipeline::getRenderTargetDest() const {
     return render_target_dest;
 }
-Texture* PipelineManager::getRenderTargetSrc() const {
+Texture* Pipeline::getRenderTargetSrc() const {
     return render_target_src;
 }
-Texture* PipelineManager::getDepthStencil() const { return depth_stencil; }
-Texture* PipelineManager::getDepthStencilCopy() const {
+Texture* Pipeline::getDepthStencil() const { return depth_stencil; }
+Texture* Pipeline::getDepthStencilCopy() const {
     return depth_stencil_copy;
 }
 
 // Prepare
-void PipelineManager::prepare() {
+void Pipeline::prepare() {
     // Clear the the target destination color
     render_target_dest->clearAsRenderTarget(context, Color(0.f, 0.f, 0.f));
 }
 
 // Shader Management
-bool PipelineManager::bindVertexShader(const std::string& vs_name) {
+bool Pipeline::bindVertexShader(const std::string& vs_name) {
     VertexShader* new_shader = shader_manager->getVertexShader(vs_name);
 
     // Check if shader exists
@@ -359,7 +359,7 @@ bool PipelineManager::bindVertexShader(const std::string& vs_name) {
     return true;
 }
 
-bool PipelineManager::bindPixelShader(const std::string& ps_name) {
+bool Pipeline::bindPixelShader(const std::string& ps_name) {
     ps_active = shader_manager->getPixelShader(ps_name);
 
     // Check if shader exists
@@ -373,7 +373,7 @@ bool PipelineManager::bindPixelShader(const std::string& ps_name) {
 }
 
 // Render Target Binding
-void PipelineManager::bindRenderTarget(TargetFlags f_target,
+void Pipeline::bindRenderTarget(TargetFlags f_target,
                                        DepthStencilFlags f_depth,
                                        BlendFlags f_blend) {
     flag_target = f_target;
@@ -411,33 +411,33 @@ void PipelineManager::bindRenderTarget(TargetFlags f_target,
     context->OMSetBlendState(blend_states[f_blend], nullptr, 0xFFFFFFFF);
 }
 
-void PipelineManager::swapActiveTarget() {
+void Pipeline::swapActiveTarget() {
     Texture* temp = render_target_dest;
     render_target_dest = render_target_src;
     render_target_src = temp;
 }
 
-void PipelineManager::bindInactiveTarget(int slot) {
+void Pipeline::bindInactiveTarget(int slot) {
     context->PSSetShaderResources(slot, 1, &render_target_src->shader_view);
 }
-void PipelineManager::bindDepthStencil(int slot) {
+void Pipeline::bindDepthStencil(int slot) {
     assert(flag_depth == Depth_Disabled || flag_depth == Depth_TestNoWrite);
     context->PSSetShaderResources(slot, 1, &depth_stencil->shader_view);
 }
 
-void PipelineManager::bindSamplers() {
+void Pipeline::bindSamplers() {
     context->PSSetSamplers(0, SamplerCount, samplers);
 }
 
 // Constant Buffer Loading
-IConstantBuffer PipelineManager::loadVertexCB(CBSlot slot) {
+IConstantBuffer Pipeline::loadVertexCB(CBSlot slot) {
     return IConstantBuffer(vcb_handles[slot], slot, CBVertex, device, context);
 }
-IConstantBuffer PipelineManager::loadPixelCB(CBSlot slot) {
+IConstantBuffer Pipeline::loadPixelCB(CBSlot slot) {
     return IConstantBuffer(pcb_handles[slot], slot, CBPixel, device, context);
 }
 
-void PipelineManager::drawMesh(const Mesh* mesh, int tri_start, int tri_end,
+void Pipeline::drawMesh(const Mesh* mesh, int tri_start, int tri_end,
                                UINT instance_count) {
     assert((vs_active->layout_pin & mesh->layout) == vs_active->layout_pin);
     const MeshPool* pool = mesh->buffer_pool;
@@ -479,7 +479,7 @@ void PipelineManager::drawMesh(const Mesh* mesh, int tri_start, int tri_end,
                                   index_offset, 0);
 }
 
-void PipelineManager::drawPostProcessQuad() {
+void Pipeline::drawPostProcessQuad() {
     const UINT vertexStride = sizeof(float) * 4;
     const UINT vertexOffset = 0;
 
@@ -492,7 +492,7 @@ void PipelineManager::drawPostProcessQuad() {
 
 // Present:
 // Display everything we've rendered onto the screen
-void PipelineManager::present() {
+void Pipeline::present() {
     // Execute a shader to transfer the pixel data from our
     // current dest render target to the screen target.
     {
@@ -527,7 +527,7 @@ void PipelineManager::present() {
 #if defined(_DEBUG) // ImGui
 // ImGui Initialize:
 // Initializes the ImGui menu and associated data.
-void PipelineManager::imGuiInitialize(HWND window) {
+void Pipeline::imGuiInitialize(HWND window) {
     // Initialize ImGui
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -548,7 +548,7 @@ void PipelineManager::imGuiInitialize(HWND window) {
 // ImGuiPrepare:
 // Creates a new frame for the ImGui system and begin tracking GPU time
 // for the current frame
-void PipelineManager::imGuiPrepare() {
+void Pipeline::imGuiPrepare() {
     // Start the Dear ImGui frame
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
@@ -561,7 +561,7 @@ void PipelineManager::imGuiPrepare() {
 
 // ImGuiFinish:
 // Finish and present the ImGui window
-void PipelineManager::imGuiFinish() {
+void Pipeline::imGuiFinish() {
     // Finish and Display GPU + CPU Times
     GPUTimer::EndFrame();
 
@@ -584,7 +584,7 @@ void PipelineManager::imGuiFinish() {
 
 // ImGuiShutDown:
 // Shut down the ImGui system
-void PipelineManager::imGuiShutdown() {
+void Pipeline::imGuiShutdown() {
     ImGui_ImplDX11_Shutdown();
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();

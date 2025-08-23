@@ -2,6 +2,8 @@
 
 #include "../core/AssetComponent.h"
 #include "../core/TextureAtlas.h"
+#include "datamodel/ComponentHandler.h"
+#include "datamodel/SceneGraph.h"
 
 #include "Light.h"
 #include "SunLight.h"
@@ -9,6 +11,8 @@
 #include <vector>
 
 namespace Engine {
+using namespace Datamodel;
+
 namespace Graphics {
 // ShadowMapQuality:
 // Qualitites that are available for defining the lights with
@@ -55,9 +59,9 @@ class IConstantBuffer;
 class LightManager {
   private:
     TextureAtlas* shadow_atlas;
+    ComponentHandler<ShadowLight> shadow_lights;
 
     SunLight* sun_light;
-    std::vector<ShadowLight*> shadow_lights;
 
     // Information for rendering:
     // shadow_clusters associates lights with the assets in their view, given as
@@ -70,6 +74,12 @@ class LightManager {
 
   public:
     LightManager(ID3D11Device* device, unsigned int atlas_size);
+
+    // SceneGraph Handling 
+    void registerComponents() const;
+    bool bindComponent(const ComponentBindRequest& request);
+    
+    void pullSceneData();
 
     // Get the light manager's data
     const Texture* getAtlasTexture(void) const;
@@ -86,7 +96,7 @@ class LightManager {
     normalizeViewport(const ShadowMapViewport viewport) const;
 
     // Update the light manager
-    ShadowLight* createShadowLight(ShadowMapQuality quality);
+    ShadowLight* createShadowLight(Object* object, ShadowMapQuality quality);
 
     void updateTimeOfDay(float hours_in_day);
     void updateSunDirection(const Vector3& direction);

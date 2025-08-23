@@ -18,6 +18,7 @@ template <typename T> class ComponentHandler {
 
     // Return the component vector
     const std::vector<T*>& getComponents() { return components; }
+    const std::vector<T*>& getComponents() const { return components; }
 
     // Add a new component to the handler
     void newComponent(Object* object, T* component) {

@@ -6,7 +6,7 @@
 namespace Engine {
 using namespace Datamodel;
 namespace Graphics {
-// MeshObject Class:
+// AssetComponent Class:
 // Denotes an asset in the engine, that can be rendered.
 class AssetComponent : public Component {
   private:
@@ -19,9 +19,6 @@ class AssetComponent : public Component {
 
     const Asset* getAsset() const;
     const Matrix4& getLocalToWorldMatrix() const;
-
-    Vector3 getPosition() const;
-    Quaternion getRotation() const;
 
     // OVERRIDE: Pulls the object transform
     void update();

@@ -67,7 +67,7 @@ enum BlendFlags {
 struct Mesh;
 struct Texture;
 
-class PipelineManager {
+class Pipeline {
   private:
     // D3D Interfaces
     HWND window;
@@ -76,12 +76,9 @@ class PipelineManager {
 
     // Swapchain and Render Targets
     IDXGISwapChain* swapchain;
-
     D3D11_VIEWPORT viewport;
-    ID3D11BlendState* blend_state;
 
     Texture* screen_target;
-
     Texture* render_target_dest;
     Texture* render_target_src;
     Texture* depth_stencil;
@@ -119,8 +116,8 @@ class PipelineManager {
     void initializeSamplers();
 
   public:
-    PipelineManager(HWND window);
-    ~PipelineManager();
+    Pipeline(HWND window);
+    ~Pipeline();
 
     ID3D11Device* getDevice() const;
     ID3D11DeviceContext* getContext() const;

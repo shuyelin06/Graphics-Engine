@@ -14,7 +14,8 @@ LightManager::LightManager(ID3D11Device* device, unsigned int atlas_size)
     // Create my shadow atlas.
     // This will have 24 Bits for R Channel (depth), 8 Bits for G Channel
     // (stencil).
-    // The resource will be able to be accessed as a depth stencil and shader resource.
+    // The resource will be able to be accessed as a depth stencil and shader
+    // resource.
     tex_desc.Width = atlas_size;
     tex_desc.Height = atlas_size;
     tex_desc.MipLevels = tex_desc.ArraySize = 1;
@@ -47,12 +48,32 @@ LightManager::LightManager(ID3D11Device* device, unsigned int atlas_size)
 
     atlas_texture->createShaderResourceView(device, srv_desc);
 
-    // Create my shadow atlas with this texture 
+    // Create my shadow atlas with this texture
     shadow_atlas = new TextureAtlas(atlas_texture);
 
     // Create sun light
     createSunLight(QUALITY_5);
 }
+
+// Components:
+// Handles component bindings to interface with the datamodel
+void LightManager::registerComponents() const {
+    Component::registerNewTag("Light");
+}
+
+bool LightManager::bindComponent(const ComponentBindRequest& request) {
+    Object* obj = request.target_object;
+    const unsigned int tag = request.component_id;
+
+    if (tag == Component::getTag("Light")) {
+        ShadowLight* light = createShadowLight(obj, QUALITY_5);
+    } else
+        return false;
+
+    return true;
+}
+
+void LightManager::pullSceneData() { shadow_lights.cleanAndUpdate(); }
 
 // --- Update ---
 // UpdateTimeOfDay:
@@ -100,8 +121,9 @@ void LightManager::clusterShadowCasters() {
     // For each light, iterate through the assets and find the assets
     // in the light's view. All assets outside the light's view do not need to
     // be ran through the shadow pass
-    for (int i = 0; i < shadow_lights.size(); i++) {
-        const ShadowLight* light = shadow_lights[i];
+    const std::vector<ShadowLight*> lights = shadow_lights.getComponents();
+    for (int i = 0; i < lights.size(); i++) {
+        const ShadowLight* light = lights[i];
         const Frustum frustum = light->frustum();
 
         ShadowCluster cluster;
@@ -138,11 +160,11 @@ const Texture* LightManager::getAtlasTexture(void) const {
 const SunLight* LightManager::getSunLight() const { return sun_light; }
 
 const ShadowLight* LightManager::getShadowLight(UINT index) const {
-    return shadow_lights[index];
+    return shadow_lights.getComponents()[index];
 }
 
 const std::vector<ShadowLight*>& LightManager::getShadowLights() const {
-    return shadow_lights;
+    return shadow_lights.getComponents();
 }
 
 const std::vector<ShadowCluster>& LightManager::getShadowClusters() const {
@@ -175,7 +197,8 @@ LightManager::normalizeViewport(const ShadowMapViewport viewport) const {
 // CreateShadowLight:
 // Creates and returns a shadowed light that can be used in the
 // rendering engine.
-ShadowLight* LightManager::createShadowLight(ShadowMapQuality quality) {
+ShadowLight* LightManager::createShadowLight(Object* object,
+                                             ShadowMapQuality quality) {
     // Allocate a spot in the ShadowAtlas for our light
     const UINT alloc_index = shadow_atlas->allocateTexture(quality, quality);
     const AtlasAllocation& allocation =
@@ -188,8 +211,8 @@ ShadowLight* LightManager::createShadowLight(ShadowMapQuality quality) {
     shadow_viewport.width = allocation.width;
     shadow_viewport.height = allocation.height;
 
-    ShadowLight* light = new ShadowLight(shadow_viewport);
-    shadow_lights.push_back(light);
+    ShadowLight* light = new ShadowLight(object, shadow_viewport);
+    shadow_lights.newComponent(object, light);
 
     return light;
 }
@@ -199,9 +222,10 @@ ShadowLight* LightManager::createShadowLight(ShadowMapQuality quality) {
 // Each cascade will have resolution given by the ShadowMapQuality parameter.
 void LightManager::createSunLight(ShadowMapQuality quality) {
     ShadowLight* lights[SUN_NUM_CASCADES];
+    Object* sun_obj = new Object();
 
     for (int i = 0; i < SUN_NUM_CASCADES; i++) {
-        ShadowLight* light = createShadowLight(quality);
+        ShadowLight* light = createShadowLight(sun_obj, quality);
         lights[i] = light;
     }
 
@@ -212,7 +236,9 @@ void LightManager::createSunLight(ShadowMapQuality quality) {
 // BindLightData:
 // Binds lighting data to a provided constant buffer handle.
 void LightManager::bindLightData(IConstantBuffer& cb) {
-    const int lightCount = shadow_lights.size();
+    const std::vector<ShadowLight*>& lights = shadow_lights.getComponents();
+
+    const int lightCount = lights.size();
     cb.loadData(&lightCount, INT);
 
     // Global Lighting Data
@@ -224,13 +250,13 @@ void LightManager::bindLightData(IConstantBuffer& cb) {
     cb.loadData(nullptr, FLOAT2);
 
     for (int i = 0; i < SUN_NUM_CASCADES; i++) {
-        ShadowLight* light = shadow_lights[i];
+        ShadowLight* light = lights[i];
         bindLight(light, cb);
     }
 
     // Local Lighting Data
-    for (int i = SUN_NUM_CASCADES; i < shadow_lights.size(); i++) {
-        ShadowLight* light = shadow_lights[i];
+    for (int i = SUN_NUM_CASCADES; i < lights.size(); i++) {
+        ShadowLight* light = lights[i];
         bindLight(light, cb);
     }
 }

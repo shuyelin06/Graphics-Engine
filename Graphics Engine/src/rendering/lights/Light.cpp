@@ -2,6 +2,7 @@
 
 #include <assert.h>
 
+#include "datamodel/Object.h"
 #include "../pipeline/ConstantBuffer.h"
 
 namespace Engine {
@@ -23,7 +24,8 @@ D3D11_VIEWPORT ShadowMapViewport::toD3D11() const {
 // Constructor:
 // Initializes a texture resource for use in the shadow mapping. The
 // device is needed to intialize
-ShadowLight::ShadowLight(const ShadowMapViewport& view_port) {
+ShadowLight::ShadowLight(Object* object, const ShadowMapViewport& view_port)
+    : Component(object) {
     m_world = Matrix4::Identity();
     m_projection = Matrix4::Identity();
 
@@ -34,6 +36,12 @@ ShadowLight::ShadowLight(const ShadowMapViewport& view_port) {
 }
 
 ShadowLight::~ShadowLight() = default;
+
+// Datamodel Update:
+void ShadowLight::update() {
+    const Matrix4& m_world = object->getLocalMatrix();
+    setWorldMatrix(m_world);
+}
 
 // Getters:
 // Return various properties of the light

@@ -133,10 +133,15 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     // camera_obj.getTransform().offsetPosition(0.0f, 125.f, 0.0f);
 
     // Create Object Hierarchy
-    /*Object& fox = parent.createChild();
-    visual_system.bindAssetComponent(&fox, "Fox");
-    fox.getTransform().setScale(Vector3(5.f, 5.f, 5.f));
+    for (int i = 0; i < 3; i++) {
+        Object& fox = root.createChild();
+        visual_system.bindAssetComponent(&fox, "Fox");
+        fox.getTransform().offsetPosition(Random(-10, 10), -20.f,
+                                          Random(-10, 10));
+        fox.getTransform().setScale(Vector3(5.f, 5.f, 5.f));
+    }
 
+    /*
     Object& man = parent.createChild();
     visual_system.bindAssetComponent(&man, "Man");
     man.getTransform().setScale(Vector3(20.f, 5.f, 5.f));*/
@@ -195,7 +200,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         visual_system.bindComponents(scene_graph.getVisualComponentRequests());
         scene_graph.clearVisualComponentRequests();
 
-        // light.getTransform().offsetRotation(Vector3(0, 1, 0), 0.01f);
+        light.getTransform().offsetRotation(Vector3(0, 1, 0), 0.01f);
 
         // Dispatch Input Data
         input_system.update();
