@@ -118,7 +118,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     // Bind a Camera
     Object* camera = new DMCamera();
     root->addChild(camera);
-    scene_graph.bindComponent(*camera, "Camera");
     physics_system.bindPhysicsObject(camera);
 
     // Bind Terrain

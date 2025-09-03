@@ -6,6 +6,7 @@
 #include "VisualDebug.h"
 #include "core/Frustum.h"
 #include "datamodel/Object.h"
+#include "datamodel/objects/DMCamera.h"
 
 #include "math/Vector4.h"
 #include "resources/BumpMapBuilder.h"
@@ -91,7 +92,9 @@ VisualSystem::VisualSystem(HWND window) {
     camera = nullptr;
     terrain = nullptr;
 
+    // Create my VisualSystem objects
     // Register my system components
+    camera = new Camera();
     registerComponents();
 
     // Initialize my pipeline
@@ -119,7 +122,6 @@ VisualSystem::VisualSystem(HWND window) {
 
 // --- Component Bindings ---
 void VisualSystem::registerComponents() {
-    Component::registerNewTag("Camera");
     Component::registerNewTag("Asset");
     light_manager->registerComponents();
 }
@@ -131,16 +133,8 @@ void VisualSystem::bindComponents(
 
         // Check if the tag matches any the visual system recognizes. If not,
         // pass to the visual subsystems to continue trying.
-        if (tag == Component::getTag("Camera")) {
-            if (camera != nullptr)
-                delete camera;
-            CameraComponent* new_cam = new CameraComponent(object);
-            object->bindComponent(new_cam);
-            camera = new_cam;
-        } else {
-            if (light_manager->bindComponent(request))
-                continue;
-        }
+        if (light_manager->bindComponent(request))
+            continue;
     }
 }
 
@@ -240,6 +234,12 @@ void VisualSystem::pullSceneData(Scene* scene) {
     imGuiConfig();
 #endif
 
+    // Pull Datamodel Data
+    std::vector<Datamodel::Object*> cameras;
+    scene->queryForClassID("Camera", cameras);
+    assert(cameras.size() > 0);
+    camera->pullDatamodelData(static_cast<Datamodel::DMCamera*>(cameras[0]));
+
     // Pull my terrain data (if it exists).
     Terrain* scene_terrain = scene->getTerrain();
 
@@ -258,7 +258,6 @@ void VisualSystem::pullSceneData(Scene* scene) {
     // Pull my object data.
     // Remove invalid visual objects, and update them to pull
     // the datamodel data.
-    camera->update();
     asset_components.cleanAndUpdate();
     light_manager->pullSceneData();
 

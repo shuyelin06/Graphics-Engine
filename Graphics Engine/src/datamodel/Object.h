@@ -54,6 +54,8 @@ class Object {
     const std::string& getClassName();
 #endif
 
+    uint16_t getClassID() const;
+
     // Object Hierarchy Methods
     Object* getParent() const; // Can return nullptr if parent does not exist
     std::vector<Object*>& getChildren();

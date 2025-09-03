@@ -48,6 +48,8 @@ Object::~Object() {
 const std::string& Object::getClassName() { return class_name; }
 #endif
 
+uint16_t Object::getClassID() const { return class_id; }
+
 /* --- Object Class ID Methods --- */
 static std::unordered_map<std::string, uint16_t> map_class_to_id =
     std::unordered_map<std::string, uint16_t>();

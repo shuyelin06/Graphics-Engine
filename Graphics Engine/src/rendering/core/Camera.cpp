@@ -12,42 +12,33 @@
 namespace Engine {
 namespace Graphics {
 // --- Camera ---
-CameraComponent::CameraComponent(Object* object) : Component(object) {
-    setFrustumMatrix(1.2f, 5.f, 500.f);
-}
-CameraComponent::~CameraComponent() = default;
+Camera::Camera() { setFrustumMatrix(1.2f, 5.f, 500.f); }
+Camera::~Camera() = default;
 
-// --- Update ---
-void CameraComponent::update() { transform = object->getTransform(); }
-void CameraComponent::imGuiConfig() {
-#if defined(_DEBUG)
-    if (ImGui::SliderFloat("FOV", &fov, 0.1f, 2.f)) {
-        setFrustumMatrix(fov, z_near, z_far);
-    }
-
-#endif
+// -- Pull Datamodel Data ---
+void Camera::pullDatamodelData(DMCamera* dm_camera) {
+    transform = dm_camera->getTransform();
+    setFrustumMatrix(dm_camera->getFOV(), dm_camera->getZNear(),
+                     dm_camera->getZFar());
 }
 
 // --- Accessors ---
-float CameraComponent::getZNear() const { return z_near; }
-float CameraComponent::getZFar() const { return z_far; }
-const Transform& CameraComponent::getTransform() const { return transform; }
-const Vector3& CameraComponent::getPosition() const {
-    return transform.getPosition();
-}
+float Camera::getZNear() const { return z_near; }
+float Camera::getZFar() const { return z_far; }
+const Transform& Camera::getTransform() const { return transform; }
+const Vector3& Camera::getPosition() const { return transform.getPosition(); }
 
 // GetFrustum:
 // Returns an object which can be used to query the camera frustum.
-Frustum CameraComponent::frustum() const {
+Frustum Camera::frustum() const {
     const Matrix4 m_world_to_frustum =
-        frustum_matrix * object->getTransform().transformMatrix().inverse();
+        frustum_matrix * transform.transformMatrix().inverse();
     return Frustum(m_world_to_frustum);
 }
 
 // SetFrustuMatrix:
 // Updates the camera frustum (projection) matrix
-void CameraComponent::setFrustumMatrix(float _fov, float _z_near,
-                                       float _z_far) {
+void Camera::setFrustumMatrix(float _fov, float _z_near, float _z_far) {
     z_near = _z_near;
     z_far = _z_far;
     fov = _fov;
@@ -66,13 +57,11 @@ void CameraComponent::setFrustumMatrix(float _fov, float _z_near,
 }
 
 // Camera -> World Matrix
-const Matrix4 CameraComponent::getWorldToCameraMatrix(void) const {
+const Matrix4 Camera::getWorldToCameraMatrix(void) const {
     return transform.transformMatrix().inverse();
 }
 
 // Camera -> Projected Space Matrix
-const Matrix4 CameraComponent::getFrustumMatrix(void) const {
-    return frustum_matrix;
-}
+const Matrix4 Camera::getFrustumMatrix(void) const { return frustum_matrix; }
 } // namespace Graphics
 } // namespace Engine

@@ -12,5 +12,9 @@ DMCamera::~DMCamera() = default;
 
 void DMCamera::propertyDisplay() { ImGui::SliderFloat("FOV", &fov, 0.1f, 2.f); }
 
+float DMCamera::getFOV() const { return fov; }
+float DMCamera::getZNear() const { return z_near; }
+float DMCamera::getZFar() const { return z_far; }
+
 } // namespace Datamodel
 } // namespace Engine

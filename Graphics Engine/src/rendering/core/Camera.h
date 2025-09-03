@@ -1,6 +1,6 @@
 #pragma once
 
-#include "datamodel/Component.h"
+#include "datamodel/objects/DMCamera.h"
 
 #include "math/Matrix4.h"
 #include "math/OBB.h"
@@ -18,7 +18,7 @@ namespace Graphics {
 // on the screen is rendered from the camera's point of view.
 // Unless otherwise rotated, the camera's default view
 // is in the +Z axis.
-class CameraComponent : public Component {
+class Camera {
   protected:
     // Field of view
     float fov;
@@ -37,13 +37,11 @@ class CameraComponent : public Component {
     Transform transform;
 
   public:
-    CameraComponent(Object* object);
-    ~CameraComponent();
+    Camera();
+    ~Camera();
 
-    // OVERRIDE:
-    // Pulls the object's transform
-    void update();
-    void imGuiConfig();
+    // Pull Datamodel Data
+    void pullDatamodelData(DMCamera* dm_camera);
 
     // Get the camera's attributes
     float getZNear() const;

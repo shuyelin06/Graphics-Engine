@@ -16,6 +16,10 @@ class DMCamera : public Object {
     ~DMCamera();
 
     void propertyDisplay() override;
+
+    float getFOV() const;
+    float getZNear() const;
+    float getZFar() const;
 };
 
 } // namespace Datamodel

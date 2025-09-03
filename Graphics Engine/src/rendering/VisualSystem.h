@@ -62,7 +62,7 @@ class VisualSystem {
     Pipeline* pipeline;
 
     // Supported Components
-    CameraComponent* camera;
+    Camera* camera;
     ComponentHandler<AssetComponent> asset_components;
     VisualTerrain* terrain;
 
