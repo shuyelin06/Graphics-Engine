@@ -37,6 +37,8 @@
 #include "physics/PhysicsSystem.h"
 #include "rendering/VisualSystem.h"
 
+#include "datamodel/objects/DMCamera.h"
+
 #include "rendering/VisualDebug.h"
 #include "utility/Stopwatch.h"
 
@@ -110,21 +112,24 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     scene_graph.invalidateTerrainChunks(0.f, 0.f, 0.f);
 
-    Object& root = scene_graph.createObject("Root");
+    Object* root = new Object("Root");
+    scene_graph.addObject(root);
 
     // Bind a Camera
-    Object& camera = root.createChild("Camera");
-    scene_graph.bindComponent(camera, "Camera");
-    physics_system.bindPhysicsObject(&camera);
+    Object* camera = new DMCamera();
+    root->addChild(camera);
+    scene_graph.bindComponent(*camera, "Camera");
+    physics_system.bindPhysicsObject(camera);
 
     // Bind Terrain
     physics_system.bindTerrain(scene_graph.getTerrain());
 
     // Extra
-    Object& light = root.createChild("Sample Light");
-    scene_graph.bindComponent(light, "Light");
+    Object* light = new Object("Sample Light");
+    root->addChild(light);
+    scene_graph.bindComponent(*light, "Light");
     // light.getTransform().offsetPosition(Vector3(5.f,0,0));
-    light.getTransform().offsetRotation(Vector3(0, 1, 0), 3.f);
+    light->getTransform().offsetRotation(Vector3(0, 1, 0), 3.f);
 
     /*
     ShadowLightComponent* comp = visual_system.bindLightComponent(&light);
@@ -133,13 +138,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     // camera_obj.getTransform().offsetPosition(0.0f, 125.f, 0.0f);
 
     // Create Object Hierarchy
-    for (int i = 0; i < 3; i++) {
-        Object& fox = root.createChild();
-        visual_system.bindAssetComponent(&fox, "Fox");
-        fox.getTransform().offsetPosition(Random(-10, 10), -20.f,
-                                          Random(-10, 10));
-        fox.getTransform().setScale(Vector3(5.f, 5.f, 5.f));
-    }
 
     /*
     Object& man = parent.createChild();
@@ -183,7 +181,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         scene_graph.imGuiDisplay();
 
         if (ImGui::BeginMenu("Core")) {
-            const Vector3& cam_pos = camera.getTransform().getPosition();
+            const Vector3& cam_pos = camera->getTransform().getPosition();
             ImGui::Text("Position: %f %f %f", cam_pos.x, cam_pos.y, cam_pos.z);
             ImGui::Separator();
             ImGui::Text("FPS: %i", prev_fps_count);
@@ -200,7 +198,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         visual_system.bindComponents(scene_graph.getVisualComponentRequests());
         scene_graph.clearVisualComponentRequests();
 
-        light.getTransform().offsetRotation(Vector3(0, 1, 0), 0.01f);
+        light->getTransform().offsetRotation(Vector3(0, 1, 0), 0.01f);
 
         // Dispatch Input Data
         input_system.update();
@@ -219,7 +217,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         // Update Datamodel
         scene_graph.updateObjects();
 
-        const Vector3 pos = camera.getTransform().getPosition();
+        const Vector3 pos = camera->getTransform().getPosition();
         scene_graph.invalidateTerrainChunks(pos.x, pos.y, pos.z);
 
         // We finished our frame. See how many milliseconds we took

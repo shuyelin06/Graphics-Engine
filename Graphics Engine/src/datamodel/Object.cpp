@@ -1,6 +1,9 @@
 #include "Object.h"
 
 #include <math.h>
+#include <unordered_map>
+
+#include <assert.h>
 
 #include "physics/PhysicsObject.h"
 
@@ -12,7 +15,7 @@ namespace Datamodel {
 // Constructor:
 // Creates an object with no parent and a
 // local position of (0,0,0)
-Object::Object() {
+Object::Object(const std::string& _class_name) {
     // Objects start with no parent and no children
     parent = nullptr;
     children = std::vector<Object*>(0);
@@ -22,25 +25,11 @@ Object::Object() {
     transform = Transform();
     m_local = Matrix4::Identity();
 
+    class_id = RegisterObjectClass(_class_name);
 #if defined(_DEBUG)
-    name = "Object";
+    class_name = _class_name;
 #endif
 }
-
-#if defined(_DEBUG)
-Object::Object(const std::string& _name) {
-    // Objects start with no parent and no children
-    parent = nullptr;
-    children = std::vector<Object*>(0);
-    components = std::vector<Component*>(0);
-
-    // Default transform
-    transform = Transform();
-    m_local = Matrix4::Identity();
-
-    name = _name;
-}
-#endif
 
 // Destructor:
 // Frees all memory allocated for this object, including children
@@ -56,8 +45,26 @@ Object::~Object() {
 }
 
 #if defined(_DEBUG)
-const std::string& Object::getName() { return name; }
+const std::string& Object::getClassName() { return class_name; }
 #endif
+
+/* --- Object Class ID Methods --- */
+static std::unordered_map<std::string, uint16_t> map_class_to_id =
+    std::unordered_map<std::string, uint16_t>();
+static uint16_t next_class_id = 1;
+
+uint16_t Object::RegisterObjectClass(const std::string& class_name) {
+    if (!map_class_to_id.contains(class_name))
+        map_class_to_id[class_name] = next_class_id++;
+    return map_class_to_id[class_name];
+}
+
+uint16_t Object::GetObjectClassIDByName(const std::string& class_name) {
+    if (map_class_to_id.contains(class_name))
+        return map_class_to_id[class_name];
+    else
+        return CLASS_ID_NONE;
+}
 
 /* --- Object Hierarchy Methods --- */
 // GetParent:
@@ -69,27 +76,14 @@ Object* Object::getParent() const { return parent; }
 // Returns the object's children
 std::vector<Object*>& Object::getChildren() { return children; }
 
-// CreateChild:
-// Creates a child of the object and returns it
-Object& Object::createChild(const std::string& name) {
-#if defined(_DEBUG)
-    Object* child = new Object(name);
-#else
-    Object* child = new Object();
-#endif
-
-    child->parent = this;
-    children.push_back(child);
-
-    return *child;
-}
-
-Object& Object::createChild() {
-    Object* child = new Object();
-    child->parent = this;
-    children.push_back(child);
-
-    return *child;
+// BindChild:
+// Binds an object to this object's children vector
+void Object::addChild(Object* object) {
+    // TODO: Should remove pointers if object has parent.
+    // Should also validate that object is not already a child.
+    assert(object->parent == nullptr);
+    object->parent = this;
+    children.push_back(object);
 }
 
 /* --- Transform Methods --- */
@@ -117,6 +111,9 @@ const Matrix4& Object::updateLocalMatrix(const Math::Matrix4& m_parent) {
 
     return m_local;
 }
+
+// Overrideable Methods
+void Object::propertyDisplay() {}
 
 // --- Components ---
 // BindComponent

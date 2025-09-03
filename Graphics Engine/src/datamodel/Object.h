@@ -8,6 +8,10 @@
 #include "math/Transform.h"
 #include "math/Vector3.h"
 
+// Used for the property display
+#include "rendering/ImGui.h"
+
+#define CLASS_ID_NONE 0
 namespace Engine {
 using namespace Math;
 
@@ -16,51 +20,54 @@ namespace Datamodel {
 // Stores data regarding a generic object in our engine.
 // Every object has a parent and children. Together, their parent / child
 // relationships form an entire scene.
-// Unique behaviors for objects are implemented using components, which can be
-// registered.
+// In this engine, objects will implement unique behaviors through subclasses.
+// All objects will have a transform.
+// I've opted to move away from a component-based system, as it's needlessly
+// complicated for an engine of this size. All datamodel object types should be
+// prepended with "DM".
 class Object {
   protected:
-#if defined(_DEBUG)
-    // Name (To be Displayed in the ImGui)
-    std::string name;
-#endif
-    
-    // Parent & Children for the Object
     Object* parent;
     std::vector<Object*> children;
 
-    // Components
-    std::vector<Component*> components;
-
+    // ID = 0 for no object.
+    uint16_t class_id;
     // Transform of the object
     Transform transform;
     // Cached Local --> World Matrix
     Matrix4 m_local;
 
+#if defined(_DEBUG)
+    // Name (To be Displayed in the ImGui)
+    std::string class_name;
+#endif
+
+    // DEPRECATE-- Components
+    std::vector<Component*> components;
+
   public:
     // Constructor & Destructor
-    Object();
-#if defined(_DEBUG)
-    Object(const std::string& name);
-#endif
+    Object(const std::string& class_name);
     ~Object();
 
 #if defined(_DEBUG)
-    const std::string& getName();
+    const std::string& getClassName();
 #endif
 
     // Object Hierarchy Methods
     Object* getParent() const; // Can return nullptr if parent does not exist
     std::vector<Object*>& getChildren();
 
-    Object& createChild(const std::string& name);
-    Object& createChild();
+    void addChild(Object* object);
 
     // Transform Methods
     Transform& getTransform();
 
     const Matrix4& getLocalMatrix() const;
     const Matrix4& updateLocalMatrix(const Matrix4& m_parent);
+
+    // Overrideable Methods
+    virtual void propertyDisplay();
 
     // --- Component Methods ---
     // Bind a new component to the object.
@@ -74,6 +81,13 @@ class Object {
     // Retrieve an object component by tag.
     Component* getComponent(unsigned int tag);
     std::vector<Component*> getComponents();
+
+    // Obtain IDs for Class Names
+    // Requires that a class register itself.
+    static uint16_t GetObjectClassIDByName(const std::string& class_name);
+
+  private:
+    static uint16_t RegisterObjectClass(const std::string& class_name);
 };
 
 } // namespace Datamodel

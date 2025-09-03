@@ -28,7 +28,7 @@ Scene::~Scene() {
 #if defined(_DEBUG)
 static int displayObjectInfo(Object* object, int next_id, Object** active_obj) {
     const std::string name_unique =
-        object->getName() + "##" + std::to_string(next_id++);
+        object->getClassName() + "##" + std::to_string(next_id++);
     const std::string button_unique =
         "Open Config##" + std::to_string(next_id++);
 
@@ -61,7 +61,7 @@ void Scene::imGuiDisplay() {
 
         // Display the active object config
         if (selected_object != nullptr) {
-            ImGui::SeparatorText(selected_object->getName().c_str());
+            ImGui::SeparatorText(selected_object->getClassName().c_str());
 
             constexpr int MAX_NAME_LENGTH = 20;
             static char component_name[MAX_NAME_LENGTH];
@@ -85,22 +85,9 @@ void Scene::imGuiDisplay() {
 #endif
 
 // --- Object Handling ---
-Object& Scene::createObject(const std::string& name) {
-#if defined(_DEBUG)
-    Object* object = new Object(name);
-#else
-    Object* object = new Object();
-#endif
+void Scene::addObject(Object* object) {
+    assert(object->getParent() == nullptr);
     objects.push_back(object);
-    return *object;
-}
-
-// CreateObject:
-// Creates a new object in the scene.
-Object& Scene::createObject() {
-    Object* object = new Object();
-    objects.push_back(object);
-    return *object;
 }
 
 // BindComponent:

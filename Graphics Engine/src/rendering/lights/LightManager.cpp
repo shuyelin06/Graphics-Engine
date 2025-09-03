@@ -222,7 +222,7 @@ ShadowLight* LightManager::createShadowLight(Object* object,
 // Each cascade will have resolution given by the ShadowMapQuality parameter.
 void LightManager::createSunLight(ShadowMapQuality quality) {
     ShadowLight* lights[SUN_NUM_CASCADES];
-    Object* sun_obj = new Object();
+    Object* sun_obj = new Object("Sun Light");
 
     for (int i = 0; i < SUN_NUM_CASCADES; i++) {
         ShadowLight* light = createShadowLight(sun_obj, quality);

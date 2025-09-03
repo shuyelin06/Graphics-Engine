@@ -47,8 +47,7 @@ class Scene {
 #endif(_DEBUG)
     
     // --- Object Handling ---
-    Object& createObject(const std::string& name);
-    Object& createObject();
+    void addObject(Object* object);
     void bindComponent(Object& object, const std::string& component_name);
 
     void clearVisualComponentRequests();
