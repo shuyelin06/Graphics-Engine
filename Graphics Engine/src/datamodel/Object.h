@@ -12,10 +12,13 @@
 #include "rendering/ImGui.h"
 
 #define CLASS_ID_NONE 0
+
 namespace Engine {
 using namespace Math;
 
 namespace Datamodel {
+class DMBinding;
+
 // Object Class
 // Stores data regarding a generic object in our engine.
 // Every object has a parent and children. Together, their parent / child
@@ -25,10 +28,14 @@ namespace Datamodel {
 // I've opted to move away from a component-based system, as it's needlessly
 // complicated for an engine of this size. All datamodel object types should be
 // prepended with "DM".
+// The SceneGraph is in charge of cleaning up objects.
 class Object {
   protected:
     Object* parent;
     std::vector<Object*> children;
+
+    // Binding Outside of the Datamodel
+    DMBinding* dm_binding;
 
     // ID = 0 for no object.
     uint16_t class_id;
@@ -36,6 +43,9 @@ class Object {
     Transform transform;
     // Cached Local --> World Matrix
     Matrix4 m_local;
+
+    // Used in the SceneGraph Management
+    bool destroy;
 
 #if defined(_DEBUG)
     // Name (To be Displayed in the ImGui)
@@ -50,6 +60,7 @@ class Object {
     Object(const std::string& class_name);
     ~Object();
 
+    // Accessors
 #if defined(_DEBUG)
     const std::string& getClassName();
 #endif
@@ -61,6 +72,13 @@ class Object {
     std::vector<Object*>& getChildren();
 
     void addChild(Object* object);
+
+    void markForDestruction();
+    bool shouldDestroy() const; // Used in SceneGraph
+
+    // Datamodel Binding Methods
+    void bind(DMBinding* dm_binding);
+    void unbind();
 
     // Transform Methods
     Transform& getTransform();
@@ -87,6 +105,7 @@ class Object {
     // Obtain IDs for Class Names
     // Requires that a class register itself.
     static uint16_t GetObjectClassIDByName(const std::string& class_name);
+    static uint16_t GetTotalClassCount();
 
   private:
     static uint16_t RegisterObjectClass(const std::string& class_name);

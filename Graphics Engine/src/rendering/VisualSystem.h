@@ -62,7 +62,7 @@ class VisualSystem {
     Pipeline* pipeline;
 
     // Supported Components
-    Camera* camera;
+    std::unique_ptr<Camera> camera;
     ComponentHandler<AssetComponent> asset_components;
     VisualTerrain* terrain;
 
@@ -74,9 +74,8 @@ class VisualSystem {
   public:
     VisualSystem(HWND window);
 
-    // Visual System Bindings
-    void registerComponents();
-    void bindComponents(const std::vector<ComponentBindRequest>& requests);
+    // Datamodel Handling
+    void onObjectCreate(Object* object);
 
     AssetComponent* bindAssetComponent(Object* object,
                                        const std::string& asset_name);

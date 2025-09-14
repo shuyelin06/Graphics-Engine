@@ -2,7 +2,7 @@
 
 namespace Engine {
 namespace Datamodel {
-DMCamera::DMCamera() : Object("Camera") {
+DMCamera::DMCamera() : Object("Camera"), CreationCallback<DMCamera>(this) {
     fov = 1.2f;
 
     z_near = 5.f;

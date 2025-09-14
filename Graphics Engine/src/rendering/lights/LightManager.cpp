@@ -7,6 +7,8 @@ namespace Engine {
 namespace Graphics {
 LightManager::LightManager(ID3D11Device* device, unsigned int atlas_size)
     : shadow_lights() {
+    DMLight::ConnectToCreation([this](Object* obj) { onObjectCreate(obj); });
+
     D3D11_TEXTURE2D_DESC tex_desc = {};
     D3D11_DEPTH_STENCIL_VIEW_DESC ds_desc = {};
     D3D11_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
@@ -55,25 +57,18 @@ LightManager::LightManager(ID3D11Device* device, unsigned int atlas_size)
     createSunLight(QUALITY_5);
 }
 
-// Components:
-// Handles component bindings to interface with the datamodel
-void LightManager::registerComponents() const {
-    Component::registerNewTag("Light");
+// SceneGraph:
+void LightManager::pullDatamodelData() {
+    for (ShadowLight* light : shadow_lights) {
+        light->pullDatamodelData();
+    }
 }
 
-bool LightManager::bindComponent(const ComponentBindRequest& request) {
-    Object* obj = request.target_object;
-    const unsigned int tag = request.component_id;
-
-    if (tag == Component::getTag("Light")) {
-        ShadowLight* light = createShadowLight(obj, QUALITY_5);
-    } else
-        return false;
-
-    return true;
+void LightManager::onObjectCreate(Object* object) {
+    if (object->getClassID() == Object::GetObjectClassIDByName("Light")) {
+        shadow_lights.push_back(createShadowLight(object, QUALITY_5));
+    }
 }
-
-void LightManager::pullSceneData() { shadow_lights.cleanAndUpdate(); }
 
 // --- Update ---
 // UpdateTimeOfDay:
@@ -112,16 +107,16 @@ void LightManager::addShadowCaster(const ShadowCaster& caster) {
 }
 
 // ClusterShadowCasters:
-// Clusters the shadow casters so that assets outside of a light's view are not
-// rendered
+// Clusters the shadow casters so that assets outside of a light's view are
+// not rendered
 void LightManager::clusterShadowCasters() {
     shadow_clusters.clear();
     shadow_cluster_indices.clear();
 
     // For each light, iterate through the assets and find the assets
-    // in the light's view. All assets outside the light's view do not need to
-    // be ran through the shadow pass
-    const std::vector<ShadowLight*> lights = shadow_lights.getComponents();
+    // in the light's view. All assets outside the light's view do not need
+    // to be ran through the shadow pass
+    const std::vector<ShadowLight*>& lights = shadow_lights;
     for (int i = 0; i < lights.size(); i++) {
         const ShadowLight* light = lights[i];
         const Frustum frustum = light->frustum();
@@ -160,11 +155,11 @@ const Texture* LightManager::getAtlasTexture(void) const {
 const SunLight* LightManager::getSunLight() const { return sun_light; }
 
 const ShadowLight* LightManager::getShadowLight(UINT index) const {
-    return shadow_lights.getComponents()[index];
+    return shadow_lights[index];
 }
 
 const std::vector<ShadowLight*>& LightManager::getShadowLights() const {
-    return shadow_lights.getComponents();
+    return shadow_lights;
 }
 
 const std::vector<ShadowCluster>& LightManager::getShadowClusters() const {
@@ -212,14 +207,15 @@ ShadowLight* LightManager::createShadowLight(Object* object,
     shadow_viewport.height = allocation.height;
 
     ShadowLight* light = new ShadowLight(object, shadow_viewport);
-    shadow_lights.newComponent(object, light);
+    shadow_lights.push_back(light);
 
     return light;
 }
 
 // CreateSunLight:
 // Initializes a sun light object, which uses shadow map cascades.
-// Each cascade will have resolution given by the ShadowMapQuality parameter.
+// Each cascade will have resolution given by the ShadowMapQuality
+// parameter.
 void LightManager::createSunLight(ShadowMapQuality quality) {
     ShadowLight* lights[SUN_NUM_CASCADES];
     Object* sun_obj = new Object("Sun Light");
@@ -236,7 +232,7 @@ void LightManager::createSunLight(ShadowMapQuality quality) {
 // BindLightData:
 // Binds lighting data to a provided constant buffer handle.
 void LightManager::bindLightData(IConstantBuffer& cb) {
-    const std::vector<ShadowLight*>& lights = shadow_lights.getComponents();
+    const std::vector<ShadowLight*>& lights = shadow_lights;
 
     const int lightCount = lights.size();
     cb.loadData(&lightCount, INT);

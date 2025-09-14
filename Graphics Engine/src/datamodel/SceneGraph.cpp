@@ -84,28 +84,6 @@ void Scene::imGuiDisplay() {
 }
 #endif
 
-// --- Scene Graph Queries ---
-// QueryForClassID:
-// Runs a brute force search and populates the vector with all object
-// instances with this class ID.
-// TODO: Could be optimized to only need 1 search every frame
-static void queryForClassIDHelper(Object* object, uint16_t class_id,
-                                  std::vector<Object*>& output) {
-    if (object->getClassID() == class_id)
-        output.push_back(static_cast<Object*>(object));
-
-    for (Object* object : object->getChildren())
-        queryForClassIDHelper(object, class_id, output);
-}
-
-void Scene::queryForClassID(const std::string& class_name,
-                            std::vector<Object*>& output) const {
-    const uint16_t id = Object::GetObjectClassIDByName(class_name);
-
-    for (Object* object : objects)
-        queryForClassIDHelper(object, id, output);
-}
-
 // --- Object Handling ---
 void Scene::addObject(Object* object) {
     assert(object->getParent() == nullptr);

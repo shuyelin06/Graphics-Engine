@@ -46,10 +46,6 @@ class Scene {
     void imGuiDisplay();
 #endif(_DEBUG)
 
-    // --- Scene Graph Queries ---
-    void queryForClassID(const std::string& class_name,
-                         std::vector<Object*>& output) const;
-
     // --- Object Handling ---
     void addObject(Object* object);
     void bindComponent(Object& object, const std::string& component_name);

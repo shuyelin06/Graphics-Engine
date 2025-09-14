@@ -92,10 +92,11 @@ VisualSystem::VisualSystem(HWND window) {
     camera = nullptr;
     terrain = nullptr;
 
-    // Create my VisualSystem objects
-    // Register my system components
-    camera = new Camera();
-    registerComponents();
+    // Connect to Datamodel
+    DMCamera::ConnectToCreation(
+        [this](Object* obj) { this->onObjectCreate(obj); });
+
+    camera = nullptr;
 
     // Initialize my pipeline
     HRESULT result;
@@ -121,20 +122,11 @@ VisualSystem::VisualSystem(HWND window) {
 }
 
 // --- Component Bindings ---
-void VisualSystem::registerComponents() {
-    Component::registerNewTag("Asset");
-    light_manager->registerComponents();
-}
-void VisualSystem::bindComponents(
-    const std::vector<ComponentBindRequest>& requests) {
-    for (const ComponentBindRequest& request : requests) {
-        Object* object = request.target_object;
-        const unsigned int tag = request.component_id;
+void VisualSystem::onObjectCreate(Object* object) {
+    const uint16_t class_id = object->getClassID();
 
-        // Check if the tag matches any the visual system recognizes. If not,
-        // pass to the visual subsystems to continue trying.
-        if (light_manager->bindComponent(request))
-            continue;
+    if (class_id == Object::GetObjectClassIDByName("Camera")) {
+        camera.reset(new Camera(object));
     }
 }
 
@@ -235,10 +227,7 @@ void VisualSystem::pullSceneData(Scene* scene) {
 #endif
 
     // Pull Datamodel Data
-    std::vector<Datamodel::Object*> cameras;
-    scene->queryForClassID("Camera", cameras);
-    assert(cameras.size() > 0);
-    camera->pullDatamodelData(static_cast<Datamodel::DMCamera*>(cameras[0]));
+    camera.get()->pullDatamodelData();
 
     // Pull my terrain data (if it exists).
     Terrain* scene_terrain = scene->getTerrain();
@@ -259,7 +248,7 @@ void VisualSystem::pullSceneData(Scene* scene) {
     // Remove invalid visual objects, and update them to pull
     // the datamodel data.
     asset_components.cleanAndUpdate();
-    light_manager->pullSceneData();
+    light_manager->pullDatamodelData();
 
     // Prepare managers for data
     light_manager->updateSunDirection(config->sun_direction);

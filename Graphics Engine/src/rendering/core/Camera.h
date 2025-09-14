@@ -1,5 +1,6 @@
 #pragma once
 
+#include "datamodel/DMBinding.h"
 #include "datamodel/objects/DMCamera.h"
 
 #include "math/Matrix4.h"
@@ -9,8 +10,8 @@
 #include "Frustum.h"
 
 namespace Engine {
-using namespace Datamodel;
 using namespace Math;
+using namespace Datamodel;
 
 namespace Graphics {
 // Camera Class:
@@ -18,12 +19,9 @@ namespace Graphics {
 // on the screen is rendered from the camera's point of view.
 // Unless otherwise rotated, the camera's default view
 // is in the +Z axis.
-class Camera {
+class Camera : public DMBinding {
   protected:
-    // Field of view
     float fov;
-
-    // Z-near and z-far viewing planes
     float z_near, z_far;
 
     // Frustum Matrix
@@ -36,30 +34,28 @@ class Camera {
     // and is used to compute the local to world matrix
     Transform transform;
 
+    void pullDatamodelDataImpl(Object* obj) override;
+
   public:
-    Camera();
+    Camera(Object* dm_camera);
     ~Camera();
 
-    // Pull Datamodel Data
-    void pullDatamodelData(DMCamera* dm_camera);
-
     // Get the camera's attributes
-    float getZNear() const;
-    float getZFar() const;
-
     const Transform& getTransform() const;
     const Vector3& getPosition() const;
 
-    Frustum frustum() const;
+    float getZNear() const;
+    float getZFar() const;
 
-    // Set the camera's attributes
-    void setFrustumMatrix(float fov, float z_near, float z_far);
+    Frustum frustum() const;
 
     // World -> Camera Matrix
     const Matrix4 getWorldToCameraMatrix(void) const;
-
     // Camera -> Projected Space Matrix
     const Matrix4 getFrustumMatrix(void) const;
+
+  private:
+    void setFrustumMatrix(float fov, float z_near, float z_far);
 };
 } // namespace Graphics
 } // namespace Engine

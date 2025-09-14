@@ -5,6 +5,7 @@
 
 #include <assert.h>
 
+#include "DMBinding.h"
 #include "physics/PhysicsObject.h"
 
 namespace Engine {
@@ -19,11 +20,15 @@ Object::Object(const std::string& _class_name) {
     // Objects start with no parent and no children
     parent = nullptr;
     children = std::vector<Object*>(0);
+    dm_binding = nullptr;
+
     components = std::vector<Component*>(0);
 
     // Default transform
     transform = Transform();
     m_local = Matrix4::Identity();
+
+    destroy = false;
 
     class_id = RegisterObjectClass(_class_name);
 #if defined(_DEBUG)
@@ -35,6 +40,10 @@ Object::Object(const std::string& _class_name) {
 // Frees all memory allocated for this object, including children
 // and components.
 Object::~Object() {
+    // Unbind
+    if (dm_binding != nullptr)
+        dm_binding->unbind();
+
     // Deallocate children
     for (Object* child : children)
         delete child;
@@ -68,6 +77,8 @@ uint16_t Object::GetObjectClassIDByName(const std::string& class_name) {
         return CLASS_ID_NONE;
 }
 
+uint16_t Object::GetTotalClassCount() { return next_class_id; }
+
 /* --- Object Hierarchy Methods --- */
 // GetParent:
 // Returns the object's parent. Returns nullptr if the parent does
@@ -86,6 +97,18 @@ void Object::addChild(Object* object) {
     assert(object->parent == nullptr);
     object->parent = this;
     children.push_back(object);
+}
+
+void Object::markForDestruction() { destroy = true; }
+bool Object::shouldDestroy() const { return destroy; }
+
+/* --- Datamodel Bindings --- */
+void Object::bind(DMBinding* _dm_binding) { dm_binding = _dm_binding; }
+void Object::unbind() {
+    if (dm_binding != nullptr) {
+        dm_binding = nullptr;
+        destroy = true;
+    }
 }
 
 /* --- Transform Methods --- */

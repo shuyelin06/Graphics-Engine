@@ -124,9 +124,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     physics_system.bindTerrain(scene_graph.getTerrain());
 
     // Extra
-    Object* light = new Object("Sample Light");
+    DMLight* light = new DMLight();
     root->addChild(light);
-    scene_graph.bindComponent(*light, "Light");
+    // scene_graph.bindComponent(*light, "Light");
     // light.getTransform().offsetPosition(Vector3(5.f,0,0));
     light->getTransform().offsetRotation(Vector3(0, 1, 0), 3.f);
 
@@ -194,7 +194,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 #endif
 
         // Sync datamodel components with the engine systems
-        visual_system.bindComponents(scene_graph.getVisualComponentRequests());
         scene_graph.clearVisualComponentRequests();
 
         light->getTransform().offsetRotation(Vector3(0, 1, 0), 0.01f);

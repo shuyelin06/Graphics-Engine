@@ -59,7 +59,7 @@ class IConstantBuffer;
 class LightManager {
   private:
     TextureAtlas* shadow_atlas;
-    ComponentHandler<ShadowLight> shadow_lights;
+    std::vector<ShadowLight*> shadow_lights;
 
     SunLight* sun_light;
 
@@ -75,11 +75,9 @@ class LightManager {
   public:
     LightManager(ID3D11Device* device, unsigned int atlas_size);
 
-    // SceneGraph Handling 
-    void registerComponents() const;
-    bool bindComponent(const ComponentBindRequest& request);
-    
-    void pullSceneData();
+    // Datamodel Handling 
+    void pullDatamodelData();
+    void onObjectCreate(Object* object);
 
     // Get the light manager's data
     const Texture* getAtlasTexture(void) const;
