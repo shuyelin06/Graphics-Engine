@@ -1,9 +1,9 @@
 #pragma once
 
 #include <map>
+#include <string>
 #include <vector>
 
-#include "Component.h"
 #include "math/Matrix4.h"
 #include "math/Transform.h"
 #include "math/Vector3.h"
@@ -52,9 +52,6 @@ class Object {
     std::string class_name;
 #endif
 
-    // DEPRECATE-- Components
-    std::vector<Component*> components;
-
   public:
     // Constructor & Destructor
     Object(const std::string& class_name);
@@ -88,19 +85,6 @@ class Object {
 
     // Overrideable Methods
     virtual void propertyDisplay();
-
-    // --- Component Methods ---
-    // Bind a new component to the object.
-    int bindComponent(Component* component);
-
-    // Remove a component (or components) from the object.
-    // Components removed are marked invalid.
-    void removeComponent(Component* component);
-    void removeAllComponentsWithTag(unsigned int tag);
-
-    // Retrieve an object component by tag.
-    Component* getComponent(unsigned int tag);
-    std::vector<Component*> getComponents();
 
     // Obtain IDs for Class Names
     // Requires that a class register itself.

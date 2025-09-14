@@ -7,7 +7,6 @@
 
 #include "PhysicsObject.h"
 #include "PhysicsTerrain.h"
-#include "datamodel/ComponentHandler.h"
 
 #include "utility/Stopwatch.h"
 
@@ -27,7 +26,7 @@ class PhysicsSystem {
     std::unordered_map<std::string, CollisionHull*> collision_hulls;
 
     // All physics object the engine is in control of
-    ComponentHandler<PhysicsObject> objects;
+    std::vector<PhysicsObject*> objects;
     PhysicsTerrain* terrain;
 
   public:
@@ -36,12 +35,15 @@ class PhysicsSystem {
     void addCollisionHull(const std::string& name,
                           const std::vector<Vector3>& points);
 
-    // Bind a PhysicsObject to an object and return it for configuration
-    PhysicsObject* bindPhysicsObject(Object* object);
+    // Datamodel Handling
+    void onObjectCreate(Object* object);
 
+    // Bind a PhysicsObject to an object and return it for configuration
+    /*
     CollisionObject* bindCollisionObject(PhysicsObject* physics_object,
                                          const std::string& hull_id);
     PhysicsTerrain* bindTerrain(Terrain* terrain);
+    */
 
     // (SYNC) Pull data from the datamodel
     void pullDatamodelData();

@@ -130,15 +130,6 @@ void VisualSystem::onObjectCreate(Object* object) {
     }
 }
 
-AssetComponent*
-VisualSystem::bindAssetComponent(Object* object,
-                                 const std::string& asset_name) {
-    Asset* asset = resource_manager->getAsset(asset_name);
-    AssetComponent* asset_obj = new AssetComponent(object, asset);
-    asset_components.newComponent(object, asset_obj);
-    return asset_obj;
-}
-
 // Render:
 // Renders the entire scene to the screen.
 void VisualSystem::render() {
@@ -158,7 +149,7 @@ void VisualSystem::render() {
             IConstantBuffer pcb0_common = pipeline->loadPixelCB(CB0);
 
             const Vector3 cam_pos = camera->getPosition();
-            const Vector3 cam_direc = camera->getTransform().forward();
+            const Vector3 cam_direc = camera->forward();
             const float z_near = camera->getZNear();
             const float z_far = camera->getZFar();
 
@@ -247,7 +238,7 @@ void VisualSystem::pullSceneData(Scene* scene) {
     // Pull my object data.
     // Remove invalid visual objects, and update them to pull
     // the datamodel data.
-    asset_components.cleanAndUpdate();
+    // asset_components.cleanAndUpdate();
     light_manager->pullDatamodelData();
 
     // Prepare managers for data
@@ -256,7 +247,7 @@ void VisualSystem::pullSceneData(Scene* scene) {
 
     light_manager->resetShadowCasters();
 
-    for (const AssetComponent* object : asset_components.getComponents()) {
+    for (const AssetComponent* object : asset_components) {
         const Asset* asset = object->getAsset();
 
         if (asset->isSkinned())
@@ -464,7 +455,7 @@ void VisualSystem::performRenderPass() {
     }
 
     // Testing for animations
-    for (const AssetComponent* comp : asset_components.getComponents()) {
+    for (const AssetComponent* comp : asset_components) {
         const Asset* asset = comp->getAsset();
         const std::vector<Mesh*>& meshes = asset->getMeshes();
 

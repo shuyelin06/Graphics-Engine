@@ -21,7 +21,7 @@ Camera::~Camera() = default;
 void Camera::pullDatamodelDataImpl(Object* obj) {
     DMCamera* dm_camera = static_cast<DMCamera*>(obj);
 
-    transform = dm_camera->getTransform();
+    local_to_world_matrix = dm_camera->getLocalMatrix();
     setFrustumMatrix(dm_camera->getFOV(), dm_camera->getZNear(),
                      dm_camera->getZFar());
 }
@@ -47,20 +47,26 @@ void Camera::setFrustumMatrix(float _fov, float _z_near, float _z_far) {
 // --- Accessors ---
 float Camera::getZNear() const { return z_near; }
 float Camera::getZFar() const { return z_far; }
-const Transform& Camera::getTransform() const { return transform; }
-const Vector3& Camera::getPosition() const { return transform.getPosition(); }
+const Vector3 Camera::forward() const {
+    Vector4 direc = local_to_world_matrix * Vector4(0, 0, 1, 1);
+    return direc.xyz();
+}
+const Vector3& Camera::getPosition() const {
+    Vector4 pos = local_to_world_matrix * Vector4(0, 0, 0, 0);
+    return pos.xyz();
+}
 
 // GetFrustum:
 // Returns an object which can be used to query the camera frustum.
 Frustum Camera::frustum() const {
     const Matrix4 m_world_to_frustum =
-        frustum_matrix * transform.transformMatrix().inverse();
+        frustum_matrix * local_to_world_matrix.inverse();
     return Frustum(m_world_to_frustum);
 }
 
 // Camera -> World Matrix
 const Matrix4 Camera::getWorldToCameraMatrix(void) const {
-    return transform.transformMatrix().inverse();
+    return local_to_world_matrix.inverse();
 }
 
 // Camera -> Projected Space Matrix

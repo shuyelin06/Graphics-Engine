@@ -2,7 +2,6 @@
 
 #include "../core/AssetComponent.h"
 #include "../core/TextureAtlas.h"
-#include "datamodel/ComponentHandler.h"
 #include "datamodel/SceneGraph.h"
 
 #include "Light.h"

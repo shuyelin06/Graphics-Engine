@@ -116,12 +116,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     scene_graph.addObject(root);
 
     // Bind a Camera
-    Object* camera = new DMCamera();
+    Object* camera = new DMPhysics();
+    camera->addChild(new DMCamera());
     root->addChild(camera);
-    physics_system.bindPhysicsObject(camera);
 
     // Bind Terrain
-    physics_system.bindTerrain(scene_graph.getTerrain());
+    // physics_system.bindTerrain(scene_graph.getTerrain());
 
     // Extra
     DMLight* light = new DMLight();
@@ -194,8 +194,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 #endif
 
         // Sync datamodel components with the engine systems
-        scene_graph.clearVisualComponentRequests();
-
         light->getTransform().offsetRotation(Vector3(0, 1, 0), 0.01f);
 
         // Dispatch Input Data

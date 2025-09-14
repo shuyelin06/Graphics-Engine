@@ -222,9 +222,6 @@
     <ClCompile Include="src\datamodel\bvh\BVH.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\datamodel\Component.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\datamodel\bvh\TLAS.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -256,6 +253,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\datamodel\objects\DMLight.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\datamodel\objects\DMPhysics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -482,12 +482,6 @@
     <ClInclude Include="src\datamodel\terrain\MarchingCube.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\datamodel\Component.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\datamodel\ComponentHandler.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\datamodel\bvh\TLAS.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -528,6 +522,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\datamodel\objects\DMLight.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\datamodel\objects\DMPhysics.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -22,8 +22,6 @@ Object::Object(const std::string& _class_name) {
     children = std::vector<Object*>(0);
     dm_binding = nullptr;
 
-    components = std::vector<Component*>(0);
-
     // Default transform
     transform = Transform();
     m_local = Matrix4::Identity();
@@ -31,6 +29,7 @@ Object::Object(const std::string& _class_name) {
     destroy = false;
 
     class_id = RegisterObjectClass(_class_name);
+
 #if defined(_DEBUG)
     class_name = _class_name;
 #endif
@@ -47,10 +46,6 @@ Object::~Object() {
     // Deallocate children
     for (Object* child : children)
         delete child;
-
-    // Mark components as invalid
-    for (Component* component : components)
-        component->markInvalid();
 }
 
 #if defined(_DEBUG)
@@ -139,68 +134,6 @@ const Matrix4& Object::updateLocalMatrix(const Math::Matrix4& m_parent) {
 
 // Overrideable Methods
 void Object::propertyDisplay() {}
-
-// --- Components ---
-// BindComponent
-// Bind a new component to the object.
-int Object::bindComponent(Component* component) {
-    int index = components.size();
-    components.push_back(component);
-    return index;
-}
-
-// RemoveComponent:
-// Remove a component from the object by direct pointer to it
-void Object::removeComponent(Component* component) {
-    int index = -1;
-
-    for (int i = 0; i < components.size(); i++) {
-        Component* comp = components[i];
-        if (comp == component) {
-            index = i;
-            break;
-        }
-    }
-
-    if (index != -1) {
-        components[index]->markInvalid();
-        components.erase(components.begin() + index);
-    }
-}
-
-// RemoveComponentByTag:
-// Removes the first occurrence of component with the
-// given tag.
-void Object::removeAllComponentsWithTag(unsigned int tag) {
-    components.erase(std::remove_if(components.begin(), components.end(),
-                                    [tag](Component* comp) {
-                                        if (comp->getTag() == tag) {
-                                            comp->markInvalid();
-                                            return true;
-                                        } else
-                                            return false;
-                                    }),
-                     components.end());
-}
-
-// Retrieve an object component by tag.
-Component* Object::getComponent(unsigned int tag) {
-    int index = -1;
-
-    for (int i = 0; i < components.size(); i++) {
-        Component* comp = components[i];
-        if (comp->getTag() == tag) {
-            index = i;
-            break;
-        }
-    }
-
-    if (index != -1)
-        return components[index];
-    else
-        return nullptr;
-}
-std::vector<Component*> Object::getComponents() { return components; }
 
 } // namespace Datamodel
 } // namespace Engine

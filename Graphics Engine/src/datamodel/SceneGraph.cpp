@@ -1,17 +1,13 @@
 #include "SceneGraph.h"
 
 #include <assert.h>
+#include <string>
 
 #include "rendering/ImGui.h"
 
 namespace Engine {
 namespace Datamodel {
-ComponentBindRequest::ComponentBindRequest(Object* o, unsigned int id) {
-    target_object = o;
-    component_id = id;
-}
-
-Scene::Scene() : objects(), visual_component_requests() {
+Scene::Scene() : objects() {
     terrain = nullptr;
 #if defined(_DEBUG)
     selected_object = nullptr;
@@ -62,21 +58,9 @@ void Scene::imGuiDisplay() {
         // Display the active object config
         if (selected_object != nullptr) {
             ImGui::SeparatorText(selected_object->getClassName().c_str());
-
-            constexpr int MAX_NAME_LENGTH = 20;
-            static char component_name[MAX_NAME_LENGTH];
-            ImGui::InputText("Bind New Component", component_name,
-                             MAX_NAME_LENGTH);
-            ImGui::SameLine();
-            if (ImGui::Button("Bind")) {
-                bindComponent(*selected_object, component_name);
-            }
-
             ImGui::Separator();
 
-            for (Component* component : selected_object->getComponents()) {
-                component->imGuiConfig();
-            }
+            selected_object->propertyDisplay();
         }
 
         ImGui::EndMenu();
@@ -90,28 +74,7 @@ void Scene::addObject(Object* object) {
     objects.push_back(object);
 }
 
-// BindComponent:
-// Submits a request to the scenegraph to bind a component to
-// a given object.
-// TODO: Only compatible with visual objects
-void Scene::bindComponent(Object& object, const std::string& component_name) {
-    const unsigned int id = Component::getTag(component_name);
-
-    if (id != COMPONENT_TAG_NONE)
-        visual_component_requests.push_back(ComponentBindRequest(&object, id));
-}
-
-// ClearVisualComponentRequests:
-// Clears the visual component request vector.
-void Scene::clearVisualComponentRequests() {
-    visual_component_requests.clear();
-}
-
 const std::vector<Object*>& Scene::getObjects() const { return objects; }
-const std::vector<ComponentBindRequest>&
-Scene::getVisualComponentRequests() const {
-    return visual_component_requests;
-}
 
 // --- Terrain Handling ---
 void Scene::enableTerrain() { terrain = new Terrain(); }

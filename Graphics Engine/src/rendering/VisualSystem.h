@@ -15,7 +15,6 @@
 #include "resources/ResourceManager.h"
 
 #include "core/AssetComponent.h"
-#include "datamodel/ComponentHandler.h"
 #include "terrain/VisualTerrain.h"
 
 #include "rendering/core/Camera.h"
@@ -63,7 +62,7 @@ class VisualSystem {
 
     // Supported Components
     std::unique_ptr<Camera> camera;
-    ComponentHandler<AssetComponent> asset_components;
+    std::vector<AssetComponent*> asset_components;
     VisualTerrain* terrain;
 
     // Temp for now; should be moved later.
@@ -76,9 +75,6 @@ class VisualSystem {
 
     // Datamodel Handling
     void onObjectCreate(Object* object);
-
-    AssetComponent* bindAssetComponent(Object* object,
-                                       const std::string& asset_name);
 
     // Call these functions to render the scene. Renders an entire scene
     void pullSceneData(Scene* scene); // Call First

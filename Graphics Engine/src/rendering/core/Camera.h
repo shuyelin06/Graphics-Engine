@@ -29,10 +29,10 @@ class Camera : public DMBinding {
     // unit cube from [-1,1] x [-1,1] x [0,1]
     Matrix4 frustum_matrix;
 
-    // Transform
+    // Local -> World Matrix
     // Mirrors the camera object's transform,
     // and is used to compute the local to world matrix
-    Transform transform;
+    Matrix4 local_to_world_matrix;
 
     void pullDatamodelDataImpl(Object* obj) override;
 
@@ -41,7 +41,7 @@ class Camera : public DMBinding {
     ~Camera();
 
     // Get the camera's attributes
-    const Transform& getTransform() const;
+    const Vector3 forward() const;
     const Vector3& getPosition() const;
 
     float getZNear() const;
