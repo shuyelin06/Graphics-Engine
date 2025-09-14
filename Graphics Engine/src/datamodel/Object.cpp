@@ -16,7 +16,7 @@ namespace Datamodel {
 // Constructor:
 // Creates an object with no parent and a
 // local position of (0,0,0)
-Object::Object(const std::string& _class_name) {
+Object::Object() {
     // Objects start with no parent and no children
     parent = nullptr;
     children = std::vector<Object*>(0);
@@ -31,7 +31,7 @@ Object::Object(const std::string& _class_name) {
     class_id = CLASS_ID_NONE;
 
 #if defined(_DEBUG)
-    class_name = _class_name;
+    name = "Object";
 #endif
 }
 
@@ -48,9 +48,19 @@ Object::~Object() {
         delete child;
 }
 
+void Object::setName(const std::string& new_name) {
 #if defined(_DEBUG)
-const std::string& Object::getClassName() { return class_name; }
+    name = new_name;
 #endif
+};
+
+const std::string& Object::getName() {
+#if defined(_DEBUG)
+    return name;
+#else
+    return "";
+#endif
+}
 
 /* --- Object Class ID Methods --- */
 void Object::setClassID(uint16_t id) { class_id = id; }

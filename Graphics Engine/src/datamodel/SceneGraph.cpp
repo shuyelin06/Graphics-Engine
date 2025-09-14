@@ -24,7 +24,7 @@ Scene::~Scene() {
 #if defined(_DEBUG)
 static int displayObjectInfo(Object* object, int next_id, Object** active_obj) {
     const std::string name_unique =
-        object->getClassName() + "##" + std::to_string(next_id++);
+        object->getName() + "##" + std::to_string(next_id++);
     const std::string button_unique =
         "Open Config##" + std::to_string(next_id++);
 
@@ -57,7 +57,7 @@ void Scene::imGuiDisplay() {
 
         // Display the active object config
         if (selected_object != nullptr) {
-            ImGui::SeparatorText(selected_object->getClassName().c_str());
+            ImGui::SeparatorText(selected_object->getName().c_str());
             ImGui::Separator();
 
             selected_object->propertyDisplay();

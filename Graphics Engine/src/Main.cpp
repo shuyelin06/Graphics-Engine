@@ -112,7 +112,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     scene_graph.invalidateTerrainChunks(0.f, 0.f, 0.f);
 
-    Object* root = new Object("Root");
+    Object* root = new Object();
+    root->setName("Root");
     scene_graph.addObject(root);
 
     // Bind a Camera

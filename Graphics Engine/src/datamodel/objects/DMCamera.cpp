@@ -2,7 +2,7 @@
 
 namespace Engine {
 namespace Datamodel {
-DMCamera::DMCamera() : Object("Camera"), Bindable<DMCamera>(this) {
+DMCamera::DMCamera() : Object(), Bindable<DMCamera>(this) {
     fov = 1.2f;
 
     z_near = 5.f;

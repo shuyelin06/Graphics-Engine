@@ -3,7 +3,7 @@
 namespace Engine {
 namespace Datamodel {
 DMPhysics::DMPhysics()
-    : Object("Physics"), Bindable<DMPhysics>(this) {};
+    : Object(), Bindable<DMPhysics>(this) {};
 DMPhysics::~DMPhysics() = default;
 
 } // namespace Datamodel

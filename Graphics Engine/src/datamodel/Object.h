@@ -49,19 +49,20 @@ class Object {
 
 #if defined(_DEBUG)
     // Name (To be Displayed in the ImGui)
-    std::string class_name;
+    std::string name;
 #endif
 
   public:
     // Constructor & Destructor
-    Object(const std::string& class_name);
+    Object();
     ~Object();
 
-    // Accessors
-#if defined(_DEBUG)
-    const std::string& getClassName();
-#endif
+    // Name. Used in the Property Display
+    // (Does nothing on non-debug builds)
+    void setName(const std::string& new_name);
+    const std::string& getName();
 
+    // Class ID
     void setClassID(uint16_t id);
     uint16_t getClassID() const;
 
