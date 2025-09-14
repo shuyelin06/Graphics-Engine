@@ -1,13 +1,13 @@
 #pragma once
 
-#include "../CreationCallback.h"
+#include "../Bindable.h"
 #include "../Object.h"
 
 namespace Engine {
 namespace Datamodel {
 // Class DMPhysics:
 // Represents a light in the datamodel.
-class DMPhysics : public Object, public CreationCallback<DMPhysics> {
+class DMPhysics : public Object, public Bindable<DMPhysics> {
   public:
     DMPhysics();
     ~DMPhysics();

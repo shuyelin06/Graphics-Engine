@@ -31,7 +31,7 @@ void PhysicsSystem::addCollisionHull(const std::string& name,
 
 // Datamodel Handling
 void PhysicsSystem::onObjectCreate(Object* object) {
-    if (object->getClassID() == Object::GetObjectClassIDByName("Physics")) {
+    if (object->getClassID() == DMPhysics::ClassID()) {
 
         PhysicsObject* phys_obj = new PhysicsObject(object);
         objects.push_back(phys_obj);

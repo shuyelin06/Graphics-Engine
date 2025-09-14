@@ -258,6 +258,9 @@
     <ClCompile Include="src\datamodel\objects\DMPhysics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\datamodel\Bindable.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\math\Vector3.h">
@@ -515,7 +518,7 @@
     <ClInclude Include="src\datamodel\objects\DMCamera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\datamodel\CreationCallback.h">
+    <ClInclude Include="src\datamodel\Bindable.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\datamodel\DMBinding.h">

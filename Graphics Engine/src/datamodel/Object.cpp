@@ -28,7 +28,7 @@ Object::Object(const std::string& _class_name) {
 
     destroy = false;
 
-    class_id = RegisterObjectClass(_class_name);
+    class_id = CLASS_ID_NONE;
 
 #if defined(_DEBUG)
     class_name = _class_name;
@@ -52,27 +52,9 @@ Object::~Object() {
 const std::string& Object::getClassName() { return class_name; }
 #endif
 
-uint16_t Object::getClassID() const { return class_id; }
-
 /* --- Object Class ID Methods --- */
-static std::unordered_map<std::string, uint16_t> map_class_to_id =
-    std::unordered_map<std::string, uint16_t>();
-static uint16_t next_class_id = 1;
-
-uint16_t Object::RegisterObjectClass(const std::string& class_name) {
-    if (!map_class_to_id.contains(class_name))
-        map_class_to_id[class_name] = next_class_id++;
-    return map_class_to_id[class_name];
-}
-
-uint16_t Object::GetObjectClassIDByName(const std::string& class_name) {
-    if (map_class_to_id.contains(class_name))
-        return map_class_to_id[class_name];
-    else
-        return CLASS_ID_NONE;
-}
-
-uint16_t Object::GetTotalClassCount() { return next_class_id; }
+void Object::setClassID(uint16_t id) { class_id = id; }
+uint16_t Object::getClassID() const { return class_id; }
 
 /* --- Object Hierarchy Methods --- */
 // GetParent:

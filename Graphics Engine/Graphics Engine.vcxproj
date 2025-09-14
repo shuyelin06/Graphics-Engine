@@ -171,6 +171,7 @@
     <ClCompile Include="include\stb\stb_image.cpp" />
     <ClCompile Include="src\datamodel\bvh\BVH.cpp" />
     <ClCompile Include="src\datamodel\bvh\TLAS.cpp" />
+    <ClCompile Include="src\datamodel\Bindable.cpp" />
     <ClCompile Include="src\datamodel\DMBinding.cpp" />
     <ClCompile Include="src\datamodel\objects\DMCamera.cpp" />
     <ClCompile Include="src\datamodel\objects\DMLight.cpp" />
@@ -252,7 +253,7 @@
     <ClInclude Include="include\cgltf\cgltf.h" />
     <ClInclude Include="include\lodepng\lodepng.h" />
     <ClInclude Include="include\stb\stb_image.h" />
-    <ClInclude Include="src\datamodel\CreationCallback.h" />
+    <ClInclude Include="src\datamodel\Bindable.h" />
     <ClInclude Include="src\datamodel\bvh\BVH.h" />
     <ClInclude Include="src\datamodel\bvh\TLAS.h" />
     <ClInclude Include="src\core\ThreadPool.h" />

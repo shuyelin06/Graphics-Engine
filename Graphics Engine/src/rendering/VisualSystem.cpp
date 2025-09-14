@@ -125,7 +125,7 @@ VisualSystem::VisualSystem(HWND window) {
 void VisualSystem::onObjectCreate(Object* object) {
     const uint16_t class_id = object->getClassID();
 
-    if (class_id == Object::GetObjectClassIDByName("Camera")) {
+    if (class_id == DMCamera::ClassID()) {
         camera.reset(new Camera(object));
     }
 }

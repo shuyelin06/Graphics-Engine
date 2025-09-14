@@ -62,6 +62,7 @@ class Object {
     const std::string& getClassName();
 #endif
 
+    void setClassID(uint16_t id);
     uint16_t getClassID() const;
 
     // Object Hierarchy Methods
@@ -85,14 +86,6 @@ class Object {
 
     // Overrideable Methods
     virtual void propertyDisplay();
-
-    // Obtain IDs for Class Names
-    // Requires that a class register itself.
-    static uint16_t GetObjectClassIDByName(const std::string& class_name);
-    static uint16_t GetTotalClassCount();
-
-  private:
-    static uint16_t RegisterObjectClass(const std::string& class_name);
 };
 
 } // namespace Datamodel

@@ -63,7 +63,7 @@ void LightManager::pullDatamodelData() {
 }
 
 void LightManager::onObjectCreate(Object* object) {
-    if (object->getClassID() == Object::GetObjectClassIDByName("Light")) {
+    if (object->getClassID() == DMLight::ClassID()) {
         shadow_lights.push_back(createShadowLight(object, QUALITY_5));
     }
 }

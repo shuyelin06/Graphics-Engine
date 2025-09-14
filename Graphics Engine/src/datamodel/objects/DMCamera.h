@@ -1,13 +1,13 @@
 #pragma once
 
-#include "../CreationCallback.h"
+#include "../Bindable.h"
 #include "../Object.h"
 
 namespace Engine {
 namespace Datamodel {
 // DMCamera Class:
 // Represents a camera in the scene.
-class DMCamera : public Object, public CreationCallback<DMCamera> {
+class DMCamera : public Object, public Bindable<DMCamera> {
   private:
     float fov;
     float z_near, z_far;
