@@ -1,7 +1,10 @@
 #pragma once
 
+#include "datamodel/objects/DMPhysics.h"
+#include "datamodel/DMBinding.h"
+
 #include "collisions/CollisionObject.h"
-#include "datamodel/Object.h"
+#include "collisions/CollisionObject.h"
 
 #include "collisions/GJKSupport.h"
 #include "math/Vector3.h"
@@ -14,10 +17,12 @@ namespace Physics {
 // PhysicsObject Struct:
 // Data that represents the physics state of an object in the
 // datamodel.
-class PhysicsObject : public Component {
+class PhysicsObject : public DMBinding {
     friend class PhysicsSystem;
 
-  private:
+  protected:
+    Object* object; // HACKY
+
     Transform transform;
 
     Vector3 acceleration;
@@ -29,13 +34,14 @@ class PhysicsObject : public Component {
     Quaternion yRotation; // Up-Down Rotation (Y-Axis)
     float prev_x, prev_y;
 
+    void pullDatamodelDataImpl(Object* obj) override;
+
   public:
     PhysicsObject(Object* object);
     ~PhysicsObject();
 
     // Pull and push data from this component
     // and the datamodel.
-    void pull();
     void push();
 
     void pollInput();

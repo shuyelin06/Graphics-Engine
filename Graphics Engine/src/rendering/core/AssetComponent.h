@@ -1,15 +1,16 @@
 #pragma once
 
+#include "datamodel/Object.h"
 #include "Asset.h"
-#include "datamodel/Component.h"
 
 namespace Engine {
 using namespace Datamodel;
 namespace Graphics {
 // AssetComponent Class:
 // Denotes an asset in the engine, that can be rendered.
-class AssetComponent : public Component {
+class AssetComponent {
   private:
+    Object* object;
     Asset* asset;
     Matrix4 m_local_to_world;
 
@@ -19,6 +20,8 @@ class AssetComponent : public Component {
 
     const Asset* getAsset() const;
     const Matrix4& getLocalToWorldMatrix() const;
+
+    Object* getObject() const;
 
     // OVERRIDE: Pulls the object transform
     void update();

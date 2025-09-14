@@ -12,6 +12,8 @@ namespace Physics {
 PhysicsSystem::PhysicsSystem() : broadphase_tree(0.2f), stopwatch() {
     stopwatch.Reset();
 
+    DMPhysics::ConnectToCreation([this](Object* obj) { onObjectCreate(obj); });
+
     terrain = nullptr;
 }
 
@@ -27,14 +29,16 @@ void PhysicsSystem::addCollisionHull(const std::string& name,
     collision_hulls[name] = new_hull;
 }
 
-// BindPhysicsObject:
-// Binds a physics object to an object.
-PhysicsObject* PhysicsSystem::bindPhysicsObject(Object* object) {
-    PhysicsObject* phys_obj = new PhysicsObject(object);
-    objects.newComponent(object, phys_obj);
-    return phys_obj;
+// Datamodel Handling
+void PhysicsSystem::onObjectCreate(Object* object) {
+    if (object->getClassID() == DMPhysics::ClassID()) {
+
+        PhysicsObject* phys_obj = new PhysicsObject(object);
+        objects.push_back(phys_obj);
+    }
 }
 
+/*
 // BindCollisionObject:
 // Bind a collision object to a physics object
 CollisionObject*
@@ -65,17 +69,18 @@ PhysicsTerrain* PhysicsSystem::bindTerrain(Terrain* _terrain) {
     terrain = new PhysicsTerrain(_terrain);
     return terrain;
 }
+*/
 
 // PullDatamodelData:
 // Pulls a copy of data from the datamodel, for the physics
 // system to operate on.
 void PhysicsSystem::pullDatamodelData() {
     // Remove all PhysicsObjects marked for destruction, and free their memory.
-    objects.cleanAndUpdate();
+    // objects.cleanAndUpdate();
 
     // Pull datamodel data
-    for (PhysicsObject* obj : objects.getComponents())
-        obj->pull();
+    for (PhysicsObject* obj : objects)
+        obj->pullDatamodelData();
 
     if (terrain != nullptr)
         terrain->pullTerrainBVHs();
@@ -90,11 +95,11 @@ void PhysicsSystem::pullDatamodelData() {
 // Updates the physics for a scene.
 void PhysicsSystem::update() {
     // Poll Input
-    for (PhysicsObject* obj : objects.getComponents())
+    for (PhysicsObject* obj : objects)
         obj->pollInput();
 
     // Update all AABBs
-    for (PhysicsObject* obj : objects.getComponents()) {
+    for (PhysicsObject* obj : objects) {
         if (obj->collider != nullptr) {
             obj->collider->updateBroadphaseAABB();
 #if defined(_DEBUG)
@@ -132,7 +137,7 @@ void PhysicsSystem::update() {
 
     // Iterate through and clear
     // Apply acceleration and velocity to all objects
-    for (PhysicsObject* object : objects.getComponents()) {
+    for (PhysicsObject* object : objects) {
         object->applyAcceleration(delta_time);
         object->applyVelocity(delta_time);
     }
@@ -141,7 +146,7 @@ void PhysicsSystem::update() {
 // PushDatamodelData:
 // Pushes data to the datamodel.
 void PhysicsSystem::pushDatamodelData() {
-    for (PhysicsObject* obj : objects.getComponents())
+    for (PhysicsObject* obj : objects)
         obj->push();
 }
 

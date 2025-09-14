@@ -1,6 +1,7 @@
 #pragma once
 
-#include "datamodel/Component.h"
+#include "datamodel/DMBinding.h"
+#include "datamodel/objects/DMCamera.h"
 
 #include "math/Matrix4.h"
 #include "math/OBB.h"
@@ -9,8 +10,8 @@
 #include "Frustum.h"
 
 namespace Engine {
-using namespace Datamodel;
 using namespace Math;
+using namespace Datamodel;
 
 namespace Graphics {
 // Camera Class:
@@ -18,12 +19,9 @@ namespace Graphics {
 // on the screen is rendered from the camera's point of view.
 // Unless otherwise rotated, the camera's default view
 // is in the +Z axis.
-class CameraComponent : public Component {
+class Camera : public DMBinding {
   protected:
-    // Field of view
     float fov;
-
-    // Z-near and z-far viewing planes
     float z_near, z_far;
 
     // Frustum Matrix
@@ -31,37 +29,33 @@ class CameraComponent : public Component {
     // unit cube from [-1,1] x [-1,1] x [0,1]
     Matrix4 frustum_matrix;
 
-    // Transform
+    // Local -> World Matrix
     // Mirrors the camera object's transform,
     // and is used to compute the local to world matrix
-    Transform transform;
+    Matrix4 local_to_world_matrix;
+
+    void pullDatamodelDataImpl(Object* obj) override;
 
   public:
-    CameraComponent(Object* object);
-    ~CameraComponent();
-
-    // OVERRIDE:
-    // Pulls the object's transform
-    void update();
-    void imGuiConfig();
+    Camera(Object* dm_camera);
+    ~Camera();
 
     // Get the camera's attributes
+    const Vector3 forward() const;
+    const Vector3& getPosition() const;
+
     float getZNear() const;
     float getZFar() const;
 
-    const Transform& getTransform() const;
-    const Vector3& getPosition() const;
-
     Frustum frustum() const;
-
-    // Set the camera's attributes
-    void setFrustumMatrix(float fov, float z_near, float z_far);
 
     // World -> Camera Matrix
     const Matrix4 getWorldToCameraMatrix(void) const;
-
     // Camera -> Projected Space Matrix
     const Matrix4 getFrustumMatrix(void) const;
+
+  private:
+    void setFrustumMatrix(float fov, float z_near, float z_far);
 };
 } // namespace Graphics
 } // namespace Engine

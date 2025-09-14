@@ -5,7 +5,7 @@
 namespace Engine {
 using namespace Input;
 namespace Physics {
-PhysicsObject::PhysicsObject(Object* _object) : Component(_object) {
+PhysicsObject::PhysicsObject(Object* _object) : DMBinding(_object) {
     acceleration = Vector3(0, 0, 0);
     velocity = Vector3(0, 0, 0);
 
@@ -13,7 +13,10 @@ PhysicsObject::PhysicsObject(Object* _object) : Component(_object) {
 }
 PhysicsObject::~PhysicsObject() = default;
 
-void PhysicsObject::pull() { transform = object->getTransform(); }
+void PhysicsObject::pullDatamodelDataImpl(Object* _object) {
+    transform = _object->getTransform();
+    object = _object;
+}
 void PhysicsObject::push() { object->getTransform() = transform; }
 
 void PhysicsObject::pollInput() {

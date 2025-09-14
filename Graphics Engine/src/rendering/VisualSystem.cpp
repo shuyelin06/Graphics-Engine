@@ -6,6 +6,7 @@
 #include "VisualDebug.h"
 #include "core/Frustum.h"
 #include "datamodel/Object.h"
+#include "datamodel/objects/DMCamera.h"
 
 #include "math/Vector4.h"
 #include "resources/BumpMapBuilder.h"
@@ -91,8 +92,11 @@ VisualSystem::VisualSystem(HWND window) {
     camera = nullptr;
     terrain = nullptr;
 
-    // Register my system components
-    registerComponents();
+    // Connect to Datamodel
+    DMCamera::ConnectToCreation(
+        [this](Object* obj) { this->onObjectCreate(obj); });
+
+    camera = nullptr;
 
     // Initialize my pipeline
     HRESULT result;
@@ -118,39 +122,12 @@ VisualSystem::VisualSystem(HWND window) {
 }
 
 // --- Component Bindings ---
-void VisualSystem::registerComponents() {
-    Component::registerNewTag("Camera");
-    Component::registerNewTag("Asset");
-    light_manager->registerComponents();
-}
-void VisualSystem::bindComponents(
-    const std::vector<ComponentBindRequest>& requests) {
-    for (const ComponentBindRequest& request : requests) {
-        Object* object = request.target_object;
-        const unsigned int tag = request.component_id;
+void VisualSystem::onObjectCreate(Object* object) {
+    const uint16_t class_id = object->getClassID();
 
-        // Check if the tag matches any the visual system recognizes. If not,
-        // pass to the visual subsystems to continue trying.
-        if (tag == Component::getTag("Camera")) {
-            if (camera != nullptr)
-                delete camera;
-            CameraComponent* new_cam = new CameraComponent(object);
-            object->bindComponent(new_cam);
-            camera = new_cam;
-        } else {
-            if (light_manager->bindComponent(request))
-                continue;
-        }
+    if (class_id == DMCamera::ClassID()) {
+        camera.reset(new Camera(object));
     }
-}
-
-AssetComponent*
-VisualSystem::bindAssetComponent(Object* object,
-                                 const std::string& asset_name) {
-    Asset* asset = resource_manager->getAsset(asset_name);
-    AssetComponent* asset_obj = new AssetComponent(object, asset);
-    asset_components.newComponent(object, asset_obj);
-    return asset_obj;
 }
 
 // Render:
@@ -172,7 +149,7 @@ void VisualSystem::render() {
             IConstantBuffer pcb0_common = pipeline->loadPixelCB(CB0);
 
             const Vector3 cam_pos = camera->getPosition();
-            const Vector3 cam_direc = camera->getTransform().forward();
+            const Vector3 cam_direc = camera->forward();
             const float z_near = camera->getZNear();
             const float z_far = camera->getZFar();
 
@@ -240,6 +217,9 @@ void VisualSystem::pullSceneData(Scene* scene) {
     imGuiConfig();
 #endif
 
+    // Pull Datamodel Data
+    camera.get()->pullDatamodelData();
+
     // Pull my terrain data (if it exists).
     Terrain* scene_terrain = scene->getTerrain();
 
@@ -258,9 +238,8 @@ void VisualSystem::pullSceneData(Scene* scene) {
     // Pull my object data.
     // Remove invalid visual objects, and update them to pull
     // the datamodel data.
-    camera->update();
-    asset_components.cleanAndUpdate();
-    light_manager->pullSceneData();
+    // asset_components.cleanAndUpdate();
+    light_manager->pullDatamodelData();
 
     // Prepare managers for data
     light_manager->updateSunDirection(config->sun_direction);
@@ -268,7 +247,7 @@ void VisualSystem::pullSceneData(Scene* scene) {
 
     light_manager->resetShadowCasters();
 
-    for (const AssetComponent* object : asset_components.getComponents()) {
+    for (const AssetComponent* object : asset_components) {
         const Asset* asset = object->getAsset();
 
         if (asset->isSkinned())
@@ -476,7 +455,7 @@ void VisualSystem::performRenderPass() {
     }
 
     // Testing for animations
-    for (const AssetComponent* comp : asset_components.getComponents()) {
+    for (const AssetComponent* comp : asset_components) {
         const Asset* asset = comp->getAsset();
         const std::vector<Mesh*>& meshes = asset->getMeshes();
 
