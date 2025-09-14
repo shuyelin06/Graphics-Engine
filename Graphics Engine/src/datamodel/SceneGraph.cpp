@@ -92,19 +92,37 @@ void Scene::invalidateTerrainChunks(float x, float y, float z) {
 // UpdateAndRenderObjects:
 // Update and cache object transforms in the SceneGraph, and submit
 // render requests for each.
-void Scene::updateObjects() {
-    Matrix4 identity = Matrix4::Identity();
-
-    for (Object* object : objects)
-        updateObjectsHelper(object, identity);
-}
-
-void Scene::updateObjectsHelper(Object* object, const Matrix4& m_parent) {
+static void updateObjectsHelper(Object* object, const Matrix4& m_parent) {
     assert(object != nullptr);
 
     const Matrix4 m_local = object->updateLocalMatrix(m_parent);
-    for (Object* child : object->getChildren())
-        updateObjectsHelper(child, m_local);
+    std::vector<Object*> children = object->getChildren();
+
+    std::vector<Object*>::iterator iter = children.begin();
+    while (iter != children.end()) {
+        if ((*iter)->shouldDestroy()) {
+            delete *iter;
+            iter = children.erase(iter);
+        } else {
+            updateObjectsHelper((*iter), m_local);
+            iter++;
+        }
+    }
+}
+
+void Scene::updateAndCleanObjects() {
+    Matrix4 identity = Matrix4::Identity();
+
+    std::vector<Object*>::iterator iter = objects.begin();
+    while (iter != objects.end()) {
+        if ((*iter)->shouldDestroy()) {
+            delete *iter;
+            iter = objects.erase(iter);
+        } else {
+            updateObjectsHelper((*iter), identity);
+            iter++;
+        }
+    }
 }
 
 } // namespace Datamodel

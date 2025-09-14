@@ -211,7 +211,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         physics_system.pushDatamodelData();
 
         // Update Datamodel
-        scene_graph.updateObjects();
+        scene_graph.updateAndCleanObjects();
 
         const Vector3 pos = camera->getTransform().getPosition();
         scene_graph.invalidateTerrainChunks(pos.x, pos.y, pos.z);

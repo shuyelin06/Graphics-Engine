@@ -59,9 +59,7 @@ LightManager::LightManager(ID3D11Device* device, unsigned int atlas_size)
 
 // SceneGraph:
 void LightManager::pullDatamodelData() {
-    for (ShadowLight* light : shadow_lights) {
-        light->pullDatamodelData();
-    }
+    cleanAndPullDatamodelData(shadow_lights);
 }
 
 void LightManager::onObjectCreate(Object* object) {

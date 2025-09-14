@@ -38,8 +38,8 @@ class Scene {
     void addObject(Object* object);
     const std::vector<Object*>& getObjects() const;
 
-    // Update object transforms and submit render requests
-    void updateObjects();
+    // Update objects and clean up invalid ones
+    void updateAndCleanObjects();
 
     // --- Terrain Handling ---
     void enableTerrain();
@@ -48,9 +48,6 @@ class Scene {
 
     // Invalidate terrain chunks outside of our given position.
     void invalidateTerrainChunks(float x, float y, float z);
-
-  private:
-    void updateObjectsHelper(Object* object, const Matrix4& m_parent);
 };
 
 } // namespace Datamodel

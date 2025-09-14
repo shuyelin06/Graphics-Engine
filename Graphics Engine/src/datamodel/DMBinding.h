@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 namespace Engine {
 namespace Datamodel {
 class Object;
@@ -30,6 +32,26 @@ class DMBinding {
   protected:
     virtual void pullDatamodelDataImpl(Object* object);
 };
+
+// CleanAndPullDatamodelData
+// Helper template method that will pull datamodel data, and clean the vector
+// of invalid bindings.
+template <typename T>
+void cleanAndPullDatamodelData(std::vector<T*>& bindings) {
+    static_assert(std::is_base_of<DMBinding, T>::value,
+                  "T must inherit from DMBinding");
+
+    typename std::vector<T*>::iterator iter = bindings.begin();
+    while (iter != bindings.end()) {
+        if ((*iter)->shouldDestroy()) {
+            delete *iter;
+            iter = bindings.erase(iter);
+        } else {
+            (*iter)->pullDatamodelData();
+            iter++;
+        }
+    }
+}
 
 }; // namespace Datamodel
 }; // namespace Engine

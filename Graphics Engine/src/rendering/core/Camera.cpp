@@ -52,7 +52,7 @@ const Vector3 Camera::forward() const {
     return direc.xyz();
 }
 const Vector3& Camera::getPosition() const {
-    Vector4 pos = local_to_world_matrix * Vector4(0, 0, 0, 0);
+    Vector4 pos = local_to_world_matrix * Vector4(0, 0, 0, 1);
     return pos.xyz();
 }
 
