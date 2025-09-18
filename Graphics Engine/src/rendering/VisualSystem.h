@@ -64,7 +64,7 @@ class VisualSystem {
     std::unique_ptr<Camera> camera;
     std::vector<AssetComponent*> asset_components;
     VisualTerrain* terrain;
-
+    
     // Temp for now; should be moved later.
     ID3D11RasterizerState* og_rast_state;
     ID3D11RasterizerState* rast_state;

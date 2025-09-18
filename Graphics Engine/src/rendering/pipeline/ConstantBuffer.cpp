@@ -9,23 +9,21 @@ CBHandle::~CBHandle() = default;
 
 unsigned int CBHandle::byteSize() { return data.size(); }
 
-void CBHandle::loadData(const void* dataPtr, CBDataFormat dataFormat) {
+void CBHandle::loadData(const void* dataPtr, size_t byteSize) {
+    assert(byteSize != 0);
+
     // Convert our data into a character array, and read the number of bytes
     // specified by the CBDataFormat into our constant buffer.
     const char* charData = static_cast<const char*>(dataPtr);
-    const int numBytes = dataFormat;
+    const int numBytes = byteSize;
 
-    if (dataPtr != nullptr) {
-        char value;
+    data.resize(data.size() + byteSize);
+    uint8_t* vectorEnd = &data[data.size() - byteSize];
 
-        for (int i = 0; i < numBytes; i++) {
-            std::memcpy(&value, charData + i, sizeof(char));
-            data.push_back(value);
-        }
-    } else {
-        for (int i = 0; i < numBytes; i++)
-            data.push_back(0);
-    }
+    if (dataPtr != nullptr)
+        memcpy(vectorEnd, charData, numBytes);
+    else
+        memset(vectorEnd, 0, byteSize);
 }
 
 void CBHandle::clearData() { data.clear(); }
@@ -45,8 +43,8 @@ IConstantBuffer::IConstantBuffer(CBHandle* _cb, CBSlot _slot, IBufferType _type,
 
 IConstantBuffer::~IConstantBuffer() { bindCB(); }
 
-void IConstantBuffer::loadData(const void* dataPtr, CBDataFormat dataFormat) {
-    cb->loadData(dataPtr, dataFormat);
+void IConstantBuffer::loadData(const void* dataPtr, size_t byteSize) {
+    cb->loadData(dataPtr, byteSize);
 }
 
 void IConstantBuffer::bindCB() {

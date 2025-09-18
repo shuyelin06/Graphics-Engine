@@ -46,7 +46,7 @@ class CBHandle {
     // Load data into the constant buffer. Note that validation and padding
     // is not done on the input.
     // To pass in padding (0's), pass in a null pointer.
-    void loadData(const void* dataPtr, CBDataFormat format);
+    void loadData(const void* dataPtr, size_t byteSize);
 
     // Clear data stored within the constant buffer.
     void clearData();
@@ -70,7 +70,7 @@ class IConstantBuffer {
                     ID3D11Device* device, ID3D11DeviceContext*);
     ~IConstantBuffer();
 
-    void loadData(const void* dataPtr, CBDataFormat dataFormat);
+    void loadData(const void* dataPtr, size_t byteSize);
 
   private:
     // Upload and bind the CB to the pipeline

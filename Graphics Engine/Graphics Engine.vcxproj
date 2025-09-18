@@ -264,6 +264,7 @@
     <ClInclude Include="src\datamodel\terrain\TerrainCallback.h" />
     <ClInclude Include="src\GlobalConfig.h" />
     <ClInclude Include="src\physics\PhysicsTerrain.h" />
+    <ClInclude Include="src\rendering\lights\LightDataGPU.h" />
     <ClInclude Include="src\rendering\resources\BumpMapBuilder.h" />
     <ClInclude Include="src\rendering\pipeline\ConstantBuffer.h" />
     <ClInclude Include="src\rendering\pipeline\StructuredBuffer.h" />

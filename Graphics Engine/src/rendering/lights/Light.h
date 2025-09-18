@@ -6,6 +6,7 @@
 #include "../Direct3D11.h"
 #include "../core/Frustum.h"
 #include "../core/TextureAtlas.h"
+#include "LightDataGPU.h"
 
 #include "math/Color.h"
 #include "math/Matrix4.h"
@@ -47,6 +48,8 @@ class ShadowLight : public DMBinding {
   public:
     ShadowLight(Object* light, const ShadowMapViewport& view_port);
     ~ShadowLight();
+
+    void uploadGPUData(LightDataGPU& gpuData);
 
     // Accessors
     const Color& getColor() const;

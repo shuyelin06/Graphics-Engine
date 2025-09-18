@@ -25,13 +25,6 @@ enum ShadowMapQuality {
     QUALITY_DEFAULT = QUALITY_1
 };
 
-// Struct NormalizedViewport:
-// Normalized shadow map viewport with values in range [0,1].
-// Used in the rendering loop.
-struct NormalizedShadowViewport {
-    float x, y, width, height;
-};
-
 // ShadowCluster Struct:
 // Represents a group of meshes that should be rendered in the light's shadow
 // pass
@@ -89,9 +82,6 @@ class LightManager {
     const std::vector<UINT>& getShadowClusterIndices() const;
     const std::vector<ShadowCaster>& getShadowCasters() const;
 
-    const NormalizedShadowViewport
-    normalizeViewport(const ShadowMapViewport viewport) const;
-
     // Update the light manager
     ShadowLight* createShadowLight(Object* object, ShadowMapQuality quality);
 
@@ -108,7 +98,6 @@ class LightManager {
 
   private:
     void createSunLight(ShadowMapQuality quality);
-    void bindLight(ShadowLight* light, IConstantBuffer& cb);
 };
 
 } // namespace Graphics

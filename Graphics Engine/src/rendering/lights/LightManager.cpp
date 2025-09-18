@@ -3,6 +3,8 @@
 #include "../ImGui.h"
 #include "../pipeline/ConstantBuffer.h"
 
+#include "LightDataGPU.h"
+
 namespace Engine {
 namespace Graphics {
 LightManager::LightManager(ID3D11Device* device, unsigned int atlas_size)
@@ -170,23 +172,6 @@ const std::vector<ShadowCaster>& LightManager::getShadowCasters() const {
     return shadow_casters;
 }
 
-// NormalizeViewport:
-// Returns a normalized shadowmap viewport.
-const NormalizedShadowViewport
-LightManager::normalizeViewport(const ShadowMapViewport viewport) const {
-    const UINT tex_width = shadow_atlas->getTexture()->width;
-    const UINT tex_height = shadow_atlas->getTexture()->height;
-
-    NormalizedShadowViewport output = {};
-
-    output.x = float(viewport.x) / float(tex_width);
-    output.y = float(viewport.y) / float(tex_height);
-    output.width = float(viewport.width) / float(tex_width);
-    output.height = float(viewport.height) / float(tex_height);
-
-    return output;
-}
-
 // CreateShadowLight:
 // Creates and returns a shadowed light that can be used in the
 // rendering engine.
@@ -232,6 +217,12 @@ void LightManager::createSunLight(ShadowMapQuality quality) {
 void LightManager::bindLightData(IConstantBuffer& cb) {
     const std::vector<ShadowLight*>& lights = shadow_lights;
 
+    LightDataGPU lightData;
+    assert(sizeof(LightDataGPU) == 11 * sizeof(Vector4));
+    // Needed for normalization of the texture coordinates to [0,1].
+    const float tex_width = (float)shadow_atlas->getTexture()->width;
+    const float tex_height = (float)shadow_atlas->getTexture()->height;
+
     const int lightCount = lights.size();
     cb.loadData(&lightCount, INT);
 
@@ -244,37 +235,23 @@ void LightManager::bindLightData(IConstantBuffer& cb) {
     cb.loadData(nullptr, FLOAT2);
 
     for (int i = 0; i < SUN_NUM_CASCADES; i++) {
-        ShadowLight* light = lights[i];
-        bindLight(light, cb);
+        lights[i]->uploadGPUData(lightData);
+        lightData.tex_x /= tex_width;
+        lightData.tex_y /= tex_height;
+        lightData.tex_width /= tex_width;
+        lightData.tex_height /= tex_height;
+        cb.loadData(&lightData, sizeof(LightDataGPU));
     }
 
     // Local Lighting Data
     for (int i = SUN_NUM_CASCADES; i < lights.size(); i++) {
-        ShadowLight* light = lights[i];
-        bindLight(light, cb);
+        lights[i]->uploadGPUData(lightData);
+        lightData.tex_x /= tex_width;
+        lightData.tex_y /= tex_height;
+        lightData.tex_width /= tex_width;
+        lightData.tex_height /= tex_height;
+        cb.loadData(&lightData, sizeof(LightDataGPU));
     }
-}
-
-void LightManager::bindLight(ShadowLight* light, IConstantBuffer& cb) {
-    Vector3 position = light->getPosition();
-    cb.loadData(&position, FLOAT3);
-
-    cb.loadData(nullptr, FLOAT);
-
-    const Color& color = light->getColor();
-    cb.loadData(&color, FLOAT3);
-
-    cb.loadData(nullptr, INT);
-
-    const Matrix4 m_world_to_local = light->getWorldMatrix().inverse();
-    cb.loadData(&m_world_to_local, FLOAT4X4);
-
-    const Matrix4& m_local_to_frustum = light->getFrustumMatrix();
-    cb.loadData(&m_local_to_frustum, FLOAT4X4);
-
-    const NormalizedShadowViewport normalized_view =
-        normalizeViewport(light->getShadowmapViewport());
-    cb.loadData(&normalized_view, FLOAT4);
 }
 
 } // namespace Graphics

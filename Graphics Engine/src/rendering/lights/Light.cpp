@@ -37,6 +37,23 @@ ShadowLight::ShadowLight(Object* object, const ShadowMapViewport& view_port)
 
 ShadowLight::~ShadowLight() = default;
 
+void ShadowLight::uploadGPUData(LightDataGPU& gpuData) {
+    gpuData.position = getPosition();
+    gpuData.pad0 = 0.f;
+
+    gpuData.color = Vector3(color.r, color.g, color.b);
+    gpuData.pad1 = 0.f;
+
+    gpuData.m_view = getWorldMatrix().inverse();
+    gpuData.m_projection = getFrustumMatrix();
+
+    // Needs to be normalized outside
+    gpuData.tex_x = shadow_viewport.x;
+    gpuData.tex_y = shadow_viewport.y;
+    gpuData.tex_width = shadow_viewport.width;
+    gpuData.tex_height = shadow_viewport.height;
+}
+
 void ShadowLight::pullDatamodelDataImpl(Object* obj) {
     const Matrix4& m_world = obj->getLocalMatrix();
     setWorldMatrix(m_world);
