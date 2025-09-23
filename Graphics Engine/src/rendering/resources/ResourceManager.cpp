@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include <map>
+#include <regex>
 #include <string.h>
 #include <vector>
 
@@ -11,6 +12,12 @@
 
 #include "math/Vector2.h"
 #include "math/Vector3.h"
+
+#include "FileReader.h"
+
+// We use the lodepng library to read PNG files.
+// See https://github.com/lvandeve/lodepng
+#include "lodepng/lodepng.h"
 
 #include "GLTFFile.h"
 #include "PNGFile.h"
@@ -21,6 +28,8 @@ namespace Engine {
 using namespace Math;
 
 namespace Graphics {
+static const std::string RESOURCE_FOLDER = "data/";
+
 ResourceManager::ResourceManager(ID3D11Device* _device,
                                  ID3D11DeviceContext* _context) {
     device = _device;
@@ -81,14 +90,6 @@ Asset* ResourceManager::getAsset(const std::string& name) {
 
 Asset* ResourceManager::getAsset(uint16_t id) { return assets[id]; }
 
-Texture* ResourceManager::getTexture(const std::string& name) {
-    if (texture_map.contains(name))
-        return getTexture(texture_map[name]);
-    else
-        return nullptr;
-}
-Texture* ResourceManager::getTexture(uint16_t id) { return textures[id]; }
-
 const Texture* ResourceManager::getColorAtlas() {
     return color_atlas->getTexture();
 }
@@ -110,23 +111,39 @@ bool ResourceManager::LoadAssetFromGLTF(const std::string& asset_name,
         return false;
 }
 
-// LoadTextureFromPNG:
-// Uses the PNGFile interface to load a texture from a PNG file
-bool ResourceManager::LoadTextureFromPNG(const std::string& tex_name,
-                                         const std::string& path,
-                                         TextureBuilder& builder) {
-    PNGFile png_file = PNGFile(path);
-    png_file.readPNGData(builder);
-    Texture* tex = builder.generate(device);
+// LoadTexture:
+// Code path for loading all textures.
+std::shared_ptr<Texture>
+ResourceManager::LoadTextureFromFile(const std::string& relative_path) {
+    const std::string full_path = RESOURCE_FOLDER + relative_path;
 
-    if (tex != nullptr) {
-        const uint16_t index = textures.size();
-        textures.push_back(tex);
-        texture_map[tex_name] = index;
+    // Matches to find the file name and extension separately.
+    // (?:.+/)* matches the path but does not put it in a capture group.
+    std::regex name_pattern("(?:.+/)*([a-zA-Z]+)\\.([a-zA-Z]+)");
+    smatch match;
+    regex_search(relative_path, match, name_pattern);
 
-        return true;
-    } else
-        return false;
+    Texture* output = nullptr;
+
+    if (match.size() == 3) {
+        // If name is ever needed:
+        // const std::string name = match[1];
+        const std::string extension = match[2];
+
+        FileReader reader = FileReader(full_path);
+        if (reader.readFileData()) {
+            TextureBuilder builder = TextureBuilder(0, 0);
+
+            if (extension == "png") {
+                PNGFile::ReadPNGData(reader.getData(), builder);
+                output = builder.generate(device);
+            } else
+                assert(false); // Unsupported Format
+        }
+    }
+
+    textures.emplace_back(std::shared_ptr<Texture>(output));
+    return textures.back();
 }
 
 // WriteTextureToPNG:

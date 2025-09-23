@@ -70,7 +70,7 @@ Asset* GLTFFile::readFromFile(MeshBuilder& mesh_builder,
 
     // Parse my GLTF file
     cgltf_result result = cgltf_parse_file(&options, path.c_str(), &data);
-
+    
     if (result != cgltf_result_success)
         return nullptr;
 

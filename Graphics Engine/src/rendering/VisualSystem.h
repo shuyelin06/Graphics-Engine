@@ -70,6 +70,8 @@ class VisualSystem {
     ID3D11RasterizerState* rast_state;
     Texture* bump_tex;
 
+    std::shared_ptr<Texture> test_tex;
+
   public:
     VisualSystem(HWND window);
 

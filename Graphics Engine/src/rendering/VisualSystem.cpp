@@ -66,7 +66,13 @@ struct VisualParameters {
 #if defined(_DEBUG)
 // ImGuiConfig:
 // Sets configuration parameters
-void VisualSystem::imGuiConfig() { config->imGuiConfig(); }
+void VisualSystem::imGuiConfig() {
+    config->imGuiConfig();
+    if (ImGui::BeginMenu("Test")) {
+        test_tex.get()->displayImGui();
+        ImGui::EndMenu();
+    }
+}
 #endif
 
 struct VisualCache {
@@ -119,6 +125,8 @@ VisualSystem::VisualSystem(HWND window) {
     resource_manager->initializeResources();
 
     light_manager = new LightManager(device, 4096);
+
+    test_tex = resource_manager->LoadTextureFromFile("png.png");
 }
 
 // --- Component Bindings ---

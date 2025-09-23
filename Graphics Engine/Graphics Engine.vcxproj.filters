@@ -84,9 +84,6 @@
     <ClCompile Include="src\math\Triangle.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\utility\FileReader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\math\Plane.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -261,6 +258,9 @@
     <ClCompile Include="src\datamodel\Bindable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\rendering\resources\FileReader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\math\Vector3.h">
@@ -333,9 +333,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\math\Triangle.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\utility\FileReader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\math\Plane.h">
@@ -531,6 +528,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\lights\LightDataGPU.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rendering\resources\FileReader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

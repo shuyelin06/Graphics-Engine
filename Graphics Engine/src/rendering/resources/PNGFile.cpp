@@ -77,33 +77,27 @@ bool PNGFile::writePNGData(ID3D11Device* device, ID3D11DeviceContext* context,
         return true;
 }
 
-bool PNGFile::readPNGData(TextureBuilder& builder) {
-    std::vector<unsigned char> image;
+void PNGFile::ReadPNGData(const std::vector<uint8_t>& data,
+                          TextureBuilder& builder) {
+    std::vector<uint8_t> image;
     unsigned int width, height;
 
     // Run lodepng to decode my png file
-    unsigned int error = lodepng::decode(image, width, height, path.c_str());
+    unsigned int error = lodepng::decode(image, width, height, data);
     assert(!error);
 
     // Parse content of image into a format the engine can use. lodepng
     // automatically converts the PNG into RGBA values.
     builder.reset(width, height);
-
-    for (int i = 0; i < width; i++) {
-        for (int j = 0; j < height; j++) {
-            unsigned int index = (i * width + j) * 4;
-
-            TextureColor color;
-            color.r = image[index];
-            color.g = image[index + 1];
-            color.b = image[index + 2];
-            color.a = image[index + 3];
-
-            builder.setColor(i, j, color);
+    
+    TextureColor color;
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            const unsigned int index = (y * width + x) * 4;
+            memcpy(&color, &image[index], 4 * sizeof(uint8_t));
+            builder.setColor(x, y, color);
         }
     }
-
-    return true;
 }
 
 } // namespace Graphics

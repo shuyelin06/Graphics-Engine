@@ -3,6 +3,7 @@
 #include <map>
 #include <string>
 #include <unordered_map>
+#include <memory>
 
 #include "../Direct3D11.h"
 
@@ -24,8 +25,7 @@ class ResourceManager {
     std::unordered_map<std::string, uint16_t> asset_map;
     std::vector<Asset*> assets;
 
-    std::unordered_map<std::string, uint16_t> texture_map;
-    std::vector<Texture*> textures;
+    std::vector<std::shared_ptr<Texture>> textures;
 
     TextureAtlas* color_atlas;
 
@@ -40,10 +40,11 @@ class ResourceManager {
     Asset* getAsset(const std::string& name);
     Asset* getAsset(uint16_t id);
 
-    Texture* getTexture(const std::string& name);
-    Texture* getTexture(uint16_t id);
-
     const Texture* getColorAtlas();
+
+    // Create Resources
+    std::shared_ptr<Texture>
+    LoadTextureFromFile(const std::string& relative_path);
 
   private:
     // Registers an asset by name, and returns it's ID
@@ -56,10 +57,10 @@ class ResourceManager {
     bool LoadAssetFromGLTF(const std::string& asset_name,
                            const std::string& path, AtlasBuilder& tex_builder);
 
-    bool LoadTextureFromPNG(const std::string& tex_name,
-                            const std::string& path, TextureBuilder& builder);
     bool WriteTextureToPNG(ID3D11Texture2D* texture, std::string path,
                            std::string file);
+
+    Asset* LoadAssetFromFile(const std::string& path);
 };
 
 } // namespace Graphics
