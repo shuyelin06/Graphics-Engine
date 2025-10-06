@@ -319,16 +319,10 @@ void Pipeline::initializeSamplers() {
 
 ID3D11Device* Pipeline::getDevice() const { return device; }
 ID3D11DeviceContext* Pipeline::getContext() const { return context; }
-Texture* Pipeline::getRenderTargetDest() const {
-    return render_target_dest;
-}
-Texture* Pipeline::getRenderTargetSrc() const {
-    return render_target_src;
-}
+Texture* Pipeline::getRenderTargetDest() const { return render_target_dest; }
+Texture* Pipeline::getRenderTargetSrc() const { return render_target_src; }
 Texture* Pipeline::getDepthStencil() const { return depth_stencil; }
-Texture* Pipeline::getDepthStencilCopy() const {
-    return depth_stencil_copy;
-}
+Texture* Pipeline::getDepthStencilCopy() const { return depth_stencil_copy; }
 
 // Prepare
 void Pipeline::prepare() {
@@ -373,9 +367,8 @@ bool Pipeline::bindPixelShader(const std::string& ps_name) {
 }
 
 // Render Target Binding
-void Pipeline::bindRenderTarget(TargetFlags f_target,
-                                       DepthStencilFlags f_depth,
-                                       BlendFlags f_blend) {
+void Pipeline::bindRenderTarget(TargetFlags f_target, DepthStencilFlags f_depth,
+                                BlendFlags f_blend) {
     flag_target = f_target;
     flag_depth = f_depth;
     flag_blend = f_blend;
@@ -438,7 +431,7 @@ IConstantBuffer Pipeline::loadPixelCB(CBSlot slot) {
 }
 
 void Pipeline::drawMesh(const Mesh* mesh, int tri_start, int tri_end,
-                               UINT instance_count) {
+                        UINT instance_count) {
     assert((vs_active->layout_pin & mesh->layout) == vs_active->layout_pin);
     const MeshPool* pool = mesh->buffer_pool;
 
@@ -448,25 +441,25 @@ void Pipeline::drawMesh(const Mesh* mesh, int tri_start, int tri_end,
     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     // UNTESTED: If the MeshPool is the same, we don't need to rebind anything
-    if (pool != active_pool_addr) {
-        active_pool_addr = pool;
+    // if (pool != active_pool_addr) {
+    active_pool_addr = pool;
 
-        // Bind my index buffer. All meshes are assumed to have one index
-        // buffer, associated with multiple vertex buffers.
-        context->IASetIndexBuffer(pool->ibuffer, DXGI_FORMAT_R32_UINT, 0);
+    // Bind my index buffer. All meshes are assumed to have one index
+    // buffer, associated with multiple vertex buffers.
+    context->IASetIndexBuffer(pool->ibuffer, DXGI_FORMAT_R32_UINT, 0);
 
-        // Iterate through the layout of my vertex shader
-        // and bind the vertex buffers that the vertex shader needs.
-        memset(vb_buffers, 0, sizeof(ID3D11Buffer*) * BINDABLE_STREAM_COUNT);
-        for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
-            if (((1 << i) & vs_active->layout_pin) == (1 << i)) {
-                vb_buffers[i] = pool->vbuffers[i];
-            }
+    // Iterate through the layout of my vertex shader
+    // and bind the vertex buffers that the vertex shader needs.
+    memset(vb_buffers, 0, sizeof(ID3D11Buffer*) * BINDABLE_STREAM_COUNT);
+    for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
+        if (((1 << i) & vs_active->layout_pin) == (1 << i)) {
+            vb_buffers[i] = pool->vbuffers[i];
         }
-
-        context->IASetVertexBuffers(0, BINDABLE_STREAM_COUNT, vb_buffers,
-                                    vb_strides, vb_offsets);
     }
+
+    context->IASetVertexBuffers(0, BINDABLE_STREAM_COUNT, vb_buffers,
+                                vb_strides, vb_offsets);
+    //}
 
     // Issue my draw call. We will always draw indexed instanced, even if the
     // number of instances is 1.

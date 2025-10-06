@@ -44,7 +44,7 @@ VisualTerrain::~VisualTerrain() = default;
 
 // GenerateTerrainMesh:
 // Generates the mesh for the terrain
-void VisualTerrain::pullTerrainMeshes(ID3D11DeviceContext* context,
+void VisualTerrain::updateAndUploadTerrainData(ID3D11DeviceContext* context,
                                       RenderPassTerrain& pass_terrain) {
     // Iterate through my callbacks. If they have a mesh, overwrite what we
     // currently have.
@@ -56,12 +56,7 @@ void VisualTerrain::pullTerrainMeshes(ID3D11DeviceContext* context,
                 VisualTerrainCallback& callback = callbacks[i][j][k];
 
                 if (callback.isDirty()) {
-                    if (meshes[i][j][k] != nullptr) {
-                        dirty = true;
-                        delete meshes[i][j][k];
-                        meshes[i][j][k] = nullptr;
-                    }
-
+                    dirty = true;
                     meshes[i][j][k] = callback.loadMesh(context, mesh_pool);
                 }
             }

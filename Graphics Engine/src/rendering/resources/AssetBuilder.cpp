@@ -177,11 +177,13 @@ std::shared_ptr<Mesh> MeshBuilder::generateMesh(ID3D11DeviceContext* context) {
     return std::shared_ptr<Mesh>(generateMesh(context, target_pool));
 }
 
-Mesh* MeshBuilder::generateMesh(ID3D11DeviceContext* context, MeshPool* pool) {
+std::shared_ptr<Mesh> MeshBuilder::generateMesh(ID3D11DeviceContext* context,
+                                                MeshPool* pool) {
     return generateMesh(context, pool, Material());
 }
 
-Mesh* MeshBuilder::generateMesh(ID3D11DeviceContext* context, MeshPool* pool,
+std::shared_ptr<Mesh> MeshBuilder::generateMesh(ID3D11DeviceContext* context,
+                                                MeshPool* pool,
                                 const Material& material) {
     // Layout must match the pool's layout
     assert((layout & pool->layout) == layout);
@@ -216,7 +218,8 @@ Mesh* MeshBuilder::generateMesh(ID3D11DeviceContext* context, MeshPool* pool,
     }
 
     // Create my mesh
-    Mesh* mesh = new Mesh(pool);
+    pool->meshes.emplace_back(std::make_shared<Mesh>(pool));
+    std::shared_ptr<Mesh>& mesh = pool->meshes.back();
     mesh->layout = layout;
     mesh->vertex_start = pool->vertex_size;
     mesh->num_vertices = vertex_buffer.size();
@@ -231,7 +234,7 @@ Mesh* MeshBuilder::generateMesh(ID3D11DeviceContext* context, MeshPool* pool,
     // Update my mesh pool
     pool->vertex_size += vertex_buffer.size();
     pool->triangle_size += index_buffer.size();
-    
+
     // Hack
     if (pool->has_gpu_resources)
         pool->updateGPUResources(context);

@@ -50,11 +50,24 @@ MeshPool::MeshPool(uint16_t _layout, uint32_t tri_size, uint32_t v_size)
 }
 
 void MeshPool::cleanAndCompact() {
-    const std::vector<std::shared_ptr<Mesh>>& allocs = meshes;
+    std::vector<std::shared_ptr<Mesh>>& allocs = meshes;
+
+    int head = 0;
+
+    // Iterate through the mesh pointers, removing pointers with only one
+    // reference. These are meshes that are no longer being used anywhere else.
+    for (int i = 0; i < allocs.size(); i++) {
+        if (head != i && allocs[i].use_count() != 1) {
+            allocs[head] = std::move(allocs[i]);
+            head++;
+        } else
+            allocs[i] = nullptr;
+    }
+    allocs.resize(head);
 
     // Iterate through meshes, removing fragmentation in the index buffer
     // We do this on the CPU side first.
-    int head = 0;
+    head = 0;
 
     for (int i = 0; i < allocs.size(); i++) {
         Mesh* mesh = allocs[i].get();
@@ -160,9 +173,6 @@ Mesh::Mesh(MeshPool* pool) {
     triangle_start = num_triangles = 0;
     aabb = AABB();
     material = Material();
-
-    // Add this mesh to the meshes tracked by the pool
-    buffer_pool->meshes.emplace_back(std::shared_ptr<Mesh>(this));
 }
 
 Mesh::~Mesh() = default;

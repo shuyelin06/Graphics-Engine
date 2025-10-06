@@ -91,11 +91,9 @@ struct MeshPool {
 };
 
 struct Mesh {
-  private:
-    friend class MeshBuilder;
     Mesh(MeshPool* pool);
+    ~Mesh();
 
-  public:
     // MeshPool (Collection of Buffers) Containing the Mesh.
     MeshPool* buffer_pool;
     uint16_t layout;
@@ -112,8 +110,6 @@ struct Mesh {
 
     // Renderable Properties
     Material material;
-
-    ~Mesh();
 };
 
 // --- Node ---

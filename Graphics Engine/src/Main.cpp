@@ -37,6 +37,7 @@
 #include "physics/PhysicsSystem.h"
 #include "rendering/VisualSystem.h"
 
+#include "datamodel/objects/DMAsset.h"
 #include "datamodel/objects/DMCamera.h"
 
 #include "rendering/VisualDebug.h"
@@ -131,6 +132,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     // light.getTransform().offsetPosition(Vector3(5.f,0,0));
     light->getTransform().offsetRotation(Vector3(0, 1, 0), 3.f);
 
+    DMAsset* asset = new DMAsset("Capybara");
+    asset->getTransform().setScale(10, 10, 10);
+    root->addChild(asset);
     /*
     ShadowLightComponent* comp = visual_system.bindLightComponent(&light);
     light.getTransform().offsetPosition(25.f, 0.f, 25.f);*/

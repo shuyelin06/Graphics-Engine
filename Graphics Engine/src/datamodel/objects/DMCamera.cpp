@@ -7,6 +7,8 @@ DMCamera::DMCamera() : Object(), Bindable<DMCamera>(this) {
 
     z_near = 5.f;
     z_far = 500.f;
+
+    DMCamera::SignalObjectCreation(this);
 }
 DMCamera::~DMCamera() = default;
 

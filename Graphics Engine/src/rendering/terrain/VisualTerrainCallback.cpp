@@ -28,12 +28,13 @@ void VisualTerrainCallback::initialize() {
 
 // LoadMesh:
 // Loads the MeshBuilder's data into a buffer pool.
-Mesh* VisualTerrainCallback::loadMesh(ID3D11DeviceContext* context,
+std::shared_ptr<Mesh>
+VisualTerrainCallback::loadMesh(ID3D11DeviceContext* context,
                                       MeshPool* pool) {
     std::unique_lock<std::mutex> lock(mutex);
     dirty = false;
     if (!output_builder.isEmpty()) {
-        Mesh* mesh = output_builder.generateMesh(context, pool);
+        std::shared_ptr<Mesh> mesh = output_builder.generateMesh(context, pool);
         output_builder.reset();
         return mesh;
     } else

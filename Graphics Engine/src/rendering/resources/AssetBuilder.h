@@ -68,8 +68,10 @@ class MeshBuilder {
     Mesh* generateMesh(ID3D11Device* device);
     Mesh* generateMesh(ID3D11Device* device, const Material& material);
 
-    Mesh* generateMesh(ID3D11DeviceContext* context, MeshPool* buffer_pool);
-    Mesh* generateMesh(ID3D11DeviceContext* context, MeshPool* buffer_pool,
+    std::shared_ptr<Mesh> generateMesh(ID3D11DeviceContext* context,
+                                       MeshPool* buffer_pool);
+    std::shared_ptr<Mesh> generateMesh(ID3D11DeviceContext* context,
+                                       MeshPool* buffer_pool,
                        const Material& material);
 
     // NEW-- DEPRECATE THE ABOVE

@@ -6,6 +6,7 @@
 #include "VisualDebug.h"
 #include "core/Frustum.h"
 #include "datamodel/Object.h"
+#include "datamodel/objects/DMAsset.h"
 #include "datamodel/objects/DMCamera.h"
 
 #include "math/Vector4.h"
@@ -101,6 +102,8 @@ VisualSystem::VisualSystem(HWND window) {
     // Connect to Datamodel
     DMCamera::ConnectToCreation(
         [this](Object* obj) { this->onObjectCreate(obj); });
+    DMAsset::ConnectToCreation(
+        [this](Object* obj) { this->onObjectCreate(obj); });
 
     camera = nullptr;
 
@@ -137,6 +140,11 @@ void VisualSystem::onObjectCreate(Object* object) {
 
     if (class_id == DMCamera::ClassID()) {
         camera.reset(new Camera(object));
+    } else if (class_id == DMAsset::ClassID()) {
+        DMAsset* asset_obj = static_cast<DMAsset*>(object);
+
+        Asset* asset = resource_manager->getAsset(asset_obj->getAssetName());
+        asset_components.emplace_back(new AssetComponent(object, asset));
     }
 }
 
@@ -242,7 +250,7 @@ void VisualSystem::pullSceneData(Scene* scene) {
         if (terrain == nullptr)
             terrain = new VisualTerrain(scene_terrain, device);
 
-        terrain->pullTerrainMeshes(context, *pass_terrain);
+        terrain->updateAndUploadTerrainData(context, *pass_terrain);
     }
 
     // Pull my object data.
@@ -257,7 +265,9 @@ void VisualSystem::pullSceneData(Scene* scene) {
 
     light_manager->resetShadowCasters();
 
-    for (const AssetComponent* object : asset_components) {
+    for (AssetComponent* object : asset_components) {
+        object->update();
+
         const Asset* asset = object->getAsset();
 
         if (asset->isSkinned())

@@ -30,7 +30,8 @@ class VisualTerrainCallback : public TerrainCallback {
 
     void initialize();
 
-    Mesh* loadMesh(ID3D11DeviceContext* context, MeshPool* pool);
+    std::shared_ptr<Mesh> loadMesh(ID3D11DeviceContext* context,
+                                   MeshPool* pool);
     bool isDirty();
 
     void reloadTerrainData(const TerrainChunk* chunk_data);

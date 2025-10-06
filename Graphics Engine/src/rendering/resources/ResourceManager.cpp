@@ -73,6 +73,7 @@ void ResourceManager::initializeResources() {
     color_atlas = std::unique_ptr<TextureAtlas>(atlas_builder.generate(device));
 
     mesh_pools[MeshPoolType_Default]->createGPUResources(device);
+    mesh_pools[MeshPoolType_Default]->updateGPUResources(context);
 }
 
 // RegisterAsset:
