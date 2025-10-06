@@ -70,7 +70,7 @@ Asset* GLTFFile::readFromFile(MeshBuilder& mesh_builder,
 
     // Parse my GLTF file
     cgltf_result result = cgltf_parse_file(&options, path.c_str(), &data);
-    
+
     if (result != cgltf_result_success)
         return nullptr;
 
@@ -183,12 +183,8 @@ Asset* GLTFFile::readFromFile(MeshBuilder& mesh_builder,
                               tex_builder);
 
                 // Register mesh under the asset
-                // TESTING: Using 1 pool to hold all GLTF meshes to see if this
-                // works
-                static MeshPool* pool =
-                    new MeshPool(device, 0xFFFF, 100000, 100000);
-                Mesh* generated_mesh =
-                    mesh_builder.generateMesh(context, pool, material);
+                std::shared_ptr<Mesh> generated_mesh =
+                    mesh_builder.generateMesh(context);
                 asset->addMesh(generated_mesh);
             }
         }

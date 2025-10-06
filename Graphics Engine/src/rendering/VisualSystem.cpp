@@ -127,6 +127,8 @@ VisualSystem::VisualSystem(HWND window) {
     light_manager = new LightManager(device, 4096);
 
     test_tex = resource_manager->LoadTextureFromFile("png.png");
+
+    pass_terrain = std::make_unique<RenderPassTerrain>(device);
 }
 
 // --- Component Bindings ---
@@ -240,7 +242,7 @@ void VisualSystem::pullSceneData(Scene* scene) {
         if (terrain == nullptr)
             terrain = new VisualTerrain(scene_terrain, device);
 
-        terrain->pullTerrainMeshes(context);
+        terrain->pullTerrainMeshes(context, *pass_terrain);
     }
 
     // Pull my object data.
@@ -261,10 +263,9 @@ void VisualSystem::pullSceneData(Scene* scene) {
         if (asset->isSkinned())
             asset->applyAnimationAtTime(1, cache->time);
 
-        const std::vector<Mesh*>& meshes = asset->getMeshes();
-        for (const Mesh* mesh : meshes) {
+        for (const auto& mesh : asset->getMeshes()) {
             ShadowCaster shadowCaster;
-            shadowCaster.mesh = mesh;
+            shadowCaster.mesh = mesh.get();
             shadowCaster.m_localToWorld = object->getObject()->getLocalMatrix();
             light_manager->addShadowCaster(shadowCaster);
         }
@@ -423,15 +424,15 @@ void VisualSystem::performTerrainPass() {
 
     context->IASetIndexBuffer(NULL, DXGI_FORMAT_R32_UINT, 0);
 
-    terrain->getDescriptorSB().VSBindResource(context, 0);
-    terrain->getIndexSB().VSBindResource(context, 1);
-    terrain->getPositionSB().VSBindResource(context, 2);
-    terrain->getNormalSB().VSBindResource(context, 3);
+    pass_terrain->sb_chunks.VSBindResource(context, 0);
+    pass_terrain->sb_indices.VSBindResource(context, 1);
+    pass_terrain->sb_positions.VSBindResource(context, 2);
+    pass_terrain->sb_normals.VSBindResource(context, 3);
 
     // We draw instanced without indices, so the index buffer has no influence
     // on the final result.
-    const int num_chunks = terrain->getActiveChunkCount();
-    const int max_tris = terrain->getMaxChunkTriangleCount();
+    const int num_chunks = pass_terrain->num_active_chunks;
+    const int max_tris = pass_terrain->max_chunk_triangles;
     context->DrawInstanced(max_tris * 3, num_chunks, 0, 0);
 }
 
@@ -465,14 +466,13 @@ void VisualSystem::performRenderPass() {
     // Testing for animations
     for (const AssetComponent* comp : asset_components) {
         const Asset* asset = comp->getAsset();
-        const std::vector<Mesh*>& meshes = asset->getMeshes();
 
         if (asset->isSkinned()) {
             pipeline->bindVertexShader("SkinnedMesh");
         } else
             pipeline->bindVertexShader("TexturedMesh");
 
-        for (const Mesh* mesh : meshes) {
+        for (const auto& mesh : asset->getMeshes()) {
 
             const Material mat = mesh->material;
 
@@ -522,7 +522,7 @@ void VisualSystem::performRenderPass() {
             }
 
             // Draw each mesh
-            pipeline->drawMesh(mesh, INDEX_LIST_START, INDEX_LIST_END, 1);
+            pipeline->drawMesh(mesh.get(), INDEX_LIST_START, INDEX_LIST_END, 1);
         }
     }
 }

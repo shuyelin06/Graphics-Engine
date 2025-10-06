@@ -18,14 +18,7 @@ VisualTerrain::VisualTerrain(Terrain* _terrain, ID3D11Device* device)
     // the number of draw calls we make. Empirical testing has shown that
     // 300,000 vertices, 200,000 indices is enough.
     uint16_t layout = (1 << POSITION) | (1 << NORMAL);
-    mesh_pool = new MeshPool(device, layout, 200000, 300000);
-
-    sb_descriptors.initialize(device, TERRAIN_CHUNK_COUNT *
-                                          TERRAIN_CHUNK_COUNT *
-                                          TERRAIN_CHUNK_COUNT);
-    sb_indices.initialize(device, 200000 * 3);
-    sb_positions.initialize(device, 300000);
-    sb_normals.initialize(device, 300000);
+    mesh_pool = new MeshPool(layout, 200000, 300000);
 
     // Set all current chunk_meshes to null, and initialize my terrain
     // callbacks.
@@ -51,7 +44,8 @@ VisualTerrain::~VisualTerrain() = default;
 
 // GenerateTerrainMesh:
 // Generates the mesh for the terrain
-void VisualTerrain::pullTerrainMeshes(ID3D11DeviceContext* context) {
+void VisualTerrain::pullTerrainMeshes(ID3D11DeviceContext* context,
+                                      RenderPassTerrain& pass_terrain) {
     // Iterate through my callbacks. If they have a mesh, overwrite what we
     // currently have.
     bool dirty = false;
@@ -81,9 +75,9 @@ void VisualTerrain::pullTerrainMeshes(ID3D11DeviceContext* context) {
     // Upload my data to the structured buffers
     std::vector<TBChunkDescriptor> descriptors;
 
-    num_active_chunks = mesh_pool->meshes.value().size();
-    max_chunk_triangles = 0;
-    for (Mesh* mesh : mesh_pool->meshes.value()) {
+    pass_terrain.num_active_chunks = mesh_pool->meshes.size();
+    pass_terrain.max_chunk_triangles = 0;
+    for (std::shared_ptr<Mesh>& mesh : mesh_pool->meshes) {
         TBChunkDescriptor desc;
         desc.index_start = mesh->triangle_start * 3;
         desc.index_count = mesh->num_triangles * 3;
@@ -91,39 +85,23 @@ void VisualTerrain::pullTerrainMeshes(ID3D11DeviceContext* context) {
         desc.vertex_count = mesh->num_vertices;
         descriptors.push_back(desc);
 
-        max_chunk_triangles = max(max_chunk_triangles, mesh->num_triangles);
+        pass_terrain.max_chunk_triangles =
+            max(pass_terrain.max_chunk_triangles, mesh->num_triangles);
     }
 
-    sb_descriptors.uploadData(context, descriptors.data(), descriptors.size());
-    sb_indices.uploadData(context, mesh_pool->cpu_ibuffer,
-                          mesh_pool->triangle_size * 3);
-    sb_positions.uploadData(context, mesh_pool->cpu_vbuffers[POSITION],
-                            mesh_pool->vertex_size);
-    sb_normals.uploadData(context, mesh_pool->cpu_vbuffers[NORMAL],
-                          mesh_pool->vertex_size);
+    pass_terrain.sb_chunks.uploadData(context, descriptors.data(),
+                                      descriptors.size());
+    pass_terrain.sb_indices.uploadData(context, mesh_pool->cpu_ibuffer.get(),
+                                       mesh_pool->triangle_size * 3);
+    pass_terrain.sb_positions.uploadData(
+        context, mesh_pool->cpu_vbuffers[POSITION].get(),
+        mesh_pool->vertex_size);
+    pass_terrain.sb_normals.uploadData(
+        context, mesh_pool->cpu_vbuffers[NORMAL].get(), mesh_pool->vertex_size);
 }
 
 // --- Accessors ---
 float VisualTerrain::getSurfaceLevel() const { return surface_level; }
-
-// Returns the chunk meshes
-const StructuredBuffer<TBChunkDescriptor>&
-VisualTerrain::getDescriptorSB() const {
-    return sb_descriptors;
-}
-const StructuredBuffer<unsigned int>& VisualTerrain::getIndexSB() const {
-    return sb_indices;
-}
-const StructuredBuffer<Vector3>& VisualTerrain::getPositionSB() const {
-    return sb_positions;
-}
-const StructuredBuffer<Vector3>& VisualTerrain::getNormalSB() const {
-    return sb_normals;
-}
-int VisualTerrain::getActiveChunkCount() const { return num_active_chunks; }
-int VisualTerrain::getMaxChunkTriangleCount() const {
-    return max_chunk_triangles;
-}
 
 // Returns the water surface mesh
 const WaterSurface* VisualTerrain::getWaterSurface() const {

@@ -10,6 +10,7 @@
 
 #include "datamodel/SceneGraph.h"
 
+#include "RenderPass.h"
 #include "lights/LightManager.h"
 #include "pipeline/PipelineManager.h"
 #include "resources/ResourceManager.h"
@@ -35,6 +36,12 @@ using namespace Datamodel;
 
 namespace Graphics {
 
+enum RenderPass {
+    RenderPass_Shadows,
+    RenderPass_Terrain,
+    RenderPass_Default,
+};
+
 // VisualParameters Struct:
 // Stores configuration parameters toggleable by the user
 struct VisualParameters;
@@ -45,6 +52,8 @@ struct VisualCache;
 
 // VisualSystem Class:
 // Provides an interface for the application's graphics.
+// VisualSystem is in charge of the different rendering passes;
+// pipeline provides a convenient interface for some functionality.
 class VisualSystem {
   private:
     // Configuration + Cache
@@ -64,13 +73,17 @@ class VisualSystem {
     std::unique_ptr<Camera> camera;
     std::vector<AssetComponent*> asset_components;
     VisualTerrain* terrain;
-    
+
     // Temp for now; should be moved later.
     ID3D11RasterizerState* og_rast_state;
     ID3D11RasterizerState* rast_state;
     Texture* bump_tex;
 
     std::shared_ptr<Texture> test_tex;
+
+    // Render Pass Information;
+    // This should be populated by the VisualSystem's subsystems
+    std::unique_ptr<RenderPassTerrain> pass_terrain;
 
   public:
     VisualSystem(HWND window);

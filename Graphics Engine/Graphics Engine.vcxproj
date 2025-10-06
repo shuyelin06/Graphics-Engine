@@ -181,6 +181,7 @@
     <ClCompile Include="src\core\ThreadPool.cpp" />
     <ClCompile Include="src\physics\PhysicsTerrain.cpp" />
     <ClCompile Include="src\rendering\core\VertexStreamIDs.cpp" />
+    <ClCompile Include="src\rendering\RenderPass.cpp" />
     <ClCompile Include="src\rendering\resources\BumpMapBuilder.cpp" />
     <ClCompile Include="src\rendering\pipeline\ConstantBuffer.cpp" />
     <ClCompile Include="src\rendering\resources\FileReader.cpp" />
@@ -262,9 +263,11 @@
     <ClInclude Include="src\datamodel\objects\DMLight.h" />
     <ClInclude Include="src\datamodel\objects\DMPhysics.h" />
     <ClInclude Include="src\datamodel\terrain\TerrainCallback.h" />
+    <ClInclude Include="src\datamodel\terrain\TerrainConfig.h" />
     <ClInclude Include="src\GlobalConfig.h" />
     <ClInclude Include="src\physics\PhysicsTerrain.h" />
     <ClInclude Include="src\rendering\lights\LightDataGPU.h" />
+    <ClInclude Include="src\rendering\RenderPass.h" />
     <ClInclude Include="src\rendering\resources\BumpMapBuilder.h" />
     <ClInclude Include="src\rendering\pipeline\ConstantBuffer.h" />
     <ClInclude Include="src\rendering\pipeline\StructuredBuffer.h" />

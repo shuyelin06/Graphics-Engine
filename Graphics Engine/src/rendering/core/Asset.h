@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -55,12 +56,19 @@ struct MeshPool {
     MeshPool();
 
   public:
+    // Meshes Allocated to this Pool.
+    // This pool is in charge of deallocating them.
+    std::vector<std::shared_ptr<Mesh>> meshes;
     // Layout, i.e. the streams that the pool stores
     uint16_t layout;
-    // Tracks whether or not the buffers are mappable
-    bool mappable;
 
-    // Index / Vertex Buffers
+    // CPU-Side Buffers for the Pool.
+    std::unique_ptr<uint8_t[]> cpu_ibuffer;
+    std::unique_ptr<uint8_t[]> cpu_vbuffers[BINDABLE_STREAM_COUNT];
+
+    // GPU-Side Index / Vertex Buffers
+    bool has_gpu_resources;
+
     ID3D11Buffer* ibuffer;
     uint32_t triangle_size;     // # Tris Currently in the Buffer
     uint32_t triangle_capacity; // # Tris the Buffer can Hold
@@ -69,24 +77,16 @@ struct MeshPool {
     uint32_t vertex_size;     // # Vertices Currently in the Buffer
     uint32_t vertex_capacity; // # Vertices the Buffer can Hold
 
-    // CPU-Side buffers, for the clean and compact operation.
-    // Only allocated if mappable == true
-    // Tracks the Meshes Allocated to this Pool.
-    std::optional<std::vector<Mesh*>> meshes;
-
-    uint8_t* cpu_ibuffer;
-    uint8_t* cpu_vbuffers[BINDABLE_STREAM_COUNT];
-
   public:
-    MeshPool(ID3D11Device* device, uint16_t layout, uint32_t triangle_max,
-             uint32_t vertex_max);
+    MeshPool(uint16_t layout, uint32_t triangle_max, uint32_t vertex_max);
     ~MeshPool();
 
-    // Only possible if mappable == true.
-    // Iterates through the meshes allocated to this pool, and compacts them
-    // to remove fragmentation.
-    // First call cleanAndCompact(), then upload this new data to the GPU
+    // Cleans and compacts the GPU-side data.
     void cleanAndCompact();
+
+    // Works with the GPU resources.
+    // To update, you must have created the GPU resources first.
+    void createGPUResources(ID3D11Device* device);
     void updateGPUResources(ID3D11DeviceContext* context);
 };
 
@@ -223,7 +223,7 @@ class Asset {
   private:
     // Meshes that the asset is made up of. A mesh defines a renderable
     // collection of triangles in the asset.
-    std::vector<Mesh*> meshes;
+    std::vector<std::shared_ptr<Mesh>> meshes;
 
     // Nodes in the asset. Allows mesh skinning and animations.
     std::vector<Node*> nodes;
@@ -244,7 +244,7 @@ class Asset {
     // returned.
     void addSkinJoint(const Node* node, const Matrix4& m_inverse_bind);
 
-    UINT addMesh(Mesh* mesh);
+    UINT addMesh(std::shared_ptr<Mesh>& mesh);
     UINT addNode(Node* node);
     UINT addAnimation(Animation* animation);
 
@@ -254,7 +254,7 @@ class Asset {
 
     // Asset Accessing.
     // Retrieve data from the asset for rendering
-    const std::vector<Mesh*>& getMeshes() const;
+    const std::vector<std::shared_ptr<Mesh>>& getMeshes() const;
     const Mesh* getMesh(UINT index) const;
 
     const std::vector<Node*>& getNodes() const;

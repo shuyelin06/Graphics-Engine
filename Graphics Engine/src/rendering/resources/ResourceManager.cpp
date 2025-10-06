@@ -40,11 +40,14 @@ ResourceManager::~ResourceManager() = default;
 // Initialize:
 // Loads assets into the asset manager.
 void ResourceManager::initializeResources() {
+    mesh_pools[MeshPoolType_Default] =
+        std::make_unique<MeshPool>(0xFFFF, 100000, 100000);
+
     // Stores an atlas of material colors to avoid the need for rebinds later
     AtlasBuilder atlas_builder = AtlasBuilder(4096, 4096);
 
     // --- Load Assets Here ---
-    LoadCube();
+    LoadCubeAsset();
 
     // Currently supported: GLTF
 
@@ -67,14 +70,19 @@ void ResourceManager::initializeResources() {
     // Tree
     LoadAssetFromGLTF("Tree", "data/Tree.glb", atlas_builder);
 
-    color_atlas = atlas_builder.generate(device);
+    color_atlas = std::unique_ptr<TextureAtlas>(atlas_builder.generate(device));
+
+    mesh_pools[MeshPoolType_Default]->createGPUResources(device);
 }
 
-uint16_t ResourceManager::registerAsset(const std::string& name, Asset* asset) {
+// RegisterAsset:
+// Registers an asset by name, and returns it's ID
+uint16_t ResourceManager::registerAsset(const std::string& name,
+                                        std::unique_ptr<Asset>& asset) {
     const uint16_t id = (uint16_t)assets.size();
 
     asset_map[name] = id;
-    assets.push_back(asset);
+    assets.emplace_back(std::move(asset));
 
     return id;
 }
@@ -88,7 +96,7 @@ Asset* ResourceManager::getAsset(const std::string& name) {
         return nullptr;
 }
 
-Asset* ResourceManager::getAsset(uint16_t id) { return assets[id]; }
+Asset* ResourceManager::getAsset(uint16_t id) { return assets[id].get(); }
 
 const Texture* ResourceManager::getColorAtlas() {
     return color_atlas->getTexture();
@@ -96,19 +104,19 @@ const Texture* ResourceManager::getColorAtlas() {
 
 // LoadAssetFromGLTF:
 // Uses the GLTFFile interface to load an asset from a GLTF file
-bool ResourceManager::LoadAssetFromGLTF(const std::string& asset_name,
+void ResourceManager::LoadAssetFromGLTF(const std::string& asset_name,
                                         const std::string& path,
                                         AtlasBuilder& tex_builder) {
-    MeshBuilder mesh_builder = MeshBuilder();
+    std::shared_ptr<MeshBuilder> mesh_builder =
+        createMeshBuilder(MeshPoolType_Default);
     GLTFFile gltf_file = GLTFFile(path);
-    Asset* asset =
-        gltf_file.readFromFile(mesh_builder, tex_builder, device, context);
+    std::unique_ptr<Asset> asset = std::unique_ptr<Asset>(
+        gltf_file.readFromFile(*mesh_builder, tex_builder, device, context));
 
-    if (asset != nullptr) {
+    if (asset != nullptr)
         registerAsset(asset_name, asset);
-        return true;
-    } else
-        return false;
+    else
+        assert(false);
 }
 
 // LoadTexture:
@@ -146,6 +154,11 @@ ResourceManager::LoadTextureFromFile(const std::string& relative_path) {
     return textures.back();
 }
 
+std::shared_ptr<MeshBuilder>
+ResourceManager::createMeshBuilder(MeshPoolType pool_type) {
+    return std::make_shared<MeshBuilder>(mesh_pools[pool_type].get());
+}
+
 // WriteTextureToPNG:
 // Uses the PNGFile interface to write a texture to a PNG file
 bool ResourceManager::WriteTextureToPNG(ID3D11Texture2D* texture,
@@ -156,16 +169,17 @@ bool ResourceManager::WriteTextureToPNG(ID3D11Texture2D* texture,
 
 // Hard-Coded Cube Creator
 // Used in debugging
-bool ResourceManager::LoadCube() {
-    MeshBuilder builder = MeshBuilder();
-    builder.addLayout(POSITION);
+void ResourceManager::LoadCubeAsset() {
+    std::shared_ptr<MeshBuilder> builder =
+        createMeshBuilder(MeshPoolType_Default);
+    builder->addLayout(POSITION);
+    builder->addCube(Vector3(0, 0, 0), Quaternion(), 1.f);
+    std::shared_ptr<Mesh> mesh = builder->generateMesh(context);
 
-    builder.addCube(Vector3(0, 0, 0), Quaternion(), 1.f);
+    std::unique_ptr<Asset> cube = std::make_unique<Asset>();
+    cube->addMesh(mesh);
 
-    Asset* cube = new Asset();
-    cube->addMesh(builder.generateMesh(device));
-
-    return registerAsset("Cube", cube);
+    registerAsset("Cube", cube);
 }
 
 } // namespace Graphics

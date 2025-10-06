@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -47,12 +48,16 @@ struct MeshTriangle {
 
 class MeshBuilder {
   private:
+    MeshPool* target_pool;
+
     uint16_t layout;
 
     std::vector<MeshVertex> vertex_buffer;
     std::vector<MeshTriangle> index_buffer;
 
   public:
+    MeshBuilder(MeshPool* pool);
+
     MeshBuilder();
     MeshBuilder(const MeshBuilder& builder);
     ~MeshBuilder();
@@ -66,6 +71,9 @@ class MeshBuilder {
     Mesh* generateMesh(ID3D11DeviceContext* context, MeshPool* buffer_pool);
     Mesh* generateMesh(ID3D11DeviceContext* context, MeshPool* buffer_pool,
                        const Material& material);
+
+    // NEW-- DEPRECATE THE ABOVE
+    std::shared_ptr<Mesh> generateMesh(ID3D11DeviceContext* context);
 
     const std::vector<MeshVertex>& getVertices() const;
     const std::vector<MeshTriangle>& getIndices() const;
