@@ -35,9 +35,11 @@ struct IndexPair {
 // These requirements make it really convenient to render this mesh with
 // instancing. Width determines how many tiles this LOD layer will have before
 // transitioning to the next. The larger the width, the larger an LOD will be.
-void WaterSurface::generateSurfaceMesh(ID3D11Device* device, int width) {
+void WaterSurface::generateSurfaceMesh(std::shared_ptr<MeshBuilder> builder_ptr,
+                                       ID3D11DeviceContext* context,
+                                       int width) {
 
-    MeshBuilder builder = MeshBuilder();
+    MeshBuilder& builder = *builder_ptr;
     builder.addLayout(POSITION);
 
     // Saves how many of the initial triangles belong to the inner mesh that
@@ -276,7 +278,7 @@ void WaterSurface::generateSurfaceMesh(ID3D11Device* device, int width) {
         }
     }
 
-    surface_mesh = builder.generateMesh(device);
+    surface_mesh = builder.generateMesh(context);
 }
 
 void WaterSurface::addQuad(MeshBuilder& builder, UINT a, UINT b, UINT c,
@@ -312,7 +314,7 @@ void WaterSurface::generateWaveConfig(int wave_count) {
 
 // --- Accessors ---
 // GetSurfaceMesh:
-const Mesh* WaterSurface::getSurfaceMesh() const { return surface_mesh; }
+const Mesh* WaterSurface::getSurfaceMesh() const { return surface_mesh.get(); }
 int WaterSurface::getNumInnerTriangles() const { return num_inner_tri; }
 
 // GetNumWaves:

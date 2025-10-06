@@ -1,7 +1,7 @@
 #pragma once
 
-#include <unordered_map>
 #include <memory>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -57,22 +57,17 @@ class MeshBuilder {
 
   public:
     MeshBuilder(MeshPool* pool);
-
-    MeshBuilder();
     MeshBuilder(const MeshBuilder& builder);
     ~MeshBuilder();
 
     // Generates the mesh for use in the rendering pipeline.
     // If no buffer_pool is provided, the builder will generate one for this
     // mesh.
-    Mesh* generateMesh(ID3D11Device* device);
-    Mesh* generateMesh(ID3D11Device* device, const Material& material);
-
     std::shared_ptr<Mesh> generateMesh(ID3D11DeviceContext* context,
                                        MeshPool* buffer_pool);
     std::shared_ptr<Mesh> generateMesh(ID3D11DeviceContext* context,
                                        MeshPool* buffer_pool,
-                       const Material& material);
+                                       const Material& material);
 
     // NEW-- DEPRECATE THE ABOVE
     std::shared_ptr<Mesh> generateMesh(ID3D11DeviceContext* context);
@@ -114,8 +109,6 @@ class MeshBuilder {
     void reset();
 
   private:
-    ID3D11Buffer* createVertexStream(void* (*addressor)(MeshVertex&),
-                                     UINT byte_size, ID3D11Device* device);
     void uploadVertexData(ID3D11DeviceContext* context, ID3D11Buffer* buffer,
                           UINT buffer_size, void* (*addressor)(MeshVertex&),
                           UINT byte_size);

@@ -11,14 +11,10 @@ namespace Engine {
 using namespace Datamodel;
 
 namespace Graphics {
-VisualTerrain::VisualTerrain(Terrain* _terrain, ID3D11Device* device)
+VisualTerrain::VisualTerrain(Terrain* _terrain, ID3D11DeviceContext* context,
+                             ResourceManager& resource_manager)
     : terrain(_terrain), callbacks() {
-    // Initialize our buffer pools and structured buffers. This will consolidate
-    // our mesh data to dramatically reduce
-    // the number of draw calls we make. Empirical testing has shown that
-    // 300,000 vertices, 200,000 indices is enough.
-    uint16_t layout = (1 << POSITION) | (1 << NORMAL);
-    mesh_pool = new MeshPool(layout, 200000, 300000);
+    mesh_pool = resource_manager.getMeshPool(MeshPoolType_Terrain);
 
     // Set all current chunk_meshes to null, and initialize my terrain
     // callbacks.
@@ -27,15 +23,18 @@ VisualTerrain::VisualTerrain(Terrain* _terrain, ID3D11Device* device)
             for (int k = 0; k < TERRAIN_CHUNK_COUNT; k++) {
                 meshes[i][j][k] = nullptr;
 
-                callbacks[i][j][k].initialize();
-                terrain->registerTerrainCallback(i, j, k, &callbacks[i][j][k]);
+                callbacks[i][j][k] =
+                    std::make_unique<VisualTerrainCallback>(mesh_pool);
+                terrain->registerTerrainCallback(i, j, k,
+                                                 callbacks[i][j][k].get());
             }
         }
     }
 
     // Initialize my water surface mesh.
     water_surface = new WaterSurface();
-    water_surface->generateSurfaceMesh(device, 15);
+    water_surface->generateSurfaceMesh(
+        resource_manager.createMeshBuilder(MeshPoolType_Default), context, 15);
     water_surface->generateWaveConfig(14);
 
     surface_level = 0.f;
@@ -44,8 +43,8 @@ VisualTerrain::~VisualTerrain() = default;
 
 // GenerateTerrainMesh:
 // Generates the mesh for the terrain
-void VisualTerrain::updateAndUploadTerrainData(ID3D11DeviceContext* context,
-                                      RenderPassTerrain& pass_terrain) {
+void VisualTerrain::updateAndUploadTerrainData(
+    ID3D11DeviceContext* context, RenderPassTerrain& pass_terrain) {
     // Iterate through my callbacks. If they have a mesh, overwrite what we
     // currently have.
     bool dirty = false;
@@ -53,11 +52,11 @@ void VisualTerrain::updateAndUploadTerrainData(ID3D11DeviceContext* context,
     for (int i = 0; i < TERRAIN_CHUNK_COUNT; i++) {
         for (int j = 0; j < TERRAIN_CHUNK_COUNT; j++) {
             for (int k = 0; k < TERRAIN_CHUNK_COUNT; k++) {
-                VisualTerrainCallback& callback = callbacks[i][j][k];
+                VisualTerrainCallback& callback = *callbacks[i][j][k];
 
                 if (callback.isDirty()) {
                     dirty = true;
-                    meshes[i][j][k] = callback.loadMesh(context, mesh_pool);
+                    meshes[i][j][k] = callback.loadMesh(context);
                 }
             }
         }

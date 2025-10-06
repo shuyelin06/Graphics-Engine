@@ -19,7 +19,7 @@ class WaterSurface {
   private:
     float size;
 
-    Mesh* surface_mesh;
+    std::shared_ptr<Mesh> surface_mesh;
     int num_inner_tri;
 
     int num_waves;
@@ -29,7 +29,8 @@ class WaterSurface {
     WaterSurface();
     ~WaterSurface();
 
-    void generateSurfaceMesh(ID3D11Device* device, int lod_width);
+    void generateSurfaceMesh(std::shared_ptr<MeshBuilder> builder_ptr,
+                             ID3D11DeviceContext* context, int width);
     void generateWaveConfig(int wave_count);
 
     const Mesh* getSurfaceMesh() const;

@@ -15,9 +15,11 @@ namespace Engine {
 namespace Graphics {
 
 enum MeshPoolType {
+    MeshPoolType_Terrain,
     MeshPoolType_Default,
     MeshPoolType_Count,
 };
+
 // ResourceManager Class:
 // Manages assets for the engine. Provides methods
 // to load assets, and prepare them for rendering.
@@ -52,7 +54,8 @@ class ResourceManager {
     LoadTextureFromFile(const std::string& relative_path);
 
     std::shared_ptr<MeshBuilder> createMeshBuilder(MeshPoolType pool_type);
-    
+    MeshPool* getMeshPool(MeshPoolType pool_type);
+
   private:
     // Asset Generation
     uint16_t registerAsset(const std::string& name,

@@ -26,12 +26,9 @@ class VisualTerrainCallback : public TerrainCallback {
     std::mutex mutex;
 
   public:
-    VisualTerrainCallback();
+    VisualTerrainCallback(MeshPool* pool);
 
-    void initialize();
-
-    std::shared_ptr<Mesh> loadMesh(ID3D11DeviceContext* context,
-                                   MeshPool* pool);
+    std::shared_ptr<Mesh> loadMesh(ID3D11DeviceContext* context);
     bool isDirty();
 
     void reloadTerrainData(const TerrainChunk* chunk_data);

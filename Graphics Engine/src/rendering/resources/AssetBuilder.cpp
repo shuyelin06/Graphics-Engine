@@ -68,7 +68,6 @@ MeshBuilder::MeshBuilder(MeshPool* pool) : vertex_buffer(), index_buffer() {
     target_pool = pool;
     layout = 0;
 }
-MeshBuilder::MeshBuilder() : vertex_buffer(), index_buffer() { layout = 0; }
 MeshBuilder::MeshBuilder(const MeshBuilder& builder) {
     vertex_buffer = builder.vertex_buffer;
     index_buffer = builder.index_buffer;
@@ -78,101 +77,8 @@ MeshBuilder::MeshBuilder(const MeshBuilder& builder) {
 MeshBuilder::~MeshBuilder() = default;
 
 // Generate:
-// Generates the index and vertex buffer resources for the mesh.
-// With only the device, the builder will generate an independent
-// MeshPool that cannot be mapped.
-Mesh* MeshBuilder::generateMesh(ID3D11Device* device) {
-    return generateMesh(device, Material());
-}
-
-Mesh* MeshBuilder::generateMesh(ID3D11Device* device,
-                                const Material& material) {
-    if (index_buffer.size() == 0 || vertex_buffer.size() == 0)
-        return nullptr;
-
-    // Create my pool
-    MeshPool* pool = new MeshPool();
-    pool->layout = layout;
-    pool->vertex_size = pool->vertex_capacity = vertex_buffer.size();
-    pool->triangle_size = pool->triangle_capacity = index_buffer.size();
-
-    // Create index buffer
-    D3D11_BUFFER_DESC buff_desc = {};
-    D3D11_SUBRESOURCE_DATA sr_data = {0};
-
-    buff_desc.ByteWidth = sizeof(MeshTriangle) * index_buffer.size();
-    buff_desc.Usage = D3D11_USAGE_DEFAULT;
-    buff_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-
-    sr_data.pSysMem = (void*)index_buffer.data();
-
-    device->CreateBuffer(&buff_desc, &sr_data, &(pool->ibuffer));
-    assert(pool->ibuffer != nullptr);
-
-    // Create each of my vertex streams
-    for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
-        if (LayoutPinHas(pool->layout, i)) {
-            pool->vbuffers[i] = createVertexStream(
-                VertexAddressors[i], StreamVertexStride(i), device);
-        }
-    }
-
-    // Create my mesh
-    Mesh* mesh = new Mesh(pool);
-    mesh->layout = layout;
-    mesh->vertex_start = 0;
-    mesh->num_vertices = vertex_buffer.size();
-    mesh->triangle_start = 0;
-    mesh->num_triangles = index_buffer.size();
-
-    for (const MeshVertex& vertex : vertex_buffer)
-        mesh->aabb.expandToContain(vertex.position);
-
-    mesh->material = material;
-
-    return mesh;
-}
-
-// CreateVertexStream:
-// Creates a vertex stream for some data extracted from the MeshVertex.
-// Builds this by using a function that, given the MeshVertex, writes
-// element_size bytes of data to output (assumed to be the same size). This
-// function could extract position, normals, or a combination of data.
-ID3D11Buffer* MeshBuilder::createVertexStream(void* (*addressor)(MeshVertex&),
-                                              UINT byte_size,
-                                              ID3D11Device* device) {
-    const UINT NUM_VERTICES = vertex_buffer.size();
-
-    // Iterate through each vertex, and extract the data from it.
-    // Write this data to a vector which we will use to generate our vertex
-    // stream.
-    std::vector<uint8_t> stream_data;
-    stream_data.resize(NUM_VERTICES * byte_size);
-
-    for (int i = 0; i < vertex_buffer.size(); i++) {
-        // Copy my data to the stream
-        void* address = (*addressor)(vertex_buffer[i]);
-        memcpy(&stream_data[i * byte_size], address, byte_size);
-    }
-
-    // Generate a buffer for this data stream
-    ID3D11Buffer* buffer_handle = NULL;
-
-    D3D11_BUFFER_DESC buff_desc = {};
-    D3D11_SUBRESOURCE_DATA sr_data = {0};
-
-    buff_desc.ByteWidth = NUM_VERTICES * byte_size;
-    buff_desc.Usage = D3D11_USAGE_DEFAULT;
-    buff_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
-    sr_data.pSysMem = (void*)stream_data.data();
-
-    device->CreateBuffer(&buff_desc, &sr_data, &buffer_handle);
-    assert(buffer_handle != nullptr);
-
-    return buffer_handle;
-}
-
+// Generates the index and vertex buffer resources for the mesh. These resources are
+// written to a MeshPool.
 std::shared_ptr<Mesh> MeshBuilder::generateMesh(ID3D11DeviceContext* context) {
     return std::shared_ptr<Mesh>(generateMesh(context, target_pool));
 }

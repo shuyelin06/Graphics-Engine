@@ -40,6 +40,10 @@ ResourceManager::~ResourceManager() = default;
 // Initialize:
 // Loads assets into the asset manager.
 void ResourceManager::initializeResources() {
+    //  Empirical testing has shown that
+    // 300,000 vertices, 200,000 indices is enough
+    mesh_pools[MeshPoolType_Terrain] = std::make_unique<MeshPool>(
+        (1 << POSITION) | (1 << NORMAL), 200000, 300000);
     mesh_pools[MeshPoolType_Default] =
         std::make_unique<MeshPool>(0xFFFF, 100000, 100000);
 
@@ -158,6 +162,10 @@ ResourceManager::LoadTextureFromFile(const std::string& relative_path) {
 std::shared_ptr<MeshBuilder>
 ResourceManager::createMeshBuilder(MeshPoolType pool_type) {
     return std::make_shared<MeshBuilder>(mesh_pools[pool_type].get());
+}
+
+MeshPool* ResourceManager::getMeshPool(MeshPoolType pool_type) {
+    return mesh_pools[pool_type].get();
 }
 
 // WriteTextureToPNG:

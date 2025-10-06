@@ -248,7 +248,7 @@ void VisualSystem::pullSceneData(Scene* scene) {
         }
     } else {
         if (terrain == nullptr)
-            terrain = new VisualTerrain(scene_terrain, device);
+            terrain = new VisualTerrain(scene_terrain, context, *resource_manager);
 
         terrain->updateAndUploadTerrainData(context, *pass_terrain);
     }
