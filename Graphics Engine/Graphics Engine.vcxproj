@@ -220,7 +220,7 @@
     <ClCompile Include="src\rendering\core\Asset.cpp" />
     <ClCompile Include="src\rendering\core\AssetComponent.cpp" />
     <ClCompile Include="src\rendering\lights\LightManager.cpp" />
-    <ClCompile Include="src\rendering\resources\AssetBuilder.cpp" />
+    <ClCompile Include="src\rendering\resources\MeshBuilder.cpp" />
     <ClCompile Include="src\rendering\core\Camera.cpp" />
     <ClCompile Include="src\rendering\lights\Light.cpp" />
     <ClCompile Include="src\rendering\resources\ResourceManager.cpp" />
@@ -324,7 +324,7 @@
     <ClInclude Include="src\math\Matrix4.h" />
     <ClInclude Include="src\math\Vector4.h" />
     <ClInclude Include="src\rendering\core\Asset.h" />
-    <ClInclude Include="src\rendering\resources\AssetBuilder.h" />
+    <ClInclude Include="src\rendering\resources\MeshBuilder.h" />
     <ClInclude Include="src\rendering\core\Camera.h" />
     <ClInclude Include="src\rendering\lights\Light.h" />
     <ClInclude Include="src\rendering\resources\ResourceManager.h" />

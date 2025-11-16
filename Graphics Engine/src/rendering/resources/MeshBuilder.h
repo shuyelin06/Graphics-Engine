@@ -29,12 +29,7 @@ struct MeshVertex {
     MeshVertex(const Vector3& position, const Color& color);
     MeshVertex(const MeshVertex& vertex);
 
-    static void* AddressPosition(MeshVertex& vertex);
-    static void* AddressTexture(MeshVertex& vertex);
-    static void* AddressNormal(MeshVertex& vertex);
-    static void* AddressColor(MeshVertex& vertex);
-    static void* AddressJoints(MeshVertex& vertex);
-    static void* AddressWeights(MeshVertex& vertex);
+    void* GetAddressOf(VertexDataStream bindable_stream);
 };
 
 struct MeshTriangle {

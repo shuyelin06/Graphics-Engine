@@ -5,7 +5,7 @@
 #include "../RenderPass.h"
 #include "../core/Asset.h"
 #include "../pipeline/StructuredBuffer.h"
-#include "../resources/AssetBuilder.h"
+#include "../resources/MeshBuilder.h"
 #include "../resources/ResourceManager.h"
 #include "VisualTerrainCallback.h"
 #include "WaterSurface.h"

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../resources/AssetBuilder.h"
+#include "../resources/MeshBuilder.h"
 
 namespace Engine {
 namespace Graphics {

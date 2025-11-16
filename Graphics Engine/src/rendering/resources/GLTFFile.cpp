@@ -41,7 +41,7 @@ static void ParseAccessor(const cgltf_accessor* accessor,
 }
 
 static void ParseVertexProperty(const cgltf_accessor* accessor,
-                                void* (*addressor)(MeshVertex&),
+                                VertexDataStream dataStream,
                                 size_t byte_size,
                                 std::vector<MeshVertex>& output) {
     const cgltf_buffer_view* view = accessor->buffer_view;
@@ -55,7 +55,7 @@ static void ParseVertexProperty(const cgltf_accessor* accessor,
 
     for (int i = 0; i < num_elements; i++) {
         // Compute address of the current mesh vertex's property
-        void* address = (*addressor)(output[i]);
+        void* address = output[i].GetAddressOf(dataStream);
 
         // Write X bytes to this property
         memcpy(address, buffer + byte_size * i, byte_size);
@@ -122,22 +122,19 @@ Asset* GLTFFile::readFromFile(MeshBuilder& mesh_builder,
                     switch (type) {
                     case cgltf_attribute_type_position:
                         mesh_builder.addLayout(POSITION);
-                        ParseVertexProperty(attr.data,
-                                            MeshVertex::AddressPosition,
+                        ParseVertexProperty(attr.data, POSITION,
                                             sizeof(Vector3), vertex_data);
                         break;
 
                     case cgltf_attribute_type_texcoord:
                         mesh_builder.addLayout(TEXTURE);
-                        ParseVertexProperty(attr.data,
-                                            MeshVertex::AddressTexture,
+                        ParseVertexProperty(attr.data, TEXTURE,
                                             sizeof(Vector2), vertex_data);
                         break;
 
                     case cgltf_attribute_type_normal:
                         mesh_builder.addLayout(NORMAL);
-                        ParseVertexProperty(attr.data,
-                                            MeshVertex::AddressNormal,
+                        ParseVertexProperty(attr.data, NORMAL,
                                             sizeof(Vector3), vertex_data);
                         break;
 
@@ -156,8 +153,7 @@ Asset* GLTFFile::readFromFile(MeshBuilder& mesh_builder,
 
                     case cgltf_attribute_type_weights:
                         mesh_builder.addLayout(WEIGHTS);
-                        ParseVertexProperty(attr.data,
-                                            MeshVertex::AddressWeights,
+                        ParseVertexProperty(attr.data, WEIGHTS,
                                             sizeof(Vector4), vertex_data);
                         break;
 

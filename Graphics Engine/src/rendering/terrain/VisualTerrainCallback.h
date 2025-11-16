@@ -6,7 +6,7 @@
 
 #include "../Direct3D11.h"
 #include "../core/Asset.h"
-#include "../resources/AssetBuilder.h"
+#include "../resources/MeshBuilder.h"
 
 namespace Engine {
 using namespace Datamodel;

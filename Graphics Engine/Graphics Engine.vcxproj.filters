@@ -93,7 +93,7 @@
     <ClCompile Include="src\input\components\MovementHandler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\resources\AssetBuilder.cpp">
+    <ClCompile Include="src\rendering\resources\MeshBuilder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\resources\PNGFile.cpp">
@@ -350,7 +350,7 @@
     <ClInclude Include="src\input\components\MovementHandler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\resources\AssetBuilder.h">
+    <ClInclude Include="src\rendering\resources\MeshBuilder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\datamodel\SceneGraph.h">

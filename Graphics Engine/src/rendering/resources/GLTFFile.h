@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "AssetBuilder.h"
+#include "MeshBuilder.h"
 #include "TextureBuilder.h"
 
 struct cgltf_accessor;

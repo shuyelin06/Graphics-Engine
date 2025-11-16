@@ -1,6 +1,7 @@
-#include "AssetBuilder.h"
+#include "MeshBuilder.h"
 
 #include <assert.h>
+#include <functional>
 
 #include "math/Compute.h"
 
@@ -19,11 +20,6 @@ template <> struct std::hash<Engine::Math::Vector3> {
 
 namespace Engine {
 namespace Graphics {
-static void* (*VertexAddressors[BINDABLE_STREAM_COUNT])(MeshVertex&) = {
-    MeshVertex::AddressPosition, MeshVertex::AddressTexture,
-    MeshVertex::AddressNormal,   MeshVertex::AddressColor,
-    MeshVertex::AddressJoints,   MeshVertex::AddressWeights};
-
 MeshVertex::MeshVertex() {
     position = Vector3(0, 0, 0);
     tex = Vector2(0.5, 0.5f);
@@ -48,14 +44,30 @@ MeshVertex::MeshVertex(const MeshVertex& vertex) {
     weights = vertex.weights;
 }
 
-void* MeshVertex::AddressPosition(MeshVertex& vertex) {
-    return &vertex.position;
+void* MeshVertex::GetAddressOf(VertexDataStream bindable_stream)
+{
+    assert(bindable_stream < BINDABLE_STREAM_COUNT);
+
+    switch (bindable_stream)
+    {
+    case POSITION:
+        return &position;
+    case TEXTURE:
+        return &tex;
+    case NORMAL:
+        return &normal;
+    case COLOR:
+        return &color;
+    case JOINTS:
+        return &joints;
+    case WEIGHTS:
+        return &weights;
+    default:
+        assert(false); // Unimplemented
+    }
+
+    return nullptr;
 }
-void* MeshVertex::AddressNormal(MeshVertex& vertex) { return &vertex.normal; }
-void* MeshVertex::AddressTexture(MeshVertex& vertex) { return &vertex.tex; }
-void* MeshVertex::AddressColor(MeshVertex& vertex) { return &vertex.color; }
-void* MeshVertex::AddressJoints(MeshVertex& vertex) { return &vertex.joints; }
-void* MeshVertex::AddressWeights(MeshVertex& vertex) { return &vertex.weights; }
 
 MeshTriangle::MeshTriangle() { vertex0 = vertex1 = vertex2 = 0; }
 MeshTriangle::MeshTriangle(UINT v0, UINT v1, UINT v2) {
@@ -105,6 +117,9 @@ std::shared_ptr<Mesh> MeshBuilder::generateMesh(ID3D11DeviceContext* context,
     // Upload my vertex buffer data. We have to allocate based on pool's layout
     // to keep the vertices aligned. This means that space could be wasted if
     // the pool supports streams that the builder does not have.
+    // This array should match the vertex streams.
+    
+
     for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
         if (LayoutPinHas(pool->layout, i)) {
             const UINT byte_size = StreamVertexStride(i);
@@ -112,8 +127,7 @@ std::shared_ptr<Mesh> MeshBuilder::generateMesh(ID3D11DeviceContext* context,
             // Now, for each vertex, I will pull the data I want for my stream
             // and then copy it to the end of my buffer.
             for (int j = 0; j < vertex_buffer.size(); j++) {
-                const void* address =
-                    (*(VertexAddressors[i]))(vertex_buffer[j]);
+                const void* address = vertex_buffer[j].GetAddressOf((VertexDataStream) i);
 
                 // Also copy to my CPU-side copy of the data
                 memcpy(pool->cpu_vbuffers[i].get() +

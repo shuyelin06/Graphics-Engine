@@ -8,7 +8,7 @@
 #include "../Direct3D11.h"
 
 #include "../core/Asset.h"
-#include "AssetBuilder.h"
+#include "MeshBuilder.h"
 #include "TextureBuilder.h"
 
 namespace Engine {

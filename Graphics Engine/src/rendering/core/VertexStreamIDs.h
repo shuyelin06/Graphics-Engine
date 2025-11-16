@@ -19,7 +19,7 @@ namespace Graphics {
 // IMPORTANT:
 // If this is modified, the following must also be updated:
 // 1) The StreamStrides array in VertexStreamIDs.cpp
-// 2) The VertexAddressors array in AssetBuilder.cpp
+// 2) The VertexAddressors array in MeshBuilder.cpp
 enum VertexDataStream {
     POSITION = 0, // 3D XYZ Position (3 Floats)
     TEXTURE = 1,  // 2D Texture Coordinates (2 Floats)
