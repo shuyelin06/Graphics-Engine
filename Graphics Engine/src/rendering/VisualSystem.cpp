@@ -131,7 +131,8 @@ VisualSystem::VisualSystem(HWND window) {
 
     test_tex = resource_manager->LoadTextureFromFile("png.png");
 
-    pass_terrain = std::make_unique<RenderPassTerrain>(device);
+    pass_shadows = std::make_unique<RenderPassShadows>(device, context);
+    pass_terrain = std::make_unique<RenderPassTerrain>(device, context);
 }
 
 // --- Component Bindings ---
@@ -248,7 +249,8 @@ void VisualSystem::pullSceneData(Scene* scene) {
         }
     } else {
         if (terrain == nullptr)
-            terrain = new VisualTerrain(scene_terrain, context, *resource_manager);
+            terrain =
+                new VisualTerrain(scene_terrain, context, *resource_manager);
 
         terrain->updateAndUploadTerrainData(context, *pass_terrain);
     }
@@ -351,6 +353,7 @@ void VisualSystem::pullSceneData(Scene* scene) {
 // Render the scene from each light's point of view, to populate
 // its shadow map.
 void VisualSystem::performPrepass() {
+    RENDER_PASS(*pass_shadows, L"Shadows");
 #if defined(_DEBUG)
     IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Shadow Pass");
 #endif
@@ -405,6 +408,8 @@ void VisualSystem::performPrepass() {
 }
 
 void VisualSystem::performTerrainPass() {
+    RENDER_PASS(*pass_terrain, L"Terrain");
+
 #if defined(_DEBUG)
     IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Terrain Pass");
 #endif

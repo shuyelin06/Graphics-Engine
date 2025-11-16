@@ -83,6 +83,7 @@ class VisualSystem {
 
     // Render Pass Information;
     // This should be populated by the VisualSystem's subsystems
+    std::unique_ptr<RenderPassShadows> pass_shadows;
     std::unique_ptr<RenderPassTerrain> pass_terrain;
 
   public:
