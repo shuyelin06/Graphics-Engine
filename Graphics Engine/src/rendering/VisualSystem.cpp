@@ -104,6 +104,8 @@ VisualSystem::VisualSystem(HWND window) {
         [this](Object* obj) { this->onObjectCreate(obj); });
     DMAsset::ConnectToCreation(
         [this](Object* obj) { this->onObjectCreate(obj); });
+    DMMesh::ConnectToCreation(
+        [this](Object* obj) { this->onObjectCreate(obj); });
 
     camera = nullptr;
 
@@ -146,6 +148,9 @@ void VisualSystem::onObjectCreate(Object* object) {
 
         Asset* asset = resource_manager->getAsset(asset_obj->getAssetName());
         asset_components.emplace_back(new AssetComponent(object, asset));
+    } else if (class_id == DMMesh::ClassID()) {
+        renderable_meshes.push_back(
+            new RenderableMesh(object, resource_manager));
     }
 }
 
@@ -238,6 +243,7 @@ void VisualSystem::pullSceneData(Scene* scene) {
 
     // Pull Datamodel Data
     camera.get()->pullDatamodelData();
+    cleanAndPullDatamodelData(renderable_meshes);
 
     // Pull my terrain data (if it exists).
     Terrain* scene_terrain = scene->getTerrain();
@@ -353,10 +359,7 @@ void VisualSystem::pullSceneData(Scene* scene) {
 // Render the scene from each light's point of view, to populate
 // its shadow map.
 void VisualSystem::performPrepass() {
-    RENDER_PASS(*pass_shadows, L"Shadows");
-#if defined(_DEBUG)
-    IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Shadow Pass");
-#endif
+    RENDER_PASS(*pass_shadows, "Shadows");
 
     pipeline->bindVertexShader("ShadowMap");
     pipeline->bindPixelShader("ShadowMap");
@@ -408,11 +411,7 @@ void VisualSystem::performPrepass() {
 }
 
 void VisualSystem::performTerrainPass() {
-    RENDER_PASS(*pass_terrain, L"Terrain");
-
-#if defined(_DEBUG)
-    IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Terrain Pass");
-#endif
+    RENDER_PASS(*pass_terrain, "Terrain");
 
     pipeline->bindVertexShader("Terrain");
     pipeline->bindPixelShader("Terrain");

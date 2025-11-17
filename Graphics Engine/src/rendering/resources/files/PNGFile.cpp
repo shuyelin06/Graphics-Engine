@@ -7,7 +7,7 @@
 // See https://github.com/lvandeve/lodepng
 #include "lodepng/lodepng.h"
 
-#include "../Direct3D11.h"
+#include "rendering/Direct3D11.h"
 
 #define SUCCESS 1
 #define FAILURE 0

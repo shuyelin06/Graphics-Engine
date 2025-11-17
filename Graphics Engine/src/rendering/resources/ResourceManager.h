@@ -35,6 +35,7 @@ class ResourceManager {
     std::unordered_map<std::string, uint16_t> asset_map;
 
     std::vector<std::shared_ptr<Texture>> textures;
+    std::vector<std::shared_ptr<Mesh>> meshes;
 
   public:
     ResourceManager(ID3D11Device* device, ID3D11DeviceContext* context);
@@ -52,6 +53,8 @@ class ResourceManager {
     // Create Resources
     std::shared_ptr<Texture>
     LoadTextureFromFile(const std::string& relative_path);
+
+    std::shared_ptr<Mesh> LoadMeshFromFile(const std::string& relative_path);
 
     std::shared_ptr<MeshBuilder> createMeshBuilder(MeshPoolType pool_type);
     MeshPool* getMeshPool(MeshPoolType pool_type);

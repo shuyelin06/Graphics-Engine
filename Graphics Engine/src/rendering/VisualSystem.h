@@ -16,6 +16,7 @@
 #include "resources/ResourceManager.h"
 
 #include "core/AssetComponent.h"
+#include "core/RenderableMesh.h"
 #include "terrain/VisualTerrain.h"
 
 #include "rendering/core/Camera.h"
@@ -71,7 +72,8 @@ class VisualSystem {
 
     // Supported Components
     std::unique_ptr<Camera> camera;
-    std::vector<AssetComponent*> asset_components;
+    std::vector<AssetComponent*> asset_components; // TRY TO DEPRECATE
+    std::vector<RenderableMesh*> renderable_meshes; 
     VisualTerrain* terrain;
 
     // Temp for now; should be moved later.

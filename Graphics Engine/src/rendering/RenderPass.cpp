@@ -1,6 +1,7 @@
 #include "RenderPass.h"
 
 #include "datamodel/terrain/TerrainConfig.h"
+#include "util/GPUTimer.h"
 
 #include <assert.h>
 
@@ -12,7 +13,7 @@ RenderPassData::RenderPassData(ID3D11DeviceContext* context) {
 }
 
 RenderPassShadows::RenderPassShadows(ID3D11Device* device,
-                                   ID3D11DeviceContext* context)
+                                     ID3D11DeviceContext* context)
     : RenderPassData(context) {}
 
 RenderPassTerrain::RenderPassTerrain(ID3D11Device* device,
@@ -29,10 +30,10 @@ RenderPassTerrain::RenderPassTerrain(ID3D11Device* device,
 }
 
 RenderPassScope_Debug::RenderPassScope_Debug(const RenderPassData& pass,
-                                             const LPCWSTR& name) {
+                                             const std::string& name) {
     annotation = pass.annotation;
 
-    annotation->BeginEvent(name);
+    annotation->BeginEvent((wchar_t*)name.c_str());
 }
 RenderPassScope_Debug::~RenderPassScope_Debug() { annotation->EndEvent(); }
 

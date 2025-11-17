@@ -126,6 +126,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     // physics_system.bindTerrain(scene_graph.getTerrain());
 
     // Extra
+    DMMesh* mesh = new DMMesh();
+    mesh->setMeshName("Fox.glb");
+    root->addChild(mesh);
+
     DMLight* light = new DMLight();
     root->addChild(light);
     // scene_graph.bindComponent(*light, "Light");

@@ -13,14 +13,14 @@
 #include "math/Vector2.h"
 #include "math/Vector3.h"
 
-#include "FileReader.h"
+#include "files/FileReader.h"
 
 // We use the lodepng library to read PNG files.
 // See https://github.com/lvandeve/lodepng
 #include "lodepng/lodepng.h"
 
-#include "GLTFFile.h"
-#include "PNGFile.h"
+#include "files/GLTFFile.h"
+#include "files/PNGFile.h"
 
 using namespace std;
 
@@ -157,6 +157,43 @@ ResourceManager::LoadTextureFromFile(const std::string& relative_path) {
 
     textures.emplace_back(std::shared_ptr<Texture>(output));
     return textures.back();
+}
+
+std::shared_ptr<Mesh>
+ResourceManager::LoadMeshFromFile(const std::string& relative_path) {
+    const std::string full_path = RESOURCE_FOLDER + relative_path;
+
+    // Matches to find the file name and extension separately.
+    // (?:.+/)* matches the path but does not put it in a capture group.
+    std::regex name_pattern("(?:.+/)*([a-zA-Z]+)\\.([a-zA-Z]+)");
+    smatch match;
+    regex_search(relative_path, match, name_pattern);
+
+    std::shared_ptr<Mesh> output = nullptr;
+
+    if (match.size() == 3) {
+        // If name is ever needed:
+        // const std::string name = match[1];
+        const std::string extension = match[2];
+
+        FileReader reader = FileReader(full_path);
+        if (reader.readFileData()) {
+            std::shared_ptr<MeshBuilder> builder =
+                createMeshBuilder(MeshPoolType_Default);
+
+            if (extension == "glb") {
+                GLTFFile::ReadGLTFData(reader.getData(), full_path, *builder);
+                output = builder->generateMesh(context);
+            } else
+                assert(false); // Unsupported Format
+        }
+    }
+
+    if (output != nullptr) {
+        meshes.emplace_back(std::move(output));
+        return meshes.back();
+    } else
+        return nullptr;
 }
 
 std::shared_ptr<MeshBuilder>

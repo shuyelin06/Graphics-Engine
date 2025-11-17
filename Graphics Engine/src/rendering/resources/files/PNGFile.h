@@ -3,8 +3,8 @@
 #include <string>
 #include <vector>
 
+#include "../TextureBuilder.h"
 #include "FileReader.h"
-#include "TextureBuilder.h"
 
 namespace Engine {
 namespace Graphics {
@@ -18,6 +18,7 @@ class PNGFile {
   public:
     PNGFile(const std::string& file_path);
 
+    // TODO: Move this away from a static function.
     bool writePNGData(ID3D11Device* device, ID3D11DeviceContext* context,
                       ID3D11Texture2D* texture);
 

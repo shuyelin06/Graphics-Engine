@@ -6,8 +6,11 @@
 #include "pipeline/StructuredBuffer.h"
 #include <d3d11_1.h>
 
-#define RENDER_PASS(pass, name)                                                \
-    RenderPassScope_Debug renderpass_debug = RenderPassScope_Debug(pass, name);
+#include <string>
+
+#define RENDER_PASS(pass, name)                                                 \
+    RenderPassScope_Debug renderpass_debug = RenderPassScope_Debug(pass, name); \
+    IGPUTimer gpu_timer = GPUTimer::TrackGPUTime(name);
 
 namespace Engine {
 using namespace Math;
@@ -58,7 +61,7 @@ class RenderPassScope_Debug {
     ID3DUserDefinedAnnotation* annotation;
 
   public:
-    RenderPassScope_Debug(const RenderPassData& pass, const LPCWSTR& name);
+    RenderPassScope_Debug(const RenderPassData& pass, const std::string& name);
     ~RenderPassScope_Debug();
 };
 
