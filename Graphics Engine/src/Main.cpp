@@ -128,6 +128,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     // Extra
     DMMesh* mesh = new DMMesh();
     mesh->setMeshName("Fox.glb");
+    mesh->getTransform().setScale(50, 50, 50);
     root->addChild(mesh);
 
     DMLight* light = new DMLight();

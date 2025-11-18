@@ -135,6 +135,7 @@ VisualSystem::VisualSystem(HWND window) {
 
     pass_shadows = std::make_unique<RenderPassShadows>(device, context);
     pass_terrain = std::make_unique<RenderPassTerrain>(device, context);
+    pass_default = std::make_unique<RenderPassDefault>(device, context);
 }
 
 // --- Component Bindings ---
@@ -199,7 +200,7 @@ void VisualSystem::render() {
         // Render terrain
         performTerrainPass();
         // Render meshes
-        performRenderPass();
+        performDefaultPass();
 
         // Rendering is different depending on if we're below
         // or above the surface of the water
@@ -245,7 +246,10 @@ void VisualSystem::pullSceneData(Scene* scene) {
     camera.get()->pullDatamodelData();
     cleanAndPullDatamodelData(renderable_meshes);
 
+    light_manager->pullDatamodelData();
+
     // Pull my terrain data (if it exists).
+    // TODO: Move to existing datamodel infrastructure
     Terrain* scene_terrain = scene->getTerrain();
 
     if (scene_terrain == nullptr) {
@@ -265,13 +269,18 @@ void VisualSystem::pullSceneData(Scene* scene) {
     // Remove invalid visual objects, and update them to pull
     // the datamodel data.
     // asset_components.cleanAndUpdate();
-    light_manager->pullDatamodelData();
 
     // Prepare managers for data
     light_manager->updateSunDirection(config->sun_direction);
     light_manager->updateSunCascades(camera->frustum());
 
     light_manager->resetShadowCasters();
+
+    pass_default->meshes.clear();
+    for (const auto& renderable_mesh : renderable_meshes) {
+        pass_default->meshes.emplace_back(renderable_mesh->getMesh(),
+                                          renderable_mesh->getLocalMatrix());
+    }
 
     for (AssetComponent* object : asset_components) {
         object->update();
@@ -450,11 +459,10 @@ void VisualSystem::performTerrainPass() {
     context->DrawInstanced(max_tris * 3, num_chunks, 0, 0);
 }
 
-void VisualSystem::performRenderPass() {
-#if defined(_DEBUG)
-    IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Render Pass");
-#endif
+void VisualSystem::performDefaultPass() {
+    RENDER_PASS(*pass_default, "Default");
 
+    pipeline->bindVertexShader("TexturedMesh");
     pipeline->bindPixelShader("TexturedMesh");
     pipeline->bindRenderTarget(Target_UseExisting, Depth_TestAndWrite,
                                Blend_Default);
@@ -478,6 +486,43 @@ void VisualSystem::performRenderPass() {
     }
 
     // Testing for animations
+    for (const auto& mesh_instance : pass_default->meshes) {
+        const auto& mesh = mesh_instance.mesh.lock();
+
+        if (!mesh)
+            continue;
+
+        // TODO: Material support
+        const Material mat = Material();
+
+        // Pixel CB2: Mesh Material Data
+        {
+            IConstantBuffer pCB2 = pipeline->loadPixelCB(CB2);
+
+            const TextureRegion& region = mat.tex_region;
+            pCB2.loadData(&region.x, FLOAT);
+            pCB2.loadData(&region.y, FLOAT);
+            pCB2.loadData(&region.width, FLOAT);
+            pCB2.loadData(&region.height, FLOAT);
+        }
+
+        // Vertex CB2: Transform matrices
+        const Matrix4& mLocalToWorld = mesh_instance.m_local_to_world;
+        {
+            IConstantBuffer vCB2 = pipeline->loadVertexCB(CB2);
+
+            // Load mesh vertex transformation matrix
+            vCB2.loadData(&mLocalToWorld, FLOAT4X4);
+            // Load mesh normal transformation matrix
+            Matrix4 normalTransform = mLocalToWorld.inverse().transpose();
+            vCB2.loadData(&(normalTransform), FLOAT4X4);
+        }
+
+        // Draw each mesh
+        pipeline->drawMesh(mesh.get(), INDEX_LIST_START, INDEX_LIST_END, 1);
+    }
+
+    /*
     for (const AssetComponent* comp : asset_components) {
         const Asset* asset = comp->getAsset();
 
@@ -539,6 +584,7 @@ void VisualSystem::performRenderPass() {
             pipeline->drawMesh(mesh.get(), INDEX_LIST_START, INDEX_LIST_END, 1);
         }
     }
+    */
 }
 
 void VisualSystem::performLightFrustumPass() {

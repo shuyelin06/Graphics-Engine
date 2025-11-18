@@ -349,16 +349,14 @@ Asset* GLTFFile::readFromFile(MeshBuilder& mesh_builder,
     return asset;
 }
 
-void GLTFFile::ReadGLTFData(const std::vector<uint8_t>& in_data,
-                            const std::string& path, MeshBuilder& builder) {
+void GLTFFile::ReadGLTFData(const std::string& path, MeshBuilder& builder) {
     builder.reset();
 
     cgltf_options options = {};
     cgltf_data* data = NULL;
 
     // Parse my GLTF file
-    cgltf_result result =
-        cgltf_parse(&options, in_data.data(), in_data.size(), &data);
+    cgltf_result result = cgltf_parse_file(&options, path.c_str(), &data);
 
     if (result != cgltf_result_success)
         return;
@@ -393,8 +391,6 @@ void GLTFFile::ReadGLTFData(const std::vector<uint8_t>& in_data,
             assert(mesh.primitives_count > 0);
             const uint32_t num_prims = mesh.primitives_count;
             for (int i_prim = 0; i_prim < num_prims; i_prim++) {
-                builder.reset();
-
                 triangle_data.clear();
                 vertex_data.clear();
                 u16_data.clear();

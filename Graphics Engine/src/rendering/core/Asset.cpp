@@ -7,7 +7,14 @@ using namespace Math;
 
 namespace Graphics {
 // --- Material ---
-Material::Material() { diffuse_factor = 0.5f; }
+Material::Material() {
+    tex_region.x = 0.f;
+    tex_region.y = 0.f;
+    tex_region.width = 1.f;
+    tex_region.height = 1.f;
+
+    diffuse_factor = 0.5f;
+}
 
 // --- Mesh ---
 MeshPool::MeshPool() {

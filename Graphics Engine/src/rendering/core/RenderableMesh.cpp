@@ -21,10 +21,16 @@ void RenderableMesh::pullDatamodelDataImpl(Object* object) {
         mesh_name = dm_mesh->getMeshName();
         mesh = resource_manager->LoadMeshFromFile(mesh_name);
     }
+
+    m_local_to_world = object->getLocalMatrix();
 }
 
 bool RenderableMesh::isValidMesh() const { return mesh != nullptr; }
-std::shared_ptr<Mesh> RenderableMesh::getMesh() const { return mesh; }
+std::weak_ptr<Mesh> RenderableMesh::getMesh() const { return mesh; }
+
+const Matrix4& RenderableMesh::getLocalMatrix() const {
+    return m_local_to_world;
+}
 
 } // namespace Graphics
 } // namespace Engine

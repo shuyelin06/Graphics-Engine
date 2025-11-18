@@ -3,6 +3,7 @@
 #include "math/Vector3.h"
 
 #include "Direct3D11.h"
+#include "core/Asset.h"
 #include "pipeline/StructuredBuffer.h"
 #include <d3d11_1.h>
 
@@ -51,6 +52,19 @@ struct RenderPassTerrain : public RenderPassData {
     int max_chunk_triangles;
 
     RenderPassTerrain(ID3D11Device* device, ID3D11DeviceContext* context);
+};
+
+struct RenderPassDefault : public RenderPassData {
+    struct MeshInstance {
+        std::weak_ptr<Mesh> mesh;
+        Matrix4 m_local_to_world;
+
+        MeshInstance(std::weak_ptr<Mesh> mesh, Matrix4 m_local_to_world);
+    };
+
+    std::vector<MeshInstance> meshes;
+
+    RenderPassDefault(ID3D11Device* device, ID3D11DeviceContext* context);
 };
 
 // RenderPassScope_Debug:

@@ -20,14 +20,18 @@ class RenderableMesh : public DMBinding {
     std::shared_ptr<Mesh> mesh;
     std::string mesh_name;
 
+    Matrix4 m_local_to_world;
+
     void pullDatamodelDataImpl(Object* obj) override;
 
   public:
     RenderableMesh(Object* dm_mesh, ResourceManager* resource_manager);
     ~RenderableMesh();
 
-    std::shared_ptr<Mesh> getMesh() const;
+    std::weak_ptr<Mesh> getMesh() const;
     bool isValidMesh() const;
+
+    const Matrix4& getLocalMatrix() const;
 };
 
 } // namespace Graphics

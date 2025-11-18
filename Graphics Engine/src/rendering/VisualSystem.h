@@ -87,6 +87,7 @@ class VisualSystem {
     // This should be populated by the VisualSystem's subsystems
     std::unique_ptr<RenderPassShadows> pass_shadows;
     std::unique_ptr<RenderPassTerrain> pass_terrain;
+    std::unique_ptr<RenderPassDefault> pass_default;
 
   public:
     VisualSystem(HWND window);
@@ -101,7 +102,7 @@ class VisualSystem {
   private:                     // Rendering Stages
     void performPrepass();     // Prepass (Shadowmaps)
     void performTerrainPass(); // Render Terrain
-    void performRenderPass();  // Render Pass
+    void performDefaultPass();  // Render Pass
 
     void performLightFrustumPass(); // Light Frustum Pass
 

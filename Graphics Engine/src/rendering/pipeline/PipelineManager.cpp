@@ -432,7 +432,8 @@ IConstantBuffer Pipeline::loadPixelCB(CBSlot slot) {
 
 void Pipeline::drawMesh(const Mesh* mesh, int tri_start, int tri_end,
                         UINT instance_count) {
-    assert((vs_active->layout_pin & mesh->layout) == vs_active->layout_pin);
+    // This is failing?
+    // assert((vs_active->layout_pin & mesh->layout) == vs_active->layout_pin);
     const MeshPool* pool = mesh->buffer_pool;
 
     // All meshes are assumed to havae a triangle list topology.

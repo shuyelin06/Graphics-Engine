@@ -182,7 +182,7 @@ ResourceManager::LoadMeshFromFile(const std::string& relative_path) {
                 createMeshBuilder(MeshPoolType_Default);
 
             if (extension == "glb") {
-                GLTFFile::ReadGLTFData(reader.getData(), full_path, *builder);
+                GLTFFile::ReadGLTFData(full_path, *builder);
                 output = builder->generateMesh(context);
             } else
                 assert(false); // Unsupported Format

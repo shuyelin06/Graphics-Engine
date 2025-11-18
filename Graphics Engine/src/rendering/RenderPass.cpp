@@ -29,11 +29,24 @@ RenderPassTerrain::RenderPassTerrain(ID3D11Device* device,
     max_chunk_triangles = 0;
 }
 
+RenderPassDefault::MeshInstance::MeshInstance(std::weak_ptr<Mesh> _mesh,
+                                              Matrix4 _m_local_to_world) {
+    mesh = _mesh;
+    m_local_to_world = _m_local_to_world;
+}
+
+RenderPassDefault::RenderPassDefault(ID3D11Device* device,
+                                     ID3D11DeviceContext* context)
+    : RenderPassData(context) {
+    meshes.clear();
+}
+
 RenderPassScope_Debug::RenderPassScope_Debug(const RenderPassData& pass,
                                              const std::string& name) {
     annotation = pass.annotation;
 
-    annotation->BeginEvent((wchar_t*)name.c_str());
+    const std::wstring wstring = std::wstring(name.begin(), name.end());
+    annotation->BeginEvent(wstring.c_str());
 }
 RenderPassScope_Debug::~RenderPassScope_Debug() { annotation->EndEvent(); }
 
