@@ -190,7 +190,11 @@ void MeshBuilder::uploadVertexData(ID3D11DeviceContext* context,
 const std::vector<MeshVertex>& MeshBuilder::getVertices() const {
     return vertex_buffer;
 }
+std::vector<MeshVertex>& MeshBuilder::getVertices() { return vertex_buffer; }
 const std::vector<MeshTriangle>& MeshBuilder::getIndices() const {
+    return index_buffer;
+}
+std::vector<MeshTriangle>& MeshBuilder::getIndices() {
     return index_buffer;
 }
 bool MeshBuilder::isEmpty() const { return index_buffer.size() == 0; }

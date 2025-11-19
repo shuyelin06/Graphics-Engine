@@ -1,6 +1,7 @@
 #include "GLTFFile.h"
 
 #include <assert.h>
+#include <functional>
 #include <unordered_map>
 #include <vector>
 
@@ -22,48 +23,29 @@ struct Uint4 {
 };
 // Accessor Parsing functions that let us convert accessor data into a
 // format the engine uses.
-template <typename T>
-static void ParseAccessor(const cgltf_accessor* accessor,
-                          std::vector<T>& output) {
+static void
+ParseAccessor(const cgltf_accessor* accessor,
+              const std::function<void(int, const void*, size_t)>& callback) {
+    // f is invoked for every parsed element from the buffer. We can use that to
+    // read the data wherever we want.
+    // f(index, elementData, elementSize)
     const cgltf_buffer_view* view = accessor->buffer_view;
     const uint8_t* buffer = ((uint8_t*)view->buffer->data) + view->offset;
 
     const uint32_t num_elements = accessor->count;
-    const int byte_size = sizeof(T);
-    assert(accessor->stride == byte_size);
-
-    if (output.size() != num_elements)
-        output.resize(num_elements);
+    const uint32_t stride = accessor->stride;
 
     for (int i = 0; i < num_elements; i++) {
-        memcpy(&output[i], buffer + byte_size * i, byte_size);
-    }
-}
-
-static void ParseVertexProperty(const cgltf_accessor* accessor,
-                                VertexDataStream dataStream, size_t byte_size,
-                                std::vector<MeshVertex>& output) {
-    const cgltf_buffer_view* view = accessor->buffer_view;
-    const uint8_t* buffer = ((uint8_t*)view->buffer->data) + view->offset;
-
-    const uint32_t num_elements = accessor->count;
-    assert(accessor->stride == byte_size);
-
-    if (output.size() != num_elements)
-        output.resize(num_elements);
-
-    for (int i = 0; i < num_elements; i++) {
-        // Compute address of the current mesh vertex's property
-        void* address = output[i].GetAddressOf(dataStream);
-
-        // Write X bytes to this property
-        memcpy(address, buffer + byte_size * i, byte_size);
+        callback(i, buffer + stride * i, stride);
     }
 }
 
 Asset* GLTFFile::readFromFile(MeshBuilder& mesh_builder,
                               AtlasBuilder& tex_builder, ID3D11Device* device,
                               ID3D11DeviceContext* context) {
+    // Deprecated, to be reimplemented later.
+    return nullptr;
+    /*
     cgltf_options options = {};
     cgltf_data* data = NULL;
 
@@ -347,123 +329,108 @@ Asset* GLTFFile::readFromFile(MeshBuilder& mesh_builder,
     cgltf_free(data);
 
     return asset;
+    */
 }
 
-void GLTFFile::ReadGLTFData(const std::string& path, MeshBuilder& builder) {
+void GLTFFile::ReadGLTFMesh(const std::string& path, MeshBuilder& builder) {
     builder.reset();
 
     cgltf_options options = {};
     cgltf_data* data = NULL;
 
-    // Parse my GLTF file
-    cgltf_result result = cgltf_parse_file(&options, path.c_str(), &data);
+    // Parse my GLTF file (.gltf) and load the buffers (.bin).
+    // Both files should be in the same folder, somewhere in data/
+    cgltf_result result;
 
+    result = cgltf_parse_file(&options, path.c_str(), &data);
     if (result != cgltf_result_success)
         return;
 
     result = cgltf_load_buffers(&options, data, path.c_str());
-
-    // If success, interpret the content of the parser to read it into
-    // data our engine can use
     if (result != cgltf_result_success)
         return;
 
-    // Parse my meshes and materials
-    {
-        // Mesh Data
-        std::vector<MeshTriangle> triangle_data;
-        std::vector<MeshVertex> vertex_data;
+    // The GLTF parser makes a few assumptions:
+    // 1) We are only dealing with 1 mesh with 1 primitive.
+    //    We could support more if needed later, but this is enough for my
+    //    setup.
+    // 2) This mesh can have position, normal, and UVs
+    // 3) This mesh can have a material, which is processed separately.
+    // TODO: Material support
+    const uint32_t num_meshes = data->meshes_count;
+    assert(num_meshes == 1); // We can support more
+    const cgltf_mesh& mesh = data->meshes[0];
 
-        // TODO: Material support?
-        // Material material;
+    const uint32_t num_prims = mesh.primitives_count;
+    assert(mesh.primitives_count == 1);
+    const cgltf_primitive& prim = mesh.primitives[0];
+    assert(prim.type == cgltf_primitive_type_triangles);
 
-        // Intermediate Data
-        // u16_data is used to read the index buffer and convert it into a
-        // format suitable for the engine.
-        std::vector<uint16_t> u16_data;
-        std::vector<Uint4> u4b_data;
+    // Parse the attributes for my primitive.
+    const uint32_t element_count = prim.attributes[0].data->count;
 
-        assert(data->meshes_count > 0);
-        const uint32_t num_meshes = data->meshes_count;
-        for (int i_mesh = 0; i_mesh < num_meshes; i_mesh++) {
-            const cgltf_mesh mesh = data->meshes[i_mesh];
+    std::vector<MeshVertex>& vertex_data = builder.getVertices();
+    vertex_data.clear();
+    vertex_data.resize(element_count);
 
-            assert(mesh.primitives_count > 0);
-            const uint32_t num_prims = mesh.primitives_count;
-            for (int i_prim = 0; i_prim < num_prims; i_prim++) {
-                triangle_data.clear();
-                vertex_data.clear();
-                u16_data.clear();
+    for (int i_attr = 0; i_attr < prim.attributes_count; i_attr++) {
+        const cgltf_attribute& attr = prim.attributes[i_attr];
+        const cgltf_attribute_type& type = attr.type;
+        const auto& accessor = attr.data;
+        assert(accessor->count == element_count);
 
-                const cgltf_primitive prim = mesh.primitives[i_prim];
-                assert(prim.type == cgltf_primitive_type_triangles);
+        // Don't support joints and weights (for now; see deprecated
+        // function for how to add these again later)
+        assert(type != cgltf_attribute_type_joints);
+        assert(type != cgltf_attribute_type_weights);
 
-                // Parse the attributes for my primitive.
-                for (int i_attr = 0; i_attr < prim.attributes_count; i_attr++) {
-                    const cgltf_attribute attr = prim.attributes[i_attr];
-                    const cgltf_attribute_type type = attr.type;
+        switch (type) {
+        case cgltf_attribute_type_position:
+            builder.addLayout(POSITION);
+            ParseAccessor(accessor, [&vertex_data](int index, const void* data,
+                                                   size_t size) {
+                assert(size == sizeof(Vector3));
+                memcpy(&vertex_data[index].position, data, sizeof(Vector3));
+            });
+            break;
 
-                    switch (type) {
-                    case cgltf_attribute_type_position:
-                        builder.addLayout(POSITION);
-                        ParseVertexProperty(attr.data, POSITION,
-                                            sizeof(Vector3), vertex_data);
-                        break;
+        case cgltf_attribute_type_texcoord:
+            builder.addLayout(TEXTURE);
+            ParseAccessor(accessor, [&vertex_data](int index, const void* data,
+                                                   size_t size) {
+                assert(size == sizeof(Vector2));
+                memcpy(&vertex_data[index].tex, data, sizeof(Vector2));
+            });
+            break;
 
-                    case cgltf_attribute_type_texcoord:
-                        builder.addLayout(TEXTURE);
-                        ParseVertexProperty(attr.data, TEXTURE, sizeof(Vector2),
-                                            vertex_data);
-                        break;
+        case cgltf_attribute_type_normal:
+            builder.addLayout(NORMAL);
+            ParseAccessor(accessor, [&vertex_data](int index, const void* data,
+                                                   size_t size) {
+                assert(size == sizeof(Vector3));
+                memcpy(&vertex_data[index].normal, data, sizeof(Vector3));
+            });
+            break;
 
-                    case cgltf_attribute_type_normal:
-                        builder.addLayout(NORMAL);
-                        ParseVertexProperty(attr.data, NORMAL, sizeof(Vector3),
-                                            vertex_data);
-                        break;
-
-                    case cgltf_attribute_type_joints: {
-                        builder.addLayout(JOINTS);
-                        ParseAccessor<Uint4>(attr.data, u4b_data);
-                        vertex_data.resize(u4b_data.size());
-                        for (int i = 0; i < u4b_data.size(); i++) {
-                            Vector4& joint = vertex_data[i].joints;
-                            joint.x = u4b_data[i].index[0];
-                            joint.y = u4b_data[i].index[1];
-                            joint.z = u4b_data[i].index[2];
-                            joint.w = u4b_data[i].index[3];
-                        }
-                    } break;
-
-                    case cgltf_attribute_type_weights:
-                        builder.addLayout(WEIGHTS);
-                        ParseVertexProperty(attr.data, WEIGHTS, sizeof(Vector4),
-                                            vertex_data);
-                        break;
-
-                    default:
-                        assert(false);
-                        break;
-                    }
-                }
-
-                // Add the vertices to my builder
-                const UINT start_index = builder.addVertices(vertex_data);
-
-                // Parse the index buffer. Use this buffer to create our mesh
-                ParseAccessor<uint16_t>(prim.indices, u16_data);
-                for (int i = 0; i < u16_data.size(); i += 3) {
-                    triangle_data.push_back(MeshTriangle(
-                        u16_data[i], u16_data[i + 1], u16_data[i + 2]));
-                }
-                builder.addTriangles(triangle_data, start_index);
-
-                // Parse the material information
-                /*parseMaterial(prim.material, mesh_builder, material,
-                              tex_builder);*/
-            }
+        default:
+            assert(false); // Unsupported
+            break;
         }
     }
+
+    // Parse the index buffer. Use this buffer to create our mesh
+    std::vector<MeshTriangle>& triangle_data = builder.getIndices();
+    triangle_data.clear();
+    triangle_data.resize(prim.indices->count / 3);
+
+    ParseAccessor(prim.indices,
+                  [&triangle_data](int index, const void* data, size_t size) {
+                      // TODO: This may only work for some systems due to the
+                      // endianness? May need to check.
+                      assert(size <= sizeof(uint32_t));
+                      uint32_t* dest = (uint32_t*)triangle_data.data();
+                      memcpy(dest + index, data, size);
+                  });
 
     // Finally, free any used memory
     cgltf_free(data);

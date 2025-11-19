@@ -20,6 +20,8 @@ enum MeshPoolType {
     MeshPoolType_Count,
 };
 
+enum SystemMesh { SystemMesh_Cube };
+
 // ResourceManager Class:
 // Manages assets for the engine. Provides methods
 // to load assets, and prepare them for rendering.
@@ -30,9 +32,6 @@ class ResourceManager {
 
     std::unique_ptr<MeshPool> mesh_pools[MeshPoolType_Count];
     std::unique_ptr<TextureAtlas> color_atlas;
-    std::vector<std::unique_ptr<Asset>> assets;
-
-    std::unordered_map<std::string, uint16_t> asset_map;
 
     std::vector<std::shared_ptr<Texture>> textures;
     std::vector<std::shared_ptr<Mesh>> meshes;
@@ -41,12 +40,13 @@ class ResourceManager {
     ResourceManager(ID3D11Device* device, ID3D11DeviceContext* context);
     ~ResourceManager();
 
-    // Initialize assets
-    void initializeResources();
+    // Initialize System Resources.
+    // These are resources that exist for the entire application and are built
+    // into the engine.
+    void initializeSystemResources();
 
-    // Get an asset
-    Asset* getAsset(const std::string& name);
-    Asset* getAsset(uint16_t id);
+    // Get Resources
+    std::shared_ptr<Mesh> getMesh(int index) const;
 
     const Texture* getColorAtlas();
 
@@ -60,12 +60,10 @@ class ResourceManager {
     MeshPool* getMeshPool(MeshPoolType pool_type);
 
   private:
-    // Asset Generation
-    uint16_t registerAsset(const std::string& name,
-                           std::unique_ptr<Asset>& asset);
-    void LoadCubeAsset();
+    // System Asset Generation
+    void LoadCubeMesh();
 
-    // Load assets from files.
+    // Load assets from files. TRY TO DEPRECATE
     void LoadAssetFromGLTF(const std::string& asset_name,
                            const std::string& path, AtlasBuilder& tex_builder);
 

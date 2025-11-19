@@ -39,7 +39,7 @@ ResourceManager::~ResourceManager() = default;
 
 // Initialize:
 // Loads assets into the asset manager.
-void ResourceManager::initializeResources() {
+void ResourceManager::initializeSystemResources() {
     //  Empirical testing has shown that
     // 300,000 vertices, 200,000 indices is enough
     mesh_pools[MeshPoolType_Terrain] = std::make_unique<MeshPool>(
@@ -51,10 +51,11 @@ void ResourceManager::initializeResources() {
     AtlasBuilder atlas_builder = AtlasBuilder(4096, 4096);
 
     // --- Load Assets Here ---
-    LoadCubeAsset();
+    LoadCubeMesh();
 
     // Currently supported: GLTF
 
+    /*
     // LoadAssetFromGLTF("TestAsset", "data/Testing.glb", atlas_builder);
     // Capybara by Poly by Google [CC-BY] via Poly Pizza
     LoadAssetFromGLTF("Capybara", "data/Capybara.glb", atlas_builder);
@@ -73,6 +74,7 @@ void ResourceManager::initializeResources() {
 
     // Tree
     LoadAssetFromGLTF("Tree", "data/Tree.glb", atlas_builder);
+    */
 
     color_atlas = std::unique_ptr<TextureAtlas>(atlas_builder.generate(device));
 
@@ -80,28 +82,10 @@ void ResourceManager::initializeResources() {
     mesh_pools[MeshPoolType_Default]->updateGPUResources(context);
 }
 
-// RegisterAsset:
-// Registers an asset by name, and returns it's ID
-uint16_t ResourceManager::registerAsset(const std::string& name,
-                                        std::unique_ptr<Asset>& asset) {
-    const uint16_t id = (uint16_t)assets.size();
-
-    asset_map[name] = id;
-    assets.emplace_back(std::move(asset));
-
-    return id;
-}
-
 // Get Resources:
-// Return resources by name.
-Asset* ResourceManager::getAsset(const std::string& name) {
-    if (asset_map.contains(name))
-        return getAsset(asset_map[name]);
-    else
-        return nullptr;
+std::shared_ptr<Mesh> ResourceManager::getMesh(int index) const {
+    return meshes[index];
 }
-
-Asset* ResourceManager::getAsset(uint16_t id) { return assets[id].get(); }
 
 const Texture* ResourceManager::getColorAtlas() {
     return color_atlas->getTexture();
@@ -118,10 +102,8 @@ void ResourceManager::LoadAssetFromGLTF(const std::string& asset_name,
     std::unique_ptr<Asset> asset = std::unique_ptr<Asset>(
         gltf_file.readFromFile(*mesh_builder, tex_builder, device, context));
 
-    if (asset != nullptr)
-        registerAsset(asset_name, asset);
-    else
-        assert(false);
+    // ideally, this should read into the mesh bufer.
+    assert(asset);
 }
 
 // LoadTexture:
@@ -165,29 +147,23 @@ ResourceManager::LoadMeshFromFile(const std::string& relative_path) {
 
     // Matches to find the file name and extension separately.
     // (?:.+/)* matches the path but does not put it in a capture group.
-    std::regex name_pattern("(?:.+/)*([a-zA-Z]+)\\.([a-zA-Z]+)");
+    std::regex name_pattern("(?:.+/)*([a-zA-Z0-9]+)\\.([a-zA-Z]+)");
     smatch match;
     regex_search(relative_path, match, name_pattern);
 
     std::shared_ptr<Mesh> output = nullptr;
 
-    if (match.size() == 3) {
-        // If name is ever needed:
-        // const std::string name = match[1];
-        const std::string extension = match[2];
+    // If name is ever needed:
+    // const std::string name = match[1];
+    const std::string extension = match[2];
 
-        FileReader reader = FileReader(full_path);
-        if (reader.readFileData()) {
-            std::shared_ptr<MeshBuilder> builder =
-                createMeshBuilder(MeshPoolType_Default);
-
-            if (extension == "glb") {
-                GLTFFile::ReadGLTFData(full_path, *builder);
-                output = builder->generateMesh(context);
-            } else
-                assert(false); // Unsupported Format
-        }
-    }
+    if (extension == "glb" || extension == "gltf") {
+        std::shared_ptr<MeshBuilder> builder =
+            createMeshBuilder(MeshPoolType_Default);
+        GLTFFile::ReadGLTFMesh(full_path, *builder);
+        output = builder->generateMesh(context);
+    } else
+        assert(false); // Unsupported Format
 
     if (output != nullptr) {
         meshes.emplace_back(std::move(output));
@@ -215,17 +191,14 @@ bool ResourceManager::WriteTextureToPNG(ID3D11Texture2D* texture,
 
 // Hard-Coded Cube Creator
 // Used in debugging
-void ResourceManager::LoadCubeAsset() {
+void ResourceManager::LoadCubeMesh() {
     std::shared_ptr<MeshBuilder> builder =
         createMeshBuilder(MeshPoolType_Default);
     builder->addLayout(POSITION);
     builder->addCube(Vector3(0, 0, 0), Quaternion(), 1.f);
+
     std::shared_ptr<Mesh> mesh = builder->generateMesh(context);
-
-    std::unique_ptr<Asset> cube = std::make_unique<Asset>();
-    cube->addMesh(mesh);
-
-    registerAsset("Cube", cube);
+    meshes.emplace_back(std::move(mesh));
 }
 
 } // namespace Graphics

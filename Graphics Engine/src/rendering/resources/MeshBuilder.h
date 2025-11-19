@@ -69,6 +69,9 @@ class MeshBuilder {
 
     const std::vector<MeshVertex>& getVertices() const;
     const std::vector<MeshTriangle>& getIndices() const;
+    std::vector<MeshVertex>& getVertices();
+    std::vector<MeshTriangle>& getIndices();
+
     bool isEmpty() const;
 
     // Add a stream to the builder's output

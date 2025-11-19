@@ -127,7 +127,7 @@ VisualSystem::VisualSystem(HWND window) {
 
     // Initialize each of my managers with the resources they need
     resource_manager = new ResourceManager(device, context);
-    resource_manager->initializeResources();
+    resource_manager->initializeSystemResources();
 
     light_manager = new LightManager(device, 4096);
 
@@ -145,10 +145,11 @@ void VisualSystem::onObjectCreate(Object* object) {
     if (class_id == DMCamera::ClassID()) {
         camera.reset(new Camera(object));
     } else if (class_id == DMAsset::ClassID()) {
-        DMAsset* asset_obj = static_cast<DMAsset*>(object);
+        // Deprecate
+        // DMAsset* asset_obj = static_cast<DMAsset*>(object);
 
-        Asset* asset = resource_manager->getAsset(asset_obj->getAssetName());
-        asset_components.emplace_back(new AssetComponent(object, asset));
+        // Asset* asset = resource_manager->getAsset(asset_obj->getAssetName());
+        // asset_components.emplace_back(new AssetComponent(object, asset));
     } else if (class_id == DMMesh::ClassID()) {
         renderable_meshes.push_back(
             new RenderableMesh(object, resource_manager));
@@ -264,11 +265,6 @@ void VisualSystem::pullSceneData(Scene* scene) {
 
         terrain->updateAndUploadTerrainData(context, *pass_terrain);
     }
-
-    // Pull my object data.
-    // Remove invalid visual objects, and update them to pull
-    // the datamodel data.
-    // asset_components.cleanAndUpdate();
 
     // Prepare managers for data
     light_manager->updateSunDirection(config->sun_direction);
@@ -664,10 +660,11 @@ void VisualSystem::performLightFrustumPass() {
     ID3D11DepthStencilView* depth_view = depth_copy->depth_view;
     context->OMSetRenderTargets(0, nullptr, depth_view);
 
-    Asset* frustum_cube = resource_manager->getAsset("Cube");
-    const Mesh* cube_mesh = frustum_cube->getMesh(0);
+    const std::shared_ptr<Mesh> cube_mesh =
+        resource_manager->getMesh(SystemMesh_Cube);
 
-    pipeline->drawMesh(cube_mesh, INDEX_LIST_START, INDEX_LIST_END, num_lights);
+    pipeline->drawMesh(cube_mesh.get(), INDEX_LIST_START, INDEX_LIST_END,
+                       num_lights);
 
     // Render the Rest
     pipeline->bindVertexShader("LightFrustum");
@@ -679,7 +676,8 @@ void VisualSystem::performLightFrustumPass() {
     pipeline->bindDepthStencil(3);
     context->PSSetShaderResources(4, 1, &depth_copy->shader_view);
 
-    pipeline->drawMesh(cube_mesh, INDEX_LIST_START, INDEX_LIST_END, num_lights);
+    pipeline->drawMesh(cube_mesh.get(), INDEX_LIST_START, INDEX_LIST_END,
+                       num_lights);
 
     context->RSSetState(NULL);
 }
@@ -908,8 +906,7 @@ void VisualSystem::renderDebugPoints() {
     pipeline->bindVertexShader("DebugPoint");
     pipeline->bindPixelShader("DebugPoint");
 
-    Asset* cube = resource_manager->getAsset("Cube");
-    const Mesh* mesh = cube->getMesh(0);
+    const Mesh* mesh = resource_manager->getMesh(SystemMesh_Cube).get();
 
     ID3D11Buffer* indexBuffer = mesh->buffer_pool->ibuffer;
     ID3D11Buffer* vertexBuffer = mesh->buffer_pool->vbuffers[POSITION];
