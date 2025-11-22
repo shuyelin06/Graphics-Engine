@@ -15,6 +15,8 @@
 
 #include "files/FileReader.h"
 
+#include "../ImGui.h"
+
 // We use the lodepng library to read PNG files.
 // See https://github.com/lvandeve/lodepng
 #include "lodepng/lodepng.h"
@@ -40,70 +42,30 @@ ResourceManager::~ResourceManager() = default;
 // Initialize:
 // Loads assets into the asset manager.
 void ResourceManager::initializeSystemResources() {
-    //  Empirical testing has shown that
+    // Empirical testing has shown that
     // 300,000 vertices, 200,000 indices is enough
+    // TODO: Be able to create mesh pools on demand
     mesh_pools[MeshPoolType_Terrain] = std::make_unique<MeshPool>(
         (1 << POSITION) | (1 << NORMAL), 200000, 300000);
     mesh_pools[MeshPoolType_Default] =
         std::make_unique<MeshPool>(0xFFFF, 100000, 100000);
 
-    // Stores an atlas of material colors to avoid the need for rebinds later
-    AtlasBuilder atlas_builder = AtlasBuilder(4096, 4096);
-
-    // --- Load Assets Here ---
+    // System assets are loaded here
     LoadCubeMesh();
-
-    // Currently supported: GLTF
-
-    /*
-    // LoadAssetFromGLTF("TestAsset", "data/Testing.glb", atlas_builder);
-    // Capybara by Poly by Google [CC-BY] via Poly Pizza
-    LoadAssetFromGLTF("Capybara", "data/Capybara.glb", atlas_builder);
-
-    // LoadAssetFromGLTF("TexturedCube", "data/TexturedCube.glb",
-    // atlas_builder);
-
-    // Dingus the cat by alwayshasbean [CC-BY] via Poly Pizza
-    // LoadAssetFromGLTF("Dingus", "data/Dingus the cat.glb", atlas_builder);
-
-    // Fox by Quaternius
-    LoadAssetFromGLTF("Fox", "data/Fox.glb", atlas_builder);
-
-    // Man by Quaternius
-    LoadAssetFromGLTF("Man", "data/Man.glb", atlas_builder);
-
-    // Tree
-    LoadAssetFromGLTF("Tree", "data/Tree.glb", atlas_builder);
-    */
-
-    color_atlas = std::unique_ptr<TextureAtlas>(atlas_builder.generate(device));
+    LoadFallbackColormap();
 
     mesh_pools[MeshPoolType_Default]->createGPUResources(device);
     mesh_pools[MeshPoolType_Default]->updateGPUResources(context);
 }
 
-// Get Resources:
+// Get Resources
 std::shared_ptr<Mesh> ResourceManager::getMesh(int index) const {
+    assert(0 <= index && index < meshes.size());
     return meshes[index];
 }
-
-const Texture* ResourceManager::getColorAtlas() {
-    return color_atlas->getTexture();
-}
-
-// LoadAssetFromGLTF:
-// Uses the GLTFFile interface to load an asset from a GLTF file
-void ResourceManager::LoadAssetFromGLTF(const std::string& asset_name,
-                                        const std::string& path,
-                                        AtlasBuilder& tex_builder) {
-    std::shared_ptr<MeshBuilder> mesh_builder =
-        createMeshBuilder(MeshPoolType_Default);
-    GLTFFile gltf_file = GLTFFile(path);
-    std::unique_ptr<Asset> asset = std::unique_ptr<Asset>(
-        gltf_file.readFromFile(*mesh_builder, tex_builder, device, context));
-
-    // ideally, this should read into the mesh bufer.
-    assert(asset);
+std::shared_ptr<Texture> ResourceManager::getTexture(int index) const {
+    assert(0 <= index && index < textures.size());
+    return textures[index];
 }
 
 // LoadTexture:
@@ -181,6 +143,35 @@ MeshPool* ResourceManager::getMeshPool(MeshPoolType pool_type) {
     return mesh_pools[pool_type].get();
 }
 
+// Debug Display
+void ResourceManager::imGui() {
+    if (ImGui::CollapsingHeader("Resource Manager")) {
+        ImGui::Text("Mesh Count: %zu", meshes.size());
+        if (ImGui::BeginTable("Mesh Information", 3)) {
+            ImGui::TableSetupColumn("Index");
+            ImGui::TableSetupColumn("Vertex Count");
+            ImGui::TableSetupColumn("Index Count");
+            ImGui::TableHeadersRow();
+
+            int mesh_index = 0;
+            for (const auto& mesh : meshes) {
+                ImGui::TableNextRow();
+
+                ImGui::TableSetColumnIndex(0);
+                ImGui::Text("%i", mesh_index++);
+                ImGui::TableSetColumnIndex(1);
+                ImGui::Text("%zu", mesh->num_triangles * 3);
+                ImGui::TableSetColumnIndex(2);
+                ImGui::Text("%zu", mesh->num_vertices);
+            }
+
+            ImGui::EndTable();
+        }
+
+        ImGui::Text("Texture Count: %zu", textures.size());
+    }
+}
+
 // WriteTextureToPNG:
 // Uses the PNGFile interface to write a texture to a PNG file
 bool ResourceManager::WriteTextureToPNG(ID3D11Texture2D* texture,
@@ -189,8 +180,7 @@ bool ResourceManager::WriteTextureToPNG(ID3D11Texture2D* texture,
     return png_file.writePNGData(device, context, texture);
 }
 
-// Hard-Coded Cube Creator
-// Used in debugging
+// System Resources
 void ResourceManager::LoadCubeMesh() {
     std::shared_ptr<MeshBuilder> builder =
         createMeshBuilder(MeshPoolType_Default);
@@ -198,7 +188,16 @@ void ResourceManager::LoadCubeMesh() {
     builder->addCube(Vector3(0, 0, 0), Quaternion(), 1.f);
 
     std::shared_ptr<Mesh> mesh = builder->generateMesh(context);
+    assert(meshes.size() == SystemMesh_Cube);
     meshes.emplace_back(std::move(mesh));
+}
+
+void ResourceManager::LoadFallbackColormap() {
+    TextureBuilder builder = TextureBuilder(10, 10);
+    builder.clear({90, 34, 139, 255});
+    Texture* fallback_tex = builder.generate(device);
+    assert(textures.size() == SystemTexture_FallbackColormap);
+    textures.push_back(std::shared_ptr<Texture>(fallback_tex));
 }
 
 } // namespace Graphics

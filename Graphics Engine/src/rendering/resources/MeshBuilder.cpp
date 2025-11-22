@@ -97,12 +97,6 @@ std::shared_ptr<Mesh> MeshBuilder::generateMesh(ID3D11DeviceContext* context) {
 
 std::shared_ptr<Mesh> MeshBuilder::generateMesh(ID3D11DeviceContext* context,
                                                 MeshPool* pool) {
-    return generateMesh(context, pool, Material());
-}
-
-std::shared_ptr<Mesh> MeshBuilder::generateMesh(ID3D11DeviceContext* context,
-                                                MeshPool* pool,
-                                const Material& material) {
     // Layout must match the pool's layout
     assert((layout & pool->layout) == layout);
     // Pool must have enough space for this mesh
@@ -148,8 +142,6 @@ std::shared_ptr<Mesh> MeshBuilder::generateMesh(ID3D11DeviceContext* context,
 
     for (const MeshVertex& vertex : vertex_buffer)
         mesh->aabb.expandToContain(vertex.position);
-
-    mesh->material = material;
 
     // Update my mesh pool
     pool->vertex_size += vertex_buffer.size();

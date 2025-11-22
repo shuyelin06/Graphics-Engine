@@ -4,7 +4,7 @@
 #include "datamodel/objects/DMMesh.h"
 
 #include "../resources/ResourceManager.h"
-#include "Asset.h"
+#include "Geometry.h"
 
 namespace Engine {
 using namespace Datamodel;
@@ -17,7 +17,7 @@ class RenderableMesh : public DMBinding {
   private:
     ResourceManager* resource_manager;
     
-    std::shared_ptr<Mesh> mesh;
+    std::shared_ptr<Geometry> geometry;
     std::string mesh_name;
 
     Matrix4 m_local_to_world;
@@ -28,8 +28,8 @@ class RenderableMesh : public DMBinding {
     RenderableMesh(Object* dm_mesh, ResourceManager* resource_manager);
     ~RenderableMesh();
 
-    std::weak_ptr<Mesh> getMesh() const;
-    bool isValidMesh() const;
+    std::weak_ptr<Geometry> getGeometry() const;
+    bool isValidGeometry() const;
 
     const Matrix4& getLocalMatrix() const;
 };

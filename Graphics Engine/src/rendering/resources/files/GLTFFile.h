@@ -27,10 +27,10 @@ class GLTFFile {
     static void ReadGLTFMesh(const std::string& path, MeshBuilder& builder);
 
   private:
-    // Material Parsing
-    void parseMaterial(const cgltf_material* mat_data,
-                       MeshBuilder& mesh_builder, Material& material,
-                       AtlasBuilder& tex_builder);
+    //// Material Parsing
+    //void parseMaterial(const cgltf_material* mat_data,
+    //                   MeshBuilder& mesh_builder, Material& material,
+    //                   AtlasBuilder& tex_builder);
     const AtlasAllocation& parseBaseColorTex(const cgltf_texture* tex,
                                              AtlasBuilder& tex_builder);
 };

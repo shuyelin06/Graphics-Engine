@@ -3,7 +3,7 @@
 #include "datamodel/terrain/Terrain.h"
 
 #include "../RenderPass.h"
-#include "../core/Asset.h"
+#include "../core/Mesh.h"
 #include "../pipeline/StructuredBuffer.h"
 #include "../resources/MeshBuilder.h"
 #include "../resources/ResourceManager.h"

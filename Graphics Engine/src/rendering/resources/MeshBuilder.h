@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include "../core/Asset.h"
+#include "../core/Mesh.h"
 #include "math/Quaternion.h"
 
 namespace Engine {
@@ -60,9 +60,6 @@ class MeshBuilder {
     // mesh.
     std::shared_ptr<Mesh> generateMesh(ID3D11DeviceContext* context,
                                        MeshPool* buffer_pool);
-    std::shared_ptr<Mesh> generateMesh(ID3D11DeviceContext* context,
-                                       MeshPool* buffer_pool,
-                                       const Material& material);
 
     // NEW-- DEPRECATE THE ABOVE
     std::shared_ptr<Mesh> generateMesh(ID3D11DeviceContext* context);

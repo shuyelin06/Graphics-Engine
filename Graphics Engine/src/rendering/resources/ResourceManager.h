@@ -7,7 +7,8 @@
 
 #include "../Direct3D11.h"
 
-#include "../core/Asset.h"
+#include "rendering/core/Mesh.h"
+#include "rendering/core/Material.h"
 #include "MeshBuilder.h"
 #include "TextureBuilder.h"
 
@@ -20,7 +21,8 @@ enum MeshPoolType {
     MeshPoolType_Count,
 };
 
-enum SystemMesh { SystemMesh_Cube };
+enum SystemMesh { SystemMesh_Cube = 0 };
+enum SystemTexture { SystemTexture_FallbackColormap = 0 };
 
 // ResourceManager Class:
 // Manages assets for the engine. Provides methods
@@ -31,10 +33,9 @@ class ResourceManager {
     ID3D11DeviceContext* context;
 
     std::unique_ptr<MeshPool> mesh_pools[MeshPoolType_Count];
-    std::unique_ptr<TextureAtlas> color_atlas;
+    std::vector<std::shared_ptr<Mesh>> meshes;
 
     std::vector<std::shared_ptr<Texture>> textures;
-    std::vector<std::shared_ptr<Mesh>> meshes;
 
   public:
     ResourceManager(ID3D11Device* device, ID3D11DeviceContext* context);
@@ -47,8 +48,7 @@ class ResourceManager {
 
     // Get Resources
     std::shared_ptr<Mesh> getMesh(int index) const;
-
-    const Texture* getColorAtlas();
+    std::shared_ptr<Texture> getTexture(int index) const;
 
     // Create Resources
     std::shared_ptr<Texture>
@@ -59,13 +59,14 @@ class ResourceManager {
     std::shared_ptr<MeshBuilder> createMeshBuilder(MeshPoolType pool_type);
     MeshPool* getMeshPool(MeshPoolType pool_type);
 
+    // Debug Display
+    void imGui();
+
   private:
     // System Asset Generation
     void LoadCubeMesh();
 
-    // Load assets from files. TRY TO DEPRECATE
-    void LoadAssetFromGLTF(const std::string& asset_name,
-                           const std::string& path, AtlasBuilder& tex_builder);
+    void LoadFallbackColormap();
 
     bool WriteTextureToPNG(ID3D11Texture2D* texture, std::string path,
                            std::string file);

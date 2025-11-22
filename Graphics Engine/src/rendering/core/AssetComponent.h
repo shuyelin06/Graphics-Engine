@@ -1,7 +1,7 @@
 #pragma once
 
 #include "datamodel/Object.h"
-#include "Asset.h"
+#include "Mesh.h"
 
 namespace Engine {
 using namespace Datamodel;

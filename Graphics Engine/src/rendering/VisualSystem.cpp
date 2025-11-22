@@ -9,6 +9,7 @@
 #include "datamodel/objects/DMAsset.h"
 #include "datamodel/objects/DMCamera.h"
 
+#include "core/Material.h"
 #include "math/Vector4.h"
 #include "resources/BumpMapBuilder.h"
 
@@ -71,6 +72,11 @@ void VisualSystem::imGuiConfig() {
     config->imGuiConfig();
     if (ImGui::BeginMenu("Test")) {
         test_tex.get()->displayImGui();
+        ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Rendering")) {
+        resource_manager->imGui();
         ImGui::EndMenu();
     }
 }
@@ -195,7 +201,7 @@ void VisualSystem::render() {
         performPrepass(); //..
 
         // Bind my atlases
-        resource_manager->getColorAtlas()->PSBindResource(context, 0);
+        resource_manager->getTexture(SystemTexture_FallbackColormap)->PSBindResource(context, 0);
         light_manager->getAtlasTexture()->PSBindResource(context, 1);
 
         // Render terrain
@@ -274,7 +280,7 @@ void VisualSystem::pullSceneData(Scene* scene) {
 
     pass_default->meshes.clear();
     for (const auto& renderable_mesh : renderable_meshes) {
-        pass_default->meshes.emplace_back(renderable_mesh->getMesh(),
+        pass_default->meshes.emplace_back(renderable_mesh->getGeometry(),
                                           renderable_mesh->getLocalMatrix());
     }
 
@@ -482,20 +488,24 @@ void VisualSystem::performDefaultPass() {
     }
 
     // Testing for animations
-    for (const auto& mesh_instance : pass_default->meshes) {
-        const auto& mesh = mesh_instance.mesh.lock();
+    for (const auto& geom_instance : pass_default->meshes) {
+        const auto& geometry = geom_instance.geometry.lock();
+        if (!geometry)
+            continue;
 
-        if (!mesh)
+        const auto& mesh = geometry->mesh;
+        const auto& material = geometry->material;
+        if (!mesh || !material)
             continue;
 
         // TODO: Material support
-        const Material mat = Material();
+        // const Material mat = Material();
 
         // Pixel CB2: Mesh Material Data
         {
             IConstantBuffer pCB2 = pipeline->loadPixelCB(CB2);
 
-            const TextureRegion& region = mat.tex_region;
+            const TextureRegion& region = {0,0,1,1};
             pCB2.loadData(&region.x, FLOAT);
             pCB2.loadData(&region.y, FLOAT);
             pCB2.loadData(&region.width, FLOAT);
@@ -503,7 +513,7 @@ void VisualSystem::performDefaultPass() {
         }
 
         // Vertex CB2: Transform matrices
-        const Matrix4& mLocalToWorld = mesh_instance.m_local_to_world;
+        const Matrix4& mLocalToWorld = geom_instance.m_local_to_world;
         {
             IConstantBuffer vCB2 = pipeline->loadVertexCB(CB2);
 

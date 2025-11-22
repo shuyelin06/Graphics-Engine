@@ -6,7 +6,7 @@ RenderableMesh::RenderableMesh(Object* dm_mesh, ResourceManager* resource_mgr)
     : DMBinding(dm_mesh) {
     resource_manager = resource_mgr;
 
-    mesh = nullptr;
+    geometry = nullptr;
     mesh_name = "";
 }
 RenderableMesh::~RenderableMesh() = default;
@@ -19,14 +19,17 @@ void RenderableMesh::pullDatamodelDataImpl(Object* object) {
 
     if (mesh_name != dm_mesh->getMeshFile()) {
         mesh_name = dm_mesh->getMeshFile();
-        mesh = resource_manager->LoadMeshFromFile(mesh_name);
+        std::shared_ptr<Material> material = std::make_shared<Material>(
+            resource_manager->getTexture(SystemTexture_FallbackColormap));
+        geometry = std::make_shared<Geometry>(resource_manager->LoadMeshFromFile(mesh_name),
+                    std::move(material));
     }
 
     m_local_to_world = object->getLocalMatrix();
 }
 
-bool RenderableMesh::isValidMesh() const { return mesh != nullptr; }
-std::weak_ptr<Mesh> RenderableMesh::getMesh() const { return mesh; }
+bool RenderableMesh::isValidGeometry() const { return geometry != nullptr; }
+std::weak_ptr<Geometry> RenderableMesh::getGeometry() const { return geometry; }
 
 const Matrix4& RenderableMesh::getLocalMatrix() const {
     return m_local_to_world;

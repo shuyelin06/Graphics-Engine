@@ -437,6 +437,7 @@ void GLTFFile::ReadGLTFMesh(const std::string& path, MeshBuilder& builder) {
 }
 
 // --- Parsing ---
+/*
 void GLTFFile::parseMaterial(const cgltf_material* mat_data,
                              MeshBuilder& builder, Material& material,
                              AtlasBuilder& tex_builder) {
@@ -476,6 +477,7 @@ void GLTFFile::parseMaterial(const cgltf_material* mat_data,
         material.diffuse_factor = roughness.roughness_factor;
     }
 }
+*/
 
 const AtlasAllocation& GLTFFile::parseBaseColorTex(const cgltf_texture* tex,
                                                    AtlasBuilder& tex_builder) {

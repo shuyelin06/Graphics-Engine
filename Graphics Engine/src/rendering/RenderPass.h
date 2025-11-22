@@ -3,7 +3,7 @@
 #include "math/Vector3.h"
 
 #include "Direct3D11.h"
-#include "core/Asset.h"
+#include "core/Geometry.h"
 #include "pipeline/StructuredBuffer.h"
 #include <d3d11_1.h>
 
@@ -55,14 +55,14 @@ struct RenderPassTerrain : public RenderPassData {
 };
 
 struct RenderPassDefault : public RenderPassData {
-    struct MeshInstance {
-        std::weak_ptr<Mesh> mesh;
+    struct GeometryInstance {
+        std::weak_ptr<Geometry> geometry;
         Matrix4 m_local_to_world;
 
-        MeshInstance(std::weak_ptr<Mesh> mesh, Matrix4 m_local_to_world);
+        GeometryInstance(std::weak_ptr<Geometry> mesh, Matrix4 m_local_to_world);
     };
 
-    std::vector<MeshInstance> meshes;
+    std::vector<GeometryInstance> meshes;
 
     RenderPassDefault(ID3D11Device* device, ID3D11DeviceContext* context);
 };

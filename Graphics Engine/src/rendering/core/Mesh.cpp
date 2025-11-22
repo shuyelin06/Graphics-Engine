@@ -1,4 +1,4 @@
-#include "Asset.h"
+#include "Mesh.h"
 
 #include <assert.h>
 
@@ -6,16 +6,6 @@ namespace Engine {
 using namespace Math;
 
 namespace Graphics {
-// --- Material ---
-Material::Material() {
-    tex_region.x = 0.f;
-    tex_region.y = 0.f;
-    tex_region.width = 1.f;
-    tex_region.height = 1.f;
-
-    diffuse_factor = 0.5f;
-}
-
 // --- Mesh ---
 MeshPool::MeshPool() {
     layout = 0;
@@ -179,7 +169,6 @@ Mesh::Mesh(MeshPool* pool) {
     vertex_start = num_vertices = 0;
     triangle_start = num_triangles = 0;
     aabb = AABB();
-    material = Material();
 }
 
 Mesh::~Mesh() = default;

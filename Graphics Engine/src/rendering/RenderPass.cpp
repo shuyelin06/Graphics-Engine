@@ -29,9 +29,9 @@ RenderPassTerrain::RenderPassTerrain(ID3D11Device* device,
     max_chunk_triangles = 0;
 }
 
-RenderPassDefault::MeshInstance::MeshInstance(std::weak_ptr<Mesh> _mesh,
-                                              Matrix4 _m_local_to_world) {
-    mesh = _mesh;
+RenderPassDefault::GeometryInstance::GeometryInstance(
+    std::weak_ptr<Geometry> _geometry, Matrix4 _m_local_to_world) {
+    geometry = _geometry;
     m_local_to_world = _m_local_to_world;
 }
 

@@ -20,27 +20,6 @@ using namespace Math;
 namespace Graphics {
 typedef unsigned int UINT;
 
-// --- Material ---
-// Specifies renderable properties of a mesh. These properties are given in
-// terms of texture coordinates into a texture atlas (which is used for many
-// meshes)
-
-// Normalized [0,1] coordinates into a material texture atlas.
-struct TextureRegion {
-    float x, y, width, height;
-};
-
-// Specifies renderable properties for a mesh.
-struct Material {
-    TextureRegion tex_region;
-
-    float diffuse_factor; // Roughness
-
-  public:
-    // Default material settings
-    Material();
-};
-
 // --- Mesh ---
 // Specifies a mesh, which is a collection of vertices that has the same
 // material (renderable configuration). Vertices are stored in separate vertex
@@ -107,11 +86,9 @@ struct Mesh {
 
     // AABB for the Mesh
     Math::AABB aabb;
-
-    // Renderable Properties
-    Material material;
 };
 
+// TODO: Move animation stuff out.
 // --- Node ---
 // Defines a local transform in space. Nodes can have children, and the
 // transforms of these children are influenced by their parents.

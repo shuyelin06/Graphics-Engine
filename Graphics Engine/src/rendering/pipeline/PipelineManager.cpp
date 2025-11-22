@@ -2,7 +2,7 @@
 
 #include <assert.h>
 
-#include "../core/Asset.h"
+#include "../core/Mesh.h"
 #include "math/Vector4.h"
 
 #if defined(_DEBUG)

@@ -219,7 +219,7 @@
     <ClCompile Include="src\math\Vector4.cpp" />
     <ClCompile Include="src\physics\collisions\AABBTree.cpp" />
     <ClCompile Include="src\physics\PhysicsObject.cpp" />
-    <ClCompile Include="src\rendering\core\Asset.cpp" />
+    <ClCompile Include="src\rendering\core\Mesh.cpp" />
     <ClCompile Include="src\rendering\core\AssetComponent.cpp" />
     <ClCompile Include="src\rendering\lights\LightManager.cpp" />
     <ClCompile Include="src\rendering\resources\MeshBuilder.cpp" />
@@ -272,6 +272,8 @@
     <ClInclude Include="src\datamodel\terrain\TerrainConfig.h" />
     <ClInclude Include="src\GlobalConfig.h" />
     <ClInclude Include="src\physics\PhysicsTerrain.h" />
+    <ClInclude Include="src\rendering\core\Geometry.h" />
+    <ClInclude Include="src\rendering\core\Material.h" />
     <ClInclude Include="src\rendering\core\RenderableMesh.h" />
     <ClInclude Include="src\rendering\lights\LightDataGPU.h" />
     <ClInclude Include="src\rendering\RenderPass.h" />
@@ -328,7 +330,7 @@
     <ClInclude Include="src\math\Vector3.h" />
     <ClInclude Include="src\math\Matrix4.h" />
     <ClInclude Include="src\math\Vector4.h" />
-    <ClInclude Include="src\rendering\core\Asset.h" />
+    <ClInclude Include="src\rendering\core\Mesh.h" />
     <ClInclude Include="src\rendering\resources\MeshBuilder.h" />
     <ClInclude Include="src\rendering\core\Camera.h" />
     <ClInclude Include="src\rendering\lights\Light.h" />

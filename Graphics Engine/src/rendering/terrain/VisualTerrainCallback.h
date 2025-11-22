@@ -5,7 +5,7 @@
 #include "datamodel/terrain/TerrainCallback.h"
 
 #include "../Direct3D11.h"
-#include "../core/Asset.h"
+#include "../core/Mesh.h"
 #include "../resources/MeshBuilder.h"
 
 namespace Engine {
