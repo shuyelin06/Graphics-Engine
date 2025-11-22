@@ -17,8 +17,8 @@ RenderableMesh::~RenderableMesh() = default;
 void RenderableMesh::pullDatamodelDataImpl(Object* object) {
     DMMesh* dm_mesh = static_cast<DMMesh*>(object);
 
-    if (mesh_name != dm_mesh->getMeshName()) {
-        mesh_name = dm_mesh->getMeshName();
+    if (mesh_name != dm_mesh->getMeshFile()) {
+        mesh_name = dm_mesh->getMeshFile();
         mesh = resource_manager->LoadMeshFromFile(mesh_name);
     }
 

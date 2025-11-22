@@ -250,6 +250,7 @@
     <ClCompile Include="src\rendering\VisualDebug.cpp" />
     <ClCompile Include="src\rendering\VisualSystem.cpp" />
     <ClCompile Include="src\rendering\terrain\VisualTerrain.cpp" />
+    <ClCompile Include="src\core\DataFilePath.cpp" />
     <ClCompile Include="src\utility\Stopwatch.cpp" />
     <ClCompile Include="src\rendering\core\VertexStreamIDs.h" />
   </ItemGroup>
@@ -348,6 +349,7 @@
     <ClInclude Include="src\rendering\VisualDebug.h" />
     <ClInclude Include="src\rendering\VisualSystem.h" />
     <ClInclude Include="src\rendering\terrain\VisualTerrain.h" />
+    <ClInclude Include="src\core\DataFilePath.h" />
     <ClInclude Include="src\utility\Stopwatch.h" />
   </ItemGroup>
   <ItemGroup>

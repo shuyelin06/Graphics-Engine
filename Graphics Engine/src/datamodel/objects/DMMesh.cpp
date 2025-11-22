@@ -8,8 +8,13 @@ DMMesh::DMMesh() : Object(), Bindable<DMMesh>(this) {
 }
 DMMesh::~DMMesh() = default;
 
-void DMMesh::setMeshName(const std::string& name) { mesh_name = name; }
-const std::string& DMMesh::getMeshName() { return mesh_name; }
+void DMMesh::setMeshFile(const std::string& name) { mesh_name = name; }
+const std::string& DMMesh::getMeshFile() { return mesh_name; }
+
+void DMMesh::setColorMapFile(const std::string& colormap_file) {
+    colormap_name = colormap_file;
+}
+const std::string& DMMesh::getColorMapFile() { return colormap_name; }
 
 } // namespace Datamodel
 } // namespace Engine

@@ -114,7 +114,7 @@ ResourceManager::LoadTextureFromFile(const std::string& relative_path) {
 
     // Matches to find the file name and extension separately.
     // (?:.+/)* matches the path but does not put it in a capture group.
-    std::regex name_pattern("(?:.+/)*([a-zA-Z]+)\\.([a-zA-Z]+)");
+    std::regex name_pattern("(?:.+/)*([a-zA-Z0-9]+)\\.([a-zA-Z]+)");
     smatch match;
     regex_search(relative_path, match, name_pattern);
 
