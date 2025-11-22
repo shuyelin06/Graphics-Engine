@@ -10,11 +10,13 @@
 
 #include "datamodel/SceneGraph.h"
 
+#include "RenderPass.h"
 #include "lights/LightManager.h"
 #include "pipeline/PipelineManager.h"
 #include "resources/ResourceManager.h"
 
 #include "core/AssetComponent.h"
+#include "core/RenderableMesh.h"
 #include "terrain/VisualTerrain.h"
 
 #include "rendering/core/Camera.h"
@@ -35,6 +37,12 @@ using namespace Datamodel;
 
 namespace Graphics {
 
+enum RenderPass {
+    RenderPass_Shadows,
+    RenderPass_Terrain,
+    RenderPass_Default,
+};
+
 // VisualParameters Struct:
 // Stores configuration parameters toggleable by the user
 struct VisualParameters;
@@ -45,6 +53,8 @@ struct VisualCache;
 
 // VisualSystem Class:
 // Provides an interface for the application's graphics.
+// VisualSystem is in charge of the different rendering passes;
+// pipeline provides a convenient interface for some functionality.
 class VisualSystem {
   private:
     // Configuration + Cache
@@ -62,13 +72,22 @@ class VisualSystem {
 
     // Supported Components
     std::unique_ptr<Camera> camera;
-    std::vector<AssetComponent*> asset_components;
+    std::vector<AssetComponent*> asset_components; // TRY TO DEPRECATE
+    std::vector<RenderableMesh*> renderable_meshes; 
     VisualTerrain* terrain;
-    
+
     // Temp for now; should be moved later.
     ID3D11RasterizerState* og_rast_state;
     ID3D11RasterizerState* rast_state;
     Texture* bump_tex;
+
+    std::shared_ptr<Texture> test_tex;
+
+    // Render Pass Information;
+    // This should be populated by the VisualSystem's subsystems
+    std::unique_ptr<RenderPassShadows> pass_shadows;
+    std::unique_ptr<RenderPassTerrain> pass_terrain;
+    std::unique_ptr<RenderPassDefault> pass_default;
 
   public:
     VisualSystem(HWND window);
@@ -83,7 +102,7 @@ class VisualSystem {
   private:                     // Rendering Stages
     void performPrepass();     // Prepass (Shadowmaps)
     void performTerrainPass(); // Render Terrain
-    void performRenderPass();  // Render Pass
+    void performDefaultPass();  // Render Pass
 
     void performLightFrustumPass(); // Light Frustum Pass
 

@@ -24,14 +24,14 @@ template <typename Derived> class Bindable {
     static uint16_t ClassId;
 
   public:
-    Bindable(Object* derived) {
-        derived->setClassID(ClassID());
-        if (ConstructorCallback != nullptr)
-            ConstructorCallback(derived);
-    }
+    Bindable(Object* object) { object->setClassID(ClassID()); }
 
     static void ConnectToCreation(std::function<void(Object*)> func) {
         ConstructorCallback = func;
+    }
+    static void SignalObjectCreation(Object* obj) {
+        if (ConstructorCallback != nullptr)
+            ConstructorCallback(obj);
     }
     static uint16_t ClassID() { return ClassId; }
 };

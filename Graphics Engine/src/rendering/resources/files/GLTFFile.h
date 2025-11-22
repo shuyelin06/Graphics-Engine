@@ -3,8 +3,8 @@
 #include <string>
 #include <vector>
 
-#include "AssetBuilder.h"
-#include "TextureBuilder.h"
+#include "../MeshBuilder.h"
+#include "../TextureBuilder.h"
 
 struct cgltf_accessor;
 struct cgltf_material;
@@ -23,6 +23,8 @@ class GLTFFile {
 
     Asset* readFromFile(MeshBuilder& mesh_builder, AtlasBuilder& tex_builder,
                         ID3D11Device* device, ID3D11DeviceContext* context);
+
+    static void ReadGLTFMesh(const std::string& path, MeshBuilder& builder);
 
   private:
     // Material Parsing

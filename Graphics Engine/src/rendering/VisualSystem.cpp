@@ -6,6 +6,7 @@
 #include "VisualDebug.h"
 #include "core/Frustum.h"
 #include "datamodel/Object.h"
+#include "datamodel/objects/DMAsset.h"
 #include "datamodel/objects/DMCamera.h"
 
 #include "math/Vector4.h"
@@ -66,7 +67,13 @@ struct VisualParameters {
 #if defined(_DEBUG)
 // ImGuiConfig:
 // Sets configuration parameters
-void VisualSystem::imGuiConfig() { config->imGuiConfig(); }
+void VisualSystem::imGuiConfig() {
+    config->imGuiConfig();
+    if (ImGui::BeginMenu("Test")) {
+        test_tex.get()->displayImGui();
+        ImGui::EndMenu();
+    }
+}
 #endif
 
 struct VisualCache {
@@ -95,6 +102,10 @@ VisualSystem::VisualSystem(HWND window) {
     // Connect to Datamodel
     DMCamera::ConnectToCreation(
         [this](Object* obj) { this->onObjectCreate(obj); });
+    DMAsset::ConnectToCreation(
+        [this](Object* obj) { this->onObjectCreate(obj); });
+    DMMesh::ConnectToCreation(
+        [this](Object* obj) { this->onObjectCreate(obj); });
 
     camera = nullptr;
 
@@ -116,9 +127,15 @@ VisualSystem::VisualSystem(HWND window) {
 
     // Initialize each of my managers with the resources they need
     resource_manager = new ResourceManager(device, context);
-    resource_manager->initializeResources();
+    resource_manager->initializeSystemResources();
 
     light_manager = new LightManager(device, 4096);
+
+    test_tex = resource_manager->LoadTextureFromFile("png.png");
+
+    pass_shadows = std::make_unique<RenderPassShadows>(device, context);
+    pass_terrain = std::make_unique<RenderPassTerrain>(device, context);
+    pass_default = std::make_unique<RenderPassDefault>(device, context);
 }
 
 // --- Component Bindings ---
@@ -127,6 +144,15 @@ void VisualSystem::onObjectCreate(Object* object) {
 
     if (class_id == DMCamera::ClassID()) {
         camera.reset(new Camera(object));
+    } else if (class_id == DMAsset::ClassID()) {
+        // Deprecate
+        // DMAsset* asset_obj = static_cast<DMAsset*>(object);
+
+        // Asset* asset = resource_manager->getAsset(asset_obj->getAssetName());
+        // asset_components.emplace_back(new AssetComponent(object, asset));
+    } else if (class_id == DMMesh::ClassID()) {
+        renderable_meshes.push_back(
+            new RenderableMesh(object, resource_manager));
     }
 }
 
@@ -175,7 +201,7 @@ void VisualSystem::render() {
         // Render terrain
         performTerrainPass();
         // Render meshes
-        performRenderPass();
+        performDefaultPass();
 
         // Rendering is different depending on if we're below
         // or above the surface of the water
@@ -219,8 +245,12 @@ void VisualSystem::pullSceneData(Scene* scene) {
 
     // Pull Datamodel Data
     camera.get()->pullDatamodelData();
+    cleanAndPullDatamodelData(renderable_meshes);
+
+    light_manager->pullDatamodelData();
 
     // Pull my terrain data (if it exists).
+    // TODO: Move to existing datamodel infrastructure
     Terrain* scene_terrain = scene->getTerrain();
 
     if (scene_terrain == nullptr) {
@@ -230,16 +260,11 @@ void VisualSystem::pullSceneData(Scene* scene) {
         }
     } else {
         if (terrain == nullptr)
-            terrain = new VisualTerrain(scene_terrain, device);
+            terrain =
+                new VisualTerrain(scene_terrain, context, *resource_manager);
 
-        terrain->pullTerrainMeshes(context);
+        terrain->updateAndUploadTerrainData(context, *pass_terrain);
     }
-
-    // Pull my object data.
-    // Remove invalid visual objects, and update them to pull
-    // the datamodel data.
-    // asset_components.cleanAndUpdate();
-    light_manager->pullDatamodelData();
 
     // Prepare managers for data
     light_manager->updateSunDirection(config->sun_direction);
@@ -247,16 +272,23 @@ void VisualSystem::pullSceneData(Scene* scene) {
 
     light_manager->resetShadowCasters();
 
-    for (const AssetComponent* object : asset_components) {
+    pass_default->meshes.clear();
+    for (const auto& renderable_mesh : renderable_meshes) {
+        pass_default->meshes.emplace_back(renderable_mesh->getMesh(),
+                                          renderable_mesh->getLocalMatrix());
+    }
+
+    for (AssetComponent* object : asset_components) {
+        object->update();
+
         const Asset* asset = object->getAsset();
 
         if (asset->isSkinned())
             asset->applyAnimationAtTime(1, cache->time);
 
-        const std::vector<Mesh*>& meshes = asset->getMeshes();
-        for (const Mesh* mesh : meshes) {
+        for (const auto& mesh : asset->getMeshes()) {
             ShadowCaster shadowCaster;
-            shadowCaster.mesh = mesh;
+            shadowCaster.mesh = mesh.get();
             shadowCaster.m_localToWorld = object->getObject()->getLocalMatrix();
             light_manager->addShadowCaster(shadowCaster);
         }
@@ -332,9 +364,7 @@ void VisualSystem::pullSceneData(Scene* scene) {
 // Render the scene from each light's point of view, to populate
 // its shadow map.
 void VisualSystem::performPrepass() {
-#if defined(_DEBUG)
-    IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Shadow Pass");
-#endif
+    RENDER_PASS(*pass_shadows, "Shadows");
 
     pipeline->bindVertexShader("ShadowMap");
     pipeline->bindPixelShader("ShadowMap");
@@ -386,9 +416,7 @@ void VisualSystem::performPrepass() {
 }
 
 void VisualSystem::performTerrainPass() {
-#if defined(_DEBUG)
-    IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Terrain Pass");
-#endif
+    RENDER_PASS(*pass_terrain, "Terrain");
 
     pipeline->bindVertexShader("Terrain");
     pipeline->bindPixelShader("Terrain");
@@ -415,23 +443,22 @@ void VisualSystem::performTerrainPass() {
 
     context->IASetIndexBuffer(NULL, DXGI_FORMAT_R32_UINT, 0);
 
-    terrain->getDescriptorSB().VSBindResource(context, 0);
-    terrain->getIndexSB().VSBindResource(context, 1);
-    terrain->getPositionSB().VSBindResource(context, 2);
-    terrain->getNormalSB().VSBindResource(context, 3);
+    pass_terrain->sb_chunks.VSBindResource(context, 0);
+    pass_terrain->sb_indices.VSBindResource(context, 1);
+    pass_terrain->sb_positions.VSBindResource(context, 2);
+    pass_terrain->sb_normals.VSBindResource(context, 3);
 
     // We draw instanced without indices, so the index buffer has no influence
     // on the final result.
-    const int num_chunks = terrain->getActiveChunkCount();
-    const int max_tris = terrain->getMaxChunkTriangleCount();
+    const int num_chunks = pass_terrain->num_active_chunks;
+    const int max_tris = pass_terrain->max_chunk_triangles;
     context->DrawInstanced(max_tris * 3, num_chunks, 0, 0);
 }
 
-void VisualSystem::performRenderPass() {
-#if defined(_DEBUG)
-    IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Render Pass");
-#endif
+void VisualSystem::performDefaultPass() {
+    RENDER_PASS(*pass_default, "Default");
 
+    pipeline->bindVertexShader("TexturedMesh");
     pipeline->bindPixelShader("TexturedMesh");
     pipeline->bindRenderTarget(Target_UseExisting, Depth_TestAndWrite,
                                Blend_Default);
@@ -455,16 +482,52 @@ void VisualSystem::performRenderPass() {
     }
 
     // Testing for animations
+    for (const auto& mesh_instance : pass_default->meshes) {
+        const auto& mesh = mesh_instance.mesh.lock();
+
+        if (!mesh)
+            continue;
+
+        // TODO: Material support
+        const Material mat = Material();
+
+        // Pixel CB2: Mesh Material Data
+        {
+            IConstantBuffer pCB2 = pipeline->loadPixelCB(CB2);
+
+            const TextureRegion& region = mat.tex_region;
+            pCB2.loadData(&region.x, FLOAT);
+            pCB2.loadData(&region.y, FLOAT);
+            pCB2.loadData(&region.width, FLOAT);
+            pCB2.loadData(&region.height, FLOAT);
+        }
+
+        // Vertex CB2: Transform matrices
+        const Matrix4& mLocalToWorld = mesh_instance.m_local_to_world;
+        {
+            IConstantBuffer vCB2 = pipeline->loadVertexCB(CB2);
+
+            // Load mesh vertex transformation matrix
+            vCB2.loadData(&mLocalToWorld, FLOAT4X4);
+            // Load mesh normal transformation matrix
+            Matrix4 normalTransform = mLocalToWorld.inverse().transpose();
+            vCB2.loadData(&(normalTransform), FLOAT4X4);
+        }
+
+        // Draw each mesh
+        pipeline->drawMesh(mesh.get(), INDEX_LIST_START, INDEX_LIST_END, 1);
+    }
+
+    /*
     for (const AssetComponent* comp : asset_components) {
         const Asset* asset = comp->getAsset();
-        const std::vector<Mesh*>& meshes = asset->getMeshes();
 
         if (asset->isSkinned()) {
             pipeline->bindVertexShader("SkinnedMesh");
         } else
             pipeline->bindVertexShader("TexturedMesh");
 
-        for (const Mesh* mesh : meshes) {
+        for (const auto& mesh : asset->getMeshes()) {
 
             const Material mat = mesh->material;
 
@@ -514,9 +577,10 @@ void VisualSystem::performRenderPass() {
             }
 
             // Draw each mesh
-            pipeline->drawMesh(mesh, INDEX_LIST_START, INDEX_LIST_END, 1);
+            pipeline->drawMesh(mesh.get(), INDEX_LIST_START, INDEX_LIST_END, 1);
         }
     }
+    */
 }
 
 void VisualSystem::performLightFrustumPass() {
@@ -596,10 +660,11 @@ void VisualSystem::performLightFrustumPass() {
     ID3D11DepthStencilView* depth_view = depth_copy->depth_view;
     context->OMSetRenderTargets(0, nullptr, depth_view);
 
-    Asset* frustum_cube = resource_manager->getAsset("Cube");
-    const Mesh* cube_mesh = frustum_cube->getMesh(0);
+    const std::shared_ptr<Mesh> cube_mesh =
+        resource_manager->getMesh(SystemMesh_Cube);
 
-    pipeline->drawMesh(cube_mesh, INDEX_LIST_START, INDEX_LIST_END, num_lights);
+    pipeline->drawMesh(cube_mesh.get(), INDEX_LIST_START, INDEX_LIST_END,
+                       num_lights);
 
     // Render the Rest
     pipeline->bindVertexShader("LightFrustum");
@@ -611,7 +676,8 @@ void VisualSystem::performLightFrustumPass() {
     pipeline->bindDepthStencil(3);
     context->PSSetShaderResources(4, 1, &depth_copy->shader_view);
 
-    pipeline->drawMesh(cube_mesh, INDEX_LIST_START, INDEX_LIST_END, num_lights);
+    pipeline->drawMesh(cube_mesh.get(), INDEX_LIST_START, INDEX_LIST_END,
+                       num_lights);
 
     context->RSSetState(NULL);
 }
@@ -840,8 +906,7 @@ void VisualSystem::renderDebugPoints() {
     pipeline->bindVertexShader("DebugPoint");
     pipeline->bindPixelShader("DebugPoint");
 
-    Asset* cube = resource_manager->getAsset("Cube");
-    const Mesh* mesh = cube->getMesh(0);
+    const Mesh* mesh = resource_manager->getMesh(SystemMesh_Cube).get();
 
     ID3D11Buffer* indexBuffer = mesh->buffer_pool->ibuffer;
     ID3D11Buffer* vertexBuffer = mesh->buffer_pool->vbuffers[POSITION];

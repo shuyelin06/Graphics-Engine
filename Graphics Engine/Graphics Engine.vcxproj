@@ -173,16 +173,21 @@
     <ClCompile Include="src\datamodel\bvh\TLAS.cpp" />
     <ClCompile Include="src\datamodel\Bindable.cpp" />
     <ClCompile Include="src\datamodel\DMBinding.cpp" />
+    <ClCompile Include="src\datamodel\objects\DMAsset.cpp" />
     <ClCompile Include="src\datamodel\objects\DMCamera.cpp" />
     <ClCompile Include="src\datamodel\objects\DMLight.cpp" />
+    <ClCompile Include="src\datamodel\objects\DMMesh.cpp" />
     <ClCompile Include="src\datamodel\objects\DMPhysics.cpp" />
     <ClCompile Include="src\datamodel\SceneGraph.cpp" />
     <ClCompile Include="src\datamodel\terrain\Terrain.cpp" />
     <ClCompile Include="src\core\ThreadPool.cpp" />
     <ClCompile Include="src\physics\PhysicsTerrain.cpp" />
+    <ClCompile Include="src\rendering\core\RenderableMesh.cpp" />
     <ClCompile Include="src\rendering\core\VertexStreamIDs.cpp" />
+    <ClCompile Include="src\rendering\RenderPass.cpp" />
     <ClCompile Include="src\rendering\resources\BumpMapBuilder.cpp" />
     <ClCompile Include="src\rendering\pipeline\ConstantBuffer.cpp" />
+    <ClCompile Include="src\rendering\resources\files\FileReader.cpp" />
     <ClCompile Include="src\rendering\terrain\WaterSurface.cpp" />
     <ClCompile Include="src\rendering\terrain\VisualTerrainCallback.cpp" />
     <ClCompile Include="src\input\components\MovementHandler.cpp" />
@@ -217,7 +222,7 @@
     <ClCompile Include="src\rendering\core\Asset.cpp" />
     <ClCompile Include="src\rendering\core\AssetComponent.cpp" />
     <ClCompile Include="src\rendering\lights\LightManager.cpp" />
-    <ClCompile Include="src\rendering\resources\AssetBuilder.cpp" />
+    <ClCompile Include="src\rendering\resources\MeshBuilder.cpp" />
     <ClCompile Include="src\rendering\core\Camera.cpp" />
     <ClCompile Include="src\rendering\lights\Light.cpp" />
     <ClCompile Include="src\rendering\resources\ResourceManager.cpp" />
@@ -233,8 +238,8 @@
     <ClCompile Include="src\datamodel\terrain\MarchingCube.cpp" />
     <ClCompile Include="src\rendering\lights\SunLight.cpp" />
     <ClCompile Include="src\rendering\core\Frustum.cpp" />
-    <ClCompile Include="src\rendering\resources\GLTFFile.cpp" />
-    <ClCompile Include="src\rendering\resources\PNGFile.cpp" />
+    <ClCompile Include="src\rendering\resources\files\GLTFFile.cpp" />
+    <ClCompile Include="src\rendering\resources\files\PNGFile.cpp" />
     <ClCompile Include="src\rendering\pipeline\PipelineManager.cpp" />
     <ClCompile Include="src\rendering\pipeline\Shader.cpp" />
     <ClCompile Include="src\rendering\pipeline\ShaderManager.cpp" />
@@ -245,7 +250,7 @@
     <ClCompile Include="src\rendering\VisualDebug.cpp" />
     <ClCompile Include="src\rendering\VisualSystem.cpp" />
     <ClCompile Include="src\rendering\terrain\VisualTerrain.cpp" />
-    <ClCompile Include="src\utility\FileReader.cpp" />
+    <ClCompile Include="src\core\DataFilePath.cpp" />
     <ClCompile Include="src\utility\Stopwatch.cpp" />
     <ClCompile Include="src\rendering\core\VertexStreamIDs.h" />
   </ItemGroup>
@@ -258,16 +263,22 @@
     <ClInclude Include="src\datamodel\bvh\TLAS.h" />
     <ClInclude Include="src\core\ThreadPool.h" />
     <ClInclude Include="src\datamodel\DMBinding.h" />
+    <ClInclude Include="src\datamodel\objects\DMAsset.h" />
     <ClInclude Include="src\datamodel\objects\DMCamera.h" />
     <ClInclude Include="src\datamodel\objects\DMLight.h" />
+    <ClInclude Include="src\datamodel\objects\DMMesh.h" />
     <ClInclude Include="src\datamodel\objects\DMPhysics.h" />
     <ClInclude Include="src\datamodel\terrain\TerrainCallback.h" />
+    <ClInclude Include="src\datamodel\terrain\TerrainConfig.h" />
     <ClInclude Include="src\GlobalConfig.h" />
     <ClInclude Include="src\physics\PhysicsTerrain.h" />
+    <ClInclude Include="src\rendering\core\RenderableMesh.h" />
     <ClInclude Include="src\rendering\lights\LightDataGPU.h" />
+    <ClInclude Include="src\rendering\RenderPass.h" />
     <ClInclude Include="src\rendering\resources\BumpMapBuilder.h" />
     <ClInclude Include="src\rendering\pipeline\ConstantBuffer.h" />
     <ClInclude Include="src\rendering\pipeline\StructuredBuffer.h" />
+    <ClInclude Include="src\rendering\resources\files\FileReader.h" />
     <ClInclude Include="src\rendering\terrain\WaterSurface.h" />
     <ClInclude Include="src\rendering\terrain\VisualTerrainCallback.h" />
     <ClInclude Include="src\datamodel\SceneGraph.h" />
@@ -318,7 +329,7 @@
     <ClInclude Include="src\math\Matrix4.h" />
     <ClInclude Include="src\math\Vector4.h" />
     <ClInclude Include="src\rendering\core\Asset.h" />
-    <ClInclude Include="src\rendering\resources\AssetBuilder.h" />
+    <ClInclude Include="src\rendering\resources\MeshBuilder.h" />
     <ClInclude Include="src\rendering\core\Camera.h" />
     <ClInclude Include="src\rendering\lights\Light.h" />
     <ClInclude Include="src\rendering\resources\ResourceManager.h" />
@@ -329,16 +340,16 @@
     <ClInclude Include="src\rendering\util\CPUTimer.h" />
     <ClInclude Include="src\rendering\core\Frustum.h" />
     <ClInclude Include="src\rendering\util\GLBFile.h" />
-    <ClInclude Include="src\rendering\resources\GLTFFile.h" />
+    <ClInclude Include="src\rendering\resources\files\GLTFFile.h" />
     <ClInclude Include="src\rendering\util\GPUTimer.h" />
-    <ClInclude Include="src\rendering\resources\PNGFile.h" />
+    <ClInclude Include="src\rendering\resources\files\PNGFile.h" />
     <ClInclude Include="src\rendering\core\TextureAtlas.h" />
     <ClInclude Include="src\physics\PhysicsSystem.h" />
     <ClInclude Include="src\rendering\Direct3D11.h" />
     <ClInclude Include="src\rendering\VisualDebug.h" />
     <ClInclude Include="src\rendering\VisualSystem.h" />
     <ClInclude Include="src\rendering\terrain\VisualTerrain.h" />
-    <ClInclude Include="src\utility\FileReader.h" />
+    <ClInclude Include="src\core\DataFilePath.h" />
     <ClInclude Include="src\utility\Stopwatch.h" />
   </ItemGroup>
   <ItemGroup>

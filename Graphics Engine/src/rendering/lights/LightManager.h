@@ -53,6 +53,9 @@ class LightManager {
     TextureAtlas* shadow_atlas;
     std::vector<ShadowLight*> shadow_lights;
 
+    // TODO: Add settings for
+    // 1) Toggling the sun light
+    // 2) Ambient (non-shadowed) lights
     SunLight* sun_light;
 
     // Information for rendering:

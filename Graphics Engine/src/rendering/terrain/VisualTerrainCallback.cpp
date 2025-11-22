@@ -19,21 +19,20 @@ using namespace Datamodel;
 
 namespace Graphics {
 // --- VisualTerrainCallback ---
-VisualTerrainCallback::VisualTerrainCallback() = default;
-
-void VisualTerrainCallback::initialize() {
+VisualTerrainCallback::VisualTerrainCallback(MeshPool* pool)
+    : builder(pool), output_builder(pool) {
     builder.addLayout(POSITION);
     builder.addLayout(NORMAL);
 }
 
 // LoadMesh:
 // Loads the MeshBuilder's data into a buffer pool.
-Mesh* VisualTerrainCallback::loadMesh(ID3D11DeviceContext* context,
-                                      MeshPool* pool) {
+std::shared_ptr<Mesh>
+VisualTerrainCallback::loadMesh(ID3D11DeviceContext* context) {
     std::unique_lock<std::mutex> lock(mutex);
     dirty = false;
     if (!output_builder.isEmpty()) {
-        Mesh* mesh = output_builder.generateMesh(context, pool);
+        std::shared_ptr<Mesh> mesh = output_builder.generateMesh(context);
         output_builder.reset();
         return mesh;
     } else

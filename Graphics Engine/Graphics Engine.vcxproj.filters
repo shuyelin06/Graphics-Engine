@@ -84,9 +84,6 @@
     <ClCompile Include="src\math\Triangle.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\utility\FileReader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\math\Plane.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -96,10 +93,10 @@
     <ClCompile Include="src\input\components\MovementHandler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\resources\AssetBuilder.cpp">
+    <ClCompile Include="src\rendering\resources\MeshBuilder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\resources\PNGFile.cpp">
+    <ClCompile Include="src\rendering\resources\files\PNGFile.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\datamodel\SceneGraph.cpp">
@@ -204,7 +201,7 @@
     <ClCompile Include="src\rendering\core\Frustum.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\resources\GLTFFile.cpp">
+    <ClCompile Include="src\rendering\resources\files\GLTFFile.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="include\lodepng\lodepng.cpp">
@@ -259,6 +256,24 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\datamodel\Bindable.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rendering\resources\files\FileReader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rendering\RenderPass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\datamodel\objects\DMAsset.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\datamodel\objects\DMMesh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rendering\core\RenderableMesh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\DataFilePath.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -335,9 +350,6 @@
     <ClInclude Include="src\math\Triangle.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\utility\FileReader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\math\Plane.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -347,7 +359,7 @@
     <ClInclude Include="src\input\components\MovementHandler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\resources\AssetBuilder.h">
+    <ClInclude Include="src\rendering\resources\MeshBuilder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\datamodel\SceneGraph.h">
@@ -413,7 +425,7 @@
     <ClInclude Include="src\rendering\resources\TextureBuilder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\resources\PNGFile.h">
+    <ClInclude Include="src\rendering\resources\files\PNGFile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\lights\LightManager.h">
@@ -464,7 +476,7 @@
     <ClInclude Include="src\rendering\util\GLBFile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\resources\GLTFFile.h">
+    <ClInclude Include="src\rendering\resources\files\GLTFFile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\cgltf\cgltf.h">
@@ -531,6 +543,27 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\lights\LightDataGPU.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rendering\resources\files\FileReader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rendering\RenderPass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\datamodel\terrain\TerrainConfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\datamodel\objects\DMAsset.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\datamodel\objects\DMMesh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rendering\core\RenderableMesh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\DataFilePath.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

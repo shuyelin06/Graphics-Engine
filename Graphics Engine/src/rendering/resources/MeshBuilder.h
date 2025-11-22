@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -28,12 +29,7 @@ struct MeshVertex {
     MeshVertex(const Vector3& position, const Color& color);
     MeshVertex(const MeshVertex& vertex);
 
-    static void* AddressPosition(MeshVertex& vertex);
-    static void* AddressTexture(MeshVertex& vertex);
-    static void* AddressNormal(MeshVertex& vertex);
-    static void* AddressColor(MeshVertex& vertex);
-    static void* AddressJoints(MeshVertex& vertex);
-    static void* AddressWeights(MeshVertex& vertex);
+    void* GetAddressOf(VertexDataStream bindable_stream);
 };
 
 struct MeshTriangle {
@@ -47,28 +43,35 @@ struct MeshTriangle {
 
 class MeshBuilder {
   private:
+    MeshPool* target_pool;
+
     uint16_t layout;
 
     std::vector<MeshVertex> vertex_buffer;
     std::vector<MeshTriangle> index_buffer;
 
   public:
-    MeshBuilder();
+    MeshBuilder(MeshPool* pool);
     MeshBuilder(const MeshBuilder& builder);
     ~MeshBuilder();
 
     // Generates the mesh for use in the rendering pipeline.
     // If no buffer_pool is provided, the builder will generate one for this
     // mesh.
-    Mesh* generateMesh(ID3D11Device* device);
-    Mesh* generateMesh(ID3D11Device* device, const Material& material);
+    std::shared_ptr<Mesh> generateMesh(ID3D11DeviceContext* context,
+                                       MeshPool* buffer_pool);
+    std::shared_ptr<Mesh> generateMesh(ID3D11DeviceContext* context,
+                                       MeshPool* buffer_pool,
+                                       const Material& material);
 
-    Mesh* generateMesh(ID3D11DeviceContext* context, MeshPool* buffer_pool);
-    Mesh* generateMesh(ID3D11DeviceContext* context, MeshPool* buffer_pool,
-                       const Material& material);
+    // NEW-- DEPRECATE THE ABOVE
+    std::shared_ptr<Mesh> generateMesh(ID3D11DeviceContext* context);
 
     const std::vector<MeshVertex>& getVertices() const;
     const std::vector<MeshTriangle>& getIndices() const;
+    std::vector<MeshVertex>& getVertices();
+    std::vector<MeshTriangle>& getIndices();
+
     bool isEmpty() const;
 
     // Add a stream to the builder's output
@@ -104,8 +107,6 @@ class MeshBuilder {
     void reset();
 
   private:
-    ID3D11Buffer* createVertexStream(void* (*addressor)(MeshVertex&),
-                                     UINT byte_size, ID3D11Device* device);
     void uploadVertexData(ID3D11DeviceContext* context, ID3D11Buffer* buffer,
                           UINT buffer_size, void* (*addressor)(MeshVertex&),
                           UINT byte_size);

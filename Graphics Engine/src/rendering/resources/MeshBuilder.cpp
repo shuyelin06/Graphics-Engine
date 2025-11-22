@@ -1,6 +1,7 @@
-#include "AssetBuilder.h"
+#include "MeshBuilder.h"
 
 #include <assert.h>
+#include <functional>
 
 #include "math/Compute.h"
 
@@ -19,11 +20,6 @@ template <> struct std::hash<Engine::Math::Vector3> {
 
 namespace Engine {
 namespace Graphics {
-static void* (*VertexAddressors[BINDABLE_STREAM_COUNT])(MeshVertex&) = {
-    MeshVertex::AddressPosition, MeshVertex::AddressTexture,
-    MeshVertex::AddressNormal,   MeshVertex::AddressColor,
-    MeshVertex::AddressJoints,   MeshVertex::AddressWeights};
-
 MeshVertex::MeshVertex() {
     position = Vector3(0, 0, 0);
     tex = Vector2(0.5, 0.5f);
@@ -48,14 +44,30 @@ MeshVertex::MeshVertex(const MeshVertex& vertex) {
     weights = vertex.weights;
 }
 
-void* MeshVertex::AddressPosition(MeshVertex& vertex) {
-    return &vertex.position;
+void* MeshVertex::GetAddressOf(VertexDataStream bindable_stream)
+{
+    assert(bindable_stream < BINDABLE_STREAM_COUNT);
+
+    switch (bindable_stream)
+    {
+    case POSITION:
+        return &position;
+    case TEXTURE:
+        return &tex;
+    case NORMAL:
+        return &normal;
+    case COLOR:
+        return &color;
+    case JOINTS:
+        return &joints;
+    case WEIGHTS:
+        return &weights;
+    default:
+        assert(false); // Unimplemented
+    }
+
+    return nullptr;
 }
-void* MeshVertex::AddressNormal(MeshVertex& vertex) { return &vertex.normal; }
-void* MeshVertex::AddressTexture(MeshVertex& vertex) { return &vertex.tex; }
-void* MeshVertex::AddressColor(MeshVertex& vertex) { return &vertex.color; }
-void* MeshVertex::AddressJoints(MeshVertex& vertex) { return &vertex.joints; }
-void* MeshVertex::AddressWeights(MeshVertex& vertex) { return &vertex.weights; }
 
 MeshTriangle::MeshTriangle() { vertex0 = vertex1 = vertex2 = 0; }
 MeshTriangle::MeshTriangle(UINT v0, UINT v1, UINT v2) {
@@ -64,7 +76,10 @@ MeshTriangle::MeshTriangle(UINT v0, UINT v1, UINT v2) {
     vertex2 = v2;
 }
 
-MeshBuilder::MeshBuilder() : vertex_buffer(), index_buffer() { layout = 0; }
+MeshBuilder::MeshBuilder(MeshPool* pool) : vertex_buffer(), index_buffer() {
+    target_pool = pool;
+    layout = 0;
+}
 MeshBuilder::MeshBuilder(const MeshBuilder& builder) {
     vertex_buffer = builder.vertex_buffer;
     index_buffer = builder.index_buffer;
@@ -74,106 +89,19 @@ MeshBuilder::MeshBuilder(const MeshBuilder& builder) {
 MeshBuilder::~MeshBuilder() = default;
 
 // Generate:
-// Generates the index and vertex buffer resources for the mesh.
-// With only the device, the builder will generate an independent
-// MeshPool that cannot be mapped.
-Mesh* MeshBuilder::generateMesh(ID3D11Device* device) {
-    return generateMesh(device, Material());
+// Generates the index and vertex buffer resources for the mesh. These resources are
+// written to a MeshPool.
+std::shared_ptr<Mesh> MeshBuilder::generateMesh(ID3D11DeviceContext* context) {
+    return std::shared_ptr<Mesh>(generateMesh(context, target_pool));
 }
 
-Mesh* MeshBuilder::generateMesh(ID3D11Device* device,
-                                const Material& material) {
-    if (index_buffer.size() == 0 || vertex_buffer.size() == 0)
-        return nullptr;
-
-    // Create my pool
-    MeshPool* pool = new MeshPool();
-    pool->layout = layout;
-    pool->vertex_size = pool->vertex_capacity = vertex_buffer.size();
-    pool->triangle_size = pool->triangle_capacity = index_buffer.size();
-
-    // Create index buffer
-    D3D11_BUFFER_DESC buff_desc = {};
-    D3D11_SUBRESOURCE_DATA sr_data = {0};
-
-    buff_desc.ByteWidth = sizeof(MeshTriangle) * index_buffer.size();
-    buff_desc.Usage = D3D11_USAGE_DEFAULT;
-    buff_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-
-    sr_data.pSysMem = (void*)index_buffer.data();
-
-    device->CreateBuffer(&buff_desc, &sr_data, &(pool->ibuffer));
-    assert(pool->ibuffer != nullptr);
-
-    // Create each of my vertex streams
-    for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
-        if (LayoutPinHas(pool->layout, i)) {
-            pool->vbuffers[i] = createVertexStream(
-                VertexAddressors[i], StreamVertexStride(i), device);
-        }
-    }
-
-    // Create my mesh
-    Mesh* mesh = new Mesh(pool);
-    mesh->layout = layout;
-    mesh->vertex_start = 0;
-    mesh->num_vertices = vertex_buffer.size();
-    mesh->triangle_start = 0;
-    mesh->num_triangles = index_buffer.size();
-
-    for (const MeshVertex& vertex : vertex_buffer)
-        mesh->aabb.expandToContain(vertex.position);
-
-    mesh->material = material;
-
-    return mesh;
-}
-
-// CreateVertexStream:
-// Creates a vertex stream for some data extracted from the MeshVertex.
-// Builds this by using a function that, given the MeshVertex, writes
-// element_size bytes of data to output (assumed to be the same size). This
-// function could extract position, normals, or a combination of data.
-ID3D11Buffer* MeshBuilder::createVertexStream(void* (*addressor)(MeshVertex&),
-                                              UINT byte_size,
-                                              ID3D11Device* device) {
-    const UINT NUM_VERTICES = vertex_buffer.size();
-
-    // Iterate through each vertex, and extract the data from it.
-    // Write this data to a vector which we will use to generate our vertex
-    // stream.
-    std::vector<uint8_t> stream_data;
-    stream_data.resize(NUM_VERTICES * byte_size);
-
-    for (int i = 0; i < vertex_buffer.size(); i++) {
-        // Copy my data to the stream
-        void* address = (*addressor)(vertex_buffer[i]);
-        memcpy(&stream_data[i * byte_size], address, byte_size);
-    }
-
-    // Generate a buffer for this data stream
-    ID3D11Buffer* buffer_handle = NULL;
-
-    D3D11_BUFFER_DESC buff_desc = {};
-    D3D11_SUBRESOURCE_DATA sr_data = {0};
-
-    buff_desc.ByteWidth = NUM_VERTICES * byte_size;
-    buff_desc.Usage = D3D11_USAGE_DEFAULT;
-    buff_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
-    sr_data.pSysMem = (void*)stream_data.data();
-
-    device->CreateBuffer(&buff_desc, &sr_data, &buffer_handle);
-    assert(buffer_handle != nullptr);
-
-    return buffer_handle;
-}
-
-Mesh* MeshBuilder::generateMesh(ID3D11DeviceContext* context, MeshPool* pool) {
+std::shared_ptr<Mesh> MeshBuilder::generateMesh(ID3D11DeviceContext* context,
+                                                MeshPool* pool) {
     return generateMesh(context, pool, Material());
 }
 
-Mesh* MeshBuilder::generateMesh(ID3D11DeviceContext* context, MeshPool* pool,
+std::shared_ptr<Mesh> MeshBuilder::generateMesh(ID3D11DeviceContext* context,
+                                                MeshPool* pool,
                                 const Material& material) {
     // Layout must match the pool's layout
     assert((layout & pool->layout) == layout);
@@ -181,61 +109,37 @@ Mesh* MeshBuilder::generateMesh(ID3D11DeviceContext* context, MeshPool* pool,
     assert(vertex_buffer.size() + pool->vertex_size <= pool->vertex_capacity);
     assert(index_buffer.size() + pool->triangle_size <=
            pool->triangle_capacity);
-    // Pool must be mappable
-    assert(pool->mappable);
 
-    // TODO: If the pool does not work for the mesh, we can consider
-    // calling the other generation method instead of failing...
-
-    // Upload my index buffer data
-    D3D11_MAPPED_SUBRESOURCE i_sr = {0};
-    context->Map(pool->ibuffer, 0, D3D11_MAP_WRITE_NO_OVERWRITE, 0, &i_sr);
-
-    uint8_t* write_addr = static_cast<uint8_t*>(i_sr.pData) +
-                          pool->triangle_size * sizeof(MeshTriangle);
-    memcpy(write_addr, index_buffer.data(),
-           index_buffer.size() * sizeof(MeshTriangle));
-
-    context->Unmap(pool->ibuffer, 0);
-
-    // Also copy to CPU as well (for compacting later)
-    memcpy(pool->cpu_ibuffer + pool->triangle_size * sizeof(MeshTriangle),
+    // Copy to CPU-side index and vertex buffers
+    memcpy(pool->cpu_ibuffer.get() + pool->triangle_size * sizeof(MeshTriangle),
            index_buffer.data(), index_buffer.size() * sizeof(MeshTriangle));
 
     // Upload my vertex buffer data. We have to allocate based on pool's layout
     // to keep the vertices aligned. This means that space could be wasted if
     // the pool supports streams that the builder does not have.
+    // This array should match the vertex streams.
+    
+
     for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
         if (LayoutPinHas(pool->layout, i)) {
             const UINT byte_size = StreamVertexStride(i);
 
-            // First, map my buffer to obtain it CPU side and find where I will
-            // begin writing to.
-            D3D11_MAPPED_SUBRESOURCE sr = {0};
-            context->Map(pool->vbuffers[i], 0, D3D11_MAP_WRITE_NO_OVERWRITE, 0,
-                         &sr);
-            uint8_t* write_addr =
-                static_cast<uint8_t*>(sr.pData) + pool->vertex_size * byte_size;
-
             // Now, for each vertex, I will pull the data I want for my stream
             // and then copy it to the end of my buffer.
             for (int j = 0; j < vertex_buffer.size(); j++) {
-                void* address = (*(VertexAddressors[i]))(vertex_buffer[j]);
-                memcpy(write_addr + j * byte_size, address, byte_size);
+                const void* address = vertex_buffer[j].GetAddressOf((VertexDataStream) i);
 
                 // Also copy to my CPU-side copy of the data
-                memcpy(pool->cpu_vbuffers[i] +
+                memcpy(pool->cpu_vbuffers[i].get() +
                            (pool->vertex_size + j) * byte_size,
                        address, byte_size);
             }
-
-            // Finally, return the buffer data to the GPU
-            context->Unmap(pool->vbuffers[i], 0);
         }
     }
 
     // Create my mesh
-    Mesh* mesh = new Mesh(pool);
+    pool->meshes.emplace_back(std::make_shared<Mesh>(pool));
+    std::shared_ptr<Mesh>& mesh = pool->meshes.back();
     mesh->layout = layout;
     mesh->vertex_start = pool->vertex_size;
     mesh->num_vertices = vertex_buffer.size();
@@ -250,6 +154,10 @@ Mesh* MeshBuilder::generateMesh(ID3D11DeviceContext* context, MeshPool* pool,
     // Update my mesh pool
     pool->vertex_size += vertex_buffer.size();
     pool->triangle_size += index_buffer.size();
+
+    // Hack
+    if (pool->has_gpu_resources)
+        pool->updateGPUResources(context);
 
     return mesh;
 }
@@ -282,7 +190,11 @@ void MeshBuilder::uploadVertexData(ID3D11DeviceContext* context,
 const std::vector<MeshVertex>& MeshBuilder::getVertices() const {
     return vertex_buffer;
 }
+std::vector<MeshVertex>& MeshBuilder::getVertices() { return vertex_buffer; }
 const std::vector<MeshTriangle>& MeshBuilder::getIndices() const {
+    return index_buffer;
+}
+std::vector<MeshTriangle>& MeshBuilder::getIndices() {
     return index_buffer;
 }
 bool MeshBuilder::isEmpty() const { return index_buffer.size() == 0; }

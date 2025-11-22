@@ -99,23 +99,19 @@ void GPUTimer::DisplayGPUTimes() {
     for (const std::string& name : active_batches) {
         GPUTimerBatch* timer_data = gpu_timers[name];
 
-        if (timer_data->used) {
-            timer_data->used = false;
+        // Get my query information
+        context->GetData(timer_data->query_begin[flag], &begin,
+                            sizeof(begin), 0);
+        context->GetData(timer_data->query_end[flag], &end, sizeof(end), 0);
 
-            // Get my query information
-            context->GetData(timer_data->query_begin[flag], &begin,
-                             sizeof(begin), 0);
-            context->GetData(timer_data->query_end[flag], &end, sizeof(end), 0);
+        // Calculate frame time
+        frame_time =
+            float(end - begin) / float(tsDisjoint.Frequency) * 1000.0f;
 
-            // Calculate frame time
-            frame_time =
-                float(end - begin) / float(tsDisjoint.Frequency) * 1000.0f;
-
-            // Display to ImGui
+        // Display to ImGui
 #if defined(_DEBUG)
-            ImGui::Text("(GPU) %s: %f ms", name.c_str(), frame_time);
+        ImGui::Text("(GPU) %s: %f ms", name.c_str(), frame_time);
 #endif
-        }
     }
 
     active_batches.clear();

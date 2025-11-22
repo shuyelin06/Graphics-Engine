@@ -119,6 +119,10 @@ void TextureBuilder::clear(const TextureColor& rgba) {
 // Resets the builder
 void TextureBuilder::reset(unsigned int _width, unsigned int _height) {
     data.resize(_width * _height);
+    
+    width = _width;
+    height = _height;
+
     clear({90, 34, 139, 255});
 }
 

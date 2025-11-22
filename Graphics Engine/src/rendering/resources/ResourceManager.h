@@ -1,17 +1,26 @@
 #pragma once
 
 #include <map>
+#include <memory>
 #include <string>
 #include <unordered_map>
 
 #include "../Direct3D11.h"
 
 #include "../core/Asset.h"
-#include "AssetBuilder.h"
+#include "MeshBuilder.h"
 #include "TextureBuilder.h"
 
 namespace Engine {
 namespace Graphics {
+
+enum MeshPoolType {
+    MeshPoolType_Terrain,
+    MeshPoolType_Default,
+    MeshPoolType_Count,
+};
+
+enum SystemMesh { SystemMesh_Cube };
 
 // ResourceManager Class:
 // Manages assets for the engine. Provides methods
@@ -21,43 +30,43 @@ class ResourceManager {
     ID3D11Device* device;
     ID3D11DeviceContext* context;
 
-    std::unordered_map<std::string, uint16_t> asset_map;
-    std::vector<Asset*> assets;
+    std::unique_ptr<MeshPool> mesh_pools[MeshPoolType_Count];
+    std::unique_ptr<TextureAtlas> color_atlas;
 
-    std::unordered_map<std::string, uint16_t> texture_map;
-    std::vector<Texture*> textures;
-
-    TextureAtlas* color_atlas;
+    std::vector<std::shared_ptr<Texture>> textures;
+    std::vector<std::shared_ptr<Mesh>> meshes;
 
   public:
     ResourceManager(ID3D11Device* device, ID3D11DeviceContext* context);
     ~ResourceManager();
 
-    // Initialize assets
-    void initializeResources();
+    // Initialize System Resources.
+    // These are resources that exist for the entire application and are built
+    // into the engine.
+    void initializeSystemResources();
 
-    // Get an asset
-    Asset* getAsset(const std::string& name);
-    Asset* getAsset(uint16_t id);
-
-    Texture* getTexture(const std::string& name);
-    Texture* getTexture(uint16_t id);
+    // Get Resources
+    std::shared_ptr<Mesh> getMesh(int index) const;
 
     const Texture* getColorAtlas();
 
+    // Create Resources
+    std::shared_ptr<Texture>
+    LoadTextureFromFile(const std::string& relative_path);
+
+    std::shared_ptr<Mesh> LoadMeshFromFile(const std::string& relative_path);
+
+    std::shared_ptr<MeshBuilder> createMeshBuilder(MeshPoolType pool_type);
+    MeshPool* getMeshPool(MeshPoolType pool_type);
+
   private:
-    // Registers an asset by name, and returns it's ID
-    uint16_t registerAsset(const std::string& name, Asset* asset);
+    // System Asset Generation
+    void LoadCubeMesh();
 
-    // Generate a cube
-    bool LoadCube();
-
-    // Load assets from files.
-    bool LoadAssetFromGLTF(const std::string& asset_name,
+    // Load assets from files. TRY TO DEPRECATE
+    void LoadAssetFromGLTF(const std::string& asset_name,
                            const std::string& path, AtlasBuilder& tex_builder);
 
-    bool LoadTextureFromPNG(const std::string& tex_name,
-                            const std::string& path, TextureBuilder& builder);
     bool WriteTextureToPNG(ID3D11Texture2D* texture, std::string path,
                            std::string file);
 };
