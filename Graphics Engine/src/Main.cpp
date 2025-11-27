@@ -115,9 +115,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     Terrain* terrain = new Terrain();
     scene_graph.addObject(terrain);
-    // scene_graph.enableTerrain();
-
-    // Invalidation happens before Visual Engine is ready
     terrain->invalidateTerrain(0.f, 0.f, 0.f);
 
     // Bind a Camera
@@ -225,7 +222,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         scene_graph.updateAndCleanObjects();
 
         const Vector3 pos = camera->getTransform().getPosition();
-        scene_graph.invalidateTerrainChunks(pos.x, pos.y, pos.z);
+        terrain->invalidateTerrain(pos.x, pos.y, pos.z);
 
         // We finished our frame. See how many milliseconds we took
         // and stall (if needed) until the next frame

@@ -59,7 +59,7 @@ class Object {
 
     // Name. Used in the Property Display
     // (Does nothing on non-debug builds)
-    void setName(const std::string& new_name);
+    Object* setName(const std::string& new_name);
     const std::string& getName();
 
     // Class ID

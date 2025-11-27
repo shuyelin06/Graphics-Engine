@@ -8,7 +8,6 @@
 namespace Engine {
 namespace Datamodel {
 Scene::Scene() : objects() {
-    terrain = nullptr;
 #if defined(_DEBUG)
     selected_object = nullptr;
 #endif
@@ -75,19 +74,6 @@ void Scene::addObject(Object* object) {
 }
 
 const std::vector<Object*>& Scene::getObjects() const { return objects; }
-
-// --- Terrain Handling ---
-void Scene::enableTerrain() { terrain = new Terrain(); }
-Terrain* Scene::getTerrain() const { return terrain; }
-
-// InvalidateTerrainChunks:
-// Given a position, invalidates the terrain chunks too far
-// from this position, and places their positions in a priority queue
-// to be reloaded.
-void Scene::invalidateTerrainChunks(float x, float y, float z) {
-    if (terrain != nullptr)
-        terrain->invalidateTerrain(x, y, z);
-}
 
 // UpdateAndRenderObjects:
 // Update and cache object transforms in the SceneGraph, and submit

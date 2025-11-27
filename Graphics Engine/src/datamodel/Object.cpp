@@ -48,10 +48,11 @@ Object::~Object() {
         delete child;
 }
 
-void Object::setName(const std::string& new_name) {
+Object* Object::setName(const std::string& new_name) {
 #if defined(_DEBUG)
     name = new_name;
 #endif
+    return this;
 };
 
 const std::string& Object::getName() {

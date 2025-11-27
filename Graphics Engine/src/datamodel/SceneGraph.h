@@ -18,7 +18,6 @@ namespace Datamodel {
 class Scene {
   private:
     std::vector<Object*> objects;
-    Terrain* terrain;
 
 #if defined(_DEBUG)
     Object* selected_object;
@@ -40,14 +39,6 @@ class Scene {
 
     // Update objects and clean up invalid ones
     void updateAndCleanObjects();
-
-    // --- Terrain Handling ---
-    void enableTerrain();
-
-    Terrain* getTerrain() const;
-
-    // Invalidate terrain chunks outside of our given position.
-    void invalidateTerrainChunks(float x, float y, float z);
 };
 
 } // namespace Datamodel
