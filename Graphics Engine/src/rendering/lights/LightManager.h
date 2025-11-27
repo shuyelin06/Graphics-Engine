@@ -1,8 +1,10 @@
 #pragma once
 
-#include "../core/AssetComponent.h"
 #include "../core/TextureAtlas.h"
 #include "datamodel/SceneGraph.h"
+
+#include "rendering/core/Mesh.h"
+#include "rendering/core/Texture.h"
 
 #include "Light.h"
 #include "SunLight.h"
@@ -70,7 +72,7 @@ class LightManager {
   public:
     LightManager(ID3D11Device* device, unsigned int atlas_size);
 
-    // Datamodel Handling 
+    // Datamodel Handling
     void pullDatamodelData();
     void onObjectCreate(Object* object);
 

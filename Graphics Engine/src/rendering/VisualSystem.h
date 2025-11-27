@@ -15,7 +15,6 @@
 #include "pipeline/PipelineManager.h"
 #include "resources/ResourceManager.h"
 
-#include "core/AssetComponent.h"
 #include "core/RenderableMesh.h"
 #include "terrain/VisualTerrain.h"
 
@@ -72,9 +71,8 @@ class VisualSystem {
 
     // Supported Components
     std::unique_ptr<Camera> camera;
-    std::vector<AssetComponent*> asset_components; // TRY TO DEPRECATE
     std::vector<RenderableMesh*> renderable_meshes; 
-    VisualTerrain* terrain;
+    std::unique_ptr<VisualTerrain> terrain;
 
     // Temp for now; should be moved later.
     ID3D11RasterizerState* og_rast_state;

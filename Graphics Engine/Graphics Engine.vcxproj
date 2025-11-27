@@ -173,7 +173,6 @@
     <ClCompile Include="src\datamodel\bvh\TLAS.cpp" />
     <ClCompile Include="src\datamodel\Bindable.cpp" />
     <ClCompile Include="src\datamodel\DMBinding.cpp" />
-    <ClCompile Include="src\datamodel\objects\DMAsset.cpp" />
     <ClCompile Include="src\datamodel\objects\DMCamera.cpp" />
     <ClCompile Include="src\datamodel\objects\DMLight.cpp" />
     <ClCompile Include="src\datamodel\objects\DMMesh.cpp" />
@@ -220,7 +219,6 @@
     <ClCompile Include="src\physics\collisions\AABBTree.cpp" />
     <ClCompile Include="src\physics\PhysicsObject.cpp" />
     <ClCompile Include="src\rendering\core\Mesh.cpp" />
-    <ClCompile Include="src\rendering\core\AssetComponent.cpp" />
     <ClCompile Include="src\rendering\lights\LightManager.cpp" />
     <ClCompile Include="src\rendering\resources\MeshBuilder.cpp" />
     <ClCompile Include="src\rendering\core\Camera.cpp" />
@@ -263,7 +261,6 @@
     <ClInclude Include="src\datamodel\bvh\TLAS.h" />
     <ClInclude Include="src\core\ThreadPool.h" />
     <ClInclude Include="src\datamodel\DMBinding.h" />
-    <ClInclude Include="src\datamodel\objects\DMAsset.h" />
     <ClInclude Include="src\datamodel\objects\DMCamera.h" />
     <ClInclude Include="src\datamodel\objects\DMLight.h" />
     <ClInclude Include="src\datamodel\objects\DMMesh.h" />
@@ -298,7 +295,6 @@
     <ClInclude Include="src\math\QuickHull.h" />
     <ClInclude Include="src\physics\collisions\AABBTree.h" />
     <ClInclude Include="src\physics\PhysicsObject.h" />
-    <ClInclude Include="src\rendering\core\AssetComponent.h" />
     <ClInclude Include="src\rendering\lights\LightManager.h" />
     <ClInclude Include="src\rendering\core\Texture.h" />
     <ClInclude Include="src\rendering\resources\TextureBuilder.h" />

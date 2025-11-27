@@ -11,9 +11,11 @@
 
 namespace Engine {
 namespace Datamodel {
-Terrain::Terrain() : noise_func(0) {
+Terrain::Terrain() : Object(), Bindable<Terrain>(this), noise_func(0) {
     surface_height = 100.f;
     center_x = center_y = center_z = INT_MAX;
+
+    Terrain::SignalObjectCreation(this);
 }
 
 Terrain::~Terrain() = default;

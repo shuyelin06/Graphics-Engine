@@ -4,6 +4,9 @@
 #include <queue>
 #include <vector>
 
+#include "../Bindable.h"
+#include "../Object.h"
+
 #include "TerrainCallback.h"
 #include "TerrainConfig.h"
 #include "datamodel/bvh/BVH.h"
@@ -51,7 +54,7 @@ struct TerrainChunk {
     std::vector<TerrainCallback*> callbacks;
 };
 
-class Terrain {
+class Terrain : public Object, public Bindable<Terrain> {
   private:
     // Perlin Noise Generator
     PerlinNoise noise_func;

@@ -6,7 +6,6 @@
 #include "VisualDebug.h"
 #include "core/Frustum.h"
 #include "datamodel/Object.h"
-#include "datamodel/objects/DMAsset.h"
 #include "datamodel/objects/DMCamera.h"
 
 #include "core/Material.h"
@@ -106,12 +105,10 @@ VisualSystem::VisualSystem(HWND window) {
     terrain = nullptr;
 
     // Connect to Datamodel
-    DMCamera::ConnectToCreation(
-        [this](Object* obj) { this->onObjectCreate(obj); });
-    DMAsset::ConnectToCreation(
-        [this](Object* obj) { this->onObjectCreate(obj); });
-    DMMesh::ConnectToCreation(
-        [this](Object* obj) { this->onObjectCreate(obj); });
+    auto objectCreateFunc = [this](Object* obj) { onObjectCreate(obj); };
+    Terrain::ConnectToCreation(objectCreateFunc);
+    DMCamera::ConnectToCreation(objectCreateFunc);
+    DMMesh::ConnectToCreation(objectCreateFunc);
 
     camera = nullptr;
 
@@ -148,14 +145,12 @@ VisualSystem::VisualSystem(HWND window) {
 void VisualSystem::onObjectCreate(Object* object) {
     const uint16_t class_id = object->getClassID();
 
-    if (class_id == DMCamera::ClassID()) {
+    if (class_id == Terrain::ClassID()) {
+        Terrain* dm_terrain = static_cast<Terrain*>(object);
+        terrain.reset(
+            new VisualTerrain(dm_terrain, context, *resource_manager));
+    } else if (class_id == DMCamera::ClassID()) {
         camera.reset(new Camera(object));
-    } else if (class_id == DMAsset::ClassID()) {
-        // Deprecate
-        // DMAsset* asset_obj = static_cast<DMAsset*>(object);
-
-        // Asset* asset = resource_manager->getAsset(asset_obj->getAssetName());
-        // asset_components.emplace_back(new AssetComponent(object, asset));
     } else if (class_id == DMMesh::ClassID()) {
         renderable_meshes.push_back(
             new RenderableMesh(object, resource_manager));
@@ -256,22 +251,8 @@ void VisualSystem::pullSceneData(Scene* scene) {
 
     light_manager->pullDatamodelData();
 
-    // Pull my terrain data (if it exists).
-    // TODO: Move to existing datamodel infrastructure
-    Terrain* scene_terrain = scene->getTerrain();
-
-    if (scene_terrain == nullptr) {
-        if (terrain != nullptr) {
-            delete terrain;
-            terrain = nullptr;
-        }
-    } else {
-        if (terrain == nullptr)
-            terrain =
-                new VisualTerrain(scene_terrain, context, *resource_manager);
-
+    if (terrain)
         terrain->updateAndUploadTerrainData(context, *pass_terrain);
-    }
 
     // Prepare managers for data
     light_manager->updateSunDirection(config->sun_direction);
@@ -285,6 +266,7 @@ void VisualSystem::pullSceneData(Scene* scene) {
                                           renderable_mesh->getLocalMatrix());
     }
 
+    /*
     for (AssetComponent* object : asset_components) {
         object->update();
 
@@ -300,6 +282,7 @@ void VisualSystem::pullSceneData(Scene* scene) {
             light_manager->addShadowCaster(shadowCaster);
         }
     }
+    */
 
     // ---
     const int size = 750;
