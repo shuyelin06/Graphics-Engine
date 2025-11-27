@@ -1,5 +1,7 @@
 #pragma once
 
+#define IMGUI_ENABLED
+
 // Includes the libraries necessary for using ImGui in
 // any part of the application.
 // Only included on debug build

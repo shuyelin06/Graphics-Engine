@@ -19,19 +19,21 @@ class Scene {
   private:
     std::vector<Object*> objects;
 
-#if defined(_DEBUG)
+#if defined(IMGUI_ENABLED)
     Object* selected_object;
-#endif(_DEBUG)
+    bool show_property_window;
+
+    int imGuiTraverseHierarchy(Object* object, int next_id);
+#endif(IMGUI_ENABLED)
 
   public:
     Scene();
     ~Scene();
 
-#if defined(_DEBUG)
     // Displays the object hierarchy in the "Scene" menu
     // of the ImGui display.
+    // Does nothing if IMGUI_ENABLED is not defined (see ImGui.h)
     void imGuiDisplay();
-#endif(_DEBUG)
 
     // --- Object Handling ---
     void addObject(Object* object);

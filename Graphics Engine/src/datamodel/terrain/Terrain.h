@@ -25,6 +25,10 @@ using namespace Math;
 namespace Datamodel {
 typedef unsigned int UINT;
 
+enum BiomeType {};
+
+enum BiomeSelector {};
+
 // Terrain Class:
 // Represents the terrain in a scene. Internally achieves this by
 // storing terrain chunks as 3D grids of data, where the surface exists
@@ -58,6 +62,7 @@ class Terrain : public Object, public Bindable<Terrain> {
   private:
     // Perlin Noise Generator
     PerlinNoise noise_func;
+    unsigned int cur_seed;
 
     // Water "surface" height
     float surface_height;
@@ -72,6 +77,8 @@ class Terrain : public Object, public Bindable<Terrain> {
     Terrain();
     ~Terrain();
 
+    void propertyDisplay() override;
+
     // --- Initialization ---
     void registerTerrainCallback(int i, int j, int k,
                                  TerrainCallback* callback);
@@ -84,6 +91,9 @@ class Terrain : public Object, public Bindable<Terrain> {
     // world coordinates. Invalidated terrain chunks have generation requests
     // submitted to worker threads so that their data can be generated again.
     void invalidateTerrain(float x, float y, float z);
+
+    void seed(unsigned int seed);
+    void forceInvalidateAll();
 
   private:
     void scheduleTerrainReload(const ChunkIndex& local_index,

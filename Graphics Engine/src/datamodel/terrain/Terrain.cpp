@@ -14,11 +14,23 @@ namespace Datamodel {
 Terrain::Terrain() : Object(), Bindable<Terrain>(this), noise_func(0) {
     surface_height = 100.f;
     center_x = center_y = center_z = INT_MAX;
+    cur_seed = 0;
 
+    setName("Terrain");
     Terrain::SignalObjectCreation(this);
 }
 
 Terrain::~Terrain() = default;
+
+void Terrain::propertyDisplay() {
+#ifdef IMGUI_ENABLED
+    static int terrain_seed = 0;
+    ImGui::SliderInt("Seed", &terrain_seed, 0, 0xFFF);
+    if (ImGui::Button("Invalidate Terrain")) {
+        seed(terrain_seed);
+    }
+#endif
+}
 
 // --- Initializers ---
 void Terrain::registerTerrainCallback(int i, int j, int k,
@@ -88,6 +100,52 @@ void Terrain::invalidateTerrain(float x, float y, float z) {
 
                         scheduleTerrainReload(local_index, world_index);
                     }
+                }
+            }
+        }
+    }
+}
+
+void Terrain::seed(unsigned int new_seed) {
+    if (cur_seed != new_seed) {
+        cur_seed = new_seed;
+        noise_func.seed(cur_seed);
+        forceInvalidateAll();
+    }
+}
+
+void Terrain::forceInvalidateAll() {
+    // Iterate through -TERRAIN_CHUNK_EXTENT to TERRAIN_CHUNK_EXTENT around this
+    // chunk's indices, and find chunks that are dirty. These are chunks whose
+    // indices no longer correspond to the chunk indices that need to be loaded.
+    // Each chunk index in the world corresponds to exactly 1 index in the
+    // array. We figure out this index by applying the modulus operator (that
+    // wraps for negatives too).
+    for (int i = -TERRAIN_CHUNK_EXTENT; i <= TERRAIN_CHUNK_EXTENT; i++) {
+        const int chunk_x = center_x + i;
+        const int index_x = Modulus(chunk_x, TERRAIN_CHUNK_COUNT);
+
+        for (int j = -TERRAIN_CHUNK_EXTENT; j <= TERRAIN_CHUNK_EXTENT; j++) {
+            const int chunk_y = center_y + j;
+            const int index_y = Modulus(chunk_y, TERRAIN_CHUNK_COUNT);
+
+            for (int k = -TERRAIN_CHUNK_EXTENT; k <= TERRAIN_CHUNK_EXTENT;
+                 k++) {
+                const int chunk_z = center_z + k;
+                const int index_z = Modulus(chunk_z, TERRAIN_CHUNK_COUNT);
+
+                // If the chunk is dirty, don't do anything. We know its dirty
+                // if we're unable to lock-- as this means a thread is updating
+                // the chunk data.
+                TerrainChunk& chunk = chunks[index_x][index_y][index_z];
+                std::unique_lock<std::mutex> lock(chunk.mutex,
+                                                  std::try_to_lock);
+
+                if (lock.owns_lock()) {
+                    const ChunkIndex local_index = {index_x, index_y, index_z};
+                    const ChunkIndex world_index = {chunk_x, chunk_y, chunk_z};
+
+                    scheduleTerrainReload(local_index, world_index);
                 }
             }
         }

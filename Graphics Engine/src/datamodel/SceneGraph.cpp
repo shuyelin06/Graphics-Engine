@@ -20,52 +20,64 @@ Scene::~Scene() {
 // ImGuiDisplayHierarchy
 // Displays the object hierarchy in the "Scene" menu
 // of the ImGui display
-#if defined(_DEBUG)
-static int displayObjectInfo(Object* object, int next_id, Object** active_obj) {
-    const std::string name_unique =
-        object->getName() + "##" + std::to_string(next_id++);
-    const std::string button_unique =
-        "Open Config##" + std::to_string(next_id++);
+#ifdef IMGUI_ENABLED
+int Scene::imGuiTraverseHierarchy(Object* object, int next_id) {
+    const std::string& object_name = object->getName();
+    const std::string node_id = "##" + std::to_string(next_id++);
 
     ImGuiBackendFlags flags = 0;
     if (object->getChildren().empty())
         flags |= ImGuiTreeNodeFlags_Leaf;
 
-    if (ImGui::TreeNodeEx(name_unique.c_str(), flags)) {
-        if (ImGui::Button(button_unique.c_str())) {
-            *active_obj = object;
-        }
+    const bool dropdown_active = ImGui::TreeNodeEx(node_id.c_str(), flags);
+    ImGui::SameLine();
 
+    const bool properties_active = ImGui::Selectable(
+        object_name.c_str(), false, ImGuiSelectableFlags_AllowItemOverlap);
+
+    if (properties_active)
+    {
+        show_property_window = true;
+        selected_object = object;
+    }
+
+    if (dropdown_active)
+    {
         for (Object* child : object->getChildren())
-            next_id = displayObjectInfo(child, next_id, active_obj);
-
+            next_id = imGuiTraverseHierarchy(child, next_id);
         ImGui::TreePop();
     }
 
     return next_id;
 }
+#endif
 
 void Scene::imGuiDisplay() {
+#ifdef IMGUI_ENABLED
     if (ImGui::BeginMenu("Scene")) {
         // Display the scene hierarchy
         int next_id = 0;
 
         ImGui::SeparatorText("Scene Hierarchy");
         for (Object* object : objects)
-            next_id = displayObjectInfo(object, next_id, &selected_object);
+            next_id = imGuiTraverseHierarchy(object, next_id);
 
-        // Display the active object config
-        if (selected_object != nullptr) {
+        ImGui::EndMenu();
+    }
+
+    // Property Panel
+    if (show_property_window && selected_object != nullptr) {
+        if (ImGui::Begin("Property Window", &show_property_window,
+                         ImGuiWindowFlags_NoCollapse)) {
             ImGui::SeparatorText(selected_object->getName().c_str());
             ImGui::Separator();
 
             selected_object->propertyDisplay();
         }
-
-        ImGui::EndMenu();
+        ImGui::End();
     }
-}
 #endif
+}
 
 // --- Object Handling ---
 void Scene::addObject(Object* object) {

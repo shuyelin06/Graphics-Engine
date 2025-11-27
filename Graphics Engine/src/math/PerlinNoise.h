@@ -16,6 +16,8 @@ class PerlinNoise {
   public:
     PerlinNoise(unsigned int seed);
 
+    void seed(unsigned int seed);
+
     float noise2D(float x, float y) const;
     float octaveNoise2D(float x, float y, int octaves, float persistence) const;
 

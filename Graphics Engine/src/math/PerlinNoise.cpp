@@ -147,6 +147,10 @@ unsigned char PerlinNoise::indexTable(int index) const {
     return permutation_table[index % 256];
 }
 
+// Seed:
+// Seeds the generator.
+void PerlinNoise::seed(unsigned int seed) { seedGenerator(seed); }
+
 // SampleNoise2D:
 // Samples the perlin noise given x,y coordinates.
 // Multiply x,y with a "frequency" in [0,1] to sample the noise at larger or
