@@ -1,14 +1,6 @@
 #include "P_Common.hlsli"
 #include "ToneMap.hlsli"
 
-cbuffer CB0_MATERIAL_INFO : register(b2)
-{
-    float tex_x;
-    float tex_y;
-    float tex_width;
-    float tex_height;
-}
-
 // Lighting:
 // Illumination (Global + Local)
 #include "Lighting.hlsli"
@@ -31,8 +23,9 @@ float4 ps_main(VS_OUT input) : SV_TARGET
     float4 color = float4(0, 0, 0, 1);
        
     // FORCE USAGE OF MESH TEXTURE?
-    float2 uv = float2(input.tex_coord.x * tex_width + tex_x, input.tex_coord.y * tex_height + tex_y);
-    float3 mesh_color = color_atlas.Sample(s_point, uv); // TODO
+    // float2 uv = float2(input.tex_coord.x * tex_width + tex_x, input.tex_coord.y * tex_height + tex_y);
+    float2 uv = input.tex_coord;
+    float3 mesh_color = color_atlas.Sample(s_point, uv);
     
     // Ambient Lighting
     color.rgb += mesh_color * 0.1f;

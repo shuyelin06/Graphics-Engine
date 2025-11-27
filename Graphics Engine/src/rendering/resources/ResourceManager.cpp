@@ -67,11 +67,29 @@ std::shared_ptr<Texture> ResourceManager::getTexture(int index) const {
     assert(0 <= index && index < textures.size());
     return textures[index];
 }
+std::shared_ptr<Geometry> ResourceManager::getGeometry(int index) const {
+    assert(0 <= index && index < geometries.size());
+    return geometries[index];
+}
+
+// CreateGeometry:
+// Interface for creating geometry for the pipeline
+std::shared_ptr<Geometry>
+ResourceManager::CreateGeometry(const GeometryDesc& desc) {
+    std::shared_ptr<Geometry> geometry = std::make_shared<Geometry>();
+    geometry->mesh = std::move(desc.mesh);
+    geometry->material = desc.material;
+    geometries.emplace_back(std::move(geometry));
+    return geometries.back();
+}
 
 // LoadTexture:
 // Code path for loading all textures.
 std::shared_ptr<Texture>
 ResourceManager::LoadTextureFromFile(const std::string& relative_path) {
+    if (relative_path.empty())
+        return nullptr;
+
     const std::string full_path = RESOURCE_FOLDER + relative_path;
 
     // Matches to find the file name and extension separately.
@@ -99,12 +117,19 @@ ResourceManager::LoadTextureFromFile(const std::string& relative_path) {
         }
     }
 
-    textures.emplace_back(std::shared_ptr<Texture>(output));
-    return textures.back();
+    if (output != nullptr) {
+        textures.emplace_back(std::shared_ptr<Texture>(output));
+        return textures.back();
+    } else {
+        return nullptr;
+    }
 }
 
 std::shared_ptr<Mesh>
 ResourceManager::LoadMeshFromFile(const std::string& relative_path) {
+    if (relative_path.empty())
+        return nullptr;
+
     const std::string full_path = RESOURCE_FOLDER + relative_path;
 
     // Matches to find the file name and extension separately.
@@ -137,6 +162,10 @@ ResourceManager::LoadMeshFromFile(const std::string& relative_path) {
 std::shared_ptr<MeshBuilder>
 ResourceManager::createMeshBuilder(MeshPoolType pool_type) {
     return std::make_shared<MeshBuilder>(mesh_pools[pool_type].get());
+}
+
+std::shared_ptr<TextureBuilder> ResourceManager::createTextureBuilder() {
+    return std::make_shared<TextureBuilder>(1, 1);
 }
 
 MeshPool* ResourceManager::getMeshPool(MeshPoolType pool_type) {

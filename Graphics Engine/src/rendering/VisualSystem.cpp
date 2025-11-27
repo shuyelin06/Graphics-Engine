@@ -201,7 +201,8 @@ void VisualSystem::render() {
         performPrepass(); //..
 
         // Bind my atlases
-        resource_manager->getTexture(SystemTexture_FallbackColormap)->PSBindResource(context, 0);
+        resource_manager->getTexture(SystemTexture_FallbackColormap)
+            ->PSBindResource(context, 0);
         light_manager->getAtlasTexture()->PSBindResource(context, 1);
 
         // Render terrain
@@ -489,40 +490,34 @@ void VisualSystem::performDefaultPass() {
 
     // Testing for animations
     for (const auto& geom_instance : pass_default->meshes) {
-        const auto& geometry = geom_instance.geometry.lock();
-        if (!geometry)
+        const auto& geometry = geom_instance.geometry;
+        if (!geometry || !geometry->mesh)
             continue;
 
         const auto& mesh = geometry->mesh;
         const auto& material = geometry->material;
-        if (!mesh || !material)
-            continue;
 
-        // TODO: Material support
-        // const Material mat = Material();
-
-        // Pixel CB2: Mesh Material Data
-        {
-            IConstantBuffer pCB2 = pipeline->loadPixelCB(CB2);
-
-            const TextureRegion& region = {0,0,1,1};
-            pCB2.loadData(&region.x, FLOAT);
-            pCB2.loadData(&region.y, FLOAT);
-            pCB2.loadData(&region.width, FLOAT);
-            pCB2.loadData(&region.height, FLOAT);
-        }
-
-        // Vertex CB2: Transform matrices
-        const Matrix4& mLocalToWorld = geom_instance.m_local_to_world;
+        // Vertex Shader Bindings:
+        // CB2: Transform matrices
         {
             IConstantBuffer vCB2 = pipeline->loadVertexCB(CB2);
 
             // Load mesh vertex transformation matrix
+            const Matrix4& mLocalToWorld = geom_instance.m_local_to_world;
             vCB2.loadData(&mLocalToWorld, FLOAT4X4);
             // Load mesh normal transformation matrix
             Matrix4 normalTransform = mLocalToWorld.inverse().transpose();
             vCB2.loadData(&(normalTransform), FLOAT4X4);
         }
+
+        // Pixel Shader Bindings:
+        // Texture 0: Color Map
+        std::shared_ptr<Texture> colormap =
+            resource_manager->getTexture(SystemTexture_FallbackColormap);
+        if (material.colormap != nullptr) {
+            colormap = material.colormap;
+        }
+        colormap->PSBindResource(context, 0);
 
         // Draw each mesh
         pipeline->drawMesh(mesh.get(), INDEX_LIST_START, INDEX_LIST_END, 1);

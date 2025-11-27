@@ -56,10 +56,10 @@ struct RenderPassTerrain : public RenderPassData {
 
 struct RenderPassDefault : public RenderPassData {
     struct GeometryInstance {
-        std::weak_ptr<Geometry> geometry;
+        std::shared_ptr<Geometry> geometry;
         Matrix4 m_local_to_world;
 
-        GeometryInstance(std::weak_ptr<Geometry> mesh, Matrix4 m_local_to_world);
+        GeometryInstance(std::shared_ptr<Geometry> mesh, Matrix4 m_local_to_world);
     };
 
     std::vector<GeometryInstance> meshes;

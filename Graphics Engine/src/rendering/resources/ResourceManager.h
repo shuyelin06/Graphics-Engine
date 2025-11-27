@@ -7,10 +7,12 @@
 
 #include "../Direct3D11.h"
 
-#include "rendering/core/Mesh.h"
-#include "rendering/core/Material.h"
 #include "MeshBuilder.h"
 #include "TextureBuilder.h"
+#include "rendering/core/Geometry.h"
+#include "rendering/core/Material.h"
+#include "rendering/core/Mesh.h"
+#include "rendering/core/Texture.h"
 
 namespace Engine {
 namespace Graphics {
@@ -23,6 +25,11 @@ enum MeshPoolType {
 
 enum SystemMesh { SystemMesh_Cube = 0 };
 enum SystemTexture { SystemTexture_FallbackColormap = 0 };
+
+struct GeometryDesc {
+    std::shared_ptr<Mesh> mesh;
+    Material material;
+};
 
 // ResourceManager Class:
 // Manages assets for the engine. Provides methods
@@ -37,6 +44,8 @@ class ResourceManager {
 
     std::vector<std::shared_ptr<Texture>> textures;
 
+    std::vector<std::shared_ptr<Geometry>> geometries;
+
   public:
     ResourceManager(ID3D11Device* device, ID3D11DeviceContext* context);
     ~ResourceManager();
@@ -49,14 +58,17 @@ class ResourceManager {
     // Get Resources
     std::shared_ptr<Mesh> getMesh(int index) const;
     std::shared_ptr<Texture> getTexture(int index) const;
+    std::shared_ptr<Geometry> getGeometry(int index) const;
 
     // Create Resources
+    std::shared_ptr<Geometry> CreateGeometry(const GeometryDesc& desc);
     std::shared_ptr<Texture>
     LoadTextureFromFile(const std::string& relative_path);
-
     std::shared_ptr<Mesh> LoadMeshFromFile(const std::string& relative_path);
 
     std::shared_ptr<MeshBuilder> createMeshBuilder(MeshPoolType pool_type);
+    std::shared_ptr<TextureBuilder> createTextureBuilder();
+
     MeshPool* getMeshPool(MeshPoolType pool_type);
 
     // Debug Display

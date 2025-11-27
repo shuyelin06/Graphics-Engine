@@ -128,7 +128,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     // Extra
     DMMesh* mesh = new DMMesh();
     mesh->setMeshFile("Macaroni3.gltf");
-    mesh->setColorMapFile("MacTex.png");
+    mesh->setColorMapFile("textures/MacTex.png");
     mesh->getTransform().setScale(250, 250, 250);
     root->addChild(mesh);
 

@@ -30,7 +30,7 @@ RenderPassTerrain::RenderPassTerrain(ID3D11Device* device,
 }
 
 RenderPassDefault::GeometryInstance::GeometryInstance(
-    std::weak_ptr<Geometry> _geometry, Matrix4 _m_local_to_world) {
+    std::shared_ptr<Geometry> _geometry, Matrix4 _m_local_to_world) {
     geometry = _geometry;
     m_local_to_world = _m_local_to_world;
 }
