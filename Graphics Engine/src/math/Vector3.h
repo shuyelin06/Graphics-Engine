@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 namespace Engine {
 namespace Math {
 
@@ -81,3 +83,15 @@ class Vector3 {
 
 } // Namespace Math
 } // Namespace Engine
+
+// Hash Function for Vector3
+template <> struct std::hash<Engine::Math::Vector3> {
+    std::size_t operator()(const Engine::Math::Vector3& k) const {
+        // https://stackoverflow.com/questions/5928725/hashing-2d-3d-and-nd-vectors
+        uint32_t hash = std::_Bit_cast<uint32_t, float>(k.x) * 73856093 ^
+                        std::_Bit_cast<uint32_t, float>(k.y) * 19349663 ^
+                        std::_Bit_cast<uint32_t, float>(k.z) * 83492791;
+
+        return hash % SIZE_MAX;
+    }
+};

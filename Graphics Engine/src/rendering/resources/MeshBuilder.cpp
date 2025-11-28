@@ -5,19 +5,6 @@
 
 #include "math/Compute.h"
 
-// Hash Function for Vector3.
-// Used if vertices are to be shared.
-template <> struct std::hash<Engine::Math::Vector3> {
-    std::size_t operator()(const Engine::Math::Vector3& k) const {
-        // https://stackoverflow.com/questions/5928725/hashing-2d-3d-and-nd-vectors
-        uint32_t hash = std::_Bit_cast<uint32_t, float>(k.x) * 73856093 ^
-                        std::_Bit_cast<uint32_t, float>(k.y) * 19349663 ^
-                        std::_Bit_cast<uint32_t, float>(k.z) * 83492791;
-
-        return hash % SIZE_MAX;
-    }
-};
-
 namespace Engine {
 namespace Graphics {
 MeshVertex::MeshVertex() {
@@ -44,12 +31,10 @@ MeshVertex::MeshVertex(const MeshVertex& vertex) {
     weights = vertex.weights;
 }
 
-void* MeshVertex::GetAddressOf(VertexDataStream bindable_stream)
-{
+void* MeshVertex::GetAddressOf(VertexDataStream bindable_stream) {
     assert(bindable_stream < BINDABLE_STREAM_COUNT);
 
-    switch (bindable_stream)
-    {
+    switch (bindable_stream) {
     case POSITION:
         return &position;
     case TEXTURE:
@@ -89,10 +74,13 @@ MeshBuilder::MeshBuilder(const MeshBuilder& builder) {
 MeshBuilder::~MeshBuilder() = default;
 
 // Generate:
-// Generates the index and vertex buffer resources for the mesh. These resources are
-// written to a MeshPool.
+// Generates the index and vertex buffer resources for the mesh. These resources
+// are written to a MeshPool.
 std::shared_ptr<Mesh> MeshBuilder::generateMesh(ID3D11DeviceContext* context) {
-    return std::shared_ptr<Mesh>(generateMesh(context, target_pool));
+    if (index_buffer.empty())
+        return nullptr;
+    else
+        return generateMesh(context, target_pool);
 }
 
 std::shared_ptr<Mesh> MeshBuilder::generateMesh(ID3D11DeviceContext* context,
@@ -112,7 +100,6 @@ std::shared_ptr<Mesh> MeshBuilder::generateMesh(ID3D11DeviceContext* context,
     // to keep the vertices aligned. This means that space could be wasted if
     // the pool supports streams that the builder does not have.
     // This array should match the vertex streams.
-    
 
     for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
         if (LayoutPinHas(pool->layout, i)) {
@@ -121,7 +108,8 @@ std::shared_ptr<Mesh> MeshBuilder::generateMesh(ID3D11DeviceContext* context,
             // Now, for each vertex, I will pull the data I want for my stream
             // and then copy it to the end of my buffer.
             for (int j = 0; j < vertex_buffer.size(); j++) {
-                const void* address = vertex_buffer[j].GetAddressOf((VertexDataStream) i);
+                const void* address =
+                    vertex_buffer[j].GetAddressOf((VertexDataStream)i);
 
                 // Also copy to my CPU-side copy of the data
                 memcpy(pool->cpu_vbuffers[i].get() +
@@ -186,9 +174,7 @@ std::vector<MeshVertex>& MeshBuilder::getVertices() { return vertex_buffer; }
 const std::vector<MeshTriangle>& MeshBuilder::getIndices() const {
     return index_buffer;
 }
-std::vector<MeshTriangle>& MeshBuilder::getIndices() {
-    return index_buffer;
-}
+std::vector<MeshTriangle>& MeshBuilder::getIndices() { return index_buffer; }
 bool MeshBuilder::isEmpty() const { return index_buffer.size() == 0; }
 
 // AddLayout:

@@ -27,7 +27,7 @@ class PhysicsSystem {
 
     // All physics object the engine is in control of
     std::vector<PhysicsObject*> objects;
-    PhysicsTerrain* terrain;
+    // PhysicsTerrain* terrain;
 
   public:
     PhysicsSystem();

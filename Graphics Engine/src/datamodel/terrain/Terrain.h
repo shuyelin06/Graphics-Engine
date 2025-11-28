@@ -3,11 +3,11 @@
 #include <mutex>
 #include <queue>
 #include <vector>
+#include <climits>
 
 #include "../Bindable.h"
 #include "../Object.h"
 
-#include "TerrainCallback.h"
 #include "TerrainConfig.h"
 #include "datamodel/bvh/BVH.h"
 #include "datamodel/bvh/TLAS.h"
@@ -25,10 +25,6 @@ using namespace Math;
 namespace Datamodel {
 typedef unsigned int UINT;
 
-enum BiomeType {};
-
-enum BiomeSelector {};
-
 // Terrain Class:
 // Represents the terrain in a scene. Internally achieves this by
 // storing terrain chunks as 3D grids of data, where the surface exists
@@ -38,24 +34,19 @@ struct ChunkIndex {
 };
 
 struct TerrainChunk {
-    // Mutex for the chunk.
-    std::mutex mutex;
-
     // Stores the chunk's x,y,z world index
-    int chunk_x, chunk_y, chunk_z;
+    int chunk_x = INT_MAX;
+    int chunk_y = INT_MAX;
+    int chunk_z = INT_MAX;
+
     // Stores the chunk's data in its 8 corners. Includes a few samples
     // outside of the chunk so that we can smooth out the normals.
     float data[TERRAIN_CHUNK_SAMPLES + 2][TERRAIN_CHUNK_SAMPLES + 2]
               [TERRAIN_CHUNK_SAMPLES + 2];
-    // Stores what triangles in the triangle_pool belong to this chunk
-    std::vector<Triangle> triangles;
-    // Stores the border triangles. These contribute to the normals but
-    // will not be in the final mesh.
-    std::vector<Triangle> border_triangles;
 
-    // Terrain callbacks, which are called on chunk reload. Systems can use
-    // these callbacks to regenerate terrain data.
-    std::vector<TerrainCallback*> callbacks;
+    // Chunk Update ID. Incremented whenever chunk is written to, so other
+    // systems know when the chunk has been updated.
+    int update_id = 0;
 };
 
 class Terrain : public Object, public Bindable<Terrain> {
@@ -79,12 +70,10 @@ class Terrain : public Object, public Bindable<Terrain> {
 
     void propertyDisplay() override;
 
-    // --- Initialization ---
-    void registerTerrainCallback(int i, int j, int k,
-                                 TerrainCallback* callback);
-
     // --- Accessors ---
     float getSurfaceHeight() const;
+
+    const TerrainChunk& getChunk(int i, int j, int k);
 
     // --- Update Function ---
     // Invalidate terrain chunks based on a new center (x,y,z) in
@@ -96,10 +85,7 @@ class Terrain : public Object, public Bindable<Terrain> {
     void forceInvalidateAll();
 
   private:
-    void scheduleTerrainReload(const ChunkIndex& local_index,
-                               const ChunkIndex& world_index);
-    void reloadChunk(const ChunkIndex local_index,
-                     const ChunkIndex world_index);
+    void reloadChunk(TerrainChunk* chunk, const ChunkIndex& world_index);
 };
 
 } // namespace Datamodel

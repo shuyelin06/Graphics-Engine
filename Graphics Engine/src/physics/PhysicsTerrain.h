@@ -3,6 +3,7 @@
 #include "datamodel/bvh/BVH.h"
 #include "datamodel/bvh/TLAS.h"
 
+/*
 #include "datamodel/terrain/Terrain.h"
 #include "datamodel/terrain/TerrainCallback.h"
 
@@ -61,3 +62,4 @@ class PhysicsTerrain {
 
 } // namespace Physics
 } // namespace Engine
+*/

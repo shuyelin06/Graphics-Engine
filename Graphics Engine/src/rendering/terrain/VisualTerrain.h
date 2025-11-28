@@ -2,12 +2,16 @@
 
 #include "datamodel/terrain/Terrain.h"
 
-#include "../RenderPass.h"
-#include "../core/Mesh.h"
-#include "../pipeline/StructuredBuffer.h"
-#include "../resources/MeshBuilder.h"
-#include "../resources/ResourceManager.h"
-#include "VisualTerrainCallback.h"
+#include "rendering/RenderPass.h"
+#include "rendering/core/Frustum.h"
+#include "rendering/core/Mesh.h"
+
+#include "rendering/pipeline/StructuredBuffer.h"
+
+#include "rendering/resources/MeshBuilder.h"
+#include "rendering/resources/ResourceManager.h"
+
+#include "ChunkBuilderJob.h"
 #include "WaterSurface.h"
 
 namespace Engine {
@@ -40,14 +44,18 @@ class VisualTerrain {
 
     // Output Chunk Meshes
     MeshPool* mesh_pool;
-    // Stores the most recent terrain meshes
-    std::shared_ptr<Mesh> meshes[TERRAIN_CHUNK_COUNT][TERRAIN_CHUNK_COUNT]
-                                [TERRAIN_CHUNK_COUNT];
 
-    // Stores callback functions that may update with new terrain data
-    std::unique_ptr<VisualTerrainCallback> callbacks[TERRAIN_CHUNK_COUNT]
-                                                    [TERRAIN_CHUNK_COUNT]
-                                                    [TERRAIN_CHUNK_COUNT];
+    struct ChunkStatus {
+        int chunk_update_id = 0;
+        std::shared_ptr<Mesh> mesh = nullptr;
+        bool processing = false;
+    };
+    ChunkStatus chunk_trackers[TERRAIN_CHUNK_COUNT][TERRAIN_CHUNK_COUNT]
+                              [TERRAIN_CHUNK_COUNT];
+    // Dirty (& unprocessed) chunks
+    std::vector<ChunkIndex> dirty_chunks;
+
+    std::vector<std::unique_ptr<ChunkBuilderJob>> jobs;
 
   public:
     VisualTerrain(Terrain* terrain, ID3D11DeviceContext* context,

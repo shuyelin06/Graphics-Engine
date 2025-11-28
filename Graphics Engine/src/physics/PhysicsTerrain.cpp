@@ -1,5 +1,6 @@
 #include "PhysicsTerrain.h"
 
+/*
 #if defined(_DEBUG)
 #include "rendering/util/CPUTimer.h"
 #endif
@@ -94,3 +95,5 @@ TLAS PhysicsTerrain::getTerrainTLS() { return tlas; }
 
 } // namespace Physics
 } // namespace Engine
+
+*/

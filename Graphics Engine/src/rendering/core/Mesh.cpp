@@ -54,8 +54,10 @@ void MeshPool::cleanAndCompact() {
     // Iterate through the mesh pointers, removing pointers with only one
     // reference. These are meshes that are no longer being used anywhere else.
     for (int i = 0; i < allocs.size(); i++) {
-        if (head != i && allocs[i].use_count() != 1) {
-            allocs[head] = std::move(allocs[i]);
+        if (allocs[i].use_count() != 1) {
+            if (head != i) {
+                allocs[head] = std::move(allocs[i]);
+            }
             head++;
         } else
             allocs[i] = nullptr;

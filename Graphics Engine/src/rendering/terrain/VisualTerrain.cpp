@@ -7,28 +7,22 @@
 #include "../ImGui.h"
 #endif
 
+#include "core/ThreadPool.h"
+
+constexpr int MAX_CHUNK_JOBS = 16;
+
 namespace Engine {
 using namespace Datamodel;
 
 namespace Graphics {
 VisualTerrain::VisualTerrain(Terrain* _terrain, ID3D11DeviceContext* context,
                              ResourceManager& resource_manager)
-    : terrain(_terrain), callbacks() {
+    : terrain(_terrain) {
     mesh_pool = resource_manager.getMeshPool(MeshPoolType_Terrain);
 
-    // Set all current chunk_meshes to null, and initialize my terrain
-    // callbacks.
-    for (int i = 0; i < TERRAIN_CHUNK_COUNT; i++) {
-        for (int j = 0; j < TERRAIN_CHUNK_COUNT; j++) {
-            for (int k = 0; k < TERRAIN_CHUNK_COUNT; k++) {
-                meshes[i][j][k] = nullptr;
-
-                callbacks[i][j][k] =
-                    std::make_unique<VisualTerrainCallback>(mesh_pool);
-                terrain->registerTerrainCallback(i, j, k,
-                                                 callbacks[i][j][k].get());
-            }
-        }
+    // Create MAX_CHUNK_JOBS schunk update jobs.
+    for (int i = 0; i < MAX_CHUNK_JOBS; i++) {
+        jobs.push_back(std::make_unique<ChunkBuilderJob>(mesh_pool));
     }
 
     // Initialize my water surface mesh.
@@ -45,25 +39,76 @@ VisualTerrain::~VisualTerrain() = default;
 // Generates the mesh for the terrain
 void VisualTerrain::updateAndUploadTerrainData(
     ID3D11DeviceContext* context, RenderPassTerrain& pass_terrain) {
-    // Iterate through my callbacks. If they have a mesh, overwrite what we
-    // currently have.
-    bool dirty = false;
+    // Iterate through all chunks, and check the update IDs. If:
+    // 1) The chunk update id is different than what we "know about", AND
+    // 2) The chunk is not currently being processed
+    // We add to dirty chunks.
+    dirty_chunks.clear();
 
     for (int i = 0; i < TERRAIN_CHUNK_COUNT; i++) {
         for (int j = 0; j < TERRAIN_CHUNK_COUNT; j++) {
             for (int k = 0; k < TERRAIN_CHUNK_COUNT; k++) {
-                VisualTerrainCallback& callback = *callbacks[i][j][k];
+                const TerrainChunk& chunk = terrain->getChunk(i, j, k);
+                ChunkStatus& chunk_tracker = chunk_trackers[i][j][k];
 
-                if (callback.isDirty()) {
-                    dirty = true;
-                    meshes[i][j][k] = callback.loadMesh(context);
+                if (chunk.update_id != chunk_tracker.chunk_update_id &&
+                    !chunk_tracker.processing) {
+                    dirty_chunks.push_back({i, j, k});
                 }
             }
         }
     }
 
+    // TODO: Sort dirty_chunks to figure out what jobs we want to execute.
+
+    // Iterate through existing jobs to see what jobs have finished.
+    // If any jobs have finished, upload their data to the pool and mark the job
+    // as inactive.
+    // For any inactive jobs, we kick off another task with the highest priority
+    // dirty chunk.
+    bool mesh_pool_dirty = false;
+    int next_chunk = 0;
+
+    for (auto& job : jobs) {
+        if (job->async_lock.try_lock()) {
+            if (job->active) {
+                const auto& arr_index = job->chunk_array_index;
+
+                auto& chunk_status =
+                    chunk_trackers[arr_index.x][arr_index.y][arr_index.z];
+                chunk_status.chunk_update_id = job->chunk_copy.update_id;
+                chunk_status.mesh = job->builder.generateMesh(context);
+                chunk_status.processing = false;
+
+                job->active = false;
+
+                mesh_pool_dirty = true;
+            }
+
+            if (next_chunk < dirty_chunks.size()) {
+                const ChunkIndex& chunk_index = dirty_chunks[next_chunk++];
+
+                ChunkStatus& chunk_tracker =
+                    chunk_trackers[chunk_index.x][chunk_index.y][chunk_index.z];
+                chunk_tracker.processing = true;
+
+                // Load data
+                const TerrainChunk& target_chunk = terrain->getChunk(
+                    chunk_index.x, chunk_index.y, chunk_index.z);
+                job->loadChunkData(target_chunk, chunk_index);
+
+                // Kick off thread
+                ChunkBuilderJob* job_ptr = job.get();
+                ThreadPool::GetThreadPool()->scheduleJob(
+                    [job_ptr] { job_ptr->buildChunkMesh(); });
+            }
+
+            job->async_lock.unlock();
+        }
+    }
+
     // Clean and compact my mesh pool
-    if (dirty)
+    if (mesh_pool_dirty)
         mesh_pool->cleanAndCompact();
 
     // Upload my data to the structured buffers

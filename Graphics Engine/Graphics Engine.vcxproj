@@ -187,8 +187,8 @@
     <ClCompile Include="src\rendering\resources\BumpMapBuilder.cpp" />
     <ClCompile Include="src\rendering\pipeline\ConstantBuffer.cpp" />
     <ClCompile Include="src\rendering\resources\files\FileReader.cpp" />
+    <ClCompile Include="src\rendering\terrain\ChunkBuilderJob.cpp" />
     <ClCompile Include="src\rendering\terrain\WaterSurface.cpp" />
-    <ClCompile Include="src\rendering\terrain\VisualTerrainCallback.cpp" />
     <ClCompile Include="src\input\components\MovementHandler.cpp" />
     <ClCompile Include="src\input\InputFrame.cpp" />
     <ClCompile Include="src\math\AABB.cpp" />
@@ -233,7 +233,7 @@
     <ClCompile Include="include\imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="include\imgui\imgui_tables.cpp" />
     <ClCompile Include="include\imgui\imgui_widgets.cpp" />
-    <ClCompile Include="src\datamodel\terrain\MarchingCube.cpp" />
+    <ClCompile Include="src\rendering\terrain\MarchingCube.cpp" />
     <ClCompile Include="src\rendering\lights\SunLight.cpp" />
     <ClCompile Include="src\rendering\core\Frustum.cpp" />
     <ClCompile Include="src\rendering\resources\files\GLTFFile.cpp" />
@@ -265,7 +265,6 @@
     <ClInclude Include="src\datamodel\objects\DMLight.h" />
     <ClInclude Include="src\datamodel\objects\DMMesh.h" />
     <ClInclude Include="src\datamodel\objects\DMPhysics.h" />
-    <ClInclude Include="src\datamodel\terrain\TerrainCallback.h" />
     <ClInclude Include="src\datamodel\terrain\TerrainConfig.h" />
     <ClInclude Include="src\GlobalConfig.h" />
     <ClInclude Include="src\physics\PhysicsTerrain.h" />
@@ -278,10 +277,10 @@
     <ClInclude Include="src\rendering\pipeline\ConstantBuffer.h" />
     <ClInclude Include="src\rendering\pipeline\StructuredBuffer.h" />
     <ClInclude Include="src\rendering\resources\files\FileReader.h" />
+    <ClInclude Include="src\rendering\terrain\ChunkBuilderJob.h" />
     <ClInclude Include="src\rendering\terrain\WaterSurface.h" />
-    <ClInclude Include="src\rendering\terrain\VisualTerrainCallback.h" />
     <ClInclude Include="src\datamodel\SceneGraph.h" />
-    <ClInclude Include="src\datamodel\terrain\MarchingCube.h" />
+    <ClInclude Include="src\rendering\terrain\MarchingCube.h" />
     <ClInclude Include="src\datamodel\terrain\Terrain.h" />
     <ClInclude Include="src\input\InputFrame.h" />
     <ClInclude Include="src\input\SymbolData.h" />
@@ -307,7 +306,7 @@
     <ClInclude Include="include\imgui\imstb_rectpack.h" />
     <ClInclude Include="include\imgui\imstb_textedit.h" />
     <ClInclude Include="include\imgui\imstb_truetype.h" />
-    <ClInclude Include="src\datamodel\terrain\MarchingCubeTables.h" />
+    <ClInclude Include="src\rendering\terrain\MarchingCubeTables.h" />
     <ClInclude Include="src\input\components\MovementHandler.h" />
     <ClInclude Include="src\math\PerlinNoise.h" />
     <ClInclude Include="src\math\Transform.h" />

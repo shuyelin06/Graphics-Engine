@@ -14,7 +14,7 @@ PhysicsSystem::PhysicsSystem() : broadphase_tree(0.2f), stopwatch() {
 
     DMPhysics::ConnectToCreation([this](Object* obj) { onObjectCreate(obj); });
 
-    terrain = nullptr;
+    // terrain = nullptr;
 }
 
 // AddCollisionHull:
@@ -82,8 +82,8 @@ void PhysicsSystem::pullDatamodelData() {
     for (PhysicsObject* obj : objects)
         obj->pullDatamodelData();
 
-    if (terrain != nullptr)
-        terrain->pullTerrainBVHs();
+    // if (terrain != nullptr)
+      //  terrain->pullTerrainBVHs();
 
     // Determine the amount of time that has elapsed since the last
     // update() call.
@@ -150,10 +150,12 @@ void PhysicsSystem::pushDatamodelData() {
         obj->push();
 }
 
+/*
 BVHRayCast PhysicsSystem::raycast(const Vector3& origin,
                                   const Vector3& direction) {
-    return terrain->getTerrainTLS().raycast(origin, direction);
+    // return terrain->getTerrainTLS().raycast(origin, direction);
 }
+*/
 
 } // namespace Physics
 } // namespace Engine

@@ -9,7 +9,7 @@
 #include "math/Compute.h"
 #include "math/Matrix3.h"
 
-constexpr float FLT_EPSILON = 0.0001f;
+constexpr float EPSILON = 0.0001f;
 
 namespace Engine {
 using namespace Math;
@@ -626,7 +626,7 @@ bool MarchingCube::testFaceAmbiguity(char faceID) {
 
     // We multiply by faceID and a since their sign is important. If either
     // is negative, we need to invert the results of the test.
-    if (std::abs(a * c - b * d) < FLT_EPSILON)
+    if (std::abs(a * c - b * d) < EPSILON)
         return faceID >= 0;
     else
         return (faceID * a * (a * c - b * d)) >= 0;
@@ -831,7 +831,7 @@ bool MarchingCube::testInternalAmbiguity(char caseID, char configID,
     case 4:
         return sign > 0;
     case 5:
-        if (at * ct - bt * dt < FLT_EPSILON)
+        if (at * ct - bt * dt < EPSILON)
             return sign > 0;
         break;
     case 6:

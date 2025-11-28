@@ -46,7 +46,7 @@ void ResourceManager::initializeSystemResources() {
     // 300,000 vertices, 200,000 indices is enough
     // TODO: Be able to create mesh pools on demand
     mesh_pools[MeshPoolType_Terrain] = std::make_unique<MeshPool>(
-        (1 << POSITION) | (1 << NORMAL), 200000, 300000);
+        (1 << POSITION) | (1 << NORMAL), 800000, 600000);
     mesh_pools[MeshPoolType_Default] =
         std::make_unique<MeshPool>(0xFFFF, 100000, 100000);
 
@@ -175,6 +175,18 @@ MeshPool* ResourceManager::getMeshPool(MeshPoolType pool_type) {
 // Debug Display
 void ResourceManager::imGui() {
     if (ImGui::CollapsingHeader("Resource Manager")) {
+        ImGui::SeparatorText("Terrain Mesh Pool");
+        ImGui::Indent();
+        {
+            ImGui::Text("Allocations: %zu",
+                        mesh_pools[MeshPoolType_Terrain]->meshes.size());
+            ImGui::Text("Vertex Count: %u",
+                        mesh_pools[MeshPoolType_Terrain]->vertex_size);
+            ImGui::Text("Triangle Count: %u",
+                        mesh_pools[MeshPoolType_Terrain]->triangle_size);
+        }
+        ImGui::Unindent();
+
         ImGui::Text("Mesh Count: %zu", meshes.size());
         if (ImGui::BeginTable("Mesh Information", 3)) {
             ImGui::TableSetupColumn("Index");

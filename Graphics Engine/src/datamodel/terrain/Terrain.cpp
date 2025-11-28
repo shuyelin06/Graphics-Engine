@@ -2,7 +2,6 @@
 
 #include <assert.h>
 
-#include "MarchingCube.h"
 #include "core/ThreadPool.h"
 
 #include "math/Compute.h"
@@ -32,14 +31,12 @@ void Terrain::propertyDisplay() {
 #endif
 }
 
-// --- Initializers ---
-void Terrain::registerTerrainCallback(int i, int j, int k,
-                                      TerrainCallback* callback) {
-    chunks[i][j][k].callbacks.push_back(callback);
-}
-
 // --- Accessors ---
 float Terrain::getSurfaceHeight() const { return surface_height; }
+
+const TerrainChunk& Terrain::getChunk(int i, int j, int k) {
+    return chunks[i][j][k];
+}
 
 // --- Updates ---
 // ReloadTerrain:
@@ -48,11 +45,6 @@ void Terrain::invalidateTerrain(float x, float y, float z) {
     const int x_i = floor(x / TERRAIN_CHUNK_SIZE);
     const int y_i = floor(y / TERRAIN_CHUNK_SIZE);
     const int z_i = floor(z / TERRAIN_CHUNK_SIZE);
-
-    // If the center chunk index has not changed too much, do nothing.
-    if (abs(center_x - x_i) <= 1 && abs(center_y - y_i) <= 1 &&
-        abs(center_z - z_i) <= 1)
-        return;
 
     center_x = x_i;
     center_y = y_i;
@@ -77,29 +69,17 @@ void Terrain::invalidateTerrain(float x, float y, float z) {
                 const int chunk_z = center_z + k;
                 const int index_z = Modulus(chunk_z, TERRAIN_CHUNK_COUNT);
 
-                // If the chunk is dirty, don't do anything. We know its dirty
-                // if we're unable to lock-- as this means a thread is updating
-                // the chunk data.
                 TerrainChunk& chunk = chunks[index_x][index_y][index_z];
-                std::unique_lock<std::mutex> lock(chunk.mutex,
-                                                  std::try_to_lock);
 
-                if (lock.owns_lock()) {
-                    // Otherwise, check if the x,y,z indices match.
-                    // If they do not, then mark the chunk as dirty so it can be
-                    // reloaded.
-                    const bool x_match = (chunk.chunk_x == chunk_x);
-                    const bool y_match = (chunk.chunk_y == chunk_y);
-                    const bool z_match = (chunk.chunk_z == chunk_z);
+                // If the x,y,z indices do not match, then we need to reload the
+                // chunk data.
+                const bool x_match = (chunk.chunk_x == chunk_x);
+                const bool y_match = (chunk.chunk_y == chunk_y);
+                const bool z_match = (chunk.chunk_z == chunk_z);
 
-                    if (!(x_match && y_match && z_match)) {
-                        const ChunkIndex local_index = {index_x, index_y,
-                                                        index_z};
-                        const ChunkIndex world_index = {chunk_x, chunk_y,
-                                                        chunk_z};
-
-                        scheduleTerrainReload(local_index, world_index);
-                    }
+                if (!(x_match && y_match && z_match)) {
+                    const ChunkIndex world_index = {chunk_x, chunk_y, chunk_z};
+                    reloadChunk(&chunk, world_index);
                 }
             }
         }
@@ -138,39 +118,18 @@ void Terrain::forceInvalidateAll() {
                 // if we're unable to lock-- as this means a thread is updating
                 // the chunk data.
                 TerrainChunk& chunk = chunks[index_x][index_y][index_z];
-                std::unique_lock<std::mutex> lock(chunk.mutex,
-                                                  std::try_to_lock);
-
-                if (lock.owns_lock()) {
-                    const ChunkIndex local_index = {index_x, index_y, index_z};
-                    const ChunkIndex world_index = {chunk_x, chunk_y, chunk_z};
-
-                    scheduleTerrainReload(local_index, world_index);
-                }
+                const ChunkIndex world_index = {chunk_x, chunk_y, chunk_z};
+                reloadChunk(&chunk, world_index);
             }
         }
     }
 }
 
-// ScheduleChunkReload:
-// Schedules a job on the ThreadPool to reload the chunk at specified indices
-void Terrain::scheduleTerrainReload(const ChunkIndex& local_index,
-                                    const ChunkIndex& world_index) {
-    ThreadPool::GetThreadPool()->scheduleJob([this, local_index, world_index] {
-        this->reloadChunk(local_index, world_index);
-    });
-}
-
 // LoadChunk:
-// Loads a terrain chunk, by sampling the perlin noise function, and
-// generating a triangulation for the terrain chunk.
-// If direct_load == true, loads into chunks directly. Otherwise, loads into
-// chunks_helper
-void Terrain::reloadChunk(const ChunkIndex local_index,
-                          const ChunkIndex world_index) {
-    // Lock the chunk for writing.
-    TerrainChunk* chunk = &chunks[local_index.x][local_index.y][local_index.z];
-    std::unique_lock<std::mutex> lock(chunk->mutex);
+// Loads a terrain chunk, by sampling the perlin noise function
+// TODO: Biome Selection
+void Terrain::reloadChunk(TerrainChunk* chunk, const ChunkIndex& world_index) {
+    chunk->update_id++;
 
     chunk->chunk_x = world_index.x;
     chunk->chunk_y = world_index.y;
@@ -216,69 +175,6 @@ void Terrain::reloadChunk(const ChunkIndex local_index,
             }
         }
     }
-
-    // Generate chunk mesh using the marching cubes algorithm
-    chunk->border_triangles.clear();
-    chunk->triangles.clear();
-
-    int num_triangles;
-    Triangle triangles[12];
-
-    MarchingCube marching_cube = MarchingCube();
-    for (int i = 0; i < TERRAIN_CHUNK_SAMPLES + 2 - 1; i++) {
-        for (int j = 0; j < TERRAIN_CHUNK_SAMPLES + 2 - 1; j++) {
-            for (int k = 0; k < TERRAIN_CHUNK_SAMPLES + 2 - 1; k++) {
-                // Load the data into my marching cube
-                marching_cube.updateData(
-                    chunk->data[i][j][k], chunk->data[i + 1][j][k],
-                    chunk->data[i + 1][j + 1][k], chunk->data[i][j + 1][k],
-                    chunk->data[i][j][k + 1], chunk->data[i + 1][j][k + 1],
-                    chunk->data[i + 1][j + 1][k + 1],
-                    chunk->data[i][j + 1][k + 1]);
-
-                // Generate my mesh for this cube
-                num_triangles = 0;
-                marching_cube.generateSurface(triangles, &num_triangles);
-
-                // Load this data into my triangle pool and update my
-                // chunk. We need to offset and scale the triangles so
-                // they correspond to this chunk's world space position.
-                assert(num_triangles <= 12);
-                for (int tri = 0; tri < num_triangles; tri++) {
-                    Triangle triangle = triangles[tri];
-
-                    triangle.vertex(0).set(
-                        (triangle.vertex(0) + Vector3(i - 1, j - 1, k - 1)) *
-                            CHUNK_OFFSET +
-                        Vector3(x, y, z));
-                    triangle.vertex(1).set(
-                        (triangle.vertex(1) + Vector3(i - 1, j - 1, k - 1)) *
-                            CHUNK_OFFSET +
-                        Vector3(x, y, z));
-                    triangle.vertex(2).set(
-                        (triangle.vertex(2) + Vector3(i - 1, j - 1, k - 1)) *
-                            CHUNK_OFFSET +
-                        Vector3(x, y, z));
-
-                    // Border triangles
-                    if (i == 0 || j == 0 || k == 0 ||
-                        i == TERRAIN_CHUNK_SAMPLES ||
-                        j == TERRAIN_CHUNK_SAMPLES ||
-                        k == TERRAIN_CHUNK_SAMPLES) {
-                        chunk->border_triangles.push_back(triangle);
-                    }
-                    // Triangles in the chunk
-                    else {
-                        chunk->triangles.push_back(triangle);
-                    }
-                }
-            }
-        }
-    }
-
-    // Call the chunk callback functions
-    for (TerrainCallback* callback : chunk->callbacks)
-        callback->reloadTerrainData(chunk);
 }
 
 } // namespace Datamodel
