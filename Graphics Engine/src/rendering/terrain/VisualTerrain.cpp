@@ -54,8 +54,7 @@ void VisualTerrain::updateAndUploadTerrainData(
             if (job->active) {
                 const auto& arr_index = job->chunk_array_index;
 
-                auto& chunk_status =
-                    chunk_trackers[arr_index.x][arr_index.y][arr_index.z];
+                auto& chunk_status = getChunkStatus(arr_index);
                 chunk_status.chunk_update_id = job->chunk_copy.update_id;
                 chunk_status.mesh = job->builder.generateMesh(context);
                 chunk_status.processing = false;
@@ -84,13 +83,13 @@ void VisualTerrain::updateAndUploadTerrainData(
         for (int i = 0; i < TERRAIN_CHUNK_COUNT; i++) {
             for (int j = 0; j < TERRAIN_CHUNK_COUNT; j++) {
                 for (int k = 0; k < TERRAIN_CHUNK_COUNT; k++) {
-                    const TerrainChunk& chunk = terrain->getChunk(i, j, k);
-                    ChunkStatus& chunk_tracker = chunk_trackers[i][j][k];
+                    const ChunkIndex& chunk_index = {i, j, k};
+
+                    const TerrainChunk& chunk = terrain->getChunk(chunk_index);
+                    ChunkStatus& chunk_tracker = getChunkStatus(chunk_index);
 
                     if (chunk.update_id != chunk_tracker.chunk_update_id &&
                         !chunk_tracker.processing) {
-                        const ChunkIndex& chunk_index = {i, j, k};
-
                         // Push to the heap, and make sure the heap does not
                         // have a size greater than the max number of jobs.
 
@@ -120,13 +119,11 @@ void VisualTerrain::updateAndUploadTerrainData(
 
             auto& job = jobs[inactive_jobs[next_inactive_job++]];
 
-            ChunkStatus& chunk_tracker =
-                chunk_trackers[chunk_index.x][chunk_index.y][chunk_index.z];
+            ChunkStatus& chunk_tracker = getChunkStatus(chunk_index);
             chunk_tracker.processing = true;
 
             // Load data
-            const TerrainChunk& target_chunk =
-                terrain->getChunk(chunk_index.x, chunk_index.y, chunk_index.z);
+            const TerrainChunk& target_chunk = terrain->getChunk(chunk_index);
             job->loadChunkData(target_chunk, chunk_index);
 
             // Kick off thread
@@ -172,6 +169,11 @@ void VisualTerrain::updateAndUploadTerrainData(
             context, mesh_pool->cpu_vbuffers[NORMAL].get(),
             mesh_pool->vertex_size);
     }
+}
+
+VisualTerrain::ChunkStatus&
+VisualTerrain::getChunkStatus(const ChunkIndex& arr_index) {
+    return chunk_trackers[arr_index.x][arr_index.y][arr_index.z];
 }
 
 float VisualTerrain::computeChunkPriority(const ChunkIndex& index) {

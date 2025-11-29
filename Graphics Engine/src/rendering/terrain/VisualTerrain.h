@@ -84,6 +84,7 @@ class VisualTerrain {
     float getSurfaceLevel() const;
 
   private:
+    ChunkStatus& getChunkStatus(const ChunkIndex& arr_index);
     float computeChunkPriority(const ChunkIndex& chunk);
 };
 

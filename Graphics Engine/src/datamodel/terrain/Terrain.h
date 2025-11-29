@@ -1,9 +1,9 @@
 #pragma once
 
+#include <climits>
 #include <mutex>
 #include <queue>
 #include <vector>
-#include <climits>
 
 #include "../Bindable.h"
 #include "../Object.h"
@@ -74,6 +74,7 @@ class Terrain : public Object, public Bindable<Terrain> {
     float getSurfaceHeight() const;
 
     const TerrainChunk& getChunk(int i, int j, int k);
+    const TerrainChunk& getChunk(const ChunkIndex& arr_index);
 
     // --- Update Function ---
     // Invalidate terrain chunks based on a new center (x,y,z) in

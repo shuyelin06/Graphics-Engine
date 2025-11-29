@@ -37,6 +37,9 @@ float Terrain::getSurfaceHeight() const { return surface_height; }
 const TerrainChunk& Terrain::getChunk(int i, int j, int k) {
     return chunks[i][j][k];
 }
+const TerrainChunk& Terrain::getChunk(const ChunkIndex& arr_index) {
+    return getChunk(arr_index.x, arr_index.y, arr_index.z);
+}
 
 // --- Updates ---
 // ReloadTerrain:
