@@ -81,11 +81,10 @@ class Terrain : public Object, public Bindable<Terrain> {
     // world coordinates. Invalidated terrain chunks have generation requests
     // submitted to worker threads so that their data can be generated again.
     void invalidateTerrain(float x, float y, float z);
-
     void seed(unsigned int seed);
-    void forceInvalidateAll();
 
   private:
+    void checkAndReloadChunks(bool force_invalidate = false);
     void reloadChunk(TerrainChunk* chunk, const ChunkIndex& world_index);
 };
 
