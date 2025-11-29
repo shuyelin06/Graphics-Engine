@@ -1,5 +1,7 @@
 #pragma once
 
+#include <queue>
+
 #include "datamodel/terrain/Terrain.h"
 
 #include "rendering/RenderPass.h"
@@ -52,10 +54,20 @@ class VisualTerrain {
     };
     ChunkStatus chunk_trackers[TERRAIN_CHUNK_COUNT][TERRAIN_CHUNK_COUNT]
                               [TERRAIN_CHUNK_COUNT];
-    // Dirty (& unprocessed) chunks
-    std::vector<ChunkIndex> dirty_chunks;
 
+    // Jobs
     std::vector<std::unique_ptr<ChunkBuilderJob>> jobs;
+    std::vector<int> inactive_jobs;
+
+    // Dirty (& unprocessed) chunks
+    struct DirtyChunk {
+        ChunkIndex index;
+        float priority;
+        bool operator<(const DirtyChunk& other) const {
+            return priority < other.priority;
+        }
+    };
+    std::priority_queue<DirtyChunk> dirty_chunks;
 
   public:
     VisualTerrain(Terrain* terrain, ID3D11DeviceContext* context,
@@ -70,6 +82,9 @@ class VisualTerrain {
     // Return water surface data
     const WaterSurface* getWaterSurface() const;
     float getSurfaceLevel() const;
+
+  private:
+    float computeChunkPriority(const ChunkIndex& chunk);
 };
 
 } // namespace Graphics
