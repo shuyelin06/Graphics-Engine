@@ -9,7 +9,6 @@
 #include "../Object.h"
 
 #include "TerrainConfig.h"
-#include "TerrainGenerator.h"
 #include "datamodel/bvh/BVH.h"
 #include "datamodel/bvh/TLAS.h"
 
@@ -25,6 +24,7 @@ using namespace Math;
 
 namespace Datamodel {
 typedef unsigned int UINT;
+class TerrainGenerator;
 
 // Terrain Class:
 // Represents the terrain in a scene. Internally achieves this by

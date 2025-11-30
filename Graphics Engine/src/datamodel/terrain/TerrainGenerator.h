@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #include "math/PerlinNoise.h"
 
 namespace Engine {
@@ -11,23 +13,44 @@ struct TerrainSample {
     // Represents the distance from the nearest surface.
     // - if inside surface, + if outside. Surface is at 0.
     float surface_dist;
+
+    // Intersect: Only include "ground" that both generating functions have
+    TerrainSample operator&&(const TerrainSample& other);
+    // Union: Inlcude all "ground" either generating function has
+    TerrainSample operator||(const TerrainSample& other);
+    // Negate: Swap "ground" and "air"
+    TerrainSample operator!();
 };
 
 // TerrainGenerator:
 // Responsible for generating the terrain data on the datamodel side.
 class TerrainGenerator {
   private:
-    unsigned int seed;
+    uint32_t seed;
 
-    // Terrain Generation Config
-    struct TerrainGenerationConfig {
-        float surface_blob_size = 0.5f;
-        float frequency = 0.0075f;
-        int num_octaves = 1;
-        float persistence = 0.5f;
+    // Generation Configs
+    struct GenerationConfig {
+        bool enable_height_field;
+        bool enable_caves;
     } generation_config;
 
-    // Perlin Noise Generator
+    PerlinNoise noise_height_field;
+    struct HeightConfig {
+        float max_height = 100.f;
+        float min_height = -10.f;
+
+        float elevation_dropoff = 1.f;
+        float frequency = 0.0075f;
+    } height_config;
+
+    // Terrain Generation Config
+    struct CaveConfig {
+        float surface_blob_size = 0.5f;
+        float frequency = 0.015f;
+    } cave_config;
+
+    // Perlin Noise Generators
+
     PerlinNoise noise_func;
 
   public:
@@ -42,14 +65,8 @@ class TerrainGenerator {
   private:
     // Terrain generating functions. These return samples that represent the
     // terrain's surface
-    // TODO
-
-    // Terrain sample operations. These let us combine multiple terrain
-    // generation functions together.
-    TerrainSample intersectSamples(const TerrainSample& s1,
-                                   const TerrainSample& s2);
-    TerrainSample unionSamples(const TerrainSample& s1,
-                               const TerrainSample& s2);
+    TerrainSample generateHeightField(float x, float y, float z);
+    TerrainSample generateCaves(float x, float y, float z);
 };
 
 } // namespace Datamodel

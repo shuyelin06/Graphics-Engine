@@ -96,6 +96,9 @@ void VisualTerrain::updateAndUploadTerrainData(
 
                     if (chunk.update_id != chunk_tracker.chunk_update_id &&
                         !chunk_tracker.processing) {
+                        // Remove the dirty mesh immediately so it will be freed
+                        chunk_tracker.mesh = nullptr;
+
                         // Push to the heap, and make sure the heap does not
                         // have a size greater than the max number of jobs.
 

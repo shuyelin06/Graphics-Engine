@@ -8,6 +8,8 @@
 #include "math/PerlinNoise.h"
 #include "math/Triangle.h"
 
+#include "TerrainGenerator.h"
+
 namespace Engine {
 namespace Datamodel {
 Terrain::Terrain() : Object(), Bindable<Terrain>(this) {

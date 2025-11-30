@@ -11,7 +11,7 @@ constexpr float TERRAIN_CHUNK_SIZE = 75.f;
 constexpr int TERRAIN_CHUNK_SAMPLES = 7;
 
 // # Chunks out that will be loaded at once.
-constexpr int TERRAIN_CHUNK_EXTENT = 7;
+constexpr int TERRAIN_CHUNK_EXTENT = 5;
 
 // Water Line
 constexpr float TERRAIN_FADE_LINE = 0.f;
