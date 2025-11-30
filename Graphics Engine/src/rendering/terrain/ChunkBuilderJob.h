@@ -18,7 +18,9 @@ namespace Graphics {
 struct ChunkBuilderJob {
     // The async thread will lock on this
     std::mutex async_lock;
-    bool active;
+
+    enum JobStatus { Inactive, Active, Done };
+    JobStatus status;
 
     MeshBuilder builder;
 

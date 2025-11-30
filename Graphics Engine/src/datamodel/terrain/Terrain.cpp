@@ -10,10 +10,11 @@
 
 namespace Engine {
 namespace Datamodel {
-Terrain::Terrain() : Object(), Bindable<Terrain>(this), noise_func(0) {
+Terrain::Terrain() : Object(), Bindable<Terrain>(this) {
     surface_height = 100.f;
     center_x = center_y = center_z = INT_MAX;
-    cur_seed = 0;
+
+    generator = std::make_unique<TerrainGenerator>();
 
     setName("Terrain");
     Terrain::SignalObjectCreation(this);
@@ -23,10 +24,10 @@ Terrain::~Terrain() = default;
 
 void Terrain::propertyDisplay() {
 #ifdef IMGUI_ENABLED
-    static int terrain_seed = 0;
-    ImGui::SliderInt("Seed", &terrain_seed, 0, 0xFFF);
+    generator->propertyDisplay();
+
     if (ImGui::Button("Invalidate Terrain")) {
-        seed(terrain_seed);
+        checkAndReloadChunks(true);
     }
 #endif
 }
@@ -57,11 +58,8 @@ void Terrain::invalidateTerrain(float x, float y, float z) {
 }
 
 void Terrain::seed(unsigned int new_seed) {
-    if (cur_seed != new_seed) {
-        cur_seed = new_seed;
-        noise_func.seed(cur_seed);
-        checkAndReloadChunks(true);
-    }
+    generator->seedGenerator(new_seed);
+    checkAndReloadChunks(true);
 }
 
 // CheckAndReloadChunks:
@@ -133,24 +131,8 @@ void Terrain::reloadChunk(TerrainChunk* chunk, const ChunkIndex& world_index) {
                 const float sample_x = x + (i - 1) * CHUNK_OFFSET;
                 const float sample_y = y + (j - 1) * CHUNK_OFFSET;
                 const float sample_z = z + (k - 1) * CHUNK_OFFSET;
-
-                // Sample our noise function
-                constexpr float SURFACE = 0.375f;
-                constexpr float FREQ = 0.0075f;
-                float val = noise_func.noise3D(FREQ * sample_x, FREQ * sample_y,
-                                               FREQ * sample_z);
-
-                // Fade our noise to 0 depending on how close we are to the
-                // water line
-                constexpr float FADE_RATE = 0.0075f;
-                if (sample_y >= TERRAIN_FADE_LINE) {
-                    val += (sample_y - TERRAIN_FADE_LINE) * FADE_RATE;
-                }
-                val = Clamp(val, 0.0f, 1.0f);
-
-                // Offset sampled value as marching cubes considers a
-                // surface where 0 is.
-                chunk->data[i][j][k] = val - SURFACE;
+                chunk->data[i][j][k] = generator->sampleTerrainGenerator(
+                    sample_x, sample_y, sample_z);
             }
         }
     }

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <climits>
-#include <mutex>
+#include <memory>
 #include <queue>
 #include <vector>
 
@@ -9,6 +9,7 @@
 #include "../Object.h"
 
 #include "TerrainConfig.h"
+#include "TerrainGenerator.h"
 #include "datamodel/bvh/BVH.h"
 #include "datamodel/bvh/TLAS.h"
 
@@ -51,9 +52,7 @@ struct TerrainChunk {
 
 class Terrain : public Object, public Bindable<Terrain> {
   private:
-    // Perlin Noise Generator
-    PerlinNoise noise_func;
-    unsigned int cur_seed;
+    std::unique_ptr<TerrainGenerator> generator;
 
     // Water "surface" height
     float surface_height;

@@ -180,6 +180,7 @@
     <ClCompile Include="src\datamodel\SceneGraph.cpp" />
     <ClCompile Include="src\datamodel\terrain\Terrain.cpp" />
     <ClCompile Include="src\core\ThreadPool.cpp" />
+    <ClCompile Include="src\datamodel\terrain\TerrainGenerator.cpp" />
     <ClCompile Include="src\physics\PhysicsTerrain.cpp" />
     <ClCompile Include="src\rendering\core\RenderableMesh.cpp" />
     <ClCompile Include="src\rendering\core\VertexStreamIDs.cpp" />
@@ -266,6 +267,7 @@
     <ClInclude Include="src\datamodel\objects\DMMesh.h" />
     <ClInclude Include="src\datamodel\objects\DMPhysics.h" />
     <ClInclude Include="src\datamodel\terrain\TerrainConfig.h" />
+    <ClInclude Include="src\datamodel\terrain\TerrainGenerator.h" />
     <ClInclude Include="src\GlobalConfig.h" />
     <ClInclude Include="src\physics\PhysicsTerrain.h" />
     <ClInclude Include="src\rendering\core\Geometry.h" />

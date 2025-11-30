@@ -11,7 +11,7 @@ using namespace Datamodel;
 namespace Graphics {
 ChunkBuilderJob::ChunkBuilderJob(MeshPool* terrain_pool)
     : async_lock(), builder(terrain_pool) {
-    active = false;
+    status = Inactive;
 }
 
 void ChunkBuilderJob::loadChunkData(const TerrainChunk& data,
@@ -28,7 +28,6 @@ void ChunkBuilderJob::loadChunkData(const TerrainChunk& data,
 }
 void ChunkBuilderJob::buildChunkMesh() {
     std::unique_lock lock(async_lock);
-    active = true;
 
     // Use Marching Cubes to generate my terrain mesh.
     unsigned int i0, i1, i2;
@@ -42,6 +41,8 @@ void ChunkBuilderJob::buildChunkMesh() {
     MarchingCube marching_cube = MarchingCube();
     int num_triangles;
     Triangle triangles[12];
+
+    border_triangles.clear();
 
     for (int i = 0; i < TERRAIN_CHUNK_SAMPLES + 2 - 1; i++) {
         for (int j = 0; j < TERRAIN_CHUNK_SAMPLES + 2 - 1; j++) {
@@ -114,6 +115,8 @@ void ChunkBuilderJob::buildChunkMesh() {
     // have z-fighting
     builder.regenerateNormals();
     builder.popTriangles(border_triangles.size());
+
+    status = Done;
 }
 
 // Helpers used by the asynchronous function

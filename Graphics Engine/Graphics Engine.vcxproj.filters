@@ -270,6 +270,9 @@
     <ClCompile Include="src\rendering\terrain\ChunkBuilderJob.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\datamodel\terrain\TerrainGenerator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\math\Vector3.h">
@@ -555,6 +558,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\terrain\ChunkBuilderJob.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\datamodel\terrain\TerrainGenerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

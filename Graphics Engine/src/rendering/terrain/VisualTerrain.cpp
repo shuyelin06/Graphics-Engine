@@ -51,7 +51,7 @@ void VisualTerrain::updateAndUploadTerrainData(
     for (int i = 0; i < jobs.size(); i++) {
         auto& job = jobs[i];
         if (job->async_lock.try_lock()) {
-            if (job->active) {
+            if (job->status == ChunkBuilderJob::JobStatus::Done) {
                 const auto& arr_index = job->chunk_array_index;
 
                 auto& chunk_status = getChunkStatus(arr_index);
@@ -59,12 +59,18 @@ void VisualTerrain::updateAndUploadTerrainData(
                 chunk_status.mesh = job->builder.generateMesh(context);
                 chunk_status.processing = false;
 
-                job->active = false;
+                job->status = ChunkBuilderJob::JobStatus::Inactive;
 
                 mesh_pool_dirty = true;
             }
 
-            inactive_jobs.push_back(i);
+            // There is a chance the async thread has not started yet at all, in
+            // which case the status would be "active". So, we only want to kick
+            // off a job if the status is active.
+            if (job->status == ChunkBuilderJob::JobStatus::Inactive) {
+                inactive_jobs.push_back(i);
+            }
+
             job->async_lock.unlock();
         }
     }
@@ -113,11 +119,12 @@ void VisualTerrain::updateAndUploadTerrainData(
 
         int next_inactive_job = 0;
         while (!dirty_chunks.empty()) {
+            auto& job = jobs[inactive_jobs[next_inactive_job++]];
+            job->async_lock.lock();
+
             const DirtyChunk dirty_chunk = dirty_chunks.top();
             dirty_chunks.pop();
             const ChunkIndex& chunk_index = dirty_chunk.index;
-
-            auto& job = jobs[inactive_jobs[next_inactive_job++]];
 
             ChunkStatus& chunk_tracker = getChunkStatus(chunk_index);
             chunk_tracker.processing = true;
@@ -125,11 +132,13 @@ void VisualTerrain::updateAndUploadTerrainData(
             // Load data
             const TerrainChunk& target_chunk = terrain->getChunk(chunk_index);
             job->loadChunkData(target_chunk, chunk_index);
+            job->status = ChunkBuilderJob::JobStatus::Active;
 
             // Kick off thread
             ChunkBuilderJob* job_ptr = job.get();
             ThreadPool::GetThreadPool()->scheduleJob(
                 [job_ptr] { job_ptr->buildChunkMesh(); });
+            job->async_lock.unlock();
         }
     }
 

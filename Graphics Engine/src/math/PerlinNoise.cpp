@@ -116,6 +116,7 @@ float PerlinNoise::octaveNoise2D(float x, float y, int octaves,
     return total / maxValue;
 }
 
+PerlinNoise::PerlinNoise() { seedGenerator(0); }
 PerlinNoise::PerlinNoise(unsigned int seed) { seedGenerator(seed); }
 
 // SeedGenerator:
@@ -267,6 +268,31 @@ float PerlinNoise::noise3D(float x, float y, float z) const {
     const float y2 = Lerp(x1, x2, yf);
 
     return (Lerp(y1, y2, zf) + 1) / 2;
+}
+
+float PerlinNoise::octaveNoise3D(float x, float y, float z, int octaves,
+                                 float persistence) const {
+    // We will sample perlin noise along multiple octaves, where along each
+    // we will increas the frequency and amplitude by a factor given by the
+    // persistence
+    float total = 0;
+    // MaxValue is used to normalize the result to [0,1]
+    float maxValue = 0;
+
+    float frequency = 1;
+    float amplitude = 1;
+
+    for (int i = 0; i < octaves; i++) {
+        total +=
+            noise3D(x * frequency, y * frequency, z * frequency) * amplitude;
+
+        maxValue += amplitude;
+
+        amplitude *= persistence;
+        frequency *= 2;
+    }
+
+    return total / maxValue;
 }
 
 const unsigned char* PerlinNoise::getPermutationTable() {

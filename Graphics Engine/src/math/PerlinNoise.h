@@ -14,6 +14,7 @@ class PerlinNoise {
     unsigned char permutation_table[256];
 
   public:
+    PerlinNoise();
     PerlinNoise(unsigned int seed);
 
     void seed(unsigned int seed);
@@ -22,6 +23,7 @@ class PerlinNoise {
     float octaveNoise2D(float x, float y, int octaves, float persistence) const;
 
     float noise3D(float x, float y, float z) const;
+    float octaveNoise3D(float x, float y, float z, int octaves, float persistence) const;
 
     const unsigned char* getPermutationTable();
   private:
