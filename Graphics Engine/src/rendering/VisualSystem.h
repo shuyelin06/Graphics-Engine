@@ -112,7 +112,7 @@ class VisualSystem {
     void processUnderwater(); // Underwater Effect
 
   private:
-    void imGuiConfig();
+    void imGui();
 
 #if defined(ENABLE_DEBUG_DRAWING)
     // Debug via VisualDebug

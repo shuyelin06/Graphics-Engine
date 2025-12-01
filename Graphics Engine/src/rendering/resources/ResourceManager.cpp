@@ -173,6 +173,18 @@ MeshPool* ResourceManager::getMeshPool(MeshPoolType pool_type) {
 // Debug Display
 void ResourceManager::imGui() {
 #if defined(IMGUI_ENABLED)
+    ImGui::SeparatorText("Default Mesh Pool");
+    ImGui::Indent();
+    {
+        ImGui::Text("Allocations: %zu",
+                    mesh_pools[MeshPoolType_Default]->meshes.size());
+        ImGui::Text("Vertex Count: %u",
+                    mesh_pools[MeshPoolType_Default]->vertex_size);
+        ImGui::Text("Triangle Count: %u",
+                    mesh_pools[MeshPoolType_Default]->triangle_size);
+    }
+    ImGui::Unindent();
+
     ImGui::SeparatorText("Terrain Mesh Pool");
     ImGui::Indent();
     {

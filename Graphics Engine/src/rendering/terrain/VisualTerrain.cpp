@@ -3,11 +3,12 @@
 #include <assert.h>
 #include <unordered_map>
 
-#if defined(_DEBUG)
-#include "../ImGui.h"
-#endif
-
 #include "core/ThreadPool.h"
+
+#include "math/AABB.h"
+#include "math/Vector3.h"
+
+#include "rendering/ImGui.h"
 
 constexpr int MAX_CHUNK_JOBS = 16;
 
@@ -203,6 +204,13 @@ float VisualTerrain::getSurfaceLevel() const { return surface_level; }
 // Returns the water surface mesh
 const WaterSurface* VisualTerrain::getWaterSurface() const {
     return water_surface;
+}
+
+// ImGui
+void VisualTerrain::imGui() {
+#if defined(IMGUI_ENABLED)
+
+#endif
 }
 
 } // namespace Graphics

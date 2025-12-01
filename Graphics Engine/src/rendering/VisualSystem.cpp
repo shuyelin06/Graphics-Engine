@@ -66,7 +66,7 @@ struct VisualParameters {
 
 // ImGuiConfig:
 // Sets configuration parameters
-void VisualSystem::imGuiConfig() {
+void VisualSystem::imGui() {
 #if defined(IMGUI_ENABLED)
     config->imGuiConfig();
 
@@ -167,6 +167,10 @@ void VisualSystem::onObjectCreate(Object* object) {
 // Render:
 // Renders the entire scene to the screen.
 void VisualSystem::render() {
+#if defined(IMGUI_ENABLED)
+    imGui();
+#endif
+
     pipeline->beginFrame(frame++);
 
 #if defined(_DEBUG)
@@ -246,10 +250,6 @@ void VisualSystem::render() {
 void VisualSystem::pullSceneData(Scene* scene) {
 #if defined(_DEBUG)
     ICPUTimer cpu_timer = CPUTimer::TrackCPUTime("Render Prepare");
-#endif
-
-#if defined(_DEBUG)
-    imGuiConfig();
 #endif
 
     // Pull Datamodel Data

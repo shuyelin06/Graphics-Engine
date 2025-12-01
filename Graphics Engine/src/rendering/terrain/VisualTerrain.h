@@ -83,6 +83,9 @@ class VisualTerrain {
     const WaterSurface* getWaterSurface() const;
     float getSurfaceLevel() const;
 
+    // ImGui
+    void imGui();
+
   private:
     ChunkStatus& getChunkStatus(const ChunkIndex& arr_index);
     float computeChunkPriority(const ChunkIndex& chunk);
