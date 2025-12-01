@@ -42,11 +42,9 @@ ResourceManager::~ResourceManager() = default;
 // Initialize:
 // Loads assets into the asset manager.
 void ResourceManager::initializeSystemResources() {
-    // Empirical testing has shown that
-    // 300,000 vertices, 200,000 indices is enough
     // TODO: Be able to create mesh pools on demand
     mesh_pools[MeshPoolType_Terrain] = std::make_unique<MeshPool>(
-        (1 << POSITION) | (1 << NORMAL), 800000, 600000);
+        (1 << POSITION) | (1 << NORMAL), 300000, 400000);
     mesh_pools[MeshPoolType_Default] =
         std::make_unique<MeshPool>(0xFFFF, 100000, 100000);
 
@@ -77,7 +75,7 @@ std::shared_ptr<Geometry> ResourceManager::getGeometry(int index) const {
 std::shared_ptr<Geometry>
 ResourceManager::CreateGeometry(const GeometryDesc& desc) {
     std::shared_ptr<Geometry> geometry = std::make_shared<Geometry>();
-    geometry->mesh = std::move(desc.mesh);
+    geometry->mesh = desc.mesh;
     geometry->material = desc.material;
     geometries.emplace_back(std::move(geometry));
     return geometries.back();
@@ -174,43 +172,43 @@ MeshPool* ResourceManager::getMeshPool(MeshPoolType pool_type) {
 
 // Debug Display
 void ResourceManager::imGui() {
-    if (ImGui::CollapsingHeader("Resource Manager")) {
-        ImGui::SeparatorText("Terrain Mesh Pool");
-        ImGui::Indent();
-        {
-            ImGui::Text("Allocations: %zu",
-                        mesh_pools[MeshPoolType_Terrain]->meshes.size());
-            ImGui::Text("Vertex Count: %u",
-                        mesh_pools[MeshPoolType_Terrain]->vertex_size);
-            ImGui::Text("Triangle Count: %u",
-                        mesh_pools[MeshPoolType_Terrain]->triangle_size);
-        }
-        ImGui::Unindent();
-
-        ImGui::Text("Mesh Count: %zu", meshes.size());
-        if (ImGui::BeginTable("Mesh Information", 3)) {
-            ImGui::TableSetupColumn("Index");
-            ImGui::TableSetupColumn("Vertex Count");
-            ImGui::TableSetupColumn("Index Count");
-            ImGui::TableHeadersRow();
-
-            int mesh_index = 0;
-            for (const auto& mesh : meshes) {
-                ImGui::TableNextRow();
-
-                ImGui::TableSetColumnIndex(0);
-                ImGui::Text("%i", mesh_index++);
-                ImGui::TableSetColumnIndex(1);
-                ImGui::Text("%zu", mesh->num_triangles * 3);
-                ImGui::TableSetColumnIndex(2);
-                ImGui::Text("%zu", mesh->num_vertices);
-            }
-
-            ImGui::EndTable();
-        }
-
-        ImGui::Text("Texture Count: %zu", textures.size());
+#if defined(IMGUI_ENABLED)
+    ImGui::SeparatorText("Terrain Mesh Pool");
+    ImGui::Indent();
+    {
+        ImGui::Text("Allocations: %zu",
+                    mesh_pools[MeshPoolType_Terrain]->meshes.size());
+        ImGui::Text("Vertex Count: %u",
+                    mesh_pools[MeshPoolType_Terrain]->vertex_size);
+        ImGui::Text("Triangle Count: %u",
+                    mesh_pools[MeshPoolType_Terrain]->triangle_size);
     }
+    ImGui::Unindent();
+
+    ImGui::Text("Mesh Count: %zu", meshes.size());
+    if (ImGui::BeginTable("Mesh Information", 3)) {
+        ImGui::TableSetupColumn("Index");
+        ImGui::TableSetupColumn("Vertex Count");
+        ImGui::TableSetupColumn("Index Count");
+        ImGui::TableHeadersRow();
+
+        int mesh_index = 0;
+        for (const auto& mesh : meshes) {
+            ImGui::TableNextRow();
+
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("%i", mesh_index++);
+            ImGui::TableSetColumnIndex(1);
+            ImGui::Text("%zu", mesh->num_triangles * 3);
+            ImGui::TableSetColumnIndex(2);
+            ImGui::Text("%zu", mesh->num_vertices);
+        }
+
+        ImGui::EndTable();
+    }
+
+    ImGui::Text("Texture Count: %zu", textures.size());
+#endif
 }
 
 // WriteTextureToPNG:

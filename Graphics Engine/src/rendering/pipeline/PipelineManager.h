@@ -132,7 +132,7 @@ class Pipeline {
     Texture* getDepthStencilCopy() const;
 
     // Prepare
-    void prepare();
+    void beginFrame(const uint64_t frame);
 
     // Shader Management
     bool bindVertexShader(const std::string& vs_name);
@@ -158,7 +158,7 @@ class Pipeline {
     void drawPostProcessQuad();
 
     // Render to Screen
-    void present();
+    void endFrame();
 
   private:
     void swapActiveTarget();

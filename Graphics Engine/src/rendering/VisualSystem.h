@@ -83,8 +83,6 @@ class VisualSystem {
     ID3D11RasterizerState* rast_state;
     Texture* bump_tex;
 
-    std::shared_ptr<Texture> test_tex;
-
     // Render Pass Information;
     // This should be populated by the VisualSystem's subsystems
     std::unique_ptr<RenderPassShadows> pass_shadows;
@@ -113,10 +111,8 @@ class VisualSystem {
     void processSky();
     void processUnderwater(); // Underwater Effect
 
-#if defined(_DEBUG)
   private:
     void imGuiConfig();
-#endif
 
 #if defined(ENABLE_DEBUG_DRAWING)
     // Debug via VisualDebug

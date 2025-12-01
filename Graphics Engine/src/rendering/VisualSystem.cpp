@@ -64,22 +64,31 @@ struct VisualParameters {
 #endif
 };
 
-#if defined(_DEBUG)
 // ImGuiConfig:
 // Sets configuration parameters
 void VisualSystem::imGuiConfig() {
+#if defined(IMGUI_ENABLED)
     config->imGuiConfig();
-    if (ImGui::BeginMenu("Test")) {
-        test_tex.get()->displayImGui();
+
+    static bool imgui_resource_manager = false;
+
+    if (ImGui::BeginMenu("Rendering")) {
+        if (ImGui::Button("Resource Manager"))
+            imgui_resource_manager = true;
+
         ImGui::EndMenu();
     }
 
-    if (ImGui::BeginMenu("Rendering")) {
-        resource_manager->imGui();
-        ImGui::EndMenu();
+    // Property Panel
+    if (imgui_resource_manager) {
+        if (ImGui::Begin("Resource Manager", &imgui_resource_manager,
+                         ImGuiWindowFlags_NoCollapse)) {
+            resource_manager->imGui();
+        }
+        ImGui::End();
     }
-}
 #endif
+}
 
 struct VisualCache {
     float time;
@@ -134,8 +143,6 @@ VisualSystem::VisualSystem(HWND window) {
 
     light_manager = new LightManager(device, 4096);
 
-    test_tex = resource_manager->LoadTextureFromFile("png.png");
-
     pass_shadows = std::make_unique<RenderPassShadows>(device, context);
     pass_terrain = std::make_unique<RenderPassTerrain>(device, context);
     pass_default = std::make_unique<RenderPassDefault>(device, context);
@@ -160,9 +167,7 @@ void VisualSystem::onObjectCreate(Object* object) {
 // Render:
 // Renders the entire scene to the screen.
 void VisualSystem::render() {
-    frame++;
-    GPUTimer::BeginFrame(frame);
-    pipeline->prepare();
+    pipeline->beginFrame(frame++);
 
 #if defined(_DEBUG)
     ICPUTimer cpu_timer = CPUTimer::TrackCPUTime("CPU Frametime");
@@ -232,7 +237,7 @@ void VisualSystem::render() {
 #endif
 
     // Finish rendering and present
-    pipeline->present();
+    pipeline->endFrame();
 }
 
 // PullSceneData:

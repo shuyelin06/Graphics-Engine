@@ -325,8 +325,9 @@ Texture* Pipeline::getDepthStencil() const { return depth_stencil; }
 Texture* Pipeline::getDepthStencilCopy() const { return depth_stencil_copy; }
 
 // Prepare
-void Pipeline::prepare() {
+void Pipeline::beginFrame(const uint64_t frame) {
     // Clear the the target destination color
+    GPUTimer::BeginFrame(frame);
     render_target_dest->clearAsRenderTarget(context, Color(0.f, 0.f, 0.f));
 }
 
@@ -486,7 +487,7 @@ void Pipeline::drawPostProcessQuad() {
 
 // Present:
 // Display everything we've rendered onto the screen
-void Pipeline::present() {
+void Pipeline::endFrame() {
     // Execute a shader to transfer the pixel data from our
     // current dest render target to the screen target.
     {
@@ -508,7 +509,6 @@ void Pipeline::present() {
     }
 
 #if defined(_DEBUG)
-    // Begin timestamping
     GPUTimer::EndFrame();
     imGuiFinish();
 #endif
