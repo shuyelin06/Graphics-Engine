@@ -2,8 +2,8 @@
 
 #include "../ImGui.h"
 #include "../pipeline/ConstantBuffer.h"
-
 #include "LightDataGPU.h"
+#include "rendering/VisualDebug.h"
 
 namespace Engine {
 namespace Graphics {
@@ -218,7 +218,6 @@ void LightManager::bindLightData(IConstantBuffer& cb) {
     const std::vector<ShadowLight*>& lights = shadow_lights;
 
     LightDataGPU lightData;
-    assert(sizeof(LightDataGPU) == 11 * sizeof(Vector4));
     // Needed for normalization of the texture coordinates to [0,1].
     const float tex_width = (float)shadow_atlas->getTexture()->width;
     const float tex_height = (float)shadow_atlas->getTexture()->height;
@@ -252,6 +251,22 @@ void LightManager::bindLightData(IConstantBuffer& cb) {
         lightData.tex_height /= tex_height;
         cb.loadData(&lightData, sizeof(LightDataGPU));
     }
+}
+
+void LightManager::imGui() {
+#if defined(IMGUI_ENABLED)
+    ImGui::Text("Number of Lights: %zu", shadow_lights.size());
+
+    static bool show_light_frustums = false;
+    ImGui::Checkbox("Show Light Frustums", &show_light_frustums);
+    if (show_light_frustums) {
+        for (auto& light : shadow_lights) {
+            VisualDebug::DrawFrustum((light->getFrustumMatrix() *
+                                         light->getWorldMatrix().inverse()).inverse(),
+                                     Color::Green());
+        }
+    }
+#endif
 }
 
 } // namespace Graphics

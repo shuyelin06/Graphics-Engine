@@ -71,11 +71,13 @@ void VisualSystem::imGui() {
     config->imGuiConfig();
 
     static bool imgui_resource_manager = false;
+    static bool imgui_light_manager = false;
 
     if (ImGui::BeginMenu("Rendering")) {
         if (ImGui::Button("Resource Manager"))
             imgui_resource_manager = true;
-
+        if (ImGui::Button("Light Manager"))
+            imgui_light_manager = true;
         ImGui::EndMenu();
     }
 
@@ -84,6 +86,13 @@ void VisualSystem::imGui() {
         if (ImGui::Begin("Resource Manager", &imgui_resource_manager,
                          ImGuiWindowFlags_NoCollapse)) {
             resource_manager->imGui();
+        }
+        ImGui::End();
+    }
+    if (imgui_light_manager) {
+        if (ImGui::Begin("Light Manager", &imgui_light_manager,
+                         ImGuiWindowFlags_NoCollapse)) {
+            light_manager->imGui();
         }
         ImGui::End();
     }

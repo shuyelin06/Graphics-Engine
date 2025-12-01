@@ -14,8 +14,7 @@ struct LightData
     float3 color;
     float pad1;
     
-    float4x4 m_view;
-    float4x4 m_projection;
+    float4x4 m_local_to_projection;
     
     float tex_x;
     float tex_y;
@@ -65,8 +64,7 @@ float shadowValue(float3 world_position, LightData light, float bias)
     // Convert the position into the light's coordinates
     float4 view_coords = float4(world_position, 1.f);
     
-    view_coords = mul(light.m_view, view_coords);
-    view_coords = mul(light.m_projection, view_coords);
+    view_coords = mul(light.m_local_to_projection, view_coords);
     view_coords = view_coords / view_coords.w;
 
     float shadow_value = 0.f;

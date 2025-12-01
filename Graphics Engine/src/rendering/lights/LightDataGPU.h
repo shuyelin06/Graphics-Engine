@@ -16,8 +16,7 @@ struct LightDataGPU {
     Vector3 color;
     float pad1;
 
-    Matrix4 m_view;
-    Matrix4 m_projection;
+    Matrix4 m_local_to_projection;
 
     float tex_x;
     float tex_y;

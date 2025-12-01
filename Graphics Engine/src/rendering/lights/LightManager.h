@@ -101,6 +101,9 @@ class LightManager {
     // Bind data to pipeline
     void bindLightData(IConstantBuffer& cb);
 
+    // ImGui
+    void imGui();
+
   private:
     void createSunLight(ShadowMapQuality quality);
 };

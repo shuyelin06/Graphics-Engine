@@ -44,8 +44,7 @@ void ShadowLight::uploadGPUData(LightDataGPU& gpuData) {
     gpuData.color = Vector3(color.r, color.g, color.b);
     gpuData.pad1 = 0.f;
 
-    gpuData.m_view = getWorldMatrix().inverse();
-    gpuData.m_projection = getFrustumMatrix();
+    gpuData.m_local_to_projection = getFrustumMatrix() * getWorldMatrix().inverse();
 
     // Needs to be normalized outside
     gpuData.tex_x = shadow_viewport.x;
