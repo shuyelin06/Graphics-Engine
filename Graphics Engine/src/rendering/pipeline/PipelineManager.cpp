@@ -508,6 +508,8 @@ void Pipeline::present() {
     }
 
 #if defined(_DEBUG)
+    // Begin timestamping
+    GPUTimer::EndFrame();
     imGuiFinish();
 #endif
 
@@ -548,17 +550,11 @@ void Pipeline::imGuiPrepare() {
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
     ImGui::BeginMainMenuBar();
-
-    // Begin timestamping
-    GPUTimer::BeginFrame();
 }
 
 // ImGuiFinish:
 // Finish and present the ImGui window
 void Pipeline::imGuiFinish() {
-    // Finish and Display GPU + CPU Times
-    GPUTimer::EndFrame();
-
     if (ImGui::BeginMenu("CPU / GPU Runtime")) {
         ImGui::SeparatorText("CPU Times:");
         CPUTimer::DisplayCPUTimes();

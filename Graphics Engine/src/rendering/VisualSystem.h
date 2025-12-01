@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <map>
 #include <string>
 #include <utility>
@@ -56,6 +57,9 @@ struct VisualCache;
 // pipeline provides a convenient interface for some functionality.
 class VisualSystem {
   private:
+    // Frame
+    uint64_t frame;
+
     // Configuration + Cache
     VisualParameters* config;
     VisualCache* cache;

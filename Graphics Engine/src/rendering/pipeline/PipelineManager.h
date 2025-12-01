@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #include "ConstantBuffer.h"
 #include "Shader.h"
 #include "ShaderManager.h"
@@ -50,11 +52,14 @@ enum DepthStencilFlags {
 };
 
 enum BlendFlags {
-    // Blending is done only off of the source alpha. For example, if srcA = 0.7, 
+    // Blending is done only off of the source alpha. For example, if srcA =
+    // 0.7,
     // 70% of the color will be from the shader, and 30% from the render target
     Blend_SrcAlphaOnly = 0,
-    // Blending is done off the source and destination alpha. For example, if srcA = 0.3,
-    // destA = 0.7, 30% of the color will be from the shader, and 70% from the render target
+    // Blending is done off the source and destination alpha. For example, if
+    // srcA = 0.3,
+    // destA = 0.7, 30% of the color will be from the shader, and 70% from the
+    // render target
     Blend_UseSrcAndDest = 1,
     BlendFlagCount,
     // ...

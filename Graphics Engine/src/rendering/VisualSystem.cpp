@@ -160,6 +160,8 @@ void VisualSystem::onObjectCreate(Object* object) {
 // Render:
 // Renders the entire scene to the screen.
 void VisualSystem::render() {
+    frame++;
+    GPUTimer::BeginFrame(frame);
     pipeline->prepare();
 
 #if defined(_DEBUG)

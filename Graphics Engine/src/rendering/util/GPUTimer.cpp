@@ -8,8 +8,11 @@ namespace Graphics {
 
 struct GPUTimerBatch {
   public:
-    ID3D11Query* query_begin[2];
-    ID3D11Query* query_end[2];
+    struct QueryGroup {
+        ID3D11Query* begin;
+        ID3D11Query* end;
+    };
+    QueryGroup queries[NUM_QUERY_GROUPS];
     bool used;
 
     GPUTimerBatch(ID3D11Device* device) {
@@ -21,30 +24,30 @@ struct GPUTimerBatch {
         D3D11_QUERY_DESC query_desc = {};
         query_desc.Query = D3D11_QUERY_TIMESTAMP;
 
-        device->CreateQuery(&query_desc, &query_begin[0]);
-        device->CreateQuery(&query_desc, &query_begin[1]);
-        device->CreateQuery(&query_desc, &query_end[0]);
-        device->CreateQuery(&query_desc, &query_end[1]);
+        for (int i = 0; i < NUM_QUERY_GROUPS; i++) {
+            device->CreateQuery(&query_desc, &queries[i].begin);
+            device->CreateQuery(&query_desc, &queries[i].end);
+        }
     }
 };
 
-IGPUTimer::IGPUTimer(GPUTimerBatch* _batch, bool _flag,
+IGPUTimer::IGPUTimer(GPUTimerBatch* _batch, uint64_t _frame,
                      ID3D11DeviceContext* _context) {
     timer_batch = _batch;
     context = _context;
-    flag = _flag;
+    frame = _frame;
 
-    context->End(timer_batch->query_begin[flag]);
+    context->End(timer_batch->queries[frame % NUM_QUERY_GROUPS].begin);
 }
 IGPUTimer::~IGPUTimer() {
-    context->End(timer_batch->query_end[flag]);
+    context->End(timer_batch->queries[frame % NUM_QUERY_GROUPS].end);
     timer_batch->used = true;
 }
 
 ID3D11Device* GPUTimer::device = nullptr;
 ID3D11DeviceContext* GPUTimer::context = nullptr;
-bool GPUTimer::flag = 0;
-ID3D11Query* GPUTimer::disjoint_queries[2] = {};
+ID3D11Query* GPUTimer::disjoint_queries[NUM_QUERY_GROUPS] = {};
+uint64_t GPUTimer::frame = 0;
 std::map<std::string, GPUTimerBatch*> GPUTimer::gpu_timers =
     std::map<std::string, GPUTimerBatch*>();
 std::vector<std::string> GPUTimer::active_batches = std::vector<std::string>();
@@ -61,13 +64,17 @@ void GPUTimer::Initialize(ID3D11Device* _device,
     D3D11_QUERY_DESC query_desc = {};
     query_desc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
 
-    device->CreateQuery(&query_desc, &disjoint_queries[0]);
-    device->CreateQuery(&query_desc, &disjoint_queries[1]);
+    for (int i = 0; i < NUM_QUERY_GROUPS; i++) {
+        device->CreateQuery(&query_desc, &disjoint_queries[i]);
+    }
 }
 
 // Begin, End:
 // Begin and end timers within a frame.
-void GPUTimer::BeginFrame() { context->Begin(disjoint_queries[flag]); }
+void GPUTimer::BeginFrame(const uint64_t _frame) {
+    frame = _frame;
+    context->Begin(disjoint_queries[frame % NUM_QUERY_GROUPS]);
+}
 IGPUTimer GPUTimer::TrackGPUTime(const std::string& name) {
     GPUTimerBatch* batch = nullptr;
     if (!gpu_timers.contains(name)) {
@@ -77,20 +84,24 @@ IGPUTimer GPUTimer::TrackGPUTime(const std::string& name) {
         batch = gpu_timers[name];
 
     active_batches.push_back(name);
-    return IGPUTimer(batch, flag, context);
+    return IGPUTimer(batch, frame, context);
 }
-void GPUTimer::EndFrame() { context->End(disjoint_queries[flag]); }
+void GPUTimer::EndFrame() {
+    context->End(disjoint_queries[frame % NUM_QUERY_GROUPS]);
+}
 
 // DisplayTimes:
 // Calculate and display the times of the PREVIOUS frame's timers
 // to the ImGui menu.
 void GPUTimer::DisplayGPUTimes() {
-    flag = !flag;
+    int target_query = (frame + 1) % NUM_QUERY_GROUPS;
 
     // Get clock speed information
     D3D11_QUERY_DATA_TIMESTAMP_DISJOINT tsDisjoint;
-    context->GetData(disjoint_queries[flag], &tsDisjoint, sizeof(tsDisjoint),
-                     0);
+    const auto result = context->GetData(disjoint_queries[target_query], &tsDisjoint,
+                     sizeof(tsDisjoint), 0);
+    if (!SUCCEEDED(result))
+        return;
 
     // For each timer, get its frame time and display it
     UINT64 begin, end;
@@ -100,13 +111,13 @@ void GPUTimer::DisplayGPUTimes() {
         GPUTimerBatch* timer_data = gpu_timers[name];
 
         // Get my query information
-        context->GetData(timer_data->query_begin[flag], &begin,
-                            sizeof(begin), 0);
-        context->GetData(timer_data->query_end[flag], &end, sizeof(end), 0);
+        assert(context->GetData(timer_data->queries[target_query].begin, &begin,
+                                sizeof(begin), 0) != S_FALSE);
+        assert(context->GetData(timer_data->queries[target_query].end, &end,
+                                sizeof(end), 0) != S_FALSE);
 
         // Calculate frame time
-        frame_time =
-            float(end - begin) / float(tsDisjoint.Frequency) * 1000.0f;
+        frame_time = float(end - begin) * 1000.0f / float(tsDisjoint.Frequency);
 
         // Display to ImGui
 #if defined(_DEBUG)

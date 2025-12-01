@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <map>
 #include <string>
 #include <vector>
@@ -11,6 +12,8 @@ namespace Graphics {
 
 struct GPUTimerBatch;
 
+constexpr int NUM_QUERY_GROUPS = 3;
+
 // IGPUTimer Class:
 // GPUTimer interface that begins and ends queries with the constructor and
 // destructor (respectively). Easier to use than manually calling begin and end
@@ -18,12 +21,13 @@ struct GPUTimerBatch;
 class IGPUTimer {
   private:
     GPUTimerBatch* timer_batch;
-    bool flag;
+    uint64_t frame;
 
     ID3D11DeviceContext* context;
 
   public:
-    IGPUTimer(GPUTimerBatch* batch, bool flag, ID3D11DeviceContext* context);
+    IGPUTimer(GPUTimerBatch* batch, uint64_t frame,
+              ID3D11DeviceContext* context);
     ~IGPUTimer();
 };
 
@@ -34,9 +38,9 @@ class GPUTimer {
     static ID3D11Device* device;
     static ID3D11DeviceContext* context;
 
-    static bool flag;
+    static uint64_t frame;
 
-    static ID3D11Query* disjoint_queries[2];
+    static ID3D11Query* disjoint_queries[NUM_QUERY_GROUPS];
     static std::map<std::string, GPUTimerBatch*> gpu_timers;
     static std::vector<std::string> active_batches;
 
@@ -45,7 +49,7 @@ class GPUTimer {
                            ID3D11DeviceContext* _context);
 
     // Call before and after any render frame
-    static void BeginFrame();
+    static void BeginFrame(const uint64_t frame);
     static void EndFrame();
 
     // Use a timer to begin tracking the GPU time

@@ -9,8 +9,9 @@
 
 #include <string>
 
-#define RENDER_PASS(pass, name)                                                 \
-    RenderPassScope_Debug renderpass_debug = RenderPassScope_Debug(pass, name); \
+#define RENDER_PASS(pass, name)                                                \
+    RenderPassScope_Debug renderpass_debug =                                   \
+        RenderPassScope_Debug(pass, name);                                     \
     IGPUTimer gpu_timer = GPUTimer::TrackGPUTime(name);
 
 namespace Engine {
@@ -59,7 +60,8 @@ struct RenderPassDefault : public RenderPassData {
         std::shared_ptr<Geometry> geometry;
         Matrix4 m_local_to_world;
 
-        GeometryInstance(std::shared_ptr<Geometry> mesh, Matrix4 m_local_to_world);
+        GeometryInstance(std::shared_ptr<Geometry> mesh,
+                         Matrix4 m_local_to_world);
     };
 
     std::vector<GeometryInstance> meshes;
