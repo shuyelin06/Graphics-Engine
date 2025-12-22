@@ -34,13 +34,33 @@ VisualTerrain::VisualTerrain(Terrain* _terrain, ID3D11DeviceContext* context,
     water_surface->generateWaveConfig(14);
 
     surface_level = 0.f;
+
+    octree = std::make_unique<Octree>();
 }
 VisualTerrain::~VisualTerrain() = default;
 
 // GenerateTerrainMesh:
 // Generates the mesh for the terrain
-void VisualTerrain::updateAndUploadTerrainData(
-    ID3D11DeviceContext* context, RenderPassTerrain& pass_terrain) {
+void VisualTerrain::updateAndUploadTerrainData(ID3D11DeviceContext* context,
+                                               RenderPassTerrain& pass_terrain,
+                                               const Vector3& camera_pos) {
+    // TEST
+    TerrainGenerator& terrainGenerator = terrain->getGenerator();
+
+    OctreeUpdater updater;
+    updater.updatePointOfFocus(camera_pos);
+
+    static float sizes[OCTREE_MAX_DEPTH - 1] = {5.f, 25.f, 50.f};
+    float accumulated_size = 0;
+    for (int i = 0; i < OCTREE_MAX_DEPTH - 1; i++) {
+        accumulated_size += sizes[i];
+        // Guarantee valid input for now
+        updater.updateLODDistance(i, accumulated_size);
+    }
+
+    octree->update(updater);
+    octree->debugDrawLeaves();
+
     // Iterate through existing jobs to see what jobs have finished.
     // If any jobs have finished, upload their data to the pool and mark the job
     // as inactive.

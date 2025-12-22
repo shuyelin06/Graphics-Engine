@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "math/PerlinNoise.h"
+#include "math/SDF.h"
 
 namespace Engine {
 using namespace Math;

@@ -58,6 +58,8 @@ class VisualDebug {
                          const Color& rgb);
     static bool DrawLine(const Vector3& p1, const Vector3& p2);
 
+    static void DrawBox(const Vector3& box_min, const Vector3& box_max);
+
     // Rendering for specific features
     static void DrawFrustum(const Matrix4& frustumMatrix, const Color& rgb);
 };

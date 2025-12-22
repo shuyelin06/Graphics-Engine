@@ -268,7 +268,7 @@ void VisualSystem::pullSceneData(Scene* scene) {
     light_manager->pullDatamodelData();
 
     if (terrain)
-        terrain->updateAndUploadTerrainData(context, *pass_terrain);
+        terrain->updateAndUploadTerrainData(context, *pass_terrain, camera->getPosition());
 
     // Prepare managers for data
     light_manager->updateSunDirection(config->sun_direction);

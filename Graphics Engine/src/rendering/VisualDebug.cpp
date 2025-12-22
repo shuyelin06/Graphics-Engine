@@ -75,6 +75,25 @@ bool VisualDebug::DrawLine(const Vector3& p1, const Vector3& p2) {
     return DrawLine(p1, p2, Color::Red());
 }
 
+void VisualDebug::DrawBox(const Vector3& box_min, const Vector3& box_max) {
+    // clang-format off
+    DrawLine(Vector3(box_min.x, box_min.y, box_min.z), Vector3(box_max.x, box_min.y, box_min.z));
+    DrawLine(Vector3(box_max.x, box_min.y, box_min.z), Vector3(box_max.x, box_max.y, box_min.z));
+    DrawLine(Vector3(box_max.x, box_max.y, box_min.z), Vector3(box_min.x, box_max.y, box_min.z));
+    DrawLine(Vector3(box_min.x, box_max.y, box_min.z), Vector3(box_min.x, box_min.y, box_min.z));
+
+    DrawLine(Vector3(box_min.x, box_min.y, box_max.z), Vector3(box_max.x, box_min.y, box_max.z));
+    DrawLine(Vector3(box_max.x, box_min.y, box_max.z), Vector3(box_max.x, box_max.y, box_max.z));
+    DrawLine(Vector3(box_max.x, box_max.y, box_max.z), Vector3(box_min.x, box_max.y, box_max.z));
+    DrawLine(Vector3(box_min.x, box_max.y, box_max.z), Vector3(box_min.x, box_min.y, box_max.z));
+
+    DrawLine(Vector3(box_min.x, box_min.y, box_min.z), Vector3(box_min.x, box_min.y, box_max.z));
+    DrawLine(Vector3(box_max.x, box_min.y, box_min.z), Vector3(box_max.x, box_min.y, box_max.z));
+    DrawLine(Vector3(box_max.x, box_max.y, box_min.z), Vector3(box_max.x, box_max.y, box_max.z));
+    DrawLine(Vector3(box_min.x, box_max.y, box_min.z), Vector3(box_min.x, box_max.y, box_max.z));
+    // clang-format on
+}
+
 // DrawFrustum:
 // Draws a frustum, given a camera space -> world space matrix.
 void VisualDebug::DrawFrustum(const Matrix4& frustumMatrix, const Color& rgb) {

@@ -126,6 +126,16 @@ Vector3 Vector3::orthogonal() const {
 
 // [] Operator:
 // Access a component of the vector by index
+float& Vector3::operator[](int axis) {
+    if (axis == 0)
+        return x;
+    else if (axis == 1)
+        return y;
+    else if (axis == 2)
+        return z;
+    else
+        return x; // UNDEFINED
+}
 float Vector3::operator[](int axis) const {
     if (axis == 0)
         return x;

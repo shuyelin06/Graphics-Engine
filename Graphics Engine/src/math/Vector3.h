@@ -47,6 +47,7 @@ class Vector3 {
     Vector3 orthogonal() const;
 
     // Vector Operations
+    float& operator[](int);
     float operator[](int) const;
 
     Vector3 operator+(const Vector3&) const; // Addition

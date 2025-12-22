@@ -43,6 +43,7 @@ const TerrainChunk& Terrain::getChunk(int i, int j, int k) {
 const TerrainChunk& Terrain::getChunk(const ChunkIndex& arr_index) {
     return getChunk(arr_index.x, arr_index.y, arr_index.z);
 }
+TerrainGenerator& Terrain::getGenerator() const { return *generator; }
 
 // --- Updates ---
 // ReloadTerrain:

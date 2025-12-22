@@ -75,6 +75,8 @@ class Terrain : public Object, public Bindable<Terrain> {
     const TerrainChunk& getChunk(int i, int j, int k);
     const TerrainChunk& getChunk(const ChunkIndex& arr_index);
 
+    TerrainGenerator& getGenerator() const;
+
     // --- Update Function ---
     // Invalidate terrain chunks based on a new center (x,y,z) in
     // world coordinates. Invalidated terrain chunks have generation requests
