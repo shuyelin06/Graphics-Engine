@@ -1,5 +1,8 @@
 #pragma once
 
+#include <unordered_set>
+#include <vector>
+
 #include "math/Vector3.h"
 
 namespace Engine {
@@ -20,7 +23,12 @@ constexpr float OCTREE_VOXEL_SIZE = 4.f;
 // - If !Node.isLeaf() and Requested LOD > Node Depth, we want less detail so we
 //   merge the node.
 // TODO: Add a node allocator so everything is contiguous.
+class Octree;
+
 struct OctreeNode {
+    unsigned int uniqueID;
+    Octree* octree;
+
     Vector3 center;
     float extents;
 
@@ -38,7 +46,12 @@ struct OctreeNode {
     // this one.
     void merge();
 
-    OctreeNode(const Vector3& center, float extents, unsigned int depth);
+    void initialize(const Vector3& center, float extents, unsigned int depth);
+
+  private:
+    // All allocations / deallocations go through Octree
+    friend class Octree;
+    OctreeNode(Octree* octree, unsigned int uniqueID);
     ~OctreeNode();
 };
 
@@ -62,8 +75,19 @@ struct OctreeUpdater {
     unsigned int smallestLODInNode(const OctreeNode& node) const;
 };
 
+// For external classes, octree tracks 2 things:
+// 1) HashSet of active leaves in the octree
+// 2) List of newly created leaves in the octree, whether just allocated or
+// divided Terrain can use the list to kick off new async chunk building
+// jobs, and use the hashset to determine what chunk meshes are no longer
+// valid (to free memory).
 class Octree {
   private:
+    std::unordered_set<unsigned int> activeLeaves;
+    std::vector<const OctreeNode*> newLeaves; // New leaves since the last invocation of update()
+
+    unsigned int idCounter;
+
     OctreeNode* root;
 
   public:
@@ -73,9 +97,19 @@ class Octree {
     void update(const OctreeUpdater& lodRequestor);
     void debugDrawLeaves();
 
+    const std::unordered_set<unsigned int>& getActiveLeaves() const;
+    const std::vector<const OctreeNode*>& getNewLeaves() const;
+
   private:
     void updateHelper(OctreeNode* node, const OctreeUpdater& lodRequestor);
     void debugDrawLeavesHelper(OctreeNode* node);
+
+    friend struct OctreeNode;
+    OctreeNode* allocateNode();
+    void destroyNode(OctreeNode* node);
+
+    void trackNodeAsLeaf(const OctreeNode* node);
+    void removeNodeAsLeaf(const OctreeNode* node);
 };
 
 } // namespace Graphics

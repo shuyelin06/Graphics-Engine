@@ -229,7 +229,7 @@ const WaterSurface* VisualTerrain::getWaterSurface() const {
 // ImGui
 void VisualTerrain::imGui() {
 #if defined(IMGUI_ENABLED)
-
+    
 #endif
 }
 

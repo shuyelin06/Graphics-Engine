@@ -6,20 +6,25 @@
 
 namespace Engine {
 namespace Graphics {
-OctreeNode::OctreeNode(const Vector3& _center, float _extents,
-                       unsigned int _depth)
+OctreeNode::OctreeNode(Octree* _octree, unsigned int _uniqueID)
     : children{nullptr} {
-    center = _center;
-    extents = _extents;
-    depth = _depth;
+    octree = _octree;
+    uniqueID = _uniqueID;
 }
 OctreeNode::~OctreeNode() {
     if (!isLeaf()) {
         for (int i = 0; i < 8; i++) {
             assert(children[i] != nullptr);
-            delete children[i];
+            octree->destroyNode(children[i]);
         }
     }
+}
+
+void OctreeNode::initialize(const Vector3& _center, float _extents,
+                            unsigned int _depth) {
+    center = _center;
+    extents = _extents;
+    depth = _depth;
 }
 
 unsigned int OctreeNode::getDepth() const { return depth; }
@@ -40,10 +45,12 @@ void OctreeNode::divide() {
         const unsigned int child_depth = depth - 1;
 
         for (int i = 0; i < 8; i++) {
-            children[i] =
-                new OctreeNode(center + child_centers[i] * child_extents,
-                               child_extents, child_depth);
+            children[i] = octree->allocateNode();
+            children[i]->initialize(center + child_centers[i] * child_extents,
+                                    child_extents, child_depth);
         }
+
+        octree->removeNodeAsLeaf(this);
     }
 }
 
@@ -51,9 +58,11 @@ void OctreeNode::merge() {
     assert(!isLeaf());
     if (!isLeaf()) {
         for (int i = 0; i < 8; i++) {
-            delete children[i];
+            octree->destroyNode(children[i]);
             children[i] = nullptr;
         }
+
+        octree->trackNodeAsLeaf(this);
     }
 }
 
@@ -104,18 +113,52 @@ unsigned int OctreeUpdater::smallestLODInNode(const OctreeNode& node) const {
 }
 
 Octree::Octree() {
+    idCounter = 0;
+
     const float root_extents = OCTREE_VOXEL_SIZE * (1 << OCTREE_MAX_DEPTH);
-    root = new OctreeNode(Vector3(0, 0, 0), root_extents, OCTREE_MAX_DEPTH);
+    root = allocateNode();
+    root->initialize(Vector3(0, 0, 0), root_extents, OCTREE_MAX_DEPTH);
 }
-Octree::~Octree() { delete root; }
+Octree::~Octree() { destroyNode(root); }
+
+OctreeNode* Octree::allocateNode() {
+    const unsigned int nodeID = idCounter++;
+    OctreeNode* newNode = new OctreeNode(this, nodeID);
+
+    trackNodeAsLeaf(newNode);
+
+    return newNode;
+}
+
+void Octree::destroyNode(OctreeNode* node) {
+    if (node->isLeaf()) {
+        removeNodeAsLeaf(node);
+    }
+    delete node;
+}
+
+void Octree::trackNodeAsLeaf(const OctreeNode* node) {
+    const unsigned int nodeID = node->uniqueID;
+    assert(!activeLeaves.contains(nodeID));
+    activeLeaves.insert(nodeID);
+
+    newLeaves.push_back(node);
+}
+
+void Octree::removeNodeAsLeaf(const OctreeNode* node) {
+    const unsigned int nodeID = node->uniqueID;
+    assert(activeLeaves.contains(nodeID));
+    activeLeaves.erase(nodeID);
+}
 
 void Octree::update(const OctreeUpdater& lodRequestor) {
+    newLeaves.clear();
     updateHelper(root, lodRequestor);
 }
 void Octree::updateHelper(OctreeNode* node, const OctreeUpdater& lodRequestor) {
     // Nodes are boxes in 3D space, so a node can intersect multiple LOD
-    // spheres. First get the smallest (highest detail) LOD sphere that the node
-    // intersects.
+    // spheres. First get the smallest (highest detail) LOD sphere that the
+    // node intersects.
     const unsigned int smallestRequestedLOD =
         lodRequestor.smallestLODInNode(*node);
 
@@ -153,6 +196,13 @@ void Octree::debugDrawLeavesHelper(OctreeNode* node) {
             debugDrawLeavesHelper(node->children[i]);
         }
     }
+}
+
+const std::unordered_set<unsigned int>& Octree::getActiveLeaves() const {
+    return activeLeaves;
+}
+const std::vector<const OctreeNode*>& Octree::getNewLeaves() const {
+    return newLeaves;
 }
 
 } // namespace Graphics
