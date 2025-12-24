@@ -44,7 +44,7 @@ ResourceManager::~ResourceManager() = default;
 void ResourceManager::initializeSystemResources() {
     // TODO: Be able to create mesh pools on demand
     mesh_pools[MeshPoolType_Terrain] = std::make_unique<MeshPool>(
-        (1 << POSITION) | (1 << NORMAL), 300000, 400000);
+        (1 << POSITION) | (1 << NORMAL), 600000, 800000);
     mesh_pools[MeshPoolType_Default] =
         std::make_unique<MeshPool>(0xFFFF, 100000, 100000);
 

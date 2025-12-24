@@ -75,34 +75,43 @@ void TerrainGenerator::seedGenerator(unsigned int new_seed) {
 // Deterministic function that, given a seed, samples a noise function to return
 // a float where negatives are "inside the ground", positives are "in air", and
 // 0 is where the surface is.
-float TerrainGenerator::sampleTerrainGenerator(float x, float y, float z) {
+float TerrainGenerator::sampleTerrainGenerator(float x, float y,
+                                               float z) const {
     TerrainSample sample;
     sample.surface_dist = FLT_MAX;
 
     const auto& config = generation_config;
 
-    /*
     bool has_surface = false;
+
+    /*
+    
     if (config.enable_height_field) {
         sample = generateHeightField(x, y, z);
         has_surface = true;
     }
+    */
 
-    if (config.enable_caves) {
+    sample.surface_dist = SDFSphere(Vector3(x, y, z), 10);
+    sample = sample || generateCaves(x, y, z);
+
+    /*
+    if (true || config.enable_caves) {
         if (has_surface) {
             sample = sample && generateCaves(x, y, z);
         } else {
             sample = generateCaves(x, y, z);
         }
     }
+    
     */
-
-    sample.surface_dist = SDFSphere(Vector3(x, y, z), 10);
+    
 
     return sample.surface_dist;
 }
 
-TerrainSample TerrainGenerator::generateHeightField(float x, float y, float z) {
+TerrainSample TerrainGenerator::generateHeightField(float x, float y,
+                                                    float z) const {
     TerrainSample sample;
     const auto& config = height_config;
 
@@ -119,7 +128,7 @@ TerrainSample TerrainGenerator::generateHeightField(float x, float y, float z) {
     return sample;
 }
 
-TerrainSample TerrainGenerator::generateCaves(float x, float y, float z) {
+TerrainSample TerrainGenerator::generateCaves(float x, float y, float z) const {
     TerrainSample sample;
 
     // https://accidentalnoise.sourceforge.net/minecraftworlds.html

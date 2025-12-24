@@ -14,29 +14,16 @@ ChunkBuilderJob::ChunkBuilderJob(MeshPool* terrain_pool)
     status = Inactive;
 }
 
-void ChunkBuilderJob::loadChunkData(const TerrainChunk& data,
-                                    const ChunkIndex& arr_index) {
-    chunk_copy = data;
-    chunk_array_index = arr_index;
-
-    vertex_map.clear();
-    border_triangles.clear();
-
-    builder.reset();
-    builder.addLayout(POSITION);
-    builder.addLayout(NORMAL);
-}
 void ChunkBuilderJob::buildChunkMesh() {
     std::unique_lock lock(async_lock);
 
     // Use Marching Cubes to generate my terrain mesh.
     unsigned int i0, i1, i2;
 
-    constexpr float CHUNK_OFFSET =
-        TERRAIN_CHUNK_SIZE / (TERRAIN_CHUNK_SAMPLES - 1);
-    const float x = chunk_copy.chunk_x * TERRAIN_CHUNK_SIZE;
-    const float y = chunk_copy.chunk_y * TERRAIN_CHUNK_SIZE;
-    const float z = chunk_copy.chunk_z * TERRAIN_CHUNK_SIZE;
+    const float CHUNK_OFFSET = chunk_size / (TERRAIN_SAMPLES_PER_CHUNK - 1);
+    const float x = chunk_position.x;
+    const float y = chunk_position.y;
+    const float z = chunk_position.z;
 
     MarchingCube marching_cube = MarchingCube();
     int num_triangles;
@@ -44,17 +31,14 @@ void ChunkBuilderJob::buildChunkMesh() {
 
     border_triangles.clear();
 
-    for (int i = 0; i < TERRAIN_CHUNK_SAMPLES + 2 - 1; i++) {
-        for (int j = 0; j < TERRAIN_CHUNK_SAMPLES + 2 - 1; j++) {
-            for (int k = 0; k < TERRAIN_CHUNK_SAMPLES + 2 - 1; k++) {
+    for (int i = 0; i < TERRAIN_SAMPLES_PER_CHUNK + 2 - 1; i++) {
+        for (int j = 0; j < TERRAIN_SAMPLES_PER_CHUNK + 2 - 1; j++) {
+            for (int k = 0; k < TERRAIN_SAMPLES_PER_CHUNK + 2 - 1; k++) {
                 // Load the data into my marching cube
                 marching_cube.updateData(
-                    chunk_copy.data[i][j][k], chunk_copy.data[i + 1][j][k],
-                    chunk_copy.data[i + 1][j + 1][k],
-                    chunk_copy.data[i][j + 1][k], chunk_copy.data[i][j][k + 1],
-                    chunk_copy.data[i + 1][j][k + 1],
-                    chunk_copy.data[i + 1][j + 1][k + 1],
-                    chunk_copy.data[i][j + 1][k + 1]);
+                    data[i][j][k], data[i + 1][j][k], data[i + 1][j + 1][k],
+                    data[i][j + 1][k], data[i][j][k + 1], data[i + 1][j][k + 1],
+                    data[i + 1][j + 1][k + 1], data[i][j + 1][k + 1]);
 
                 // Generate my mesh for this cube
                 num_triangles = 0;
@@ -83,9 +67,9 @@ void ChunkBuilderJob::buildChunkMesh() {
                     // normals, and should be removed after
                     const bool is_border_triangle =
                         i == 0 || j == 0 || k == 0 ||
-                        i == TERRAIN_CHUNK_SAMPLES ||
-                        j == TERRAIN_CHUNK_SAMPLES ||
-                        k == TERRAIN_CHUNK_SAMPLES;
+                        i == TERRAIN_SAMPLES_PER_CHUNK ||
+                        j == TERRAIN_SAMPLES_PER_CHUNK ||
+                        k == TERRAIN_SAMPLES_PER_CHUNK;
 
                     if (is_border_triangle) {
                         border_triangles.push_back(triangle);

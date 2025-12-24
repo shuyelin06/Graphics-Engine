@@ -61,13 +61,13 @@ class TerrainGenerator {
     void propertyDisplay();
 
     void seedGenerator(unsigned int new_seed);
-    float sampleTerrainGenerator(float x, float y, float z);
+    float sampleTerrainGenerator(float x, float y, float z) const;
 
   private:
     // Terrain generating functions. These return samples that represent the
     // terrain's surface
-    TerrainSample generateHeightField(float x, float y, float z);
-    TerrainSample generateCaves(float x, float y, float z);
+    TerrainSample generateHeightField(float x, float y, float z) const;
+    TerrainSample generateCaves(float x, float y, float z) const;
 };
 
 } // namespace Datamodel

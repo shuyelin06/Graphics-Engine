@@ -1,6 +1,7 @@
 #pragma once
 
 #include <queue>
+#include <unordered_map>
 
 #include "datamodel/terrain/Terrain.h"
 
@@ -49,13 +50,8 @@ class VisualTerrain {
     // Output Chunk Meshes
     MeshPool* mesh_pool;
 
-    struct ChunkStatus {
-        int chunk_update_id = 0;
-        std::shared_ptr<Mesh> mesh = nullptr;
-        bool processing = false;
-    };
-    ChunkStatus chunk_trackers[TERRAIN_CHUNK_COUNT][TERRAIN_CHUNK_COUNT]
-                              [TERRAIN_CHUNK_COUNT];
+    // (WIP) Terrain Octree
+    std::unique_ptr<Octree> octree;
 
     // Jobs
     std::vector<std::unique_ptr<ChunkBuilderJob>> jobs;
@@ -63,7 +59,7 @@ class VisualTerrain {
 
     // Dirty (& unprocessed) chunks
     struct DirtyChunk {
-        ChunkIndex index;
+        unsigned int chunk_id;
         float priority;
         bool operator<(const DirtyChunk& other) const {
             return priority < other.priority;
@@ -71,8 +67,8 @@ class VisualTerrain {
     };
     std::priority_queue<DirtyChunk> dirty_chunks;
 
-    // (WIP) Terrain Octree
-    std::unique_ptr<Octree> octree;
+    // Map of Octree Leaf --> Chunk Mesh
+    std::unordered_map<OctreeNodeID, std::shared_ptr<Mesh>> terrain_meshes;
 
   public:
     VisualTerrain(Terrain* terrain, ID3D11DeviceContext* context,
@@ -93,8 +89,10 @@ class VisualTerrain {
     void imGui();
 
   private:
-    ChunkStatus& getChunkStatus(const ChunkIndex& arr_index);
-    float computeChunkPriority(const ChunkIndex& chunk);
+    void loadChunkJobData(ChunkBuilderJob& job,
+                          const TerrainGenerator& generator,
+                          const OctreeNode& chunk);
+    float computeChunkPriority(const OctreeNode& chunk);
 };
 
 } // namespace Graphics

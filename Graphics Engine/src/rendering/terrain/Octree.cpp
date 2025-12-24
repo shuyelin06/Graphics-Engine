@@ -66,7 +66,7 @@ void OctreeNode::merge() {
     }
 }
 
-OctreeUpdater::OctreeUpdater() : lod_rings{} {
+OctreeUpdater::OctreeUpdater(unsigned int maxDepth) : lod_rings(maxDepth) {
     point_of_focus = Vector3(0, 0, 0);
 }
 OctreeUpdater::~OctreeUpdater() = default;
@@ -75,6 +75,7 @@ void OctreeUpdater::updatePointOfFocus(const Vector3& _point_of_focus) {
     point_of_focus = _point_of_focus;
 }
 void OctreeUpdater::updateLODDistance(unsigned int lod, float radius) {
+    assert(lod < lod_rings.size());
     lod_rings[lod] = radius;
 }
 
@@ -103,21 +104,22 @@ unsigned int OctreeUpdater::smallestLODInNode(const OctreeNode& node) const {
         return (closest_point - point_of_focus).magnitude() <= lod_radius;
     };
 
-    for (int i = 0; i < OCTREE_MAX_DEPTH - 1; i++) {
+    for (int i = 0; i < lod_rings.size(); i++) {
         if (isLODInNode(node, lod_rings[i])) {
             return i;
         }
     }
 
-    return OCTREE_MAX_DEPTH;
+    return lod_rings.size();
 }
 
-Octree::Octree() {
+Octree::Octree(unsigned int _maxDepth, float _voxelSize)
+    : config{_maxDepth, _voxelSize} {
     idCounter = 0;
 
-    const float root_extents = OCTREE_VOXEL_SIZE * (1 << OCTREE_MAX_DEPTH);
+    const float root_extents = config.voxelSize * (1 << config.maxDepth);
     root = allocateNode();
-    root->initialize(Vector3(0, 0, 0), root_extents, OCTREE_MAX_DEPTH);
+    root->initialize(Vector3(0, 0, 0), root_extents, config.maxDepth);
 }
 Octree::~Octree() { destroyNode(root); }
 
@@ -125,34 +127,34 @@ OctreeNode* Octree::allocateNode() {
     const unsigned int nodeID = idCounter++;
     OctreeNode* newNode = new OctreeNode(this, nodeID);
 
+    assert(!node_map.contains(nodeID));
+    node_map[nodeID] = newNode;
+
     trackNodeAsLeaf(newNode);
 
     return newNode;
 }
 
 void Octree::destroyNode(OctreeNode* node) {
+    assert(node_map.contains(node->uniqueID));
+    node_map.erase(node->uniqueID);
+
     if (node->isLeaf()) {
         removeNodeAsLeaf(node);
     }
+
     delete node;
 }
 
 void Octree::trackNodeAsLeaf(const OctreeNode* node) {
-    const unsigned int nodeID = node->uniqueID;
-    assert(!activeLeaves.contains(nodeID));
-    activeLeaves.insert(nodeID);
-
-    newLeaves.push_back(node);
+    // Does nothing (add code here if needed)
 }
 
 void Octree::removeNodeAsLeaf(const OctreeNode* node) {
-    const unsigned int nodeID = node->uniqueID;
-    assert(activeLeaves.contains(nodeID));
-    activeLeaves.erase(nodeID);
+    // Does nothing (add code here if needed)
 }
 
 void Octree::update(const OctreeUpdater& lodRequestor) {
-    newLeaves.clear();
     updateHelper(root, lodRequestor);
 }
 void Octree::updateHelper(OctreeNode* node, const OctreeUpdater& lodRequestor) {
@@ -198,11 +200,28 @@ void Octree::debugDrawLeavesHelper(OctreeNode* node) {
     }
 }
 
-const std::unordered_set<unsigned int>& Octree::getActiveLeaves() const {
-    return activeLeaves;
+OctreeUpdater Octree::getUpdater() {
+    return std::move(OctreeUpdater(config.maxDepth));
 }
-const std::vector<const OctreeNode*>& Octree::getNewLeaves() const {
-    return newLeaves;
+
+const std::unordered_map<OctreeNodeID, OctreeNode*>&
+Octree::getNodeMap() const {
+    return node_map;
+}
+
+const OctreeNode* Octree::getNode(OctreeNodeID id) const {
+    if (node_map.contains(id))
+        return node_map.at(id);
+    else
+        return nullptr;
+}
+
+bool Octree::isNodeLeaf(const OctreeNodeID id) const {
+    if (node_map.contains(id)) {
+        return node_map.at(id)->isLeaf();
+    } else {
+        return false;
+    }
 }
 
 } // namespace Graphics

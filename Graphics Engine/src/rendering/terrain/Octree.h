@@ -9,9 +9,6 @@ namespace Engine {
 using namespace Math;
 
 namespace Graphics {
-constexpr int OCTREE_MAX_DEPTH = 10;
-constexpr float OCTREE_VOXEL_SIZE = 4.f;
-
 // Octree:
 // Implementation of an octree, which divides 3D space into recursively
 // subdivided cubes.
@@ -24,11 +21,15 @@ constexpr float OCTREE_VOXEL_SIZE = 4.f;
 //   merge the node.
 // TODO: Add a node allocator so everything is contiguous.
 class Octree;
+typedef unsigned int OctreeNodeID;
 
 struct OctreeNode {
-    unsigned int uniqueID;
     Octree* octree;
 
+    // Unique ID. Every node has a unique ID we can reference it by
+    OctreeNodeID uniqueID;
+
+    // Node Description in Space
     Vector3 center;
     float extents;
 
@@ -55,15 +56,17 @@ struct OctreeNode {
     ~OctreeNode();
 };
 
-struct OctreeUpdater {
+class OctreeUpdater {
     // The LOD rings are centered around this point.s
     Vector3 point_of_focus;
     // Array of ascending distances, where index i
     // is the radius in which we want LOD i or smaller.
-    float lod_rings[OCTREE_MAX_DEPTH - 1];
+    std::vector<float> lod_rings;
+
+    friend class Octree;
+    OctreeUpdater(unsigned int maxDepth);
 
   public:
-    OctreeUpdater();
     ~OctreeUpdater();
 
     void updatePointOfFocus(const Vector3& point_of_focus);
@@ -83,22 +86,33 @@ struct OctreeUpdater {
 // valid (to free memory).
 class Octree {
   private:
-    std::unordered_set<unsigned int> activeLeaves;
-    std::vector<const OctreeNode*> newLeaves; // New leaves since the last invocation of update()
+    // Map of Node ID --> Node
+    std::unordered_map<OctreeNodeID, OctreeNode*> node_map;
 
     unsigned int idCounter;
 
     OctreeNode* root;
 
+    // Config
+    struct {
+        const unsigned int maxDepth; // # times we can divide
+        const float voxelSize;       // Size of the smallest node
+    } config;
+
   public:
-    Octree();
+    Octree(unsigned int maxDepth, float voxelSize);
     ~Octree();
 
     void update(const OctreeUpdater& lodRequestor);
     void debugDrawLeaves();
 
-    const std::unordered_set<unsigned int>& getActiveLeaves() const;
-    const std::vector<const OctreeNode*>& getNewLeaves() const;
+    OctreeUpdater getUpdater();
+
+    const std::vector<OctreeNodeID>& getActiveLeaves() const;
+    bool isNodeLeaf(OctreeNodeID id) const;
+
+    const std::unordered_map<OctreeNodeID, OctreeNode*>& getNodeMap() const;
+    const OctreeNode* getNode(OctreeNodeID id) const;
 
   private:
     void updateHelper(OctreeNode* node, const OctreeUpdater& lodRequestor);
