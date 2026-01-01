@@ -3,7 +3,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "core/ArenaAllocator.h"
+#include "core/PoolAllocator.h"
 #include "math/Vector3.h"
 
 namespace Engine {
@@ -101,7 +101,7 @@ class Octree {
 
     // Allocations
     unsigned int idCounter;
-    ArenaAllocator<OctreeNode, 1000> allocator;
+    PoolAllocator<OctreeNode, 1000> allocator;
 
     OctreeNode* root;
 

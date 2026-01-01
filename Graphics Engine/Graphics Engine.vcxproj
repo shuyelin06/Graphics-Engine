@@ -258,7 +258,7 @@
     <ClInclude Include="include\cgltf\cgltf.h" />
     <ClInclude Include="include\lodepng\lodepng.h" />
     <ClInclude Include="include\stb\stb_image.h" />
-    <ClInclude Include="src\core\ArenaAllocator.h" />
+    <ClInclude Include="src\core\PoolAllocator.h" />
     <ClInclude Include="src\datamodel\Bindable.h" />
     <ClInclude Include="src\datamodel\bvh\BVH.h" />
     <ClInclude Include="src\datamodel\bvh\TLAS.h" />

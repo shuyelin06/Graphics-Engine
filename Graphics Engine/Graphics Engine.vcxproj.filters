@@ -572,7 +572,7 @@
     <ClInclude Include="src\rendering\terrain\Octree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\core\ArenaAllocator.h">
+    <ClInclude Include="src\core\PoolAllocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

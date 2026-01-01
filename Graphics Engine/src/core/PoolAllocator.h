@@ -10,12 +10,12 @@ namespace Engine {
 // lifetime.
 // On "allocation" and "free", this allocator returns pointers to regions of
 // this block of memory.
-template <typename T, size_t SIZE> class ArenaAllocator {
+template <typename T, size_t SIZE> class PoolAllocator {
     std::vector<T> data;
     std::vector<uint16_t> free_indices;
 
   public:
-    ArenaAllocator() {
+    PoolAllocator() {
         data.resize(SIZE);
         for (uint16_t i = 0; i < SIZE; i++) {
             free_indices.push_back(i);
