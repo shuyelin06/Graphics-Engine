@@ -19,8 +19,9 @@ RenderPassShadows::RenderPassShadows(ID3D11Device* device,
 RenderPassTerrain::RenderPassTerrain(ID3D11Device* device,
                                      ID3D11DeviceContext* context)
     : RenderPassData(context) {
-    sb_chunks.initialize(device, TERRAIN_CHUNK_COUNT * TERRAIN_CHUNK_COUNT *
-                                     TERRAIN_CHUNK_COUNT);
+    constexpr int MAX_CHUNK_COUNT =
+        TERRAIN_CHUNK_COUNT * TERRAIN_CHUNK_COUNT * TERRAIN_CHUNK_COUNT;
+    sb_chunks.initialize(device, MAX_CHUNK_COUNT);
     sb_indices.initialize(device, 200000 * 3);
     sb_positions.initialize(device, 300000);
     sb_normals.initialize(device, 300000);

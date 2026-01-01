@@ -72,12 +72,15 @@ void VisualSystem::imGui() {
 
     static bool imgui_resource_manager = false;
     static bool imgui_light_manager = false;
+    static bool imgui_visual_terrain = false;
 
     if (ImGui::BeginMenu("Rendering")) {
         if (ImGui::Button("Resource Manager"))
             imgui_resource_manager = true;
         if (ImGui::Button("Light Manager"))
             imgui_light_manager = true;
+        if (terrain && ImGui::Button("Visual Terrain"))
+            imgui_visual_terrain = true;
         ImGui::EndMenu();
     }
 
@@ -93,6 +96,13 @@ void VisualSystem::imGui() {
         if (ImGui::Begin("Light Manager", &imgui_light_manager,
                          ImGuiWindowFlags_NoCollapse)) {
             light_manager->imGui();
+        }
+        ImGui::End();
+    }
+    if (imgui_visual_terrain) {
+        if (ImGui::Begin("Visual Terrain", &imgui_visual_terrain,
+                         ImGuiWindowFlags_NoCollapse)) {
+            terrain->imGui();
         }
         ImGui::End();
     }
@@ -268,7 +278,8 @@ void VisualSystem::pullSceneData(Scene* scene) {
     light_manager->pullDatamodelData();
 
     if (terrain)
-        terrain->updateAndUploadTerrainData(context, *pass_terrain, camera->getPosition());
+        terrain->updateAndUploadTerrainData(context, *pass_terrain,
+                                            camera->getPosition());
 
     // Prepare managers for data
     light_manager->updateSunDirection(config->sun_direction);
@@ -909,6 +920,8 @@ void VisualSystem::renderDebugPoints() {
 
     pipeline->bindVertexShader("DebugPoint");
     pipeline->bindPixelShader("DebugPoint");
+    pipeline->bindRenderTarget(Target_UseExisting, Depth_TestNoWrite,
+                               Blend_UseSrcAndDest);
 
     const Mesh* mesh = resource_manager->getMesh(SystemMesh_Cube).get();
 

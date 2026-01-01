@@ -3,6 +3,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "core/ArenaAllocator.h"
 #include "math/Vector3.h"
 
 namespace Engine {
@@ -23,6 +24,8 @@ namespace Graphics {
 class Octree;
 typedef unsigned int OctreeNodeID;
 
+static constexpr OctreeNodeID INVALID_NODE_ID = 0;
+
 struct OctreeNode {
     Octree* octree;
 
@@ -34,26 +37,31 @@ struct OctreeNode {
     float extents;
 
     unsigned int depth; // Depth = 0 is the smallest node possible
-    OctreeNode* children[8];
 
-    unsigned int getDepth() const;
+    OctreeNode* children[8];
     bool isLeaf() const;
 
-    // Create 8 children with depth - 1.
-    // If depth is 0 we cannot divide any more.
-    void divide();
+    // Octree Node Operations
+    // - Divide: Create 8 children with depth - 1. If depth is 0 we cannot
+    // divide any more.
+    // - Merge: Remove children, making this node the leaf. Effective "merges"
+    // the nodes into this one.
+    struct Operation {
+        enum OperationType { DIVIDE, MERGE } type;
+        OctreeNodeID parent;
+        OctreeNodeID children[8];
+    };
 
-    // Remove children, effectively "merging" the nodes into
-    // this one.
+    void divide();
     void merge();
+
+    OctreeNode();
+    ~OctreeNode();
 
     void initialize(const Vector3& center, float extents, unsigned int depth);
 
   private:
-    // All allocations / deallocations go through Octree
-    friend class Octree;
-    OctreeNode(Octree* octree, unsigned int uniqueID);
-    ~OctreeNode();
+    void destroyAllChildren();
 };
 
 class OctreeUpdater {
@@ -88,35 +96,39 @@ class Octree {
   private:
     // Map of Node ID --> Node
     std::unordered_map<OctreeNodeID, OctreeNode*> node_map;
+    // Vector of division / merge operations done since last update
+    std::vector<OctreeNode::Operation> operations;
 
+    // Allocations
     unsigned int idCounter;
+    ArenaAllocator<OctreeNode, 1000> allocator;
 
     OctreeNode* root;
 
     // Config
     struct {
-        const unsigned int maxDepth; // # times we can divide
-        const float voxelSize;       // Size of the smallest node
+        unsigned int maxDepth; // # times we can divide
+        float voxelSize;       // Size of the smallest node
     } config;
 
   public:
     Octree(unsigned int maxDepth, float voxelSize);
     ~Octree();
 
+    void resetOctree(unsigned int _maxDepth, float _voxelSize);
     void update(const OctreeUpdater& lodRequestor);
-    void debugDrawLeaves();
 
     OctreeUpdater getUpdater();
 
-    const std::vector<OctreeNodeID>& getActiveLeaves() const;
-    bool isNodeLeaf(OctreeNodeID id) const;
-
+    const std::vector<OctreeNode::Operation>& getOperations() const;
     const std::unordered_map<OctreeNodeID, OctreeNode*>& getNodeMap() const;
+
     const OctreeNode* getNode(OctreeNodeID id) const;
+    bool isNodePresent(OctreeNodeID id) const;
+    bool isNodeLeaf(OctreeNodeID id) const;
 
   private:
     void updateHelper(OctreeNode* node, const OctreeUpdater& lodRequestor);
-    void debugDrawLeavesHelper(OctreeNode* node);
 
     friend struct OctreeNode;
     OctreeNode* allocateNode();
@@ -124,6 +136,9 @@ class Octree {
 
     void trackNodeAsLeaf(const OctreeNode* node);
     void removeNodeAsLeaf(const OctreeNode* node);
+
+    void trackDivisionOperation(const OctreeNode* node);
+    void trackMergeOperation(const OctreeNode* node);
 };
 
 } // namespace Graphics

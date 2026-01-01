@@ -6,19 +6,11 @@
 
 namespace Engine {
 namespace Graphics {
-OctreeNode::OctreeNode(Octree* _octree, unsigned int _uniqueID)
-    : children{nullptr} {
-    octree = _octree;
-    uniqueID = _uniqueID;
+OctreeNode::OctreeNode() : children{nullptr} {
+    octree = nullptr;
+    uniqueID = INVALID_NODE_ID;
 }
-OctreeNode::~OctreeNode() {
-    if (!isLeaf()) {
-        for (int i = 0; i < 8; i++) {
-            assert(children[i] != nullptr);
-            octree->destroyNode(children[i]);
-        }
-    }
-}
+OctreeNode::~OctreeNode() = default;
 
 void OctreeNode::initialize(const Vector3& _center, float _extents,
                             unsigned int _depth) {
@@ -27,7 +19,6 @@ void OctreeNode::initialize(const Vector3& _center, float _extents,
     depth = _depth;
 }
 
-unsigned int OctreeNode::getDepth() const { return depth; }
 bool OctreeNode::isLeaf() const { return children[0] == nullptr; }
 
 void OctreeNode::divide() {
@@ -51,18 +42,25 @@ void OctreeNode::divide() {
         }
 
         octree->removeNodeAsLeaf(this);
+        octree->trackDivisionOperation(this);
     }
 }
 
 void OctreeNode::merge() {
-    assert(!isLeaf());
+    // Do before so that we can get the children IDs
+    octree->trackMergeOperation(this);
+    if (!isLeaf()) {
+        destroyAllChildren();
+        octree->trackNodeAsLeaf(this);
+    }
+}
+void OctreeNode::destroyAllChildren() {
     if (!isLeaf()) {
         for (int i = 0; i < 8; i++) {
+            children[i]->destroyAllChildren();
             octree->destroyNode(children[i]);
             children[i] = nullptr;
         }
-
-        octree->trackNodeAsLeaf(this);
     }
 }
 
@@ -115,7 +113,7 @@ unsigned int OctreeUpdater::smallestLODInNode(const OctreeNode& node) const {
 
 Octree::Octree(unsigned int _maxDepth, float _voxelSize)
     : config{_maxDepth, _voxelSize} {
-    idCounter = 0;
+    idCounter = INVALID_NODE_ID + 1;
 
     const float root_extents = config.voxelSize * (1 << config.maxDepth);
     root = allocateNode();
@@ -125,7 +123,9 @@ Octree::~Octree() { destroyNode(root); }
 
 OctreeNode* Octree::allocateNode() {
     const unsigned int nodeID = idCounter++;
-    OctreeNode* newNode = new OctreeNode(this, nodeID);
+    OctreeNode* newNode = allocator.allocate();
+    newNode->octree = this;
+    newNode->uniqueID = nodeID;
 
     assert(!node_map.contains(nodeID));
     node_map[nodeID] = newNode;
@@ -143,7 +143,7 @@ void Octree::destroyNode(OctreeNode* node) {
         removeNodeAsLeaf(node);
     }
 
-    delete node;
+    allocator.free(node);
 }
 
 void Octree::trackNodeAsLeaf(const OctreeNode* node) {
@@ -154,7 +154,38 @@ void Octree::removeNodeAsLeaf(const OctreeNode* node) {
     // Does nothing (add code here if needed)
 }
 
+void Octree::trackDivisionOperation(const OctreeNode* node) {
+    operations.resize(operations.size() + 1);
+    auto& operation = operations.back();
+
+    operation.type = OctreeNode::Operation::DIVIDE;
+    operation.parent = node->uniqueID;
+    for (int i = 0; i < 8; i++) {
+        operation.children[i] = node->children[i]->uniqueID;
+    }
+}
+void Octree::trackMergeOperation(const OctreeNode* node) {
+    operations.resize(operations.size() + 1);
+    auto& operation = operations.back();
+
+    operation.type = OctreeNode::Operation::MERGE;
+    operation.parent = node->uniqueID;
+    for (int i = 0; i < 8; i++) {
+        operation.children[i] = node->children[i]->uniqueID;
+    }
+}
+
+void Octree::resetOctree(unsigned int _maxDepth, float _voxelSize) {
+    config = {_maxDepth, _voxelSize};
+
+    delete root;
+
+    const float root_extents = config.voxelSize * (1 << config.maxDepth);
+    root = allocateNode();
+    root->initialize(Vector3(0, 0, 0), root_extents, config.maxDepth);
+}
 void Octree::update(const OctreeUpdater& lodRequestor) {
+    operations.clear();
     updateHelper(root, lodRequestor);
 }
 void Octree::updateHelper(OctreeNode* node, const OctreeUpdater& lodRequestor) {
@@ -166,7 +197,7 @@ void Octree::updateHelper(OctreeNode* node, const OctreeUpdater& lodRequestor) {
 
     // If we have a leaf, and the requested LOD is < the node depth, we
     // divide the node and repeat.
-    if (smallestRequestedLOD < node->getDepth()) {
+    if (smallestRequestedLOD < node->depth) {
         if (node->isLeaf()) {
             node->divide();
         }
@@ -174,7 +205,7 @@ void Octree::updateHelper(OctreeNode* node, const OctreeUpdater& lodRequestor) {
         for (int i = 0; i < 8; i++) {
             updateHelper(node->children[i], lodRequestor);
         }
-    } else if (node->getDepth() <= smallestRequestedLOD) {
+    } else if (node->depth <= smallestRequestedLOD) {
         if (!node->isLeaf()) {
             // If we do not have a leaf, and the requested LOD is > the node
             // depth, we can merge the node
@@ -183,27 +214,13 @@ void Octree::updateHelper(OctreeNode* node, const OctreeUpdater& lodRequestor) {
     }
 }
 
-void Octree::debugDrawLeaves() { debugDrawLeavesHelper(root); }
-void Octree::debugDrawLeavesHelper(OctreeNode* node) {
-    if (node->isLeaf()) {
-        const float& extents = node->extents;
-        const Vector3 box_min =
-            node->center - Vector3(extents, extents, extents);
-        const Vector3 box_max =
-            node->center + Vector3(extents, extents, extents);
-
-        VisualDebug::DrawBox(box_min, box_max);
-    } else {
-        for (int i = 0; i < 8; i++) {
-            debugDrawLeavesHelper(node->children[i]);
-        }
-    }
-}
-
 OctreeUpdater Octree::getUpdater() {
     return std::move(OctreeUpdater(config.maxDepth));
 }
 
+const std::vector<OctreeNode::Operation>& Octree::getOperations() const {
+    return operations;
+}
 const std::unordered_map<OctreeNodeID, OctreeNode*>&
 Octree::getNodeMap() const {
     return node_map;
@@ -216,8 +233,12 @@ const OctreeNode* Octree::getNode(OctreeNodeID id) const {
         return nullptr;
 }
 
+bool Octree::isNodePresent(OctreeNodeID id) const {
+    return node_map.contains(id);
+}
+
 bool Octree::isNodeLeaf(const OctreeNodeID id) const {
-    if (node_map.contains(id)) {
+    if (isNodePresent(id)) {
         return node_map.at(id)->isLeaf();
     } else {
         return false;

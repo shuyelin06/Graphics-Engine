@@ -572,6 +572,9 @@
     <ClInclude Include="src\rendering\terrain\Octree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\core\ArenaAllocator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />

@@ -10,13 +10,13 @@
 
 #include "rendering/ImGui.h"
 
+#include "../VisualDebug.h"
 #include "../util/CPUTimer.h"
 #include "datamodel/terrain/TerrainGenerator.h"
 
 constexpr int MAX_CHUNK_JOBS = 16;
 
-constexpr int OCTREE_MAX_DEPTH = 8;
-constexpr float TERRAIN_VOXEL_SIZE = 25.f;
+constexpr int OCTREE_MAX_DEPTH = 4;
 
 namespace Engine {
 using namespace Datamodel;
@@ -41,7 +41,8 @@ VisualTerrain::VisualTerrain(Terrain* _terrain, ID3D11DeviceContext* context,
 
     surface_level = 0.f;
 
-    octree = std::make_unique<Octree>(10, TERRAIN_VOXEL_SIZE);
+    octree =
+        std::make_unique<Octree>(config.octree_max_depth, config.voxel_size);
 }
 VisualTerrain::~VisualTerrain() = default;
 
@@ -53,22 +54,17 @@ void VisualTerrain::updateAndUploadTerrainData(ID3D11DeviceContext* context,
     ICPUTimer cpu_timer = CPUTimer::TrackCPUTime("Terrain Update");
 
     // 1) Update the Octree based on the camera
-    // TODO: Move Updater
+    // TODO: Move Updater out of here
     OctreeUpdater updater = octree->getUpdater();
     updater.updatePointOfFocus(camera_pos);
-
-    static float sizes[OCTREE_MAX_DEPTH - 1] = {100.f, 100.f, 100.f};
-    float accumulated_size = 0;
-    for (int i = 0; i < OCTREE_MAX_DEPTH - 1; i++) {
-        accumulated_size += sizes[i];
+    float accumulated_size = config.voxel_size * 1.5f;
+    for (int i = 0; i < config.octree_max_depth - 1; i++) {
+        accumulated_size *= 2;
         // Guarantee valid input for now
         updater.updateLODDistance(i, accumulated_size);
     }
 
     octree->update(updater);
-
-    // Optional Draw:
-    // octree->debugDrawLeaves();
 
     // 2) Iterate through my existing jobs to see if any have finished. If they
     // have, load their meshes into the mesh pool.
@@ -84,11 +80,14 @@ void VisualTerrain::updateAndUploadTerrainData(ID3D11DeviceContext* context,
                 // If the chunk id is not "active", then the chunk was unloaded
                 // while the job was generating the mesh. Don't upload, and set
                 // the job to inactive to be used again.
-                if (octree->isNodeLeaf(chunk_id)) {
+                if (octree->isNodeLeaf(chunk_id) &&
+                    terrain_meshes[chunk_id] == nullptr) {
                     std::shared_ptr<Mesh> mesh =
                         job->builder.generateMesh(context);
-                    assert(terrain_meshes[chunk_id] == nullptr);
                     terrain_meshes[chunk_id] = std::move(mesh);
+
+                    total_time_taken += job->time_taken;
+                    total_finished_jobs += 1;
 
                     mesh_pool_dirty = true;
                 }
@@ -111,7 +110,7 @@ void VisualTerrain::updateAndUploadTerrainData(ID3D11DeviceContext* context,
     // chunks to load the meshes of.
     const int num_inactive_jobs = inactive_jobs.size();
 
-    if (num_inactive_jobs > 0) {
+    if (num_inactive_jobs >= MAX_CHUNK_JOBS * 0.5f) {
         assert(dirty_chunks.size() == 0);
 
         for (const auto& pair : octree->getNodeMap()) {
@@ -275,6 +274,57 @@ const WaterSurface* VisualTerrain::getWaterSurface() const {
 // ImGui
 void VisualTerrain::imGui() {
 #if defined(IMGUI_ENABLED)
+    ImGui::Text("Visual Terrain");
+
+    if (total_finished_jobs > 0) {
+        ImGui::Text("Average Chunk Generation Time: %f",
+                    total_time_taken / total_finished_jobs);
+    }
+
+    if (octree && ImGui::CollapsingHeader("Octree")) {
+        ImGui::Text("Octree Config");
+        ImGui::Indent();
+        {
+            ImGui::SliderInt("Max Divisions", &config.octree_max_depth, 2, 14);
+            ImGui::SliderFloat("Voxel Size", &config.voxel_size, 5.f, 50.f);
+
+            if (ImGui::Button("Reset Octree")) {
+                octree->resetOctree(config.octree_max_depth, config.voxel_size);
+            }
+        }
+        ImGui::Unindent();
+
+        ImGui::Text("Octree Display Settings");
+        ImGui::Indent();
+        {
+            static bool display_octree = false;
+            ImGui::Checkbox("Display Octree", &display_octree);
+
+            if (display_octree) {
+                static int target_lod = 0;
+                ImGui::SliderInt("LOD", &target_lod, -1,
+                                 config.octree_max_depth);
+
+                const auto& node_map = octree->getNodeMap();
+                for (const auto& pair : node_map) {
+                    const auto& node = pair.second;
+
+                    if (node->isLeaf() &&
+                        (target_lod == -1 || node->depth == target_lod)) {
+                        const float& extents = node->extents;
+                        const Vector3 box_min =
+                            node->center - Vector3(extents, extents, extents);
+                        const Vector3 box_max =
+                            node->center + Vector3(extents, extents, extents);
+
+                        // TODO: Rename to DrawBox tbh
+                        VisualDebug::DrawPoint(node->center, extents * 2);
+                    }
+                }
+            }
+        }
+        ImGui::Unindent();
+    }
 
 #endif
 }

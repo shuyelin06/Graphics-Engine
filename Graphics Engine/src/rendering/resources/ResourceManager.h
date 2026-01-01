@@ -23,6 +23,7 @@ enum MeshPoolType {
     MeshPoolType_Count,
 };
 
+// - SystemMesh Cube: Unit cube from (-0.5, -0.5, -0.5) to (0.5, 0.5, 0.5)
 enum SystemMesh { SystemMesh_Cube = 0 };
 enum SystemTexture { SystemTexture_FallbackColormap = 0 };
 
