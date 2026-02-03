@@ -63,7 +63,7 @@ MeshTriangle::MeshTriangle(UINT v0, UINT v1, UINT v2) {
 
 MeshBuilder::MeshBuilder(MeshPool* pool) : vertex_buffer(), index_buffer() {
     target_pool = pool;
-    layout = 0;
+    layout = VertexLayout();
 }
 MeshBuilder::MeshBuilder(const MeshBuilder& builder) {
     vertex_buffer = builder.vertex_buffer;
@@ -86,7 +86,7 @@ std::shared_ptr<Mesh> MeshBuilder::generateMesh(ID3D11DeviceContext* context) {
 std::shared_ptr<Mesh> MeshBuilder::generateMesh(ID3D11DeviceContext* context,
                                                 MeshPool* pool) {
     // Layout must match the pool's layout
-    assert((layout & pool->layout) == layout);
+    assert(pool->layout.vertexLayoutSupports(layout));
     // Pool must have enough space for this mesh
     assert(vertex_buffer.size() + pool->vertex_size <= pool->vertex_capacity);
     assert(index_buffer.size() + pool->triangle_size <=
@@ -102,7 +102,7 @@ std::shared_ptr<Mesh> MeshBuilder::generateMesh(ID3D11DeviceContext* context,
     // This array should match the vertex streams.
 
     for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
-        if (LayoutPinHas(pool->layout, i)) {
+        if (pool->layout.hasVertexStream((VertexDataStream) i)) {
             const UINT byte_size = StreamVertexStride(i);
 
             // Now, for each vertex, I will pull the data I want for my stream
@@ -180,7 +180,7 @@ bool MeshBuilder::isEmpty() const { return index_buffer.size() == 0; }
 // AddLayout:
 // Add a layout vertex buffer for the builder to generate with
 void MeshBuilder::addLayout(VertexDataStream stream) {
-    layout = layout | (1 << stream);
+    layout.addVertexStream(stream);
 }
 
 // AddVertex:
@@ -347,7 +347,7 @@ void MeshBuilder::addTube(const Vector3& start, const Vector3& end,
 // Discard the current normals for the mesh and regenerate them
 void MeshBuilder::regenerateNormals() {
     // Only do this if the builder is to generate the normal stream
-    assert(LayoutPinHas(layout, NORMAL));
+    assert(layout.hasVertexStream(NORMAL));
 
     // Regenerate mesh normals. We do this by calculating the normal
     // for each triangle face, and adding them to a vector to
@@ -389,7 +389,7 @@ void MeshBuilder::reset() {
     vertex_buffer.clear();
     index_buffer.clear();
 
-    layout = 0;
+    layout = VertexLayout();
 }
 
 } // namespace Graphics

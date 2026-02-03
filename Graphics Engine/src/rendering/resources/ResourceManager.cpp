@@ -43,10 +43,15 @@ ResourceManager::~ResourceManager() = default;
 // Loads assets into the asset manager.
 void ResourceManager::initializeSystemResources() {
     // TODO: Be able to create mesh pools on demand
-    mesh_pools[MeshPoolType_Terrain] = std::make_unique<MeshPool>(
-        (1 << POSITION) | (1 << NORMAL), 600000, 800000);
+    VertexLayout terrainLayout;
+    terrainLayout.addVertexStream(POSITION);
+    terrainLayout.addVertexStream(NORMAL);
+    mesh_pools[MeshPoolType_Terrain] =
+        std::make_unique<MeshPool>(terrainLayout, 600000, 800000);
+    VertexLayout defaultLayout;
+    defaultLayout.setAllStreams();
     mesh_pools[MeshPoolType_Default] =
-        std::make_unique<MeshPool>(0xFFFF, 100000, 100000);
+        std::make_unique<MeshPool>(defaultLayout, 100000, 100000);
 
     // System assets are loaded here
     LoadCubeMesh();
@@ -168,6 +173,21 @@ std::shared_ptr<TextureBuilder> ResourceManager::createTextureBuilder() {
 
 MeshPool* ResourceManager::getMeshPool(MeshPoolType pool_type) {
     return mesh_pools[pool_type].get();
+}
+
+std::shared_ptr<Mesh>
+ResourceManager::requestMesh(const MeshBuilder& mesh_builder) {
+    std::scoped_lock<std::mutex> mesh_job_lock(mesh_job_mutex);
+
+    MeshBuildingJob& mesh_job = mesh_jobs.emplace_back();
+
+    // Load my job with the MeshBuilder data
+    size_t vbuf_size = 0;
+
+    mesh_job.mesh = std::make_shared<Mesh>();
+    mesh_job.mesh->ready = false;
+
+    return mesh_job.mesh;
 }
 
 // Debug Display

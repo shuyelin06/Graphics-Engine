@@ -43,6 +43,27 @@ enum VertexDataStream {
     DEBUG_LINE,
 };
 
+class VertexLayout {
+  private:
+    uint16_t layout_pin;
+
+  public:
+    VertexLayout();
+    VertexLayout(const VertexLayout& layout);
+
+    void setAllStreams();
+    void addVertexStream(VertexDataStream stream);
+    
+    bool hasVertexStream(VertexDataStream stream);
+    bool vertexLayoutSupports(const VertexLayout& layout);
+
+    size_t totalStrideSize();
+
+    bool operator==(const VertexLayout& layout) const;
+
+    static size_t VertexStreamStride(VertexDataStream stream);
+};
+
 bool LayoutPinHas(uint16_t pin, unsigned int stream);
 unsigned int StreamVertexStride(unsigned int stream);
 

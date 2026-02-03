@@ -10,6 +10,8 @@
 
 namespace Engine {
 namespace Graphics {
+class ResourceManager;
+
 // MeshBuilder Class:
 // Enables creation of meshes. Meshes are represented by a vertex and index
 // buffer. The vertex buffer stores all vertices in the mesh, and the index
@@ -42,10 +44,12 @@ struct MeshTriangle {
 };
 
 class MeshBuilder {
+    friend class ResourceManager;
+
   private:
     MeshPool* target_pool;
 
-    uint16_t layout;
+    VertexLayout layout;
 
     std::vector<MeshVertex> vertex_buffer;
     std::vector<MeshTriangle> index_buffer;

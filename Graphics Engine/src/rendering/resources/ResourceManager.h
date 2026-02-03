@@ -2,6 +2,7 @@
 
 #include <map>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 
@@ -37,6 +38,18 @@ struct GeometryDesc {
 // to load assets, and prepare them for rendering.
 class ResourceManager {
   private:
+    struct MeshBuildingJob {
+        std::unique_ptr<uint8_t[]> vertex_data = nullptr;
+        std::unique_ptr<uint8_t[]> index_data = nullptr;
+
+        uint32_t vertexCount = 0;
+        uint32_t indexCount = 0;
+        VertexLayout layout;
+
+        std::shared_ptr<Mesh> mesh = nullptr;
+    };
+
+  private:
     ID3D11Device* device;
     ID3D11DeviceContext* context;
 
@@ -47,6 +60,9 @@ class ResourceManager {
 
     std::vector<std::shared_ptr<Geometry>> geometries;
 
+    std::vector<MeshBuildingJob> mesh_jobs;
+    std::mutex mesh_job_mutex;
+
   public:
     ResourceManager(ID3D11Device* device, ID3D11DeviceContext* context);
     ~ResourceManager();
@@ -55,6 +71,9 @@ class ResourceManager {
     // These are resources that exist for the entire application and are built
     // into the engine.
     void initializeSystemResources();
+
+    // Update Loop.
+    // Serve the various requests received by the resource manager.
 
     // Get Resources
     std::shared_ptr<Mesh> getMesh(int index) const;
@@ -71,6 +90,9 @@ class ResourceManager {
     std::shared_ptr<TextureBuilder> createTextureBuilder();
 
     MeshPool* getMeshPool(MeshPoolType pool_type);
+
+    std::shared_ptr<Mesh> requestMesh(const MeshBuilder& mesh_builder);
+    std::shared_ptr<Texture> requestTexture(const TextureBuilder& tex_builder);
 
     // Debug Display
     void imGui();

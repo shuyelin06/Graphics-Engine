@@ -8,7 +8,7 @@ using namespace Math;
 namespace Graphics {
 // --- Mesh ---
 MeshPool::MeshPool() {
-    layout = 0;
+    layout = VertexLayout();
 
     ibuffer = NULL;
     cpu_ibuffer = NULL;
@@ -19,7 +19,7 @@ MeshPool::MeshPool() {
     vertex_size = vertex_capacity = 0;
 }
 
-MeshPool::MeshPool(uint16_t _layout, uint32_t tri_size, uint32_t v_size)
+MeshPool::MeshPool(VertexLayout _layout, uint32_t tri_size, uint32_t v_size)
     : meshes() {
     layout = _layout;
     has_gpu_resources = false;
@@ -39,7 +39,7 @@ MeshPool::MeshPool(uint16_t _layout, uint32_t tri_size, uint32_t v_size)
     vertex_capacity = v_size;
 
     for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
-        if (LayoutPinHas(layout, i)) {
+        if (layout.hasVertexStream((VertexDataStream) i)) {
             cpu_vbuffers[i] = std::make_unique<uint8_t[]>(
                 vertex_capacity * StreamVertexStride(i));
         }
@@ -126,7 +126,7 @@ void MeshPool::createGPUResources(ID3D11Device* device) {
     buff_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
     for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
-        if (LayoutPinHas(layout, i)) {
+        if (layout.hasVertexStream((VertexDataStream)i)) {
             buff_desc.ByteWidth = vertex_capacity * StreamVertexStride(i);
             device->CreateBuffer(&buff_desc, NULL, &vbuffers[i]);
         }
@@ -163,11 +163,18 @@ MeshPool::~MeshPool() {
         }
     }
 }
+Mesh::Mesh() {
+    buffer_pool = nullptr;
+    layout = VertexLayout();
+    vertex_start = num_vertices = 0;
+    triangle_start = num_triangles = 0;
+    aabb = AABB();
+}
 
 Mesh::Mesh(MeshPool* pool) {
     buffer_pool = pool;
 
-    layout = 0;
+    layout = VertexLayout();
     vertex_start = num_vertices = 0;
     triangle_start = num_triangles = 0;
     aabb = AABB();

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <memory>
 #include <optional>
 #include <string>
@@ -39,7 +40,7 @@ struct MeshPool {
     // This pool is in charge of deallocating them.
     std::vector<std::shared_ptr<Mesh>> meshes;
     // Layout, i.e. the streams that the pool stores
-    uint16_t layout;
+    VertexLayout layout;
 
     // CPU-Side Buffers for the Pool.
     std::unique_ptr<uint8_t[]> cpu_ibuffer;
@@ -57,7 +58,7 @@ struct MeshPool {
     uint32_t vertex_capacity; // # Vertices the Buffer can Hold
 
   public:
-    MeshPool(uint16_t layout, uint32_t triangle_max, uint32_t vertex_max);
+    MeshPool(VertexLayout layout, uint32_t triangle_max, uint32_t vertex_max);
     ~MeshPool();
 
     // Cleans and compacts the GPU-side data.
@@ -70,12 +71,16 @@ struct MeshPool {
 };
 
 struct Mesh {
+    Mesh();
     Mesh(MeshPool* pool);
     ~Mesh();
 
+    // Ready Bool
+    std::atomic<bool> ready;
+
     // MeshPool (Collection of Buffers) Containing the Mesh.
     MeshPool* buffer_pool;
-    uint16_t layout;
+    VertexLayout layout;
 
     // Vertex / Index Starts and Offsets into the MeshPool
     uint32_t vertex_start;
