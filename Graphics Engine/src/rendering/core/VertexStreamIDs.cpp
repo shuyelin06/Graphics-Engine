@@ -13,24 +13,6 @@ static unsigned int StreamStrides[BINDABLE_STREAM_COUNT] = {
     4 * sizeof(float)  // WEIGHTS
 };
 
-bool LayoutPinHas(uint16_t pin, unsigned int stream) {
-    assert(0 <= stream && stream < BINDABLE_STREAM_COUNT);
-    return (pin & (1 << stream)) == (1 << stream);
-}
-unsigned int StreamVertexStride(unsigned int stream) {
-    assert(0 <= stream && stream < BINDABLE_STREAM_COUNT);
-    return StreamStrides[stream];
-}
-
-uint16_t VertexStreamLayoutPin(VertexDataStream* streams, size_t size) {
-    uint16_t pin = 0;
-
-    for (int i = 0; i < size; i++)
-        pin |= (1 << streams[i]);
-
-    return pin;
-}
-
 VertexLayout::VertexLayout() { layout_pin = 0; }
 VertexLayout::VertexLayout(const VertexLayout& layout) {
     layout_pin = layout.layout_pin;

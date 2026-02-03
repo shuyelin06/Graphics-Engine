@@ -20,7 +20,7 @@ namespace Graphics {
 // If this is modified, the following must also be updated:
 // 1) The StreamStrides array in VertexStreamIDs.cpp
 // 2) The VertexAddressors array in MeshBuilder.cpp
-enum VertexDataStream {
+enum VertexDataStream : uint16_t {
     POSITION = 0, // 3D XYZ Position (3 Floats)
     TEXTURE = 1,  // 2D Texture Coordinates (2 Floats)
     NORMAL = 2,   // 3D Normal Direction (3 Floats)
@@ -63,11 +63,6 @@ class VertexLayout {
 
     static size_t VertexStreamStride(VertexDataStream stream);
 };
-
-bool LayoutPinHas(uint16_t pin, unsigned int stream);
-unsigned int StreamVertexStride(unsigned int stream);
-
-uint16_t VertexStreamLayoutPin(VertexDataStream* streams, size_t size);
 
 } // namespace Graphics
 } // namespace Engine

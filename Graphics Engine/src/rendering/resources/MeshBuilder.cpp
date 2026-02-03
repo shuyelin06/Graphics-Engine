@@ -103,7 +103,7 @@ std::shared_ptr<Mesh> MeshBuilder::generateMesh(ID3D11DeviceContext* context,
 
     for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
         if (pool->layout.hasVertexStream((VertexDataStream) i)) {
-            const UINT byte_size = StreamVertexStride(i);
+            const UINT byte_size = VertexLayout::VertexStreamStride((VertexDataStream) i);
 
             // Now, for each vertex, I will pull the data I want for my stream
             // and then copy it to the end of my buffer.

@@ -41,7 +41,8 @@ MeshPool::MeshPool(VertexLayout _layout, uint32_t tri_size, uint32_t v_size)
     for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
         if (layout.hasVertexStream((VertexDataStream) i)) {
             cpu_vbuffers[i] = std::make_unique<uint8_t[]>(
-                vertex_capacity * StreamVertexStride(i));
+                vertex_capacity *
+                VertexLayout::VertexStreamStride((VertexDataStream)i));
         }
     }
 }
@@ -93,7 +94,8 @@ void MeshPool::cleanAndCompact() {
         if (head != mesh->vertex_start) {
             for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
                 if (cpu_vbuffers[i] != nullptr) {
-                    const UINT STRIDE = StreamVertexStride(i);
+                    const UINT STRIDE =
+                        VertexLayout::VertexStreamStride((VertexDataStream)i);
                     std::memmove(cpu_vbuffers[i].get() + STRIDE * head,
                                  cpu_vbuffers[i].get() +
                                      STRIDE * mesh->vertex_start,
@@ -127,7 +129,9 @@ void MeshPool::createGPUResources(ID3D11Device* device) {
 
     for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
         if (layout.hasVertexStream((VertexDataStream)i)) {
-            buff_desc.ByteWidth = vertex_capacity * StreamVertexStride(i);
+            buff_desc.ByteWidth =
+                vertex_capacity *
+                VertexLayout::VertexStreamStride((VertexDataStream)i);
             device->CreateBuffer(&buff_desc, NULL, &vbuffers[i]);
         }
     }
@@ -148,7 +152,7 @@ void MeshPool::updateGPUResources(ID3D11DeviceContext* context) {
         if (cpu_vbuffers[i] != nullptr) {
             context->Map(vbuffers[i], 0, D3D11_MAP_WRITE_DISCARD, 0, &sr);
             memcpy(static_cast<uint8_t*>(sr.pData), cpu_vbuffers[i].get(),
-                   vertex_capacity * StreamVertexStride(i));
+                   vertex_capacity * VertexLayout::VertexStreamStride((VertexDataStream) i));
             context->Unmap(vbuffers[i], 0);
         }
     }
