@@ -25,6 +25,8 @@ MeshPool::MeshPool(VertexLayout _layout, uint32_t tri_size, uint32_t v_size)
     has_gpu_resources = false;
 
     // Create my index buffer
+    ibuffer = nullptr;
+
     triangle_size = 0;
     triangle_capacity = tri_size;
 
@@ -39,7 +41,7 @@ MeshPool::MeshPool(VertexLayout _layout, uint32_t tri_size, uint32_t v_size)
     vertex_capacity = v_size;
 
     for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
-        if (layout.hasVertexStream((VertexDataStream) i)) {
+        if (layout.hasVertexStream((VertexDataStream)i)) {
             cpu_vbuffers[i] = std::make_unique<uint8_t[]>(
                 vertex_capacity *
                 VertexLayout::VertexStreamStride((VertexDataStream)i));
@@ -152,17 +154,19 @@ void MeshPool::updateGPUResources(ID3D11DeviceContext* context) {
         if (cpu_vbuffers[i] != nullptr) {
             context->Map(vbuffers[i], 0, D3D11_MAP_WRITE_DISCARD, 0, &sr);
             memcpy(static_cast<uint8_t*>(sr.pData), cpu_vbuffers[i].get(),
-                   vertex_capacity * VertexLayout::VertexStreamStride((VertexDataStream) i));
+                   vertex_capacity *
+                       VertexLayout::VertexStreamStride((VertexDataStream)i));
             context->Unmap(vbuffers[i], 0);
         }
     }
 }
 
 MeshPool::~MeshPool() {
-    ibuffer->Release();
+    if (ibuffer)
+        ibuffer->Release();
 
     for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
-        if (vbuffers[i] != nullptr) {
+        if (vbuffers[i]) {
             vbuffers[i]->Release();
         }
     }

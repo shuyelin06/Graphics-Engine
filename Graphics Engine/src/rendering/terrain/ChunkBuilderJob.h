@@ -47,7 +47,7 @@ struct ChunkBuilderJob {
     double time_taken;
 
   public:
-    ChunkBuilderJob(MeshPool* terrain_pool);
+    ChunkBuilderJob();
 
     // Asynchronous execution by VisualTerrain.
     void buildChunkMesh();

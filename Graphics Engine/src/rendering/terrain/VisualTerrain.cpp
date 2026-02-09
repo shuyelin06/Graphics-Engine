@@ -14,6 +14,8 @@
 #include "../util/CPUTimer.h"
 #include "datamodel/terrain/TerrainGenerator.h"
 
+#include "rendering/VisualSystem.h"
+
 constexpr int MAX_CHUNK_JOBS = 16;
 
 constexpr int OCTREE_MAX_DEPTH = 4;
@@ -22,21 +24,19 @@ namespace Engine {
 using namespace Datamodel;
 
 namespace Graphics {
-VisualTerrain::VisualTerrain(Terrain* _terrain, ID3D11DeviceContext* context,
-                             ResourceManager& resource_manager)
+VisualTerrain::VisualTerrain(Terrain* _terrain, VisualSystem* m_visual_system)
     : terrain(_terrain) {
-    mesh_pool = resource_manager.getMeshPool(MeshPoolType_Terrain);
+    visual_system = m_visual_system;
 
     // Create MAX_CHUNK_JOBS schunk update jobs.
     for (int i = 0; i < MAX_CHUNK_JOBS; i++) {
-        jobs.push_back(std::make_unique<ChunkBuilderJob>(mesh_pool));
+        jobs.push_back(std::make_unique<ChunkBuilderJob>());
     }
     inactive_jobs.reserve(MAX_CHUNK_JOBS);
 
     // Initialize my water surface mesh.
     water_surface = new WaterSurface();
-    water_surface->generateSurfaceMesh(
-        resource_manager.createMeshBuilder(MeshPoolType_Default), context, 15);
+    water_surface->generateSurfaceMesh(visual_system->getResourceManager(), 15);
     water_surface->generateWaveConfig(14);
 
     surface_level = 0.f;
@@ -83,7 +83,8 @@ void VisualTerrain::updateAndUploadTerrainData(ID3D11DeviceContext* context,
                 if (octree->isNodeLeaf(chunk_id) &&
                     terrain_meshes[chunk_id] == nullptr) {
                     std::shared_ptr<Mesh> mesh =
-                        job->builder.generateMesh(context);
+                        visual_system->getResourceManager()->requestMesh(
+                            job->builder);
                     terrain_meshes[chunk_id] = std::move(mesh);
 
                     total_time_taken += job->time_taken;
@@ -186,6 +187,9 @@ void VisualTerrain::updateAndUploadTerrainData(ID3D11DeviceContext* context,
     // TODO: We could throttle this so we only clean and compact every XX
     // frames..
     if (mesh_pool_dirty) {
+        MeshPool* mesh_pool = visual_system->getResourceManager()->getMeshPool(
+            MeshPoolType_Terrain);
+        // TODO..
         mesh_pool->cleanAndCompact();
 
         // Upload my data to the structured buffers
@@ -194,6 +198,11 @@ void VisualTerrain::updateAndUploadTerrainData(ID3D11DeviceContext* context,
         pass_terrain.num_active_chunks = mesh_pool->meshes.size();
         pass_terrain.max_chunk_triangles = 0;
         for (std::shared_ptr<Mesh>& mesh : mesh_pool->meshes) {
+            if (!mesh->ready)
+            {
+                continue;
+            }
+
             TBChunkDescriptor desc;
             desc.index_start = mesh->triangle_start * 3;
             desc.index_count = mesh->num_triangles * 3;

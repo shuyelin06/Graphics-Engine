@@ -31,7 +31,7 @@ struct MeshVertex {
     MeshVertex(const Vector3& position, const Color& color);
     MeshVertex(const MeshVertex& vertex);
 
-    void* GetAddressOf(VertexDataStream bindable_stream);
+    const void* GetAddressOf(VertexDataStream bindable_stream) const;
 };
 
 struct MeshTriangle {
@@ -47,26 +47,16 @@ class MeshBuilder {
     friend class ResourceManager;
 
   private:
-    MeshPool* target_pool;
-
     VertexLayout layout;
 
     std::vector<MeshVertex> vertex_buffer;
     std::vector<MeshTriangle> index_buffer;
 
   public:
-    MeshBuilder(MeshPool* pool);
+    MeshBuilder();
+    MeshBuilder(const VertexLayout& layout);
     MeshBuilder(const MeshBuilder& builder);
     ~MeshBuilder();
-
-    // Generates the mesh for use in the rendering pipeline.
-    // If no buffer_pool is provided, the builder will generate one for this
-    // mesh.
-    std::shared_ptr<Mesh> generateMesh(ID3D11DeviceContext* context,
-                                       MeshPool* buffer_pool);
-
-    // NEW-- DEPRECATE THE ABOVE
-    std::shared_ptr<Mesh> generateMesh(ID3D11DeviceContext* context);
 
     const std::vector<MeshVertex>& getVertices() const;
     const std::vector<MeshTriangle>& getIndices() const;
@@ -106,11 +96,6 @@ class MeshBuilder {
 
     // Resets the builder, so it can be used to generate another mesh
     void reset();
-
-  private:
-    void uploadVertexData(ID3D11DeviceContext* context, ID3D11Buffer* buffer,
-                          UINT buffer_size, void* (*addressor)(MeshVertex&),
-                          UINT byte_size);
 };
 
 } // namespace Graphics

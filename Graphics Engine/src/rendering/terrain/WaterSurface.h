@@ -29,8 +29,7 @@ class WaterSurface {
     WaterSurface();
     ~WaterSurface();
 
-    void generateSurfaceMesh(std::shared_ptr<MeshBuilder> builder_ptr,
-                             ID3D11DeviceContext* context, int width);
+    void generateSurfaceMesh(ResourceManager* resource_manager, int width);
     void generateWaveConfig(int wave_count);
 
     const Mesh* getSurfaceMesh() const;

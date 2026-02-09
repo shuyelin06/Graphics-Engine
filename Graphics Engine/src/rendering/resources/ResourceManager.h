@@ -39,11 +39,8 @@ struct GeometryDesc {
 class ResourceManager {
   private:
     struct MeshBuildingJob {
-        std::unique_ptr<uint8_t[]> vertex_data = nullptr;
-        std::unique_ptr<uint8_t[]> index_data = nullptr;
-
-        uint32_t vertexCount = 0;
-        uint32_t indexCount = 0;
+        std::vector<MeshVertex> vertex_data;
+        std::vector<MeshTriangle> index_data;
         VertexLayout layout;
 
         std::shared_ptr<Mesh> mesh = nullptr;
@@ -53,7 +50,7 @@ class ResourceManager {
     ID3D11Device* device;
     ID3D11DeviceContext* context;
 
-    std::unique_ptr<MeshPool> mesh_pools[MeshPoolType_Count];
+    std::vector<std::unique_ptr<MeshPool>> mesh_pools;
     std::vector<std::shared_ptr<Mesh>> meshes;
 
     std::vector<std::shared_ptr<Texture>> textures;
@@ -74,6 +71,7 @@ class ResourceManager {
 
     // Update Loop.
     // Serve the various requests received by the resource manager.
+    void updatePerform(ID3D11DeviceContext* context);
 
     // Get Resources
     std::shared_ptr<Mesh> getMesh(int index) const;
@@ -86,7 +84,6 @@ class ResourceManager {
     LoadTextureFromFile(const std::string& relative_path);
     std::shared_ptr<Mesh> LoadMeshFromFile(const std::string& relative_path);
 
-    std::shared_ptr<MeshBuilder> createMeshBuilder(MeshPoolType pool_type);
     std::shared_ptr<TextureBuilder> createTextureBuilder();
 
     MeshPool* getMeshPool(MeshPoolType pool_type);
@@ -98,6 +95,8 @@ class ResourceManager {
     void imGui();
 
   private:
+    void processMeshJob(const MeshBuildingJob& job);
+
     // System Asset Generation
     void LoadCubeMesh();
 

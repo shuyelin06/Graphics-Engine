@@ -69,7 +69,7 @@ class VisualSystem {
     ID3D11DeviceContext* context;
 
     // Managers
-    ResourceManager* resource_manager;
+    std::unique_ptr<ResourceManager> resource_manager;
     LightManager* light_manager;
     Pipeline* pipeline;
 
@@ -98,6 +98,8 @@ class VisualSystem {
     // Call these functions to render the scene. Renders an entire scene
     void pullSceneData(Scene* scene); // Call First
     void render();
+
+    ResourceManager* getResourceManager() const;
 
   private:                     // Rendering Stages
     void performPrepass();     // Prepass (Shadowmaps)

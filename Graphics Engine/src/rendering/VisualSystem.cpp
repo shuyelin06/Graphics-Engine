@@ -157,7 +157,7 @@ VisualSystem::VisualSystem(HWND window) {
     }
 
     // Initialize each of my managers with the resources they need
-    resource_manager = new ResourceManager(device, context);
+    resource_manager = std::make_unique<ResourceManager>(device, context);
     resource_manager->initializeSystemResources();
 
     light_manager = new LightManager(device, 4096);
@@ -173,13 +173,12 @@ void VisualSystem::onObjectCreate(Object* object) {
 
     if (class_id == Terrain::ClassID()) {
         Terrain* dm_terrain = static_cast<Terrain*>(object);
-        terrain.reset(
-            new VisualTerrain(dm_terrain, context, *resource_manager));
+        terrain.reset(new VisualTerrain(dm_terrain, this));
     } else if (class_id == DMCamera::ClassID()) {
         camera.reset(new Camera(object));
     } else if (class_id == DMMesh::ClassID()) {
         renderable_meshes.push_back(
-            new RenderableMesh(object, resource_manager));
+            new RenderableMesh(object, resource_manager.get()));
     }
 }
 
@@ -189,6 +188,9 @@ void VisualSystem::render() {
 #if defined(IMGUI_ENABLED)
     imGui();
 #endif
+
+    // Update Perform
+    resource_manager->updatePerform(context);
 
     pipeline->beginFrame(frame++);
 
@@ -375,6 +377,10 @@ void VisualSystem::pullSceneData(Scene* scene) {
     cache->resolution_info =
         Vector4((float)target->width, (float)target->height, camera->getZNear(),
                 camera->getZFar());
+}
+
+ResourceManager* VisualSystem::getResourceManager() const {
+    return resource_manager.get();
 }
 
 // PerformShadowPass:

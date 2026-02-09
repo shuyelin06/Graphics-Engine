@@ -53,11 +53,11 @@ class VertexLayout {
 
     void setAllStreams();
     void addVertexStream(VertexDataStream stream);
-    
-    bool hasVertexStream(VertexDataStream stream);
-    bool vertexLayoutSupports(const VertexLayout& layout);
 
-    size_t totalStrideSize();
+    bool hasVertexStream(VertexDataStream stream) const;
+    bool vertexLayoutSupports(const VertexLayout& layout) const;
+
+    size_t totalStrideSize() const;
 
     bool operator==(const VertexLayout& layout) const;
 

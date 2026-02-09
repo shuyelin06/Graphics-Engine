@@ -5,6 +5,8 @@
 
 #include "math/Compute.h"
 
+#include "rendering/resources/ResourceManager.h"
+
 namespace Engine {
 namespace Graphics {
 WaterSurface::WaterSurface() = default;
@@ -35,11 +37,10 @@ struct IndexPair {
 // These requirements make it really convenient to render this mesh with
 // instancing. Width determines how many tiles this LOD layer will have before
 // transitioning to the next. The larger the width, the larger an LOD will be.
-void WaterSurface::generateSurfaceMesh(std::shared_ptr<MeshBuilder> builder_ptr,
-                                       ID3D11DeviceContext* context,
+void WaterSurface::generateSurfaceMesh(ResourceManager* resource_manager,
                                        int width) {
 
-    MeshBuilder& builder = *builder_ptr;
+    MeshBuilder builder = MeshBuilder();
     builder.addLayout(POSITION);
 
     // Saves how many of the initial triangles belong to the inner mesh that
@@ -278,7 +279,7 @@ void WaterSurface::generateSurfaceMesh(std::shared_ptr<MeshBuilder> builder_ptr,
         }
     }
 
-    surface_mesh = builder.generateMesh(context);
+    surface_mesh = resource_manager->requestMesh(builder);
 }
 
 void WaterSurface::addQuad(MeshBuilder& builder, UINT a, UINT b, UINT c,

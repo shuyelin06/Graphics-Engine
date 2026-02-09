@@ -436,6 +436,8 @@ void Pipeline::drawMesh(const Mesh* mesh, int tri_start, int tri_end,
     // This is failing?
     // assert((vs_active->layout_pin & mesh->layout) == vs_active->layout_pin);
     const MeshPool* pool = mesh->buffer_pool;
+    if (!pool) // Somehow this fires?
+        return;
 
     // All meshes are assumed to havae a triangle list topology.
     // While there are more efficient representations, this is done

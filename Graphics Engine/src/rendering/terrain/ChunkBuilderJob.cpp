@@ -12,8 +12,7 @@ namespace Engine {
 using namespace Datamodel;
 
 namespace Graphics {
-ChunkBuilderJob::ChunkBuilderJob(MeshPool* terrain_pool)
-    : async_lock(), builder(terrain_pool), stopwatch() {
+ChunkBuilderJob::ChunkBuilderJob() : async_lock(), builder(), stopwatch() {
     status = Inactive;
 }
 
@@ -59,7 +58,7 @@ void ChunkBuilderJob::buildChunkMesh() {
                     i == TERRAIN_SAMPLES_PER_CHUNK ||
                     j == TERRAIN_SAMPLES_PER_CHUNK ||
                     k == TERRAIN_SAMPLES_PER_CHUNK;
-                const bool is_border_triangle = 
+                const bool is_border_triangle =
                     i == 1 || j == 1 || k == 1 ||
                     i == TERRAIN_SAMPLES_PER_CHUNK - 1 ||
                     j == TERRAIN_SAMPLES_PER_CHUNK - 1 ||

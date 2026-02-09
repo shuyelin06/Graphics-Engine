@@ -1,4 +1,5 @@
 #pragma once
+#pragma once
 
 #include <array>
 #include <queue>
@@ -24,6 +25,8 @@ namespace Engine {
 using namespace Datamodel;
 
 namespace Graphics {
+class VisualSystem;
+
 // Data Structures for the terrain structured buffers. These buffers
 // will be used in the vertex shader to generate the terrain mesh using vertex
 // pulling
@@ -43,13 +46,12 @@ struct TBChunkDescriptor {
 class VisualTerrain {
   private:
     Terrain* terrain;
+    VisualSystem* visual_system;
 
     // Water Surface
     WaterSurface* water_surface;
     float surface_level;
 
-    // Output Chunk Meshes
-    MeshPool* mesh_pool;
     // Map of Octree Leaf --> Chunk Mesh
     std::unordered_map<OctreeNodeID, std::shared_ptr<Mesh>> terrain_meshes;
 
@@ -83,8 +85,7 @@ class VisualTerrain {
     } config;
 
   public:
-    VisualTerrain(Terrain* terrain, ID3D11DeviceContext* context,
-                  ResourceManager& resource_manager);
+    VisualTerrain(Terrain* terrain, VisualSystem* visual_system);
     ~VisualTerrain();
 
     // Update the octree and pull the most recent terrain meshesS

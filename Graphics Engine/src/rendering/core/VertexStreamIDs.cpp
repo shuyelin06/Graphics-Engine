@@ -20,7 +20,7 @@ VertexLayout::VertexLayout(const VertexLayout& layout) {
 
 void VertexLayout::setAllStreams() {
     for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
-        if (hasVertexStream((VertexDataStream) i)) {
+        if (hasVertexStream((VertexDataStream)i)) {
             layout_pin |= 1 << i;
         }
     }
@@ -28,13 +28,13 @@ void VertexLayout::setAllStreams() {
 void VertexLayout::addVertexStream(VertexDataStream stream) {
     layout_pin |= stream;
 }
-bool VertexLayout::hasVertexStream(VertexDataStream stream) {
+bool VertexLayout::hasVertexStream(VertexDataStream stream) const {
     return (layout_pin & stream) == stream;
 }
-bool VertexLayout::vertexLayoutSupports(const VertexLayout& layout) {
+bool VertexLayout::vertexLayoutSupports(const VertexLayout& layout) const {
     return (layout_pin & layout.layout_pin) == layout.layout_pin;
 }
-size_t VertexLayout::totalStrideSize() {
+size_t VertexLayout::totalStrideSize() const {
     size_t byte_size = 0;
     for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
         if (VertexDataStream(i)) {
