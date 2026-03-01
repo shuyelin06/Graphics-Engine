@@ -74,7 +74,7 @@ void ResourceManager::updatePerform(ID3D11DeviceContext* context) {
 // Get Resources
 std::shared_ptr<Mesh> ResourceManager::getMesh(int index) const {
     assert(0 <= index && index < meshes.size());
-    return meshes[index];
+    return meshes[index].lock();
 }
 std::shared_ptr<Texture> ResourceManager::getTexture(int index) const {
     assert(0 <= index && index < textures.size());
@@ -165,8 +165,8 @@ ResourceManager::LoadMeshFromFile(const std::string& relative_path) {
         assert(false); // Unsupported Format
 
     if (output != nullptr) {
-        meshes.emplace_back(std::move(output));
-        return meshes.back();
+        meshes.emplace_back(output);
+        return output;
     } else
         return nullptr;
 }
@@ -218,14 +218,19 @@ void ResourceManager::imGui() {
 
         int mesh_index = 0;
         for (const auto& mesh : meshes) {
+            const std::shared_ptr<Mesh> mesh_ptr = mesh.lock();
+
+            if (!mesh_ptr)
+                continue;
+
             ImGui::TableNextRow();
 
             ImGui::TableSetColumnIndex(0);
             ImGui::Text("%i", mesh_index++);
             ImGui::TableSetColumnIndex(1);
-            ImGui::Text("%zu", mesh->num_triangles * 3);
+            ImGui::Text("%zu", mesh_ptr->num_triangles * 3);
             ImGui::TableSetColumnIndex(2);
-            ImGui::Text("%zu", mesh->num_vertices);
+            ImGui::Text("%zu", mesh_ptr->num_vertices);
         }
 
         ImGui::EndTable();
@@ -270,10 +275,16 @@ void ResourceManager::processMeshJob(const MeshBuildingJob& job) {
         mesh_pools.emplace_back(std::make_unique<MeshPool>(
             job.layout, DEFAULT_POOL_TRIANGLES, DEFAULT_POOL_VERTICES));
         pool = mesh_pools.back().get();
-        pool->createGPUResources(device);
     }
 
     assert(pool);
+
+    if (!pool->has_gpu_resources)
+    {
+        pool->createGPUResources(device);
+    }
+
+    assert(pool->has_gpu_resources); // Must call createGPUResources
 
     // Copy to CPU-side index and vertex buffers
     memcpy(pool->cpu_ibuffer.get() + pool->triangle_size * sizeof(MeshTriangle),
@@ -318,9 +329,8 @@ void ResourceManager::processMeshJob(const MeshBuildingJob& job) {
     pool->vertex_size += job.vertex_data.size();
     pool->triangle_size += job.index_data.size();
 
-    // Hack
-    if (pool->has_gpu_resources)
-        pool->updateGPUResources(context);
+    // Upload to GPU
+    pool->updateGPUResources(context);
 
     // Done. Pop the job and mark the mesh as ready.
     mesh->ready = true;
@@ -334,7 +344,7 @@ void ResourceManager::LoadCubeMesh() {
 
     std::shared_ptr<Mesh> mesh = requestMesh(builder);
     assert(meshes.size() == SystemMesh_Cube);
-    meshes.emplace_back(std::move(mesh));
+    meshes.emplace_back(mesh);
 }
 
 void ResourceManager::LoadFallbackColormap() {

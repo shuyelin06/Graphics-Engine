@@ -51,7 +51,7 @@ class ResourceManager {
     ID3D11DeviceContext* context;
 
     std::vector<std::unique_ptr<MeshPool>> mesh_pools;
-    std::vector<std::shared_ptr<Mesh>> meshes;
+    std::vector<std::weak_ptr<Mesh>> meshes;
 
     std::vector<std::shared_ptr<Texture>> textures;
 
