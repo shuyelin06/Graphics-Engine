@@ -268,7 +268,7 @@ void VisualSystem::render() {
 // PullSceneData:
 // Prepares the engine for rendering, by pulling all necessary
 // data from the datamodel.
-void VisualSystem::pullSceneData(Scene* scene) {
+void VisualSystem::pullSceneData(Scene* scene, Vector3 pos) {
 #if defined(_DEBUG)
     ICPUTimer cpu_timer = CPUTimer::TrackCPUTime("Render Prepare");
 #endif
@@ -281,7 +281,7 @@ void VisualSystem::pullSceneData(Scene* scene) {
 
     if (terrain)
         terrain->updateAndUploadTerrainData(context, *pass_terrain,
-                                            camera->getPosition());
+                                            pos);
 
     // Prepare managers for data
     light_manager->updateSunDirection(config->sun_direction);

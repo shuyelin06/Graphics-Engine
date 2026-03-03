@@ -1,27 +1,34 @@
 #include "Octree.h"
 
+#include "core/ThreadPool.h"
+
 #include "../VisualDebug.h"
+#include "datamodel/terrain/TerrainGenerator.h"
 
 #include <assert.h>
 
+#include "rendering/resources/ResourceManager.h"
+
+constexpr int MAX_CHUNK_JOBS = 16;
+
 namespace Engine {
 namespace Graphics {
-OctreeNode::OctreeNode() : children{nullptr} {
+TerrainNode::TerrainNode() : children{nullptr} {
     octree = nullptr;
     uniqueID = INVALID_NODE_ID;
 }
-OctreeNode::~OctreeNode() = default;
+TerrainNode::~TerrainNode() = default;
 
-void OctreeNode::initialize(const Vector3& _center, float _extents,
-                            unsigned int _depth) {
+void TerrainNode::initialize(const Vector3& _center, float _extents,
+                             unsigned int _depth) {
     center = _center;
     extents = _extents;
     depth = _depth;
 }
 
-bool OctreeNode::isLeaf() const { return children[0] == nullptr; }
+bool TerrainNode::isLeaf() const { return children[0] == nullptr; }
 
-void OctreeNode::divide() {
+void TerrainNode::divide() {
     assert(isLeaf());
     if (isLeaf() && depth > 0) {
         // clang-format off
@@ -40,21 +47,16 @@ void OctreeNode::divide() {
             children[i]->initialize(center + child_centers[i] * child_extents,
                                     child_extents, child_depth);
         }
-
-        octree->removeNodeAsLeaf(this);
-        octree->trackDivisionOperation(this);
     }
 }
 
-void OctreeNode::merge() {
+void TerrainNode::merge() {
     // Do before so that we can get the children IDs
-    octree->trackMergeOperation(this);
     if (!isLeaf()) {
         destroyAllChildren();
-        octree->trackNodeAsLeaf(this);
     }
 }
-void OctreeNode::destroyAllChildren() {
+void TerrainNode::destroyAllChildren() {
     if (!isLeaf()) {
         for (int i = 0; i < 8; i++) {
             children[i]->destroyAllChildren();
@@ -77,8 +79,8 @@ void OctreeUpdater::updateLODDistance(unsigned int lod, float radius) {
     lod_rings[lod] = radius;
 }
 
-unsigned int OctreeUpdater::smallestLODInNode(const OctreeNode& node) const {
-    auto isLODInNode = [this](const OctreeNode& node, float lod_radius) {
+unsigned int OctreeUpdater::smallestLODInNode(const TerrainNode& node) const {
+    auto isLODInNode = [this](const TerrainNode& node, float lod_radius) {
         // 1) Find the closest point on the box to the sphere
         const Vector3 box_min =
             node.center - Vector3(node.extents, node.extents, node.extents);
@@ -111,71 +113,47 @@ unsigned int OctreeUpdater::smallestLODInNode(const OctreeNode& node) const {
     return lod_rings.size();
 }
 
-Octree::Octree(unsigned int _maxDepth, float _voxelSize)
+TerrainMeshLoader::TerrainMeshLoader(unsigned int _maxDepth, float _voxelSize)
     : config{_maxDepth, _voxelSize} {
     idCounter = INVALID_NODE_ID + 1;
+
+    // Create MAX_CHUNK_JOBS schunk update jobs.
+    for (int i = 0; i < MAX_CHUNK_JOBS; i++) {
+        jobs.push_back(std::make_unique<ChunkBuilderJob>());
+    }
+    inactive_jobs.reserve(MAX_CHUNK_JOBS);
 
     const float root_extents = config.voxelSize * (1 << config.maxDepth);
     root = allocateNode();
     root->initialize(Vector3(0, 0, 0), root_extents, config.maxDepth);
 }
-Octree::~Octree() { destroyNode(root); }
+TerrainMeshLoader::~TerrainMeshLoader() { destroyNode(root); }
 
-OctreeNode* Octree::allocateNode() {
+TerrainNode* TerrainMeshLoader::allocateNode() {
     const unsigned int nodeID = idCounter++;
-    OctreeNode* newNode = allocator.allocate();
+    TerrainNode* newNode = allocator.allocate();
     newNode->octree = this;
     newNode->uniqueID = nodeID;
+
+    newNode->loaded = false;
+    newNode->mesh = nullptr;
 
     assert(!node_map.contains(nodeID));
     node_map[nodeID] = newNode;
 
-    trackNodeAsLeaf(newNode);
+    dirty_nodes.push_back(nodeID);
 
     return newNode;
 }
 
-void Octree::destroyNode(OctreeNode* node) {
+void TerrainMeshLoader::destroyNode(TerrainNode* node) {
     assert(node_map.contains(node->uniqueID));
     node_map.erase(node->uniqueID);
-
-    if (node->isLeaf()) {
-        removeNodeAsLeaf(node);
-    }
 
     allocator.free(node);
 }
 
-void Octree::trackNodeAsLeaf(const OctreeNode* node) {
-    // Does nothing (add code here if needed)
-}
-
-void Octree::removeNodeAsLeaf(const OctreeNode* node) {
-    // Does nothing (add code here if needed)
-}
-
-void Octree::trackDivisionOperation(const OctreeNode* node) {
-    operations.resize(operations.size() + 1);
-    auto& operation = operations.back();
-
-    operation.type = OctreeNode::Operation::DIVIDE;
-    operation.parent = node->uniqueID;
-    for (int i = 0; i < 8; i++) {
-        operation.children[i] = node->children[i]->uniqueID;
-    }
-}
-void Octree::trackMergeOperation(const OctreeNode* node) {
-    operations.resize(operations.size() + 1);
-    auto& operation = operations.back();
-
-    operation.type = OctreeNode::Operation::MERGE;
-    operation.parent = node->uniqueID;
-    for (int i = 0; i < 8; i++) {
-        operation.children[i] = node->children[i]->uniqueID;
-    }
-}
-
-void Octree::resetOctree(unsigned int _maxDepth, float _voxelSize) {
+void TerrainMeshLoader::resetOctree(unsigned int _maxDepth, float _voxelSize) {
     config = {_maxDepth, _voxelSize};
 
     delete root;
@@ -184,11 +162,11 @@ void Octree::resetOctree(unsigned int _maxDepth, float _voxelSize) {
     root = allocateNode();
     root->initialize(Vector3(0, 0, 0), root_extents, config.maxDepth);
 }
-void Octree::update(const OctreeUpdater& lodRequestor) {
-    operations.clear();
-    updateHelper(root, lodRequestor);
+void TerrainMeshLoader::updateOctree(const OctreeUpdater& lodRequestor) {
+    updateOctreeHelper(root, lodRequestor);
 }
-void Octree::updateHelper(OctreeNode* node, const OctreeUpdater& lodRequestor) {
+void TerrainMeshLoader::updateOctreeHelper(TerrainNode* node,
+                                           const OctreeUpdater& lodRequestor) {
     // Nodes are boxes in 3D space, so a node can intersect multiple LOD
     // spheres. First get the smallest (highest detail) LOD sphere that the
     // node intersects.
@@ -203,7 +181,7 @@ void Octree::updateHelper(OctreeNode* node, const OctreeUpdater& lodRequestor) {
         }
         assert(!node->isLeaf());
         for (int i = 0; i < 8; i++) {
-            updateHelper(node->children[i], lodRequestor);
+            updateOctreeHelper(node->children[i], lodRequestor);
         }
     } else if (node->depth <= smallestRequestedLOD) {
         if (!node->isLeaf()) {
@@ -214,30 +192,170 @@ void Octree::updateHelper(OctreeNode* node, const OctreeUpdater& lodRequestor) {
     }
 }
 
-OctreeUpdater Octree::getUpdater() {
+static void loadChunkJobData(ChunkBuilderJob& job,
+                             const TerrainGenerator& generator,
+                             const TerrainNode& chunk) {
+    job.vertex_map.clear();
+    job.border_triangles.clear();
+
+    job.builder.reset();
+    job.builder.addLayout(POSITION);
+    job.builder.addLayout(NORMAL);
+
+    // Load Sampled Data
+    job.chunk_id = chunk.uniqueID;
+    job.chunk_position =
+        chunk.center - Vector3(chunk.extents, chunk.extents, chunk.extents);
+    job.chunk_size = chunk.extents * 2;
+
+    const float DISTANCE_BETWEEN_SAMPLES =
+        job.chunk_size / (TERRAIN_SAMPLES_PER_CHUNK - 1);
+
+    for (int i = 0; i < TERRAIN_SAMPLES_PER_CHUNK + 2; i++) {
+        for (int j = 0; j < TERRAIN_SAMPLES_PER_CHUNK + 2; j++) {
+            for (int k = 0; k < TERRAIN_SAMPLES_PER_CHUNK + 2; k++) {
+                const float sample_x =
+                    job.chunk_position.x + (i - 1) * DISTANCE_BETWEEN_SAMPLES;
+                const float sample_y =
+                    job.chunk_position.y + (j - 1) * DISTANCE_BETWEEN_SAMPLES;
+                const float sample_z =
+                    job.chunk_position.z + (k - 1) * DISTANCE_BETWEEN_SAMPLES;
+
+                job.data[i][j][k] = generator.sampleTerrainGenerator(
+                    sample_x, sample_y, sample_z);
+            }
+        }
+    }
+}
+
+void TerrainMeshLoader::serveBuildRequests(TerrainGenerator* generator,
+                                           ResourceManager* resource_manager) {
+    // Iterate through my existing jobs to see if any have finished. If they
+    // have, load their meshes into the mesh pool.
+    inactive_jobs.clear();
+
+    for (int i = 0; i < jobs.size(); i++) {
+        auto& job = jobs[i];
+        if (job->async_lock.try_lock()) {
+            if (job->status == ChunkBuilderJob::JobStatus::Done) {
+                const unsigned int chunk_id = job->chunk_id;
+
+                // There is a chance that the chunk was destroyed before the job
+                // finished. In that case discard the contents of the job.
+                // Otherwise, we will generate a mesh.
+                if (auto iter = node_map.find(chunk_id);
+                    iter != node_map.end()) {
+                    iter->second->loaded = true;
+                    iter->second->mesh =
+                        resource_manager->requestMesh(job->builder);
+                }
+
+                job->status = ChunkBuilderJob::JobStatus::Inactive;
+            }
+
+            // There is a chance the async thread has not started yet at all, in
+            // which case the status would be "active". So, we only want to kick
+            // off a job if the status is inactive.
+            if (job->status == ChunkBuilderJob::JobStatus::Inactive) {
+                inactive_jobs.push_back(i);
+            }
+
+            job->async_lock.unlock();
+        }
+    }
+
+    // For N dirty chunks, kick off new jobs for them.
+    // TODO: Prioritize some dirty chunks over others.
+    if (!inactive_jobs.empty() && !dirty_nodes.empty()) {
+        const TerrainNodeID dirty_chunk = dirty_nodes.back();
+        dirty_nodes.pop_back();
+
+        // There is a chance that the dirty chunk was destroyed before a job was
+        // kicked off. Ignore it if so.
+        if (auto iter = node_map.find(dirty_chunk); iter != node_map.end()) {
+            auto& job = jobs[inactive_jobs.back()];
+            inactive_jobs.pop_back();
+
+            job->async_lock.lock();
+            {
+                loadChunkJobData(*job, *generator, *iter->second);
+                job->status = ChunkBuilderJob::JobStatus::Active;
+
+                // Kick off thread
+                ChunkBuilderJob* job_ptr = job.get();
+                ThreadPool::GetThreadPool()->scheduleJob(
+                    [job_ptr] { job_ptr->buildChunkMesh(); });
+            }
+            job->async_lock.unlock();
+        }
+    }
+}
+
+void TerrainMeshLoader::findValidMeshes(std::vector<Mesh*>& meshes) {
+    meshes.clear();
+    if (root && root->loaded) {
+        if (!root->mesh || root->mesh->ready) {
+            findValidMeshesHelper(root, meshes);
+        }
+    }
+}
+
+void TerrainMeshLoader::findValidMeshesHelper(TerrainNode* node,
+                                              std::vector<Mesh*>& meshes) {
+    if (node->isLeaf()) {
+        if (node->mesh) {
+            assert(node->mesh->ready);
+            meshes.push_back(node->mesh.get());
+        }
+    } else {
+        bool all_child_meshes_valid = true;
+
+        for (int i = 0; i < 8; i++) {
+            const auto& child = node->children[i];
+            assert(child);
+
+            if (!child->loaded)
+            {
+                all_child_meshes_valid = false;
+            } else if (child->mesh && !child->mesh->ready) {
+                all_child_meshes_valid = false;
+            }
+        }
+
+        if (all_child_meshes_valid) {
+            for (int i = 0; i < 8; i++) {
+                findValidMeshesHelper(node->children[i], meshes);
+            }
+        } else {
+            if (node->mesh) {
+                assert(node->mesh->ready);
+                meshes.push_back(node->mesh.get());
+            }
+        }
+    }
+}
+
+OctreeUpdater TerrainMeshLoader::getUpdater() {
     return std::move(OctreeUpdater(config.maxDepth));
 }
 
-const std::vector<OctreeNode::Operation>& Octree::getOperations() const {
-    return operations;
-}
-const std::unordered_map<OctreeNodeID, OctreeNode*>&
-Octree::getNodeMap() const {
+const std::unordered_map<TerrainNodeID, TerrainNode*>&
+TerrainMeshLoader::getNodeMap() const {
     return node_map;
 }
 
-const OctreeNode* Octree::getNode(OctreeNodeID id) const {
+const TerrainNode* TerrainMeshLoader::getNode(TerrainNodeID id) const {
     if (node_map.contains(id))
         return node_map.at(id);
     else
         return nullptr;
 }
 
-bool Octree::isNodePresent(OctreeNodeID id) const {
+bool TerrainMeshLoader::isNodePresent(TerrainNodeID id) const {
     return node_map.contains(id);
 }
 
-bool Octree::isNodeLeaf(const OctreeNodeID id) const {
+bool TerrainMeshLoader::isNodeLeaf(const TerrainNodeID id) const {
     if (isNodePresent(id)) {
         return node_map.at(id)->isLeaf();
     } else {

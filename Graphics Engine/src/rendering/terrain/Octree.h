@@ -6,11 +6,16 @@
 #include "core/PoolAllocator.h"
 #include "math/Vector3.h"
 
+#include "rendering/core/Mesh.h"
+
+#include "ChunkBuilderJob.h"
+
 namespace Engine {
 using namespace Math;
 
 namespace Graphics {
 // Octree:
+// TODO Rename to TerrainMeshLoader
 // Implementation of an octree, which divides 3D space into recursively
 // subdivided cubes.
 // To use, create the Octree. When you want to update it, pass in an
@@ -21,42 +26,40 @@ namespace Graphics {
 // - If !Node.isLeaf() and Requested LOD > Node Depth, we want less detail so we
 //   merge the node.
 // TODO: Add a node allocator so everything is contiguous.
-class Octree;
-typedef unsigned int OctreeNodeID;
+class TerrainMeshLoader;
+typedef unsigned int TerrainNodeID;
 
-static constexpr OctreeNodeID INVALID_NODE_ID = 0;
+static constexpr TerrainNodeID INVALID_NODE_ID = 0;
 
-struct OctreeNode {
-    Octree* octree;
+struct TerrainNode {
+    TerrainMeshLoader* octree;
 
     // Unique ID. Every node has a unique ID we can reference it by
-    OctreeNodeID uniqueID;
+    TerrainNodeID uniqueID;
 
     // Node Description in Space
     Vector3 center;
     float extents;
-
     unsigned int depth; // Depth = 0 is the smallest node possible
 
-    OctreeNode* children[8];
+    // Node Renderable Mesh
+    std::shared_ptr<Mesh> mesh = nullptr;
+    bool loaded = false;
+
+    // Node Children
+    TerrainNode* children[8];
     bool isLeaf() const;
 
-    // Octree Node Operations
+    // Node Operations
     // - Divide: Create 8 children with depth - 1. If depth is 0 we cannot
     // divide any more.
     // - Merge: Remove children, making this node the leaf. Effective "merges"
     // the nodes into this one.
-    struct Operation {
-        enum OperationType { DIVIDE, MERGE } type;
-        OctreeNodeID parent;
-        OctreeNodeID children[8];
-    };
-
     void divide();
     void merge();
 
-    OctreeNode();
-    ~OctreeNode();
+    TerrainNode();
+    ~TerrainNode();
 
     void initialize(const Vector3& center, float extents, unsigned int depth);
 
@@ -71,7 +74,7 @@ class OctreeUpdater {
     // is the radius in which we want LOD i or smaller.
     std::vector<float> lod_rings;
 
-    friend class Octree;
+    friend class TerrainMeshLoader;
     OctreeUpdater(unsigned int maxDepth);
 
   public:
@@ -83,7 +86,7 @@ class OctreeUpdater {
     // As nodes are boxes in 3D space, a node can intersect multiple LOD rings.
     // We want to return the minimum LOD needed for the node for the Octree to
     // work properly.
-    unsigned int smallestLODInNode(const OctreeNode& node) const;
+    unsigned int smallestLODInNode(const TerrainNode& node) const;
 };
 
 // For external classes, octree tracks 2 things:
@@ -92,18 +95,22 @@ class OctreeUpdater {
 // divided Terrain can use the list to kick off new async chunk building
 // jobs, and use the hashset to determine what chunk meshes are no longer
 // valid (to free memory).
-class Octree {
+class TerrainMeshLoader {
   private:
-    // Map of Node ID --> Node
-    std::unordered_map<OctreeNodeID, OctreeNode*> node_map;
-    // Vector of division / merge operations done since last update
-    std::vector<OctreeNode::Operation> operations;
+    // Root of Octree
+    TerrainNode* root;
+    // Map of Node ID --> Node for Easy Access into Octree
+    std::unordered_map<TerrainNodeID, TerrainNode*> node_map;
+
+    // Mesh Loading
+    std::vector<TerrainNodeID> dirty_nodes;
+
+    std::vector<std::unique_ptr<ChunkBuilderJob>> jobs;
+    std::vector<int> inactive_jobs;
 
     // Allocations
-    unsigned int idCounter;
-    PoolAllocator<OctreeNode, 1000> allocator;
-
-    OctreeNode* root;
+    TerrainNodeID idCounter;
+    PoolAllocator<TerrainNode, 1000> allocator;
 
     // Config
     struct {
@@ -112,33 +119,32 @@ class Octree {
     } config;
 
   public:
-    Octree(unsigned int maxDepth, float voxelSize);
-    ~Octree();
+    TerrainMeshLoader(unsigned int maxDepth, float voxelSize);
+    ~TerrainMeshLoader();
 
     void resetOctree(unsigned int _maxDepth, float _voxelSize);
-    void update(const OctreeUpdater& lodRequestor);
+
+    void updateOctree(const OctreeUpdater& lodRequestor);
+    void serveBuildRequests(TerrainGenerator* generator,
+                            ResourceManager* resource_managers);
+    void findValidMeshes(std::vector<Mesh*>& meshes);
 
     OctreeUpdater getUpdater();
 
-    const std::vector<OctreeNode::Operation>& getOperations() const;
-    const std::unordered_map<OctreeNodeID, OctreeNode*>& getNodeMap() const;
+    const std::unordered_map<TerrainNodeID, TerrainNode*>& getNodeMap() const;
 
-    const OctreeNode* getNode(OctreeNodeID id) const;
-    bool isNodePresent(OctreeNodeID id) const;
-    bool isNodeLeaf(OctreeNodeID id) const;
+    const TerrainNode* getNode(TerrainNodeID id) const;
+    bool isNodePresent(TerrainNodeID id) const;
+    bool isNodeLeaf(TerrainNodeID id) const;
 
   private:
-    void updateHelper(OctreeNode* node, const OctreeUpdater& lodRequestor);
+    void findValidMeshesHelper(TerrainNode* node, std::vector<Mesh*>& meshes);
+    void updateOctreeHelper(TerrainNode* node,
+                            const OctreeUpdater& lodRequestor);
 
-    friend struct OctreeNode;
-    OctreeNode* allocateNode();
-    void destroyNode(OctreeNode* node);
-
-    void trackNodeAsLeaf(const OctreeNode* node);
-    void removeNodeAsLeaf(const OctreeNode* node);
-
-    void trackDivisionOperation(const OctreeNode* node);
-    void trackMergeOperation(const OctreeNode* node);
+    friend struct TerrainNode;
+    TerrainNode* allocateNode();
+    void destroyNode(TerrainNode* node);
 };
 
 } // namespace Graphics

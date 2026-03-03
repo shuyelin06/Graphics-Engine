@@ -52,28 +52,8 @@ class VisualTerrain {
     WaterSurface* water_surface;
     float surface_level;
 
-    // Map of Octree Leaf --> Chunk Mesh
-    std::unordered_map<OctreeNodeID, std::shared_ptr<Mesh>> terrain_meshes;
-
     // Terrain Octree
-    std::unique_ptr<Octree> octree;
-
-    // Jobs
-    std::vector<std::unique_ptr<ChunkBuilderJob>> jobs;
-    std::vector<int> inactive_jobs;
-
-    double total_time_taken;
-    int total_finished_jobs;
-
-    // Dirty (& unprocessed) chunks
-    struct DirtyChunk {
-        unsigned int chunk_id;
-        float priority;
-        bool operator<(const DirtyChunk& other) const {
-            return priority < other.priority;
-        }
-    };
-    std::priority_queue<DirtyChunk> dirty_chunks;
+    std::unique_ptr<TerrainMeshLoader> octree;    
 
     // Config (set with ImGui)
     // Some Observations:
@@ -103,8 +83,8 @@ class VisualTerrain {
   private:
     void loadChunkJobData(ChunkBuilderJob& job,
                           const TerrainGenerator& generator,
-                          const OctreeNode& chunk);
-    float computeChunkPriority(const OctreeNode& chunk);
+                          const TerrainNode& chunk);
+    float computeChunkPriority(const TerrainNode& chunk);
 };
 
 } // namespace Graphics

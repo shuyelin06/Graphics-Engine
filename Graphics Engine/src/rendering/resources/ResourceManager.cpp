@@ -181,6 +181,10 @@ MeshPool* ResourceManager::getMeshPool(MeshPoolType pool_type) {
 
 std::shared_ptr<Mesh>
 ResourceManager::requestMesh(const MeshBuilder& mesh_builder) {
+    if (mesh_builder.index_buffer.empty() ||
+        mesh_builder.vertex_buffer.empty())
+        return nullptr;
+
     std::scoped_lock<std::mutex> mesh_job_lock(mesh_job_mutex);
 
     MeshBuildingJob& mesh_job = mesh_jobs.emplace_back();
@@ -279,8 +283,7 @@ void ResourceManager::processMeshJob(const MeshBuildingJob& job) {
 
     assert(pool);
 
-    if (!pool->has_gpu_resources)
-    {
+    if (!pool->has_gpu_resources) {
         pool->createGPUResources(device);
     }
 

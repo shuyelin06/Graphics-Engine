@@ -208,7 +208,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         input_system.update();
 
         // Pull Data for Rendering
-        visual_system.pullSceneData(&scene_graph);
+        visual_system.pullSceneData(&scene_graph,
+                                    camera->getTransform().getPosition());
 
         // Render Objects
         visual_system.render();

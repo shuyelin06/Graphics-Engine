@@ -96,7 +96,7 @@ class VisualSystem {
     void onObjectCreate(Object* object);
 
     // Call these functions to render the scene. Renders an entire scene
-    void pullSceneData(Scene* scene); // Call First
+    void pullSceneData(Scene* scene, Vector3 pos); // Call First
     void render();
 
     ResourceManager* getResourceManager() const;

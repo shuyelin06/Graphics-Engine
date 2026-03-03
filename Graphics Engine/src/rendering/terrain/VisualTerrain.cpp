@@ -16,8 +16,6 @@
 
 #include "rendering/VisualSystem.h"
 
-constexpr int MAX_CHUNK_JOBS = 16;
-
 constexpr int OCTREE_MAX_DEPTH = 4;
 
 namespace Engine {
@@ -28,12 +26,6 @@ VisualTerrain::VisualTerrain(Terrain* _terrain, VisualSystem* m_visual_system)
     : terrain(_terrain) {
     visual_system = m_visual_system;
 
-    // Create MAX_CHUNK_JOBS schunk update jobs.
-    for (int i = 0; i < MAX_CHUNK_JOBS; i++) {
-        jobs.push_back(std::make_unique<ChunkBuilderJob>());
-    }
-    inactive_jobs.reserve(MAX_CHUNK_JOBS);
-
     // Initialize my water surface mesh.
     water_surface = new WaterSurface();
     water_surface->generateSurfaceMesh(visual_system->getResourceManager(), 15);
@@ -41,8 +33,8 @@ VisualTerrain::VisualTerrain(Terrain* _terrain, VisualSystem* m_visual_system)
 
     surface_level = 0.f;
 
-    octree =
-        std::make_unique<Octree>(config.octree_max_depth, config.voxel_size);
+    octree = std::make_unique<TerrainMeshLoader>(config.octree_max_depth,
+                                                 config.voxel_size);
 }
 VisualTerrain::~VisualTerrain() = default;
 
@@ -64,173 +56,54 @@ void VisualTerrain::updateAndUploadTerrainData(ID3D11DeviceContext* context,
         updater.updateLODDistance(i, accumulated_size);
     }
 
-    octree->update(updater);
+    octree->updateOctree(updater);
+    octree->serveBuildRequests(&terrain->getGenerator(),
+                               visual_system->getResourceManager());
 
-    // 2) Iterate through my existing jobs to see if any have finished. If they
-    // have, load their meshes into the mesh pool.
-    inactive_jobs.clear();
-    bool mesh_pool_dirty = false;
+    std::vector<Mesh*> terrain_meshes;
+    octree->findValidMeshes(terrain_meshes);
 
-    for (int i = 0; i < jobs.size(); i++) {
-        auto& job = jobs[i];
-        if (job->async_lock.try_lock()) {
-            if (job->status == ChunkBuilderJob::JobStatus::Done) {
-                const unsigned int chunk_id = job->chunk_id;
-
-                // If the chunk id is not "active", then the chunk was unloaded
-                // while the job was generating the mesh. Don't upload, and set
-                // the job to inactive to be used again.
-                if (octree->isNodeLeaf(chunk_id) &&
-                    terrain_meshes[chunk_id] == nullptr) {
-                    std::shared_ptr<Mesh> mesh =
-                        visual_system->getResourceManager()->requestMesh(
-                            job->builder);
-                    terrain_meshes[chunk_id] = std::move(mesh);
-
-                    total_time_taken += job->time_taken;
-                    total_finished_jobs += 1;
-
-                    mesh_pool_dirty = true;
-                }
-
-                job->status = ChunkBuilderJob::JobStatus::Inactive;
-            }
-
-            // There is a chance the async thread has not started yet at all, in
-            // which case the status would be "active". So, we only want to kick
-            // off a job if the status is inactive.
-            if (job->status == ChunkBuilderJob::JobStatus::Inactive) {
-                inactive_jobs.push_back(i);
-            }
-
-            job->async_lock.unlock();
-        }
-    }
-
-    // 2) If we have inactive jobs, we will find the next highest priority
-    // chunks to load the meshes of.
-    const int num_inactive_jobs = inactive_jobs.size();
-
-    if (num_inactive_jobs >= MAX_CHUNK_JOBS * 0.5f) {
-        assert(dirty_chunks.size() == 0);
-
-        for (const auto& pair : octree->getNodeMap()) {
-            const OctreeNodeID nodeID = pair.first;
-            const OctreeNode* node = pair.second;
-
-            // Skip if the chunk is in the terrain_meshes map. That means either
-            // an existing job is loading the mesh, or it is already loaded.
-            if (!node->isLeaf() || terrain_meshes.contains(nodeID))
-                continue;
-
-            // Compute the priority, and add to dirty chunks queue.
-            assert(node != nullptr);
-            const DirtyChunk dirty_chunk = {nodeID,
-                                            -computeChunkPriority(*node)};
-
-            dirty_chunks.push(dirty_chunk);
-
-            // Push to the heap, and make sure the heap does not
-            // have a size greater than the max number of jobs.
-
-            // Note: We swap the sign of the priority, because
-            // dirty_chunks is a max heap and we want a min heap
-            // (so we can maintain the highest XX priorities).
-            if (dirty_chunks.size() > num_inactive_jobs)
-                dirty_chunks.pop();
-        }
-
-        // For any inactive jobs, we kick off another task with the highest
-        // priority dirty chunk.
-        assert(inactive_jobs.size() >= dirty_chunks.size());
-
-        int next_inactive_job = 0;
-        while (!dirty_chunks.empty()) {
-            auto& job = jobs[inactive_jobs[next_inactive_job++]];
-            job->async_lock.lock();
-
-            const DirtyChunk dirty_chunk = dirty_chunks.top();
-            dirty_chunks.pop();
-
-            const OctreeNode* node = octree->getNode(dirty_chunk.chunk_id);
-            assert(node != nullptr);
-            TerrainGenerator& generator = terrain->getGenerator();
-
-            // Load data
-            terrain_meshes[dirty_chunk.chunk_id] = nullptr;
-            loadChunkJobData(*job, generator, *node);
-            job->status = ChunkBuilderJob::JobStatus::Active;
-
-            // Kick off thread
-            ChunkBuilderJob* job_ptr = job.get();
-            ThreadPool::GetThreadPool()->scheduleJob(
-                [job_ptr] { job_ptr->buildChunkMesh(); });
-            job->async_lock.unlock();
-        }
-    }
-
-    // 3) Finally, go through our terrain meshes. If they are not in the list of
-    // active chunks, free.
-    auto it = terrain_meshes.begin();
-    while (it != terrain_meshes.end()) {
-        const auto& pair = *it;
-
-        if (!octree->isNodeLeaf(pair.first)) {
-            mesh_pool_dirty = true;
-            it = terrain_meshes.erase(it);
-        } else
-            ++it;
-    }
+    // Temp... Should be in ResourceManager.
+    MeshPool* mesh_pool =
+        visual_system->getResourceManager()->getMeshPool(MeshPoolType_Terrain);
+    // TODO..
+    mesh_pool->cleanAndCompact();
 
     // If anything wrote to our mesh pool, then we will upload the data to
     // GPU again.
     // TODO: We could throttle this so we only clean and compact every XX
     // frames..
-    if (mesh_pool_dirty) {
-        MeshPool* mesh_pool = visual_system->getResourceManager()->getMeshPool(
-            MeshPoolType_Terrain);
-        // TODO..
-        mesh_pool->cleanAndCompact();
+    // Upload my data to the structured buffers
+    std::vector<TBChunkDescriptor> descriptors;
 
-        // Upload my data to the structured buffers
-        std::vector<TBChunkDescriptor> descriptors;
+    pass_terrain.num_active_chunks = terrain_meshes.size();
+    pass_terrain.max_chunk_triangles = 0;
+    for (Mesh* mesh : terrain_meshes) {
+        TBChunkDescriptor desc;
+        desc.index_start = mesh->triangle_start * 3;
+        desc.index_count = mesh->num_triangles * 3;
+        desc.vertex_start = mesh->vertex_start;
+        desc.vertex_count = mesh->num_vertices;
+        descriptors.push_back(desc);
 
-        pass_terrain.num_active_chunks = mesh_pool->meshes.size();
-        pass_terrain.max_chunk_triangles = 0;
-        for (std::shared_ptr<Mesh>& mesh : mesh_pool->meshes) {
-            if (!mesh->ready)
-            {
-                continue;
-            }
-
-            TBChunkDescriptor desc;
-            desc.index_start = mesh->triangle_start * 3;
-            desc.index_count = mesh->num_triangles * 3;
-            desc.vertex_start = mesh->vertex_start;
-            desc.vertex_count = mesh->num_vertices;
-            descriptors.push_back(desc);
-
-            pass_terrain.max_chunk_triangles =
-                max(pass_terrain.max_chunk_triangles, mesh->num_triangles);
-        }
-
-        pass_terrain.sb_chunks.uploadData(context, descriptors.data(),
-                                          descriptors.size());
-        pass_terrain.sb_indices.uploadData(context,
-                                           mesh_pool->cpu_ibuffer.get(),
-                                           mesh_pool->triangle_size * 3);
-        pass_terrain.sb_positions.uploadData(
-            context, mesh_pool->cpu_vbuffers[POSITION].get(),
-            mesh_pool->vertex_size);
-        pass_terrain.sb_normals.uploadData(
-            context, mesh_pool->cpu_vbuffers[NORMAL].get(),
-            mesh_pool->vertex_size);
+        pass_terrain.max_chunk_triangles =
+            max(pass_terrain.max_chunk_triangles, mesh->num_triangles);
     }
+
+    pass_terrain.sb_chunks.uploadData(context, descriptors.data(),
+                                      descriptors.size());
+    pass_terrain.sb_indices.uploadData(context, mesh_pool->cpu_ibuffer.get(),
+                                       mesh_pool->triangle_size * 3);
+    pass_terrain.sb_positions.uploadData(
+        context, mesh_pool->cpu_vbuffers[POSITION].get(),
+        mesh_pool->vertex_size);
+    pass_terrain.sb_normals.uploadData(
+        context, mesh_pool->cpu_vbuffers[NORMAL].get(), mesh_pool->vertex_size);
 }
 
 void VisualTerrain::loadChunkJobData(ChunkBuilderJob& job,
                                      const TerrainGenerator& generator,
-                                     const OctreeNode& chunk) {
+                                     const TerrainNode& chunk) {
     assert(chunk.isLeaf());
 
     job.vertex_map.clear();
@@ -266,7 +139,7 @@ void VisualTerrain::loadChunkJobData(ChunkBuilderJob& job,
     }
 }
 
-float VisualTerrain::computeChunkPriority(const OctreeNode& chunk) {
+float VisualTerrain::computeChunkPriority(const TerrainNode& chunk) {
     float distance =
         (Vector3(chunk.center.x, chunk.center.y, chunk.center.z)).magnitude();
     return 1 / (1 + distance);
@@ -284,11 +157,6 @@ const WaterSurface* VisualTerrain::getWaterSurface() const {
 void VisualTerrain::imGui() {
 #if defined(IMGUI_ENABLED)
     ImGui::Text("Visual Terrain");
-
-    if (total_finished_jobs > 0) {
-        ImGui::Text("Average Chunk Generation Time: %f",
-                    total_time_taken / total_finished_jobs);
-    }
 
     if (octree && ImGui::CollapsingHeader("Octree")) {
         ImGui::Text("Octree Config");
