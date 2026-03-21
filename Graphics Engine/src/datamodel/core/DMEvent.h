@@ -4,6 +4,8 @@
 #include <string>
 #include <variant>
 
+#include "core/StackString.h"
+
 namespace Engine {
 namespace Datamodel {
 enum class DMEventType {
@@ -14,31 +16,10 @@ enum class DMEventType {
 };
 
 using DMObjectHandle = uint32_t;
-// clang-format off
-enum class DMObjectTag : uint16_t{
-    kUnknown = 0,
-    kCamera = 1,
-    kLight = 2,
-    kMesh = 3,
-    kPhysics = 4,
-    kTerrain = 5,
-};
-// clang-format on
+using DMObjectTag = StackString<16>;
+using DMPropertyTag = StackString<16>;
 
-// clang-format off
-enum class DMPropertyTag {
-    // Transform
-    kPosition, kRotation, kScale,
-    // Camera
-    kCamera_FOV, kCamera_ZNear, kCamera_ZFar,
-    // Terrain
-    kTerrain_Seed,
-
-};
-// clang-format on
-
-constexpr size_t kDMPropertyMaxSize = 16;
-using DMPropertyData = uint8_t[kDMPropertyMaxSize];
+using DMPropertyData = std::variant<uint32_t>;
 
 struct DMEvent {
     DMEventType event_type;
@@ -49,17 +30,7 @@ struct DMEvent {
     // If event_type == Property_Updated
     DMPropertyTag property_tag;
     DMPropertyData property_data;
-
-    template <typename T> T& pullPropertyData() {
-        static_assert(sizeof(T) <= kDMPropertyMaxSize);
-        return *reinterpret_cast<T*>(property_data);
-    }
 };
-
-template <typename T> T& pullPropertyData(const DMPropertyData& data) {
-    static_assert(sizeof(T) <= kDMPropertyMaxSize);
-    return *(T*)(data);
-}
 
 } // namespace Datamodel
 } // namespace Engine

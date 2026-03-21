@@ -62,13 +62,8 @@ void SceneManagerImpl::update() {
         const DMEvent event = mEvents.back();
         mEvents.pop_back();
 
-        switch (event.object_type) {
-        case DMObjectTag::kTerrain:
+        if (event.object_type == "Terrain") {
             processTerrainEvent(event);
-            break;
-            // TODO: event loop + binding with other managers.
-        default:
-            break;
         }
     }
 }
@@ -79,7 +74,7 @@ void SceneManagerImpl::onDatamodelEvent(const Datamodel::DMEvent& event) {
 }
 
 void SceneManagerImpl::processTerrainEvent(const DMEvent& event) {
-    assert(event.object_type == DMObjectTag::kTerrain);
+    assert(event.object_type == "Terrain");
     VisualTerrain* visualTerrain = mVisualSystem->getVisualTerrain();
     assert(visualTerrain);
 
@@ -97,9 +92,9 @@ void SceneManagerImpl::processTerrainEvent(const DMEvent& event) {
         break;
 
     case DMEventType::kPropertyUpdated:
-        if (event.property_tag == DMPropertyTag::kTerrain_Seed) {
+        if (event.property_tag == "Seed") {
             packet.type = VisualTerrain::UpdatePacket::Type::kPropertySeed;
-            packet.data = pullPropertyData<uint32_t>(event.property_data);
+            packet.data = std::get<uint32_t>(event.property_data);
         }
         break;
     }

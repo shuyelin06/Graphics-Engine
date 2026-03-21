@@ -2,7 +2,7 @@
 
 namespace Engine {
 namespace Datamodel {
-DMLight::DMLight() : Object(DMObjectTag::kLight), Bindable<DMLight>(this) {
+DMLight::DMLight() : Object("Light"), Bindable<DMLight>(this) {
     DMLight::SignalObjectCreation(this);
 }
 DMLight::~DMLight() = default;

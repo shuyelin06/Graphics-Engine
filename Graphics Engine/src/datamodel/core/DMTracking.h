@@ -1,7 +1,7 @@
 #pragma once
 
-#include "DMListener.h"
 #include "DMEvent.h"
+#include "DMListener.h"
 
 namespace Engine {
 namespace Datamodel {
@@ -39,8 +39,7 @@ template <typename T> struct DMTrackedProperty {
         event.object = owner->getHandle();
         event.object_type = owner->getObjectTag();
         event.property_tag = property_tag;
-        static_assert(sizeof(T) <= kDMPropertyMaxSize);
-        memcpy(event.property_data, &data, sizeof(T));
+        event.property_data = data;
         FireDatamodelEvent(event);
     };
 

@@ -2,7 +2,7 @@
 
 namespace Engine {
 namespace Datamodel {
-DMMesh::DMMesh() : Object(DMObjectTag::kMesh), Bindable<DMMesh>(this) {
+DMMesh::DMMesh() : Object("Mesh"), Bindable<DMMesh>(this) {
     mesh_name = "";
     DMMesh::SignalObjectCreation(this);
 }

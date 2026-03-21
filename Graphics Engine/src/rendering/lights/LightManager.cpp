@@ -201,7 +201,7 @@ ShadowLight* LightManager::createShadowLight(Object* object,
 // parameter.
 void LightManager::createSunLight(ShadowMapQuality quality) {
     ShadowLight* lights[SUN_NUM_CASCADES];
-    Object* sun_obj = new Object(DMObjectTag::kUnknown);
+    Object* sun_obj = new Object("Unknown");
 
     for (int i = 0; i < SUN_NUM_CASCADES; i++) {
         ShadowLight* light = createShadowLight(sun_obj, quality);

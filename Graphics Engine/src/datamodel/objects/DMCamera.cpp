@@ -3,8 +3,7 @@
 namespace Engine {
 namespace Datamodel {
 DMCamera::DMCamera()
-    : Object(DMObjectTag::kCamera),
-      fov_test(&this->getDMHandle(), DMPropertyTag::kCamera_FOV),
+    : Object("Camera"), fov_test(&this->getDMHandle(), "FOV"),
       Bindable<DMCamera>(this) {
     fov = 1.2f;
 

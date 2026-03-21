@@ -2,8 +2,7 @@
 
 namespace Engine {
 namespace Datamodel {
-DMPhysics::DMPhysics()
-    : Object(DMObjectTag::kPhysics), Bindable<DMPhysics>(this) {
+DMPhysics::DMPhysics() : Object("Physics"), Bindable<DMPhysics>(this) {
     DMPhysics::SignalObjectCreation(this);
 };
 DMPhysics::~DMPhysics() = default;

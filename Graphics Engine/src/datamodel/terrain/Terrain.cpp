@@ -2,9 +2,7 @@
 
 namespace Engine {
 namespace Datamodel {
-Terrain::Terrain()
-    : Object(DMObjectTag::kTerrain),
-      seed(&this->getDMHandle(), DMPropertyTag::kTerrain_Seed) {
+Terrain::Terrain() : Object("Terrain"), seed(&this->getDMHandle(), "Seed") {
     setName("Terrain");
 }
 

@@ -111,7 +111,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     Datamodel::RegisterDatamodelListener(visual_system.getSceneManager());
     Scene scene_graph = Scene();
 
-    Object* root = new Object(DMObjectTag::kUnknown);
+    Object* root = new Object("Unknown");
     root->setName("Root");
     scene_graph.addObject(root);
 
