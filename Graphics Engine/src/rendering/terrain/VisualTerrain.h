@@ -2,41 +2,22 @@
 #pragma once
 
 #include <array>
+#include <memory>
 #include <queue>
 #include <unordered_map>
 
 #include "datamodel/terrain/Terrain.h"
 
 #include "rendering/RenderPass.h"
-#include "rendering/core/Frustum.h"
-#include "rendering/core/Mesh.h"
 
-#include "rendering/pipeline/StructuredBuffer.h"
-
-#include "rendering/resources/MeshBuilder.h"
-#include "rendering/resources/ResourceManager.h"
-
-#include "ChunkBuilderJob.h"
 #include "WaterSurface.h"
-
-#include "Octree.h"
 
 namespace Engine {
 using namespace Datamodel;
 
 namespace Graphics {
 class VisualSystem;
-
-// Data Structures for the terrain structured buffers. These buffers
-// will be used in the vertex shader to generate the terrain mesh using vertex
-// pulling
-struct TBChunkDescriptor {
-    unsigned int index_start;
-    unsigned int index_count;
-
-    unsigned int vertex_start;
-    unsigned int vertex_count;
-};
+class VisualTerrainImpl;
 
 // VisualTerrain Class:
 // Interfaces with the datamodel to pull and generate terrain data for the
@@ -44,28 +25,9 @@ struct TBChunkDescriptor {
 // draw calls, VisualTerrain will dynamically group chunk meshes into a single
 // vertex / index buffer.
 class VisualTerrain {
-  private:
-    Terrain* terrain;
-    VisualSystem* visual_system;
-
-    // Water Surface
-    WaterSurface* water_surface;
-    float surface_level;
-
-    // Terrain Octree
-    std::unique_ptr<TerrainMeshLoader> octree;    
-
-    // Config (set with ImGui)
-    // Some Observations:
-    // - LOD 0 Distance >> Voxel Size. Otherwise, you'll be able to see nodes
-    //   update close to the camera which looks weird.
-    struct {
-        int octree_max_depth = 8;
-        float voxel_size = 25.f;
-    } config;
-
   public:
-    VisualTerrain(Terrain* terrain, VisualSystem* visual_system);
+    static std::unique_ptr<VisualTerrain> create(VisualSystem* visual_system,
+                                                 Terrain* terrain);
     ~VisualTerrain();
 
     // Update the octree and pull the most recent terrain meshesS
@@ -81,10 +43,8 @@ class VisualTerrain {
     void imGui();
 
   private:
-    void loadChunkJobData(ChunkBuilderJob& job,
-                          const TerrainGenerator& generator,
-                          const TerrainNode& chunk);
-    float computeChunkPriority(const TerrainNode& chunk);
+    std::unique_ptr<VisualTerrainImpl> mImpl;
+    VisualTerrain();
 };
 
 } // namespace Graphics

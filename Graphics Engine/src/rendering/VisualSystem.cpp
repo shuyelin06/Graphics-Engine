@@ -174,7 +174,7 @@ void VisualSystem::onObjectCreate(Object* object) {
 
     if (class_id == Terrain::ClassID()) {
         Terrain* dm_terrain = static_cast<Terrain*>(object);
-        terrain.reset(new VisualTerrain(dm_terrain, this));
+        terrain = VisualTerrain::create(this, dm_terrain);
     } else if (class_id == DMCamera::ClassID()) {
         camera.reset(new Camera(object));
     } else if (class_id == DMMesh::ClassID()) {
@@ -387,6 +387,7 @@ ResourceManager* VisualSystem::getResourceManager() const {
 SceneManager* VisualSystem::getSceneManager() const {
     return scene_manager.get();
 }
+VisualTerrain* VisualSystem::getVisualTerrain() const { return terrain.get(); }
 
 // PerformShadowPass:
 // Render the scene from each light's point of view, to populate

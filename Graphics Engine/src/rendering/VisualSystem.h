@@ -104,6 +104,7 @@ class VisualSystem {
 
     ResourceManager* getResourceManager() const;
     SceneManager* getSceneManager() const;
+    VisualTerrain* getVisualTerrain() const;
 
   private:                     // Rendering Stages
     void performPrepass();     // Prepass (Shadowmaps)

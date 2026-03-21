@@ -16,13 +16,103 @@
 
 #include "rendering/VisualSystem.h"
 
+#include "rendering/core/Frustum.h"
+#include "rendering/core/Mesh.h"
+#include "rendering/pipeline/StructuredBuffer.h"
+#include "rendering/resources/MeshBuilder.h"
+#include "rendering/resources/ResourceManager.h"
+
+#include "ChunkBuilderJob.h"
+#include "Octree.h"
+
+
 constexpr int OCTREE_MAX_DEPTH = 4;
 
 namespace Engine {
 using namespace Datamodel;
 
 namespace Graphics {
-VisualTerrain::VisualTerrain(Terrain* _terrain, VisualSystem* m_visual_system)
+// Data Structures for the terrain structured buffers. These buffers
+// will be used in the vertex shader to generate the terrain mesh using vertex
+// pulling
+struct TBChunkDescriptor {
+    unsigned int index_start;
+    unsigned int index_count;
+
+    unsigned int vertex_start;
+    unsigned int vertex_count;
+};
+
+class VisualTerrainImpl {
+  private:
+    Terrain* terrain;
+    VisualSystem* visual_system;
+
+    // Water Surface
+    WaterSurface* water_surface;
+    float surface_level;
+
+    // Terrain Octree
+    std::unique_ptr<TerrainMeshLoader> octree;
+
+    // Config (set with ImGui)
+    // Some Observations:
+    // - LOD 0 Distance >> Voxel Size. Otherwise, you'll be able to see nodes
+    //   update close to the camera which looks weird.
+    struct {
+        int octree_max_depth = 8;
+        float voxel_size = 25.f;
+    } config;
+
+  public:
+    VisualTerrainImpl(VisualSystem* visualSystem, Terrain* terrain);
+    ~VisualTerrainImpl();
+
+    // Update the octree and pull the most recent terrain meshesS
+    void updateAndUploadTerrainData(ID3D11DeviceContext* context,
+                                    RenderPassTerrain& pass_terrain,
+                                    const Vector3& camera_pos);
+
+    // Return water surface data
+    const WaterSurface* getWaterSurface() const;
+    float getSurfaceLevel() const;
+
+    // ImGui
+    void imGui();
+
+  private:
+    void loadChunkJobData(ChunkBuilderJob& job,
+                          const TerrainGenerator& generator,
+                          const TerrainNode& chunk);
+    float computeChunkPriority(const TerrainNode& chunk);
+};
+
+VisualTerrain::VisualTerrain() = default;
+VisualTerrain::~VisualTerrain() = default;
+
+std::unique_ptr<VisualTerrain> VisualTerrain::create(VisualSystem* visualSystem,
+                                                     Terrain* terrain) {
+    std::unique_ptr<VisualTerrain> ptr =
+        std::unique_ptr<VisualTerrain>(new VisualTerrain());
+    ptr->mImpl = std::make_unique<VisualTerrainImpl>(visualSystem, terrain);
+    return std::move(ptr);
+}
+
+void VisualTerrain::updateAndUploadTerrainData(ID3D11DeviceContext* context,
+                                               RenderPassTerrain& pass_terrain,
+                                               const Vector3& camera_pos) {
+    mImpl->updateAndUploadTerrainData(context, pass_terrain, camera_pos);
+}
+const WaterSurface* VisualTerrain::getWaterSurface() const {
+    return mImpl->getWaterSurface();
+}
+float VisualTerrain::getSurfaceLevel() const {
+    return mImpl->getSurfaceLevel();
+}
+void VisualTerrain::imGui() { mImpl->imGui(); }
+
+VisualTerrainImpl::VisualTerrainImpl(VisualSystem* m_visual_system,
+                                     Terrain* _terrain)
     : terrain(_terrain) {
     visual_system = m_visual_system;
 
@@ -36,13 +126,13 @@ VisualTerrain::VisualTerrain(Terrain* _terrain, VisualSystem* m_visual_system)
     octree = std::make_unique<TerrainMeshLoader>(config.octree_max_depth,
                                                  config.voxel_size);
 }
-VisualTerrain::~VisualTerrain() = default;
+VisualTerrainImpl::~VisualTerrainImpl() = default;
 
 // GenerateTerrainMesh:
 // Generates the mesh for the terrain
-void VisualTerrain::updateAndUploadTerrainData(ID3D11DeviceContext* context,
-                                               RenderPassTerrain& pass_terrain,
-                                               const Vector3& camera_pos) {
+void VisualTerrainImpl::updateAndUploadTerrainData(
+    ID3D11DeviceContext* context, RenderPassTerrain& pass_terrain,
+    const Vector3& camera_pos) {
     ICPUTimer cpu_timer = CPUTimer::TrackCPUTime("Terrain Update");
 
     // 1) Update the Octree based on the camera
@@ -101,9 +191,9 @@ void VisualTerrain::updateAndUploadTerrainData(ID3D11DeviceContext* context,
         context, mesh_pool->cpu_vbuffers[NORMAL].get(), mesh_pool->vertex_size);
 }
 
-void VisualTerrain::loadChunkJobData(ChunkBuilderJob& job,
-                                     const TerrainGenerator& generator,
-                                     const TerrainNode& chunk) {
+void VisualTerrainImpl::loadChunkJobData(ChunkBuilderJob& job,
+                                         const TerrainGenerator& generator,
+                                         const TerrainNode& chunk) {
     assert(chunk.isLeaf());
 
     job.vertex_map.clear();
@@ -139,22 +229,22 @@ void VisualTerrain::loadChunkJobData(ChunkBuilderJob& job,
     }
 }
 
-float VisualTerrain::computeChunkPriority(const TerrainNode& chunk) {
+float VisualTerrainImpl::computeChunkPriority(const TerrainNode& chunk) {
     float distance =
         (Vector3(chunk.center.x, chunk.center.y, chunk.center.z)).magnitude();
     return 1 / (1 + distance);
 }
 
 // --- Accessors ---
-float VisualTerrain::getSurfaceLevel() const { return surface_level; }
+float VisualTerrainImpl::getSurfaceLevel() const { return surface_level; }
 
 // Returns the water surface mesh
-const WaterSurface* VisualTerrain::getWaterSurface() const {
+const WaterSurface* VisualTerrainImpl::getWaterSurface() const {
     return water_surface;
 }
 
 // ImGui
-void VisualTerrain::imGui() {
+void VisualTerrainImpl::imGui() {
 #if defined(IMGUI_ENABLED)
     ImGui::Text("Visual Terrain");
 

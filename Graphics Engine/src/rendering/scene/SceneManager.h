@@ -18,8 +18,6 @@ using namespace Datamodel;
 class SceneManager : public Datamodel::DMListener {
   public:
     static std::unique_ptr<SceneManager> create(VisualSystem* visual_system);
-
-    SceneManager();
     ~SceneManager();
 
     // Process all incoming datamodel events
@@ -30,6 +28,8 @@ class SceneManager : public Datamodel::DMListener {
 
   private:
     std::unique_ptr<SceneManagerImpl> mImpl;
+
+    SceneManager();
 };
 
 } // namespace Graphics

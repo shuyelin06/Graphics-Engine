@@ -30,7 +30,7 @@ SceneManager::~SceneManager() = default;
 
 std::unique_ptr<SceneManager> SceneManager::create(VisualSystem* visualSystem) {
     std::unique_ptr<SceneManager> sceneManager =
-        std::make_unique<SceneManager>();
+        std::unique_ptr<SceneManager>(new SceneManager());
     sceneManager->mImpl = std::make_unique<SceneManagerImpl>(visualSystem);
     return std::move(sceneManager);
 }
