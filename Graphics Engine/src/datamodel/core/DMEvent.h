@@ -31,6 +31,8 @@ enum class DMPropertyTag {
     kPosition, kRotation, kScale,
     // Camera
     kCamera_FOV, kCamera_ZNear, kCamera_ZFar,
+    // Terrain
+    kTerrain_Seed,
 
 };
 // clang-format on
@@ -54,10 +56,9 @@ struct DMEvent {
     }
 };
 
-template <typename T>
-T& pullPropertyData(const DMPropertyData& data) {
+template <typename T> T& pullPropertyData(const DMPropertyData& data) {
     static_assert(sizeof(T) <= kDMPropertyMaxSize);
-    return *reinterpret_cast<T*>(data);
+    return *(T*)(data);
 }
 
 } // namespace Datamodel

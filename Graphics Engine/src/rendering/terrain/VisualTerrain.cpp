@@ -12,7 +12,6 @@
 
 #include "../VisualDebug.h"
 #include "../util/CPUTimer.h"
-#include "datamodel/terrain/TerrainGenerator.h"
 
 #include "rendering/VisualSystem.h"
 
@@ -238,6 +237,8 @@ void VisualTerrainImpl::processSceneUpdates() {
         case UpdatePacket::Type::kPropertySeed: {
             const uint32_t seed = std::get<uint32_t>(updatePacket.data);
             generator->seedGenerator(seed);
+            octree = std::make_unique<TerrainMeshLoader>(
+                config.octree_max_depth, config.voxel_size);
         } break;
         }
     }

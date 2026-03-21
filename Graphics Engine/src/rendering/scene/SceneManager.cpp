@@ -97,6 +97,10 @@ void SceneManagerImpl::processTerrainEvent(const DMEvent& event) {
         break;
 
     case DMEventType::kPropertyUpdated:
+        if (event.property_tag == DMPropertyTag::kTerrain_Seed) {
+            packet.type = VisualTerrain::UpdatePacket::Type::kPropertySeed;
+            packet.data = pullPropertyData<uint32_t>(event.property_data);
+        }
         break;
     }
 
