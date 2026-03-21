@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "core/DMTracking.h"
+
 #include "math/Matrix4.h"
 #include "math/Transform.h"
 #include "math/Vector3.h"
@@ -30,6 +32,9 @@ class DMBinding;
 // prepended with "DM".
 // The SceneGraph is in charge of cleaning up objects.
 class Object {
+  private:
+    DMTrackedObject dm_handle;
+
   protected:
     Object* parent;
     std::vector<Object*> children;
@@ -52,9 +57,11 @@ class Object {
     std::string name;
 #endif
 
+    const DMTrackedObject& getDMHandle() const;
+
   public:
     // Constructor & Destructor
-    Object();
+    Object(const DMObjectTag& object_tag);
     ~Object();
 
     // Name. Used in the Property Display

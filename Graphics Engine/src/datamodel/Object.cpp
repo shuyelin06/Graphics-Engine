@@ -16,7 +16,7 @@ namespace Datamodel {
 // Constructor:
 // Creates an object with no parent and a
 // local position of (0,0,0)
-Object::Object() {
+Object::Object(const DMObjectTag& object_tag) : dm_handle(object_tag) {
     // Objects start with no parent and no children
     parent = nullptr;
     children = std::vector<Object*>(0);
@@ -47,6 +47,8 @@ Object::~Object() {
     for (Object* child : children)
         delete child;
 }
+
+const DMTrackedObject& Object::getDMHandle() const { return dm_handle; }
 
 Object* Object::setName(const std::string& new_name) {
 #if defined(_DEBUG)

@@ -15,6 +15,7 @@
 #include "lights/LightManager.h"
 #include "pipeline/PipelineManager.h"
 #include "resources/ResourceManager.h"
+#include "scene/SceneManager.h"
 
 #include "core/RenderableMesh.h"
 #include "terrain/VisualTerrain.h"
@@ -69,13 +70,14 @@ class VisualSystem {
     ID3D11DeviceContext* context;
 
     // Managers
+    std::unique_ptr<SceneManager> scene_manager;
     std::unique_ptr<ResourceManager> resource_manager;
     LightManager* light_manager;
     Pipeline* pipeline;
 
     // Supported Components
     std::unique_ptr<Camera> camera;
-    std::vector<RenderableMesh*> renderable_meshes; 
+    std::vector<RenderableMesh*> renderable_meshes;
     std::unique_ptr<VisualTerrain> terrain;
 
     // Temp for now; should be moved later.
@@ -96,15 +98,17 @@ class VisualSystem {
     void onObjectCreate(Object* object);
 
     // Call these functions to render the scene. Renders an entire scene
+    void renderPrepare();
     void pullSceneData(Scene* scene, Vector3 pos); // Call First
     void render();
 
     ResourceManager* getResourceManager() const;
+    SceneManager* getSceneManager() const;
 
   private:                     // Rendering Stages
     void performPrepass();     // Prepass (Shadowmaps)
     void performTerrainPass(); // Render Terrain
-    void performDefaultPass();  // Render Pass
+    void performDefaultPass(); // Render Pass
 
     void performLightFrustumPass(); // Light Frustum Pass
 

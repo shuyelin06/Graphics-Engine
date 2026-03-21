@@ -157,6 +157,7 @@ VisualSystem::VisualSystem(HWND window) {
     }
 
     // Initialize each of my managers with the resources they need
+    scene_manager = SceneManager::create(this);
     resource_manager = std::make_unique<ResourceManager>(device, context);
     resource_manager->initializeSystemResources();
 
@@ -265,6 +266,8 @@ void VisualSystem::render() {
     pipeline->endFrame();
 }
 
+void VisualSystem::renderPrepare() { scene_manager->update(); }
+
 // PullSceneData:
 // Prepares the engine for rendering, by pulling all necessary
 // data from the datamodel.
@@ -280,8 +283,7 @@ void VisualSystem::pullSceneData(Scene* scene, Vector3 pos) {
     light_manager->pullDatamodelData();
 
     if (terrain)
-        terrain->updateAndUploadTerrainData(context, *pass_terrain,
-                                            pos);
+        terrain->updateAndUploadTerrainData(context, *pass_terrain, pos);
 
     // Prepare managers for data
     light_manager->updateSunDirection(config->sun_direction);
@@ -381,6 +383,9 @@ void VisualSystem::pullSceneData(Scene* scene, Vector3 pos) {
 
 ResourceManager* VisualSystem::getResourceManager() const {
     return resource_manager.get();
+}
+SceneManager* VisualSystem::getSceneManager() const {
+    return scene_manager.get();
 }
 
 // PerformShadowPass:

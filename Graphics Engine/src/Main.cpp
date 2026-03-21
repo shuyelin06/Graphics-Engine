@@ -107,9 +107,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     ThreadPool::InitializeThreadPool();
 
     // --- Create my Scene ---
+    Datamodel::RegisterDatamodelListener(visual_system.getSceneManager());
     Scene scene_graph = Scene();
 
-    Object* root = new Object();
+    Object* root = new Object(DMObjectTag::kUnknown);
     root->setName("Root");
     scene_graph.addObject(root);
 
@@ -206,6 +207,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
         // Dispatch Input Data
         input_system.update();
+
+        visual_system.renderPrepare();
 
         // Pull Data for Rendering
         visual_system.pullSceneData(&scene_graph,

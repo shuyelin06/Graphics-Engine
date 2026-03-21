@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../core/DMCore.h"
+
 #include "../Bindable.h"
 #include "../Object.h"
 
@@ -9,6 +11,8 @@ namespace Datamodel {
 // Represents a camera in the scene.
 class DMCamera : public Object, public Bindable<DMCamera> {
   private:
+    DMTrackedProperty<float> fov_test;
+
     float fov;
     float z_near, z_far;
 

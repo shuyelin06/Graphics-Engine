@@ -12,7 +12,7 @@
 
 namespace Engine {
 namespace Datamodel {
-Terrain::Terrain() : Object(), Bindable<Terrain>(this) {
+Terrain::Terrain() : Object(DMObjectTag::kTerrain), Bindable<Terrain>(this) {
     surface_height = 100.f;
     center_x = center_y = center_z = INT_MAX;
 
