@@ -161,7 +161,7 @@ VisualSystem::VisualSystem(HWND window) {
     scene_manager = SceneManager::create(this);
     resource_manager = std::make_unique<ResourceManager>(device, context);
     resource_manager->initializeSystemResources();
-    terrain = VisualTerrain::create(this);
+    terrain = TerrainManager::create(this);
 
     light_manager = new LightManager(device, 4096);
 
@@ -386,7 +386,7 @@ ResourceManager* VisualSystem::getResourceManager() const {
 SceneManager* VisualSystem::getSceneManager() const {
     return scene_manager.get();
 }
-VisualTerrain* VisualSystem::getVisualTerrain() const { return terrain.get(); }
+TerrainManager* VisualSystem::getVisualTerrain() const { return terrain.get(); }
 
 // PerformShadowPass:
 // Render the scene from each light's point of view, to populate

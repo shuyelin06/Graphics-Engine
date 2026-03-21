@@ -21,10 +21,10 @@ class VisualTerrainImpl;
 // visual system. This primarily consists of mesh data. To reduce the number of
 // draw calls, VisualTerrain will dynamically group chunk meshes into a single
 // vertex / index buffer.
-class VisualTerrain {
+class TerrainManager {
   public:
-    static std::unique_ptr<VisualTerrain> create(VisualSystem* visual_system);
-    ~VisualTerrain();
+    static std::unique_ptr<TerrainManager> create(VisualSystem* visual_system);
+    ~TerrainManager();
 
     // Scene Updating
     struct UpdatePacket {
@@ -51,7 +51,7 @@ class VisualTerrain {
 
   private:
     std::unique_ptr<VisualTerrainImpl> mImpl;
-    VisualTerrain();
+    TerrainManager();
 };
 
 } // namespace Graphics

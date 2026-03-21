@@ -2,7 +2,7 @@
 
 #include "../VisualSystem.h"
 
-#include "rendering/terrain/VisualTerrain.h"
+#include "rendering/terrain/TerrainManager.h"
 
 namespace Engine {
 namespace Graphics {
@@ -75,25 +75,25 @@ void SceneManagerImpl::onDatamodelEvent(const Datamodel::DMEvent& event) {
 
 void SceneManagerImpl::processTerrainEvent(const DMEvent& event) {
     assert(event.object_type == "Terrain");
-    VisualTerrain* visualTerrain = mVisualSystem->getVisualTerrain();
+    TerrainManager* visualTerrain = mVisualSystem->getVisualTerrain();
     assert(visualTerrain);
 
-    VisualTerrain::UpdatePacket packet;
+    TerrainManager::UpdatePacket packet;
 
     switch (event.event_type) {
     case DMEventType::kCreated:
-        packet.type = VisualTerrain::UpdatePacket::Type::kToggleTerrain;
+        packet.type = TerrainManager::UpdatePacket::Type::kToggleTerrain;
         packet.data = true;
         break;
 
     case DMEventType::kDestroyed:
-        packet.type = VisualTerrain::UpdatePacket::Type::kToggleTerrain;
+        packet.type = TerrainManager::UpdatePacket::Type::kToggleTerrain;
         packet.data = false;
         break;
 
     case DMEventType::kPropertyUpdated:
         if (event.property_tag == "Seed") {
-            packet.type = VisualTerrain::UpdatePacket::Type::kPropertySeed;
+            packet.type = TerrainManager::UpdatePacket::Type::kPropertySeed;
             packet.data = std::get<uint32_t>(event.property_data);
         }
         break;

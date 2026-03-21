@@ -180,7 +180,7 @@
     <ClCompile Include="src\datamodel\objects\DMPhysics.cpp" />
     <ClCompile Include="src\datamodel\SceneGraph.cpp" />
     <ClCompile Include="src\rendering\scene\SceneManager.cpp" />
-    <ClCompile Include="src\rendering\terrain\Octree.cpp" />
+    <ClCompile Include="src\rendering\terrain\TerrainMeshLoader.cpp" />
     <ClCompile Include="src\datamodel\terrain\Terrain.cpp" />
     <ClCompile Include="src\core\ThreadPool.cpp" />
     <ClCompile Include="src\physics\PhysicsTerrain.cpp" />
@@ -251,7 +251,7 @@
     <ClCompile Include="src\physics\PhysicsSystem.cpp" />
     <ClCompile Include="src\rendering\VisualDebug.cpp" />
     <ClCompile Include="src\rendering\VisualSystem.cpp" />
-    <ClCompile Include="src\rendering\terrain\VisualTerrain.cpp" />
+    <ClCompile Include="src\rendering\terrain\TerrainManager.cpp" />
     <ClCompile Include="src\core\DataFilePath.cpp" />
     <ClCompile Include="src\utility\Stopwatch.cpp" />
     <ClCompile Include="src\rendering\core\VertexStreamIDs.h" />
@@ -276,7 +276,7 @@
     <ClInclude Include="src\datamodel\objects\DMMesh.h" />
     <ClInclude Include="src\datamodel\objects\DMPhysics.h" />
     <ClInclude Include="src\rendering\scene\SceneManager.h" />
-    <ClInclude Include="src\rendering\terrain\Octree.h" />
+    <ClInclude Include="src\rendering\terrain\TerrainMeshLoader.h" />
     <ClInclude Include="src\datamodel\terrain\TerrainConfig.h" />
     <ClInclude Include="src\GlobalConfig.h" />
     <ClInclude Include="src\math\SDF.h" />
@@ -359,7 +359,7 @@
     <ClInclude Include="src\rendering\Direct3D11.h" />
     <ClInclude Include="src\rendering\VisualDebug.h" />
     <ClInclude Include="src\rendering\VisualSystem.h" />
-    <ClInclude Include="src\rendering\terrain\VisualTerrain.h" />
+    <ClInclude Include="src\rendering\terrain\TerrainManager.h" />
     <ClInclude Include="src\core\DataFilePath.h" />
     <ClInclude Include="src\utility\Stopwatch.h" />
   </ItemGroup>

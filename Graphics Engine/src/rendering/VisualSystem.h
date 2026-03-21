@@ -14,7 +14,7 @@
 #include "RenderPass.h"
 #include "lights/LightManager.h"
 #include "pipeline/PipelineManager.h"
-#include "terrain/VisualTerrain.h"
+#include "terrain/TerrainManager.h"
 
 #include "core/RenderableMesh.h"
 
@@ -37,7 +37,7 @@ using namespace Datamodel;
 namespace Graphics {
 class SceneManager;
 class ResourceManager;
-class VisualTerrain;
+class TerrainManager;
 
 enum RenderPass {
     RenderPass_Shadows,
@@ -79,7 +79,7 @@ class VisualSystem {
     // Supported Components
     std::unique_ptr<Camera> camera;
     std::vector<RenderableMesh*> renderable_meshes;
-    std::unique_ptr<VisualTerrain> terrain;
+    std::unique_ptr<TerrainManager> terrain;
 
     // Temp for now; should be moved later.
     ID3D11RasterizerState* og_rast_state;
@@ -105,7 +105,7 @@ class VisualSystem {
 
     ResourceManager* getResourceManager() const;
     SceneManager* getSceneManager() const;
-    VisualTerrain* getVisualTerrain() const;
+    TerrainManager* getVisualTerrain() const;
 
   private:                     // Rendering Stages
     void performPrepass();     // Prepass (Shadowmaps)

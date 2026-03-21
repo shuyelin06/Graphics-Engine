@@ -1,4 +1,4 @@
-#include "VisualTerrain.h"
+#include "TerrainManager.h"
 
 #include <assert.h>
 #include <unordered_map>
@@ -22,7 +22,7 @@
 #include "rendering/resources/ResourceManager.h"
 
 #include "ChunkBuilderJob.h"
-#include "Octree.h"
+#include "TerrainMeshLoader.h"
 #include "TerrainGeneration.h"
 
 constexpr int OCTREE_MAX_DEPTH = 4;
@@ -31,7 +31,7 @@ namespace Engine {
 using namespace Datamodel;
 
 namespace Graphics {
-using UpdatePacket = VisualTerrain::UpdatePacket;
+using UpdatePacket = TerrainManager::UpdatePacket;
 
 // Data Structures for the terrain structured buffers. These buffers
 // will be used in the vertex shader to generate the terrain mesh using vertex
@@ -100,32 +100,32 @@ class VisualTerrainImpl {
     float computeChunkPriority(const TerrainNode& chunk);
 };
 
-VisualTerrain::VisualTerrain() = default;
-VisualTerrain::~VisualTerrain() = default;
+TerrainManager::TerrainManager() = default;
+TerrainManager::~TerrainManager() = default;
 
-std::unique_ptr<VisualTerrain>
-VisualTerrain::create(VisualSystem* visualSystem) {
-    std::unique_ptr<VisualTerrain> ptr =
-        std::unique_ptr<VisualTerrain>(new VisualTerrain());
+std::unique_ptr<TerrainManager>
+TerrainManager::create(VisualSystem* visualSystem) {
+    std::unique_ptr<TerrainManager> ptr =
+        std::unique_ptr<TerrainManager>(new TerrainManager());
     ptr->mImpl = std::make_unique<VisualTerrainImpl>(visualSystem);
     return std::move(ptr);
 }
 
-void VisualTerrain::submitSceneUpdate(const UpdatePacket& packet) {
+void TerrainManager::submitSceneUpdate(const UpdatePacket& packet) {
     mImpl->submitSceneUpdate(packet);
 }
-void VisualTerrain::updateAndUploadTerrainData(ID3D11DeviceContext* context,
-                                               RenderPassTerrain& pass_terrain,
-                                               const Vector3& camera_pos) {
+void TerrainManager::updateAndUploadTerrainData(ID3D11DeviceContext* context,
+                                                RenderPassTerrain& pass_terrain,
+                                                const Vector3& camera_pos) {
     mImpl->updateAndUploadTerrainData(context, pass_terrain, camera_pos);
 }
-const WaterSurface* VisualTerrain::getWaterSurface() const {
+const WaterSurface* TerrainManager::getWaterSurface() const {
     return mImpl->getWaterSurface();
 }
-float VisualTerrain::getSurfaceLevel() const {
+float TerrainManager::getSurfaceLevel() const {
     return mImpl->getSurfaceLevel();
 }
-void VisualTerrain::imGui() { mImpl->imGui(); }
+void TerrainManager::imGui() { mImpl->imGui(); }
 
 VisualTerrainImpl::VisualTerrainImpl(VisualSystem* m_visual_system) {
     visual_system = m_visual_system;
