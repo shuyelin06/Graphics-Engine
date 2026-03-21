@@ -9,6 +9,7 @@
 #include "rendering/core/Mesh.h"
 
 #include "ChunkBuilderJob.h"
+#include "TerrainGeneration.h"
 
 namespace Engine {
 using namespace Math;
@@ -125,7 +126,7 @@ class TerrainMeshLoader {
     void resetOctree(unsigned int _maxDepth, float _voxelSize);
 
     void updateOctree(const OctreeUpdater& lodRequestor);
-    void serveBuildRequests(TerrainGenerator* generator,
+    void serveBuildRequests(TerrainGeneration* generator,
                             ResourceManager* resource_managers);
     void findValidMeshes(std::vector<Mesh*>& meshes);
 

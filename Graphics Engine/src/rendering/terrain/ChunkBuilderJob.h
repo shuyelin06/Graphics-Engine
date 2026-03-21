@@ -7,7 +7,6 @@
 
 #include "utility/Stopwatch.h"
 
-#include "datamodel/terrain/Terrain.h"
 #include "rendering/resources/MeshBuilder.h"
 
 constexpr int TERRAIN_SAMPLES_PER_CHUNK = 7;
@@ -15,7 +14,6 @@ constexpr int TERRAIN_SAMPLES_PER_CHUNK = 7;
 namespace Engine {
 using namespace Math;
 using namespace Utility;
-using namespace Datamodel;
 
 namespace Graphics {
 // ChunkBuilderJob:

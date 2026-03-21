@@ -3,6 +3,9 @@
 #include <assert.h>
 #include <d3d11_1.h>
 
+#include "resources/ResourceManager.h"
+#include "scene/SceneManager.h"
+
 #include "VisualDebug.h"
 #include "core/Frustum.h"
 #include "datamodel/Object.h"
@@ -130,11 +133,9 @@ VisualSystem::VisualSystem(HWND window) {
     pipeline = NULL;
 
     camera = nullptr;
-    terrain = nullptr;
 
     // Connect to Datamodel
     auto objectCreateFunc = [this](Object* obj) { onObjectCreate(obj); };
-    Terrain::ConnectToCreation(objectCreateFunc);
     DMCamera::ConnectToCreation(objectCreateFunc);
     DMMesh::ConnectToCreation(objectCreateFunc);
 
@@ -160,6 +161,7 @@ VisualSystem::VisualSystem(HWND window) {
     scene_manager = SceneManager::create(this);
     resource_manager = std::make_unique<ResourceManager>(device, context);
     resource_manager->initializeSystemResources();
+    terrain = VisualTerrain::create(this);
 
     light_manager = new LightManager(device, 4096);
 
@@ -172,10 +174,7 @@ VisualSystem::VisualSystem(HWND window) {
 void VisualSystem::onObjectCreate(Object* object) {
     const uint16_t class_id = object->getClassID();
 
-    if (class_id == Terrain::ClassID()) {
-        Terrain* dm_terrain = static_cast<Terrain*>(object);
-        terrain = VisualTerrain::create(this, dm_terrain);
-    } else if (class_id == DMCamera::ClassID()) {
+    if (class_id == DMCamera::ClassID()) {
         camera.reset(new Camera(object));
     } else if (class_id == DMMesh::ClassID()) {
         renderable_meshes.push_back(

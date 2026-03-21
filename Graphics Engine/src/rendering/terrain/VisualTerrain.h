@@ -5,16 +5,13 @@
 #include <memory>
 #include <queue>
 #include <unordered_map>
-
-#include "datamodel/terrain/Terrain.h"
+#include <variant>
 
 #include "rendering/RenderPass.h"
 
 #include "WaterSurface.h"
 
 namespace Engine {
-using namespace Datamodel;
-
 namespace Graphics {
 class VisualSystem;
 class VisualTerrainImpl;
@@ -26,9 +23,19 @@ class VisualTerrainImpl;
 // vertex / index buffer.
 class VisualTerrain {
   public:
-    static std::unique_ptr<VisualTerrain> create(VisualSystem* visual_system,
-                                                 Terrain* terrain);
+    static std::unique_ptr<VisualTerrain> create(VisualSystem* visual_system);
     ~VisualTerrain();
+
+    // Scene Updating
+    struct UpdatePacket {
+        enum class Type : uint8_t {
+            kToggleTerrain,
+            kPropertySeed,
+        };
+        Type type;
+        std::variant<bool, uint32_t> data;
+    };
+    void submitSceneUpdate(const UpdatePacket& packet);
 
     // Update the octree and pull the most recent terrain meshesS
     void updateAndUploadTerrainData(ID3D11DeviceContext* context,

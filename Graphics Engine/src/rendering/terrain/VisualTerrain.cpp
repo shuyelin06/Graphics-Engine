@@ -24,7 +24,7 @@
 
 #include "ChunkBuilderJob.h"
 #include "Octree.h"
-
+#include "TerrainGeneration.h"
 
 constexpr int OCTREE_MAX_DEPTH = 4;
 
@@ -32,6 +32,8 @@ namespace Engine {
 using namespace Datamodel;
 
 namespace Graphics {
+using UpdatePacket = VisualTerrain::UpdatePacket;
+
 // Data Structures for the terrain structured buffers. These buffers
 // will be used in the vertex shader to generate the terrain mesh using vertex
 // pulling
@@ -45,8 +47,15 @@ struct TBChunkDescriptor {
 
 class VisualTerrainImpl {
   private:
-    Terrain* terrain;
     VisualSystem* visual_system;
+
+    bool enabled;
+    std::unique_ptr<TerrainGeneration> generator;
+
+    // Scene Update Queue
+    std::vector<UpdatePacket> mUpdatePacketsScratch;
+    std::mutex mUpdatePacketsLock;
+    std::vector<UpdatePacket> mUpdatePackets;
 
     // Water Surface
     WaterSurface* water_surface;
@@ -65,8 +74,11 @@ class VisualTerrainImpl {
     } config;
 
   public:
-    VisualTerrainImpl(VisualSystem* visualSystem, Terrain* terrain);
+    VisualTerrainImpl(VisualSystem* visualSystem);
     ~VisualTerrainImpl();
+
+    // Scene Updating
+    void submitSceneUpdate(const UpdatePacket& packet);
 
     // Update the octree and pull the most recent terrain meshesS
     void updateAndUploadTerrainData(ID3D11DeviceContext* context,
@@ -81,8 +93,10 @@ class VisualTerrainImpl {
     void imGui();
 
   private:
+    void processSceneUpdates();
+
     void loadChunkJobData(ChunkBuilderJob& job,
-                          const TerrainGenerator& generator,
+                          const TerrainGeneration& generator,
                           const TerrainNode& chunk);
     float computeChunkPriority(const TerrainNode& chunk);
 };
@@ -90,14 +104,17 @@ class VisualTerrainImpl {
 VisualTerrain::VisualTerrain() = default;
 VisualTerrain::~VisualTerrain() = default;
 
-std::unique_ptr<VisualTerrain> VisualTerrain::create(VisualSystem* visualSystem,
-                                                     Terrain* terrain) {
+std::unique_ptr<VisualTerrain>
+VisualTerrain::create(VisualSystem* visualSystem) {
     std::unique_ptr<VisualTerrain> ptr =
         std::unique_ptr<VisualTerrain>(new VisualTerrain());
-    ptr->mImpl = std::make_unique<VisualTerrainImpl>(visualSystem, terrain);
+    ptr->mImpl = std::make_unique<VisualTerrainImpl>(visualSystem);
     return std::move(ptr);
 }
 
+void VisualTerrain::submitSceneUpdate(const UpdatePacket& packet) {
+    mImpl->submitSceneUpdate(packet);
+}
 void VisualTerrain::updateAndUploadTerrainData(ID3D11DeviceContext* context,
                                                RenderPassTerrain& pass_terrain,
                                                const Vector3& camera_pos) {
@@ -111,10 +128,11 @@ float VisualTerrain::getSurfaceLevel() const {
 }
 void VisualTerrain::imGui() { mImpl->imGui(); }
 
-VisualTerrainImpl::VisualTerrainImpl(VisualSystem* m_visual_system,
-                                     Terrain* _terrain)
-    : terrain(_terrain) {
+VisualTerrainImpl::VisualTerrainImpl(VisualSystem* m_visual_system) {
     visual_system = m_visual_system;
+
+    enabled = false;
+    generator = std::make_unique<TerrainGeneration>();
 
     // Initialize my water surface mesh.
     water_surface = new WaterSurface();
@@ -126,13 +144,24 @@ VisualTerrainImpl::VisualTerrainImpl(VisualSystem* m_visual_system,
     octree = std::make_unique<TerrainMeshLoader>(config.octree_max_depth,
                                                  config.voxel_size);
 }
+
 VisualTerrainImpl::~VisualTerrainImpl() = default;
+
+void VisualTerrainImpl::submitSceneUpdate(const UpdatePacket& packet) {
+    std::scoped_lock<std::mutex> updatePacketsLock(mUpdatePacketsLock);
+    mUpdatePacketsScratch.emplace_back(packet);
+}
 
 // GenerateTerrainMesh:
 // Generates the mesh for the terrain
 void VisualTerrainImpl::updateAndUploadTerrainData(
     ID3D11DeviceContext* context, RenderPassTerrain& pass_terrain,
     const Vector3& camera_pos) {
+    processSceneUpdates();
+
+    if (!enabled)
+        return;
+
     ICPUTimer cpu_timer = CPUTimer::TrackCPUTime("Terrain Update");
 
     // 1) Update the Octree based on the camera
@@ -147,7 +176,7 @@ void VisualTerrainImpl::updateAndUploadTerrainData(
     }
 
     octree->updateOctree(updater);
-    octree->serveBuildRequests(&terrain->getGenerator(),
+    octree->serveBuildRequests(generator.get(),
                                visual_system->getResourceManager());
 
     std::vector<Mesh*> terrain_meshes;
@@ -191,8 +220,31 @@ void VisualTerrainImpl::updateAndUploadTerrainData(
         context, mesh_pool->cpu_vbuffers[NORMAL].get(), mesh_pool->vertex_size);
 }
 
+void VisualTerrainImpl::processSceneUpdates() {
+    {
+        std::scoped_lock<std::mutex> updatePacketsLock(mUpdatePacketsLock);
+        std::swap(mUpdatePackets, mUpdatePacketsScratch);
+        mUpdatePacketsScratch.clear();
+    }
+
+    while (!mUpdatePackets.empty()) {
+        const auto updatePacket = mUpdatePackets.back();
+        mUpdatePackets.pop_back();
+
+        switch (updatePacket.type) {
+        case UpdatePacket::Type::kToggleTerrain:
+            enabled = std::get<bool>(updatePacket.data);
+            break;
+        case UpdatePacket::Type::kPropertySeed: {
+            const uint32_t seed = std::get<uint32_t>(updatePacket.data);
+            generator->seedGenerator(seed);
+        } break;
+        }
+    }
+}
+
 void VisualTerrainImpl::loadChunkJobData(ChunkBuilderJob& job,
-                                         const TerrainGenerator& generator,
+                                         const TerrainGeneration& generator,
                                          const TerrainNode& chunk) {
     assert(chunk.isLeaf());
 

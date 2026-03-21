@@ -1,13 +1,13 @@
 #include "Octree.h"
 
-#include "core/ThreadPool.h"
-
-#include "../VisualDebug.h"
-#include "datamodel/terrain/TerrainGenerator.h"
-
 #include <assert.h>
 
+#include "core/ThreadPool.h"
+
 #include "rendering/resources/ResourceManager.h"
+
+#include "../VisualDebug.h"
+#include "TerrainGeneration.h"
 
 constexpr int MAX_CHUNK_JOBS = 16;
 
@@ -193,7 +193,7 @@ void TerrainMeshLoader::updateOctreeHelper(TerrainNode* node,
 }
 
 static void loadChunkJobData(ChunkBuilderJob& job,
-                             const TerrainGenerator& generator,
+                             const TerrainGeneration& generator,
                              const TerrainNode& chunk) {
     job.vertex_map.clear();
     job.border_triangles.clear();
@@ -228,7 +228,7 @@ static void loadChunkJobData(ChunkBuilderJob& job,
     }
 }
 
-void TerrainMeshLoader::serveBuildRequests(TerrainGenerator* generator,
+void TerrainMeshLoader::serveBuildRequests(TerrainGeneration* generator,
                                            ResourceManager* resource_manager) {
     // Iterate through my existing jobs to see if any have finished. If they
     // have, load their meshes into the mesh pool.
@@ -267,8 +267,11 @@ void TerrainMeshLoader::serveBuildRequests(TerrainGenerator* generator,
     // For N dirty chunks, kick off new jobs for them.
     // TODO: Prioritize some dirty chunks over others.
     if (!inactive_jobs.empty() && !dirty_nodes.empty()) {
-        const TerrainNodeID dirty_chunk = dirty_nodes.back();
-        dirty_nodes.pop_back();
+        const TerrainNodeID dirty_chunk = dirty_nodes[0];
+        // TODO this is very inefficient and should be done better. However,
+        // we want to process in order of what we place in the queue so that we
+        // can see results faster.
+        dirty_nodes.erase(dirty_nodes.begin());
 
         // There is a chance that the dirty chunk was destroyed before a job was
         // kicked off. Ignore it if so.
@@ -314,8 +317,7 @@ void TerrainMeshLoader::findValidMeshesHelper(TerrainNode* node,
             const auto& child = node->children[i];
             assert(child);
 
-            if (!child->loaded)
-            {
+            if (!child->loaded) {
                 all_child_meshes_valid = false;
             } else if (child->mesh && !child->mesh->ready) {
                 all_child_meshes_valid = false;

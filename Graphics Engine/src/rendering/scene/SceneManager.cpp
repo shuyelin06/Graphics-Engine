@@ -2,6 +2,8 @@
 
 #include "../VisualSystem.h"
 
+#include "rendering/terrain/VisualTerrain.h"
+
 namespace Engine {
 namespace Graphics {
 using DMHandle = Datamodel::DMObjectHandle;
@@ -23,6 +25,9 @@ class SceneManagerImpl {
 
     // Datamodel::DMListener Implementation
     void onDatamodelEvent(const Datamodel::DMEvent& event);
+
+  private:
+    void processTerrainEvent(const DMEvent& event);
 };
 
 SceneManager::SceneManager() = default;
@@ -57,8 +62,13 @@ void SceneManagerImpl::update() {
         const DMEvent event = mEvents.back();
         mEvents.pop_back();
 
-        switch (event.event_type) {
+        switch (event.object_type) {
+        case DMObjectTag::kTerrain:
+            processTerrainEvent(event);
+            break;
             // TODO: event loop + binding with other managers.
+        default:
+            break;
         }
     }
 }
@@ -66,6 +76,31 @@ void SceneManagerImpl::update() {
 void SceneManagerImpl::onDatamodelEvent(const Datamodel::DMEvent& event) {
     std::scoped_lock<std::mutex> eventsScratchLock(mEventsScratchLock);
     mEventsScratch.emplace_back(event);
+}
+
+void SceneManagerImpl::processTerrainEvent(const DMEvent& event) {
+    assert(event.object_type == DMObjectTag::kTerrain);
+    VisualTerrain* visualTerrain = mVisualSystem->getVisualTerrain();
+    assert(visualTerrain);
+
+    VisualTerrain::UpdatePacket packet;
+
+    switch (event.event_type) {
+    case DMEventType::kCreated:
+        packet.type = VisualTerrain::UpdatePacket::Type::kToggleTerrain;
+        packet.data = true;
+        break;
+
+    case DMEventType::kDestroyed:
+        packet.type = VisualTerrain::UpdatePacket::Type::kToggleTerrain;
+        packet.data = false;
+        break;
+
+    case DMEventType::kPropertyUpdated:
+        break;
+    }
+
+    visualTerrain->submitSceneUpdate(packet);
 }
 
 } // namespace Graphics

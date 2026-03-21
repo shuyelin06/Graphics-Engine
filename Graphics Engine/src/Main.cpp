@@ -36,6 +36,7 @@
 #include "input/InputSystem.h"
 #include "physics/PhysicsSystem.h"
 #include "rendering/VisualSystem.h"
+#include "rendering/scene/SceneManager.h"
 
 #include "datamodel/objects/DMCamera.h"
 
@@ -116,7 +117,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     Terrain* terrain = new Terrain();
     scene_graph.addObject(terrain);
-    terrain->invalidateTerrain(0.f, 0.f, 0.f);
 
     // Bind a Camera
     Object* camera = new DMPhysics();
@@ -224,9 +224,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
         // Update Datamodel
         scene_graph.updateAndCleanObjects();
-
-        const Vector3 pos = camera->getTransform().getPosition();
-        terrain->invalidateTerrain(pos.x, pos.y, pos.z);
 
         // We finished our frame. See how many milliseconds we took
         // and stall (if needed) until the next frame

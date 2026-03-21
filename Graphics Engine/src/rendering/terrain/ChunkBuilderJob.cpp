@@ -1,6 +1,7 @@
 #include "ChunkBuilderJob.h"
 
-#include "datamodel/terrain/Terrain.h"
+#include <assert.h>
+
 #include "datamodel/terrain/TerrainConfig.h"
 
 #include "MarchingCube.h"

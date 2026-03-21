@@ -14,11 +14,9 @@
 #include "RenderPass.h"
 #include "lights/LightManager.h"
 #include "pipeline/PipelineManager.h"
-#include "resources/ResourceManager.h"
-#include "scene/SceneManager.h"
+#include "terrain/VisualTerrain.h"
 
 #include "core/RenderableMesh.h"
-#include "terrain/VisualTerrain.h"
 
 #include "rendering/core/Camera.h"
 
@@ -37,6 +35,9 @@ namespace Engine {
 using namespace Datamodel;
 
 namespace Graphics {
+class SceneManager;
+class ResourceManager;
+class VisualTerrain;
 
 enum RenderPass {
     RenderPass_Shadows,
