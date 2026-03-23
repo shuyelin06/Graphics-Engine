@@ -22,8 +22,8 @@
 #include "rendering/resources/ResourceManager.h"
 
 #include "ChunkBuilderJob.h"
-#include "TerrainGeneration.h"
 #include "TerrainOctree.h"
+#include "TerrainSDF.h"
 
 constexpr int OCTREE_MAX_DEPTH = 4;
 
@@ -49,7 +49,7 @@ class VisualTerrainImpl {
     VisualSystem* visual_system;
 
     bool enabled;
-    std::unique_ptr<TerrainGeneration> generator;
+    std::unique_ptr<TerrainSDF> generator;
     std::unique_ptr<TerrainOctree> octree;
 
     // Scene Update Queue
@@ -123,8 +123,9 @@ VisualTerrainImpl::VisualTerrainImpl(VisualSystem* m_visual_system) {
 
     surface_level = 0.f;
 
-    generator = TerrainGeneration::create();
-    octree = TerrainOctree::create(generator.get());
+    generator = TerrainSDF::create();
+    octree = TerrainOctree::create(generator.get(),
+                                   visual_system->getResourceManager());
 }
 
 VisualTerrainImpl::~VisualTerrainImpl() = default;
@@ -148,10 +149,9 @@ void VisualTerrainImpl::updateAndUploadTerrainData(
 
     // Update the Octree
     octree->update(camera_pos);
-    octree->serveBuildRequests(visual_system->getResourceManager());
 
     std::vector<Mesh*> terrain_meshes;
-    octree->findValidMeshes(terrain_meshes);
+    octree->pullTerrainMeshes(terrain_meshes);
 
     // Temp... Should be in ResourceManager.
     MeshPool* mesh_pool =
@@ -209,7 +209,8 @@ void VisualTerrainImpl::processSceneUpdates() {
         case UpdatePacket::Type::kPropertySeed: {
             const uint32_t seed = std::get<uint32_t>(updatePacket.data);
             generator->seedGenerator(seed);
-            octree = TerrainOctree::create(generator.get());
+            octree = TerrainOctree::create(generator.get(),
+                                           visual_system->getResourceManager());
         } break;
         }
     }

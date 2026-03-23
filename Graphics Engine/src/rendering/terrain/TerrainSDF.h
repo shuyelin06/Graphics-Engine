@@ -1,19 +1,15 @@
 #pragma once
 
-#include <stdint.h>
-
-#include "math/PerlinNoise.h"
-
 #include "TerrainOctree.h"
 
 namespace Engine {
 using namespace Math;
 namespace Graphics {
-class TerrainGenerationImpl;
-class TerrainGeneration : public TerrainOctree::SDFGeneratorDelegate {
+class TerrainSDFImpl;
+class TerrainSDF : public TerrainOctree::SDFGeneratorDelegate {
   public:
-    static std::unique_ptr<TerrainGeneration> create();
-    ~TerrainGeneration();
+    static std::unique_ptr<TerrainSDF> create();
+    ~TerrainSDF();
 
     void seedGenerator(unsigned int new_seed);
 
@@ -21,8 +17,8 @@ class TerrainGeneration : public TerrainOctree::SDFGeneratorDelegate {
     float sampleSDF(float x, float y, float z) const override;
 
   private:
-    std::unique_ptr<TerrainGenerationImpl> mImpl;
-    TerrainGeneration();    
+    std::unique_ptr<TerrainSDFImpl> mImpl;
+    TerrainSDF();
 };
 
 } // namespace Graphics

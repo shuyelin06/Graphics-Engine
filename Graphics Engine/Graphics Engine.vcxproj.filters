@@ -279,7 +279,7 @@
     <ClCompile Include="src\rendering\scene\SceneManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\terrain\TerrainGeneration.cpp">
+    <ClCompile Include="src\rendering\terrain\TerrainSDF.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -593,7 +593,7 @@
     <ClInclude Include="src\datamodel\core\DMListener.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\terrain\TerrainGeneration.h">
+    <ClInclude Include="src\rendering\terrain\TerrainSDF.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\core\StackString.h">

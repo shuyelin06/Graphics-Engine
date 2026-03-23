@@ -1,8 +1,10 @@
-#include "TerrainGeneration.h"
+#include "TerrainSDF.h"
 
 #include <algorithm>
 #include <math.h>
+#include <stdint.h>
 
+#include "math/PerlinNoise.h"
 #include "math/SDF.h"
 
 namespace Engine {
@@ -33,7 +35,7 @@ struct TerrainSample {
     }
 };
 
-class TerrainGenerationImpl {
+class TerrainSDFImpl {
   private:
     uint32_t seed;
 
@@ -62,8 +64,8 @@ class TerrainGenerationImpl {
     PerlinNoise noise_func;
 
   public:
-    TerrainGenerationImpl();
-    ~TerrainGenerationImpl();
+    TerrainSDFImpl();
+    ~TerrainSDFImpl();
 
     void seedGenerator(unsigned int new_seed);
 
@@ -75,28 +77,28 @@ class TerrainGenerationImpl {
     TerrainSample generateCaves(float x, float y, float z) const;
 };
 
-std::unique_ptr<TerrainGeneration> TerrainGeneration::create() {
-    std::unique_ptr<TerrainGeneration> ptr =
-        std::unique_ptr<TerrainGeneration>(new TerrainGeneration());
-    ptr->mImpl = std::make_unique<TerrainGenerationImpl>();
+std::unique_ptr<TerrainSDF> TerrainSDF::create() {
+    std::unique_ptr<TerrainSDF> ptr =
+        std::unique_ptr<TerrainSDF>(new TerrainSDF());
+    ptr->mImpl = std::make_unique<TerrainSDFImpl>();
     return std::move(ptr);
 }
 
-TerrainGeneration::TerrainGeneration() = default;
-TerrainGeneration::~TerrainGeneration() = default;
+TerrainSDF::TerrainSDF() = default;
+TerrainSDF::~TerrainSDF() = default;
 
-void TerrainGeneration::seedGenerator(unsigned int new_seed) {
+void TerrainSDF::seedGenerator(unsigned int new_seed) {
     mImpl->seedGenerator(new_seed);
 }
 
-float TerrainGeneration::sampleSDF(float x, float y, float z) const {
+float TerrainSDF::sampleSDF(float x, float y, float z) const {
     return mImpl->sampleSDF(x, y, z);
 }
 
-TerrainGenerationImpl::TerrainGenerationImpl() { seedGenerator(0); }
-TerrainGenerationImpl::~TerrainGenerationImpl() = default;
+TerrainSDFImpl::TerrainSDFImpl() { seedGenerator(0); }
+TerrainSDFImpl::~TerrainSDFImpl() = default;
 
-void TerrainGenerationImpl::seedGenerator(unsigned int new_seed) {
+void TerrainSDFImpl::seedGenerator(unsigned int new_seed) {
     if (seed != new_seed) {
         seed = new_seed;
         noise_func.seed(new_seed);
@@ -108,7 +110,7 @@ void TerrainGenerationImpl::seedGenerator(unsigned int new_seed) {
 // Deterministic function that, given a seed, samples a noise function to return
 // a float where negatives are "inside the ground", positives are "in air", and
 // 0 is where the surface is.
-float TerrainGenerationImpl::sampleSDF(float x, float y, float z) const {
+float TerrainSDFImpl::sampleSDF(float x, float y, float z) const {
     TerrainSample sample;
     sample.surface_dist = FLT_MAX;
 
@@ -141,7 +143,7 @@ float TerrainGenerationImpl::sampleSDF(float x, float y, float z) const {
     return sample.surface_dist;
 }
 
-TerrainSample TerrainGenerationImpl::generateHeightField(float x, float y,
+TerrainSample TerrainSDFImpl::generateHeightField(float x, float y,
                                                          float z) const {
     TerrainSample sample;
     const auto& config = height_config;
@@ -159,7 +161,7 @@ TerrainSample TerrainGenerationImpl::generateHeightField(float x, float y,
     return sample;
 }
 
-TerrainSample TerrainGenerationImpl::generateCaves(float x, float y,
+TerrainSample TerrainSDFImpl::generateCaves(float x, float y,
                                                    float z) const {
     TerrainSample sample;
 

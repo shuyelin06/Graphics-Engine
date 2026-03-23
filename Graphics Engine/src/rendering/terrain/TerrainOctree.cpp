@@ -13,7 +13,6 @@
 
 #include "../VisualDebug.h"
 #include "ChunkBuilderJob.h"
-#include "TerrainGeneration.h"
 
 constexpr int MAX_CHUNK_JOBS = 16;
 
@@ -115,8 +114,8 @@ unsigned int LODSelector::smallestLODInNode(const TerrainNode& node) const {
 using SDFGeneratorDelegate = TerrainOctree::SDFGeneratorDelegate;
 class TerrainOctreeImpl {
   private:
-    // SDF Generator
     SDFGeneratorDelegate* sdfGenerator;
+    ResourceManager* resourceManager;
 
     // Root of Octree
     TerrainNode* root;
@@ -141,18 +140,22 @@ class TerrainOctreeImpl {
     float voxelSize = kDefaultVoxelSize;
 
   public:
-    TerrainOctreeImpl(SDFGeneratorDelegate* sdfGenerator);
+    TerrainOctreeImpl(SDFGeneratorDelegate* sdfGenerator,
+                      ResourceManager* resourceManager);
     ~TerrainOctreeImpl();
 
     void resetOctree(unsigned int _maxDepth, float _voxelSize);
 
     void update(const Vector3& pointOfFocus);
-    void serveBuildRequests(ResourceManager* resource_managers);
-    void findValidMeshes(std::vector<Mesh*>& meshes);
+    void pullTerrainMeshes(std::vector<Mesh*>& meshes);
 
   private:
-    void updateHelper(TerrainNode* node, const LODSelector& lodRequestor);
+    // Update
+    void updateLODsRecursive(TerrainNode* node,
+                             const LODSelector& lodRequestor);
+    void serveBuildRequests();
 
+    // Node Management
     friend struct TerrainNode;
     TerrainNode* allocateNode(const Vector3& center, const float extents,
                               unsigned int depth);
@@ -170,10 +173,12 @@ class TerrainOctreeImpl {
 };
 
 std::unique_ptr<TerrainOctree>
-TerrainOctree::create(SDFGeneratorDelegate* sdfGenerator) {
+TerrainOctree::create(SDFGeneratorDelegate* sdfGenerator,
+                      ResourceManager* resourceManager) {
     std::unique_ptr<TerrainOctree> ptr =
         std::unique_ptr<TerrainOctree>(new TerrainOctree());
-    ptr->mImpl = std::make_unique<TerrainOctreeImpl>(sdfGenerator);
+    ptr->mImpl =
+        std::make_unique<TerrainOctreeImpl>(sdfGenerator, resourceManager);
     return std::move(ptr);
 }
 
@@ -187,15 +192,14 @@ void TerrainOctree::resetOctree(unsigned int _maxDepth, float _voxelSize) {
 void TerrainOctree::update(const Vector3& pointOfFocus) {
     mImpl->update(pointOfFocus);
 }
-void TerrainOctree::serveBuildRequests(ResourceManager* resource_managers) {
-    mImpl->serveBuildRequests(resource_managers);
-}
-void TerrainOctree::findValidMeshes(std::vector<Mesh*>& meshes) {
-    mImpl->findValidMeshes(meshes);
+void TerrainOctree::pullTerrainMeshes(std::vector<Mesh*>& meshes) {
+    mImpl->pullTerrainMeshes(meshes);
 }
 
-TerrainOctreeImpl::TerrainOctreeImpl(SDFGeneratorDelegate* _sdfGenerator) {
+TerrainOctreeImpl::TerrainOctreeImpl(SDFGeneratorDelegate* _sdfGenerator,
+                                     ResourceManager* _resourceManager) {
     sdfGenerator = _sdfGenerator;
+    resourceManager = _resourceManager;
 
     idCounter = kInvalidNodeID + 1;
 
@@ -224,11 +228,13 @@ void TerrainOctreeImpl::resetOctree(unsigned int _maxDepth, float _voxelSize) {
 void TerrainOctreeImpl::update(const Vector3& pointOfFocus) {
     LODSelector lodRequestor;
     lodRequestor.configure(pointOfFocus, voxelSize, maxDepth);
-    updateHelper(root, lodRequestor);
+    updateLODsRecursive(root, lodRequestor);
+
+    serveBuildRequests();
 }
 
-void TerrainOctreeImpl::updateHelper(TerrainNode* node,
-                                     const LODSelector& lodRequestor) {
+void TerrainOctreeImpl::updateLODsRecursive(TerrainNode* node,
+                                            const LODSelector& lodRequestor) {
     // Nodes are boxes in 3D space, so a node can intersect multiple LOD
     // spheres. First get the smallest (highest detail) LOD sphere that the
     // node intersects.
@@ -243,7 +249,7 @@ void TerrainOctreeImpl::updateHelper(TerrainNode* node,
         }
         assert(!node->isLeaf());
         for (int i = 0; i < 8; i++) {
-            updateHelper(node->children[i], lodRequestor);
+            updateLODsRecursive(node->children[i], lodRequestor);
         }
     } else if (node->depth <= smallestRequestedLOD) {
         if (!node->isLeaf()) {
@@ -290,7 +296,7 @@ static void loadChunkJobData(ChunkBuilderJob& job,
     }
 }
 
-void TerrainOctreeImpl::serveBuildRequests(ResourceManager* resource_manager) {
+void TerrainOctreeImpl::serveBuildRequests() {
     // Iterate through my existing jobs to see if any have finished. If they
     // have, load their meshes into the mesh pool.
     inactive_jobs.clear();
@@ -308,7 +314,7 @@ void TerrainOctreeImpl::serveBuildRequests(ResourceManager* resource_manager) {
                     iter != node_map.end()) {
                     iter->second->loaded = true;
                     iter->second->mesh =
-                        resource_manager->requestMesh(job->builder);
+                        resourceManager->requestMesh(job->builder);
                 }
 
                 job->status = ChunkBuilderJob::JobStatus::Inactive;
@@ -389,7 +395,7 @@ static void findValidMeshesHelper(TerrainNode* node,
     }
 }
 
-void TerrainOctreeImpl::findValidMeshes(std::vector<Mesh*>& meshes) {
+void TerrainOctreeImpl::pullTerrainMeshes(std::vector<Mesh*>& meshes) {
     meshes.clear();
     if (root && root->loaded) {
         if (!root->mesh || root->mesh->ready) {
