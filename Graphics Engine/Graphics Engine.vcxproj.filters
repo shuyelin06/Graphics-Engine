@@ -270,7 +270,7 @@
     <ClCompile Include="src\rendering\terrain\ChunkBuilderJob.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\terrain\TerrainMeshLoader.cpp">
+    <ClCompile Include="src\rendering\terrain\TerrainOctree.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\datamodel\core\DMTracking.cpp">
@@ -572,7 +572,7 @@
     <ClInclude Include="src\math\SDF.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\terrain\TerrainMeshLoader.h">
+    <ClInclude Include="src\rendering\terrain\TerrainOctree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\core\PoolAllocator.h">
