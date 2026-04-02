@@ -11,9 +11,9 @@
 
 #include "datamodel/SceneGraph.h"
 
-#include "RenderPass.h"
 #include "lights/LightManager.h"
 #include "pipeline/PipelineManager.h"
+#include "pipeline/RenderManager.h"
 #include "terrain/TerrainManager.h"
 
 #include "core/RenderableMesh.h"
@@ -73,6 +73,7 @@ class VisualSystem {
     // Managers
     std::unique_ptr<SceneManager> scene_manager;
     std::unique_ptr<ResourceManager> resource_manager;
+    std::unique_ptr<RenderManager> render_manager;
     LightManager* light_manager;
     Pipeline* pipeline;
 
@@ -85,12 +86,6 @@ class VisualSystem {
     ID3D11RasterizerState* og_rast_state;
     ID3D11RasterizerState* rast_state;
     Texture* bump_tex;
-
-    // Render Pass Information;
-    // This should be populated by the VisualSystem's subsystems
-    std::unique_ptr<RenderPassShadows> pass_shadows;
-    std::unique_ptr<RenderPassTerrain> pass_terrain;
-    std::unique_ptr<RenderPassDefault> pass_default;
 
   public:
     VisualSystem(HWND window);
@@ -106,10 +101,13 @@ class VisualSystem {
     ResourceManager* getResourceManager() const;
     SceneManager* getSceneManager() const;
     TerrainManager* getVisualTerrain() const;
+    RenderManager* getRenderManager() const;
+    LightManager* getLightManager() const;
+
+    Pipeline* getPipeline() const;
 
   private:                     // Rendering Stages
     void performPrepass();     // Prepass (Shadowmaps)
-    void performTerrainPass(); // Render Terrain
     void performDefaultPass(); // Render Pass
 
     void performLightFrustumPass(); // Light Frustum Pass

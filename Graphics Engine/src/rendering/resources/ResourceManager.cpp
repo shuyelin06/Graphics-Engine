@@ -181,8 +181,7 @@ MeshPool* ResourceManager::getMeshPool(MeshPoolType pool_type) {
 
 std::shared_ptr<Mesh>
 ResourceManager::requestMesh(const MeshBuilder& mesh_builder) {
-    if (mesh_builder.index_buffer.empty() ||
-        mesh_builder.vertex_buffer.empty())
+    if (mesh_builder.index_buffer.empty() || mesh_builder.vertex_buffer.empty())
         return nullptr;
 
     std::scoped_lock<std::mutex> mesh_job_lock(mesh_job_mutex);
@@ -197,6 +196,12 @@ ResourceManager::requestMesh(const MeshBuilder& mesh_builder) {
     mesh_job.mesh->ready = false;
 
     return mesh_job.mesh;
+}
+
+std::shared_ptr<TerrainMesh> ResourceManager::requestTerrainMesh() {
+    std::shared_ptr<TerrainMesh> mesh = std::make_shared<TerrainMesh>();
+    mesh->initialize(device, context);
+    return mesh;
 }
 
 // Debug Display

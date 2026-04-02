@@ -179,6 +179,9 @@
     <ClCompile Include="src\datamodel\objects\DMMesh.cpp" />
     <ClCompile Include="src\datamodel\objects\DMPhysics.cpp" />
     <ClCompile Include="src\datamodel\SceneGraph.cpp" />
+    <ClCompile Include="src\rendering\pipeline\RenderManager.cpp" />
+    <ClCompile Include="src\rendering\pipeline\RenderManager.h" />
+    <ClCompile Include="src\rendering\pipeline\techniques\TerrainMesh.cpp" />
     <ClCompile Include="src\rendering\scene\SceneManager.cpp" />
     <ClCompile Include="src\rendering\terrain\TerrainOctree.cpp" />
     <ClCompile Include="src\datamodel\terrain\Terrain.cpp" />
@@ -186,7 +189,6 @@
     <ClCompile Include="src\physics\PhysicsTerrain.cpp" />
     <ClCompile Include="src\rendering\core\RenderableMesh.cpp" />
     <ClCompile Include="src\rendering\core\VertexStreamIDs.cpp" />
-    <ClCompile Include="src\rendering\RenderPass.cpp" />
     <ClCompile Include="src\rendering\resources\BumpMapBuilder.cpp" />
     <ClCompile Include="src\rendering\pipeline\ConstantBuffer.cpp" />
     <ClCompile Include="src\rendering\resources\files\FileReader.cpp" />
@@ -275,6 +277,7 @@
     <ClInclude Include="src\datamodel\objects\DMLight.h" />
     <ClInclude Include="src\datamodel\objects\DMMesh.h" />
     <ClInclude Include="src\datamodel\objects\DMPhysics.h" />
+    <ClInclude Include="src\rendering\pipeline\techniques\TerrainMesh.h" />
     <ClInclude Include="src\rendering\scene\SceneManager.h" />
     <ClInclude Include="src\rendering\terrain\TerrainOctree.h" />
     <ClInclude Include="src\datamodel\terrain\TerrainConfig.h" />
@@ -285,7 +288,6 @@
     <ClInclude Include="src\rendering\core\Material.h" />
     <ClInclude Include="src\rendering\core\RenderableMesh.h" />
     <ClInclude Include="src\rendering\lights\LightDataGPU.h" />
-    <ClInclude Include="src\rendering\RenderPass.h" />
     <ClInclude Include="src\rendering\resources\BumpMapBuilder.h" />
     <ClInclude Include="src\rendering\pipeline\ConstantBuffer.h" />
     <ClInclude Include="src\rendering\pipeline\StructuredBuffer.h" />

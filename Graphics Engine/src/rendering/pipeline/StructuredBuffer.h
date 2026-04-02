@@ -50,7 +50,7 @@ template <typename T> class StructuredBuffer {
     // UploadData:
     // Given a vector of data elements, uploads the data to the structured
     // buffer. Takes the minimum of the two sizes to upload.
-    void uploadData(ID3D11DeviceContext* context, void* addr,
+    void uploadData(ID3D11DeviceContext* context, const void* addr,
                     unsigned int array_size) {
         const unsigned int num_elements = min(size, array_size);
 

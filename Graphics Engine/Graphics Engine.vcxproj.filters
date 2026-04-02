@@ -255,9 +255,6 @@
     <ClCompile Include="src\rendering\resources\files\FileReader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\RenderPass.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\datamodel\objects\DMMesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -280,6 +277,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\terrain\TerrainSDF.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rendering\pipeline\RenderManager.h">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rendering\pipeline\RenderManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rendering\pipeline\techniques\TerrainMesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -545,9 +551,6 @@
     <ClInclude Include="src\rendering\resources\files\FileReader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\RenderPass.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\datamodel\terrain\TerrainConfig.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -597,6 +600,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\core\StackString.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rendering\pipeline\techniques\TerrainMesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

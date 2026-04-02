@@ -21,6 +21,8 @@
 #include "rendering/resources/MeshBuilder.h"
 #include "rendering/resources/ResourceManager.h"
 
+#include "rendering/pipeline/techniques/TerrainMesh.h"
+
 #include "ChunkBuilderJob.h"
 #include "TerrainOctree.h"
 #include "TerrainSDF.h"
@@ -33,17 +35,6 @@ using namespace Datamodel;
 namespace Graphics {
 using UpdatePacket = TerrainManager::UpdatePacket;
 
-// Data Structures for the terrain structured buffers. These buffers
-// will be used in the vertex shader to generate the terrain mesh using vertex
-// pulling
-struct TBChunkDescriptor {
-    unsigned int index_start;
-    unsigned int index_count;
-
-    unsigned int vertex_start;
-    unsigned int vertex_count;
-};
-
 class VisualTerrainImpl {
   private:
     VisualSystem* visual_system;
@@ -51,6 +42,8 @@ class VisualTerrainImpl {
     bool enabled;
     std::unique_ptr<TerrainSDF> generator;
     std::unique_ptr<TerrainOctree> octree;
+
+    std::shared_ptr<TerrainMesh> mMesh;
 
     // Scene Update Queue
     std::vector<UpdatePacket> mUpdatePacketsScratch;
@@ -70,7 +63,6 @@ class VisualTerrainImpl {
 
     // Update the octree and pull the most recent terrain meshesS
     void updateAndUploadTerrainData(ID3D11DeviceContext* context,
-                                    RenderPassTerrain& pass_terrain,
                                     const Vector3& camera_pos);
 
     // Return water surface data
@@ -99,9 +91,8 @@ void TerrainManager::submitSceneUpdate(const UpdatePacket& packet) {
     mImpl->submitSceneUpdate(packet);
 }
 void TerrainManager::updateAndUploadTerrainData(ID3D11DeviceContext* context,
-                                                RenderPassTerrain& pass_terrain,
                                                 const Vector3& camera_pos) {
-    mImpl->updateAndUploadTerrainData(context, pass_terrain, camera_pos);
+    mImpl->updateAndUploadTerrainData(context, camera_pos);
 }
 const WaterSurface* TerrainManager::getWaterSurface() const {
     return mImpl->getWaterSurface();
@@ -126,6 +117,8 @@ VisualTerrainImpl::VisualTerrainImpl(VisualSystem* m_visual_system) {
     generator = TerrainSDF::create();
     octree = TerrainOctree::create(generator.get(),
                                    visual_system->getResourceManager());
+
+    mMesh = visual_system->getResourceManager()->requestTerrainMesh();
 }
 
 VisualTerrainImpl::~VisualTerrainImpl() = default;
@@ -137,9 +130,8 @@ void VisualTerrainImpl::submitSceneUpdate(const UpdatePacket& packet) {
 
 // GenerateTerrainMesh:
 // Generates the mesh for the terrain
-void VisualTerrainImpl::updateAndUploadTerrainData(
-    ID3D11DeviceContext* context, RenderPassTerrain& pass_terrain,
-    const Vector3& camera_pos) {
+void VisualTerrainImpl::updateAndUploadTerrainData(ID3D11DeviceContext* context,
+                                                   const Vector3& camera_pos) {
     processSceneUpdates();
 
     if (!enabled)
@@ -164,31 +156,23 @@ void VisualTerrainImpl::updateAndUploadTerrainData(
     // TODO: We could throttle this so we only clean and compact every XX
     // frames..
     // Upload my data to the structured buffers
-    std::vector<TBChunkDescriptor> descriptors;
-
-    pass_terrain.num_active_chunks = terrain_meshes.size();
-    pass_terrain.max_chunk_triangles = 0;
+    std::vector<TerrainMesh::MeshDescription> descriptors;
     for (Mesh* mesh : terrain_meshes) {
-        TBChunkDescriptor desc;
-        desc.index_start = mesh->triangle_start * 3;
-        desc.index_count = mesh->num_triangles * 3;
-        desc.vertex_start = mesh->vertex_start;
-        desc.vertex_count = mesh->num_vertices;
-        descriptors.push_back(desc);
-
-        pass_terrain.max_chunk_triangles =
-            max(pass_terrain.max_chunk_triangles, mesh->num_triangles);
+        descriptors.emplace_back(mesh->triangle_start * 3,
+                                 mesh->num_triangles * 3, mesh->vertex_start,
+                                 mesh->num_vertices);
     }
 
-    pass_terrain.sb_chunks.uploadData(context, descriptors.data(),
-                                      descriptors.size());
-    pass_terrain.sb_indices.uploadData(context, mesh_pool->cpu_ibuffer.get(),
-                                       mesh_pool->triangle_size * 3);
-    pass_terrain.sb_positions.uploadData(
-        context, mesh_pool->cpu_vbuffers[POSITION].get(),
-        mesh_pool->vertex_size);
-    pass_terrain.sb_normals.uploadData(
-        context, mesh_pool->cpu_vbuffers[NORMAL].get(), mesh_pool->vertex_size);
+    mMesh->uploadDescriptors(context, descriptors);
+    mMesh->uploadIndices(context, mesh_pool->cpu_ibuffer.get(),
+                         mesh_pool->triangle_size * 3);
+    mMesh->uploadPositions(context, mesh_pool->cpu_vbuffers[POSITION].get(),
+                           mesh_pool->vertex_size);
+    mMesh->uploadNormals(context, mesh_pool->cpu_vbuffers[NORMAL].get(),
+                         mesh_pool->vertex_size);
+
+    visual_system->getRenderManager()->submitDrawCall(
+        PipelineRenderPassSet(1 << kRenderPass_Terrain), {mMesh, nullptr});
 }
 
 void VisualTerrainImpl::processSceneUpdates() {

@@ -162,12 +162,9 @@ VisualSystem::VisualSystem(HWND window) {
     resource_manager = std::make_unique<ResourceManager>(device, context);
     resource_manager->initializeSystemResources();
     terrain = TerrainManager::create(this);
+    render_manager = RenderManager::create(this, context, device);
 
     light_manager = new LightManager(device, 4096);
-
-    pass_shadows = std::make_unique<RenderPassShadows>(device, context);
-    pass_terrain = std::make_unique<RenderPassTerrain>(device, context);
-    pass_default = std::make_unique<RenderPassDefault>(device, context);
 }
 
 // --- Component Bindings ---
@@ -232,8 +229,17 @@ void VisualSystem::render() {
             ->PSBindResource(context, 0);
         light_manager->getAtlasTexture()->PSBindResource(context, 1);
 
-        // Render terrain
-        performTerrainPass();
+        // Vertex Constant Buffer 0:
+        // Stores the camera view and projection matrices
+        {
+            IConstantBuffer vCB0 = pipeline->loadVertexCB(CB0);
+            vCB0.loadData(&cache->m_world_to_screen, FLOAT4X4);
+        }
+
+        // This is the new rendering.
+        // TODO Migrate everything to this.
+        render_manager->perform();
+
         // Render meshes
         performDefaultPass();
 
@@ -282,7 +288,7 @@ void VisualSystem::pullSceneData(Scene* scene, Vector3 pos) {
     light_manager->pullDatamodelData();
 
     if (terrain)
-        terrain->updateAndUploadTerrainData(context, *pass_terrain, pos);
+        terrain->updateAndUploadTerrainData(context, pos);
 
     // Prepare managers for data
     light_manager->updateSunDirection(config->sun_direction);
@@ -290,11 +296,14 @@ void VisualSystem::pullSceneData(Scene* scene, Vector3 pos) {
 
     light_manager->resetShadowCasters();
 
-    pass_default->meshes.clear();
+    // TODO.
+    // Mesh Draw Calls here.
+    /*
     for (const auto& renderable_mesh : renderable_meshes) {
         pass_default->meshes.emplace_back(renderable_mesh->getGeometry(),
                                           renderable_mesh->getLocalMatrix());
     }
+    */
 
     /*
     for (AssetComponent* object : asset_components) {
@@ -387,13 +396,17 @@ SceneManager* VisualSystem::getSceneManager() const {
     return scene_manager.get();
 }
 TerrainManager* VisualSystem::getVisualTerrain() const { return terrain.get(); }
+RenderManager* VisualSystem::getRenderManager() const {
+    return render_manager.get();
+}
+LightManager* VisualSystem::getLightManager() const { return light_manager; }
+
+Pipeline* VisualSystem::getPipeline() const { return pipeline; }
 
 // PerformShadowPass:
 // Render the scene from each light's point of view, to populate
 // its shadow map.
 void VisualSystem::performPrepass() {
-    RENDER_PASS(*pass_shadows, "Shadows");
-
     pipeline->bindVertexShader("ShadowMap");
     pipeline->bindPixelShader("ShadowMap");
 
@@ -443,49 +456,7 @@ void VisualSystem::performPrepass() {
     }
 }
 
-void VisualSystem::performTerrainPass() {
-    RENDER_PASS(*pass_terrain, "Terrain");
-
-    pipeline->bindVertexShader("Terrain");
-    pipeline->bindPixelShader("Terrain");
-
-    // TEST
-    Texture* depth_stencil = pipeline->getDepthStencil();
-    pipeline->bindRenderTarget(Target_UseExisting, Depth_TestAndWrite,
-                               Blend_Default);
-    depth_stencil->clearAsDepthStencil(context);
-
-    // Vertex Constant Buffer 0:
-    // Stores the camera view and projection matrices
-    {
-        IConstantBuffer vCB0 = pipeline->loadVertexCB(CB0);
-        vCB0.loadData(&cache->m_world_to_screen, FLOAT4X4);
-    }
-
-    // Pixel Constant Buffer 1: Light Data
-    // Stores data that is needed for lighting / shadowing.
-    {
-        IConstantBuffer pCB1 = pipeline->loadPixelCB(CB1);
-        light_manager->bindLightData(pCB1);
-    }
-
-    context->IASetIndexBuffer(NULL, DXGI_FORMAT_R32_UINT, 0);
-
-    pass_terrain->sb_chunks.VSBindResource(context, 0);
-    pass_terrain->sb_indices.VSBindResource(context, 1);
-    pass_terrain->sb_positions.VSBindResource(context, 2);
-    pass_terrain->sb_normals.VSBindResource(context, 3);
-
-    // We draw instanced without indices, so the index buffer has no influence
-    // on the final result.
-    const int num_chunks = pass_terrain->num_active_chunks;
-    const int max_tris = pass_terrain->max_chunk_triangles;
-    context->DrawInstanced(max_tris * 3, num_chunks, 0, 0);
-}
-
 void VisualSystem::performDefaultPass() {
-    RENDER_PASS(*pass_default, "Default");
-
     pipeline->bindVertexShader("TexturedMesh");
     pipeline->bindPixelShader("TexturedMesh");
     pipeline->bindRenderTarget(Target_UseExisting, Depth_TestAndWrite,
@@ -509,7 +480,8 @@ void VisualSystem::performDefaultPass() {
         light_manager->bindLightData(pCB1);
     }
 
-    // Testing for animations
+    // Testing for animations TODO
+    /*
     for (const auto& geom_instance : pass_default->meshes) {
         const auto& geometry = geom_instance.geometry;
         if (!geometry || !geometry->mesh)
@@ -543,6 +515,7 @@ void VisualSystem::performDefaultPass() {
         // Draw each mesh
         pipeline->drawMesh(mesh.get(), INDEX_LIST_START, INDEX_LIST_END, 1);
     }
+    */
 
     /*
     for (const AssetComponent* comp : asset_components) {

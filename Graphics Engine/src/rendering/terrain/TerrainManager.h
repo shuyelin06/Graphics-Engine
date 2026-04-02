@@ -7,8 +7,6 @@
 #include <unordered_map>
 #include <variant>
 
-#include "rendering/RenderPass.h"
-
 #include "WaterSurface.h"
 
 namespace Engine {
@@ -39,7 +37,6 @@ class TerrainManager {
 
     // Update the octree and pull the most recent terrain meshesS
     void updateAndUploadTerrainData(ID3D11DeviceContext* context,
-                                    RenderPassTerrain& pass_terrain,
                                     const Vector3& camera_pos);
 
     // Return water surface data
