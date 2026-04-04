@@ -10,8 +10,8 @@
 namespace Engine {
 namespace Datamodel {
 // DMMesh Class:
-// Represents a mesh in the scene. 
-class DMMesh : public Object, public Bindable<DMMesh> {
+// Represents a mesh in the scene.
+class DMMesh : public Object {
   private:
     std::string mesh_name;
 

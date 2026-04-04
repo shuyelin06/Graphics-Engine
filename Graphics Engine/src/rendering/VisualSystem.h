@@ -9,17 +9,12 @@
 #include "Direct3D11.h"
 #include "ImGui.h"
 
-#include "datamodel/SceneGraph.h"
-
 #include "lights/LightManager.h"
 #include "pipeline/PipelineManager.h"
 #include "pipeline/RenderManager.h"
-#include "terrain/TerrainManager.h"
 #include "scene/SceneManager.h"
-
-#include "core/RenderableMesh.h"
-
-#include "rendering/core/Camera.h"
+#include "terrain/TerrainManager.h"
+#include "resources/ResourceManager.h"
 
 #if defined(_DEBUG)
 #include "util/CPUTimer.h"
@@ -27,10 +22,6 @@
 #endif
 
 #include "VisualDebug.h"
-
-// TESTING
-#include "core/TextureAtlas.h"
-#include "math/Compute.h"
 
 namespace Engine {
 using namespace Datamodel;
@@ -68,15 +59,14 @@ class VisualSystem {
 
     // Managers
     std::unique_ptr<SceneListener> scene_listener;
+
     std::unique_ptr<SceneManager> scene_manager;
+    std::unique_ptr<TerrainManager> terrain;
+    LightManager* light_manager;
+
     std::unique_ptr<ResourceManager> resource_manager;
     std::unique_ptr<RenderManager> render_manager;
-    LightManager* light_manager;
     Pipeline* pipeline;
-
-    // Supported Components
-    std::vector<RenderableMesh*> renderable_meshes;
-    std::unique_ptr<TerrainManager> terrain;
 
     // Temp for now; should be moved later.
     ID3D11RasterizerState* og_rast_state;
@@ -86,12 +76,8 @@ class VisualSystem {
   public:
     VisualSystem(HWND window);
 
-    // Datamodel Handling
-    void onObjectCreate(Object* object);
-
     // Call these functions to render the scene. Renders an entire scene
     void renderPrepare();
-    void pullSceneData(Scene* scene, Vector3 pos); // Call First
     void render();
 
     ResourceManager* getResourceManager() const;

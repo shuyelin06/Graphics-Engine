@@ -9,7 +9,7 @@ namespace Engine {
 namespace Datamodel {
 // DMCamera Class:
 // Represents a camera in the scene.
-class DMCamera : public Object, public Bindable<DMCamera> {
+class DMCamera : public Object {
   private:
     DMTrackedProperty<float> fov;
     DMTrackedProperty<float> zNear;

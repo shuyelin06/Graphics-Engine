@@ -2,10 +2,7 @@
 
 namespace Engine {
 namespace Datamodel {
-DMMesh::DMMesh() : Object("Mesh"), Bindable<DMMesh>(this) {
-    mesh_name = "";
-    DMMesh::SignalObjectCreation(this);
-}
+DMMesh::DMMesh() : Object("Mesh") { mesh_name = ""; }
 DMMesh::~DMMesh() = default;
 
 void DMMesh::setMeshFile(const std::string& name) { mesh_name = name; }

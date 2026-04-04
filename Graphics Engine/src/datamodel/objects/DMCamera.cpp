@@ -4,14 +4,10 @@ namespace Engine {
 namespace Datamodel {
 DMCamera::DMCamera()
     : Object("Camera"), fov(&getDMHandle(), "FOV"),
-      zNear(&getDMHandle(), "ZNear"), zFar(&getDMHandle(), "ZFar"),
-      Bindable<DMCamera>(this) {
+      zNear(&getDMHandle(), "ZNear"), zFar(&getDMHandle(), "ZFar") {
     fov.writeProperty(1.2f);
-
     zNear.writeProperty(5.f);
     zFar.writeProperty(500.f);
-
-    DMCamera::SignalObjectCreation(this);
 }
 DMCamera::~DMCamera() = default;
 

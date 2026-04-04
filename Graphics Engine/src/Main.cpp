@@ -39,6 +39,7 @@
 #include "rendering/scene/SceneListener.h"
 
 #include "datamodel/objects/DMCamera.h"
+#include "datamodel/objects/DMMesh.h"
 
 #include "rendering/VisualDebug.h"
 #include "utility/Stopwatch.h"
@@ -209,11 +210,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         input_system.update();
 
         visual_system.renderPrepare();
-
-        // Pull Data for Rendering
-        visual_system.pullSceneData(&scene_graph,
-                                    camera->getTransform().getPosition());
-
         // Render Objects
         visual_system.render();
 

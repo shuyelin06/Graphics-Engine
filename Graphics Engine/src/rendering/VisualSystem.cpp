@@ -133,11 +133,6 @@ VisualSystem::VisualSystem(HWND window) {
     resource_manager = NULL;
     pipeline = NULL;
 
-    // Connect to Datamodel
-    auto objectCreateFunc = [this](Object* obj) { onObjectCreate(obj); };
-    DMCamera::ConnectToCreation(objectCreateFunc);
-    DMMesh::ConnectToCreation(objectCreateFunc);
-
     // Initialize my pipeline
     HRESULT result;
     pipeline = new Pipeline(window);
@@ -163,16 +158,6 @@ VisualSystem::VisualSystem(HWND window) {
     render_manager = RenderManager::create(this, context, device);
 
     light_manager = new LightManager(device, 4096);
-}
-
-// --- Component Bindings ---
-void VisualSystem::onObjectCreate(Object* object) {
-    const uint16_t class_id = object->getClassID();
-
-    if (class_id == DMMesh::ClassID()) {
-        renderable_meshes.push_back(
-            new RenderableMesh(object, resource_manager.get()));
-    }
 }
 
 // Render:
@@ -269,112 +254,26 @@ void VisualSystem::render() {
 }
 
 void VisualSystem::renderPrepare() {
-    scene_listener->update();
-
-    scene_manager->update();
-}
-
-// PullSceneData:
-// Prepares the engine for rendering, by pulling all necessary
-// data from the datamodel.
-void VisualSystem::pullSceneData(Scene* scene, Vector3 pos) {
 #if defined(_DEBUG)
     ICPUTimer cpu_timer = CPUTimer::TrackCPUTime("Render Prepare");
 #endif
 
-    // Pull Datamodel Data
-    cleanAndPullDatamodelData(renderable_meshes);
+    // Parse all datamodel update packets since the last frame and update my
+    // rendering systems.
+    scene_listener->update();
+
+    scene_manager->update();
 
     light_manager->pullDatamodelData();
 
     if (terrain)
-        terrain->updateAndUploadTerrainData(context, pos);
+        terrain->updateAndUploadTerrainData(
+            context, scene_manager->getMainCamera()->getPosition());
 
     // Prepare managers for data
     light_manager->updateSunDirection(config->sun_direction);
     light_manager->updateSunCascades(scene_manager->getMainCamera()->frustum());
-
     light_manager->resetShadowCasters();
-
-    // TODO.
-    // Mesh Draw Calls here.
-    /*
-    for (const auto& renderable_mesh : renderable_meshes) {
-        pass_default->meshes.emplace_back(renderable_mesh->getGeometry(),
-                                          renderable_mesh->getLocalMatrix());
-    }
-    */
-
-    /*
-    for (AssetComponent* object : asset_components) {
-        object->update();
-
-        const Asset* asset = object->getAsset();
-
-        if (asset->isSkinned())
-            asset->applyAnimationAtTime(1, cache->time);
-
-        for (const auto& mesh : asset->getMeshes()) {
-            ShadowCaster shadowCaster;
-            shadowCaster.mesh = mesh.get();
-            shadowCaster.m_localToWorld = object->getObject()->getLocalMatrix();
-            light_manager->addShadowCaster(shadowCaster);
-        }
-    }
-    */
-
-    // ---
-    const int size = 750;
-    static BumpMapBuilder bump_builder = BumpMapBuilder(size, size);
-
-    static float freq = 0.02f;
-    static float AMP = 2.f;
-
-#if defined(_DEBUG)
-    if (ImGui::BeginMenu("Misc")) {
-        ImGui::SliderFloat("Frequency", &freq, 0.001f, 0.5f);
-        ImGui::SliderFloat("Amplitude", &AMP, 1.f, 25.f);
-
-        ImGui::EndMenu();
-    }
-#endif
-
-    if (bump_tex == nullptr) {
-        bump_builder.samplePerlinNoise(120512, freq, AMP);
-
-        if (bump_tex != nullptr) {
-            bump_builder.update(bump_tex, context);
-        } else
-            bump_tex = bump_builder.generate(device, true);
-    }
-
-    // bump_tex->displayImGui();
-
-    // ---
-
-    // TODO: Terrain is not included in shadows
-    /*BufferPool* bpool_terrain = terrain->getMesh();
-    static Mesh* t_mesh = new Mesh();
-    t_mesh->index_buffer = bpool_terrain->getIndexBuffer();
-    t_mesh->triangle_count = bpool_terrain->getNumTriangles();
-    t_mesh->vertex_streams[POSITION] = bpool_terrain->getPositionBuffer();
-    t_mesh->aabb = AABB();
-    t_mesh->aabb.expandToContain(Vector3(-500, -500, -500));
-    t_mesh->aabb.expandToContain(Vector3(500, 500, 500));
-    ShadowCaster shadowCaster;
-    shadowCaster.mesh = t_mesh;
-    shadowCaster.m_localToWorld = Matrix4::Identity();
-    light_manager->addShadowCaster(shadowCaster);*/
-
-    /*const std::vector<Mesh*> chunk_meshes = terrain->getMeshes();
-    visible_chunks.clear();
-    for (Mesh* mesh : chunk_meshes) {
-        OBB obb = OBB(mesh->aabb, Matrix4::Identity());
-        if (cam_frustum.intersectsOBB(obb))
-            visible_chunks.push_back(mesh);
-    }*/
-
-    // Cluster shadows
     light_manager->clusterShadowCasters();
 
     // Update the values stored in my cache
