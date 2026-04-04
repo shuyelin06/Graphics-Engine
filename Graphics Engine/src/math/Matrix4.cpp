@@ -208,6 +208,11 @@ Matrix4 Matrix4::operator/(const float c) const {
     return new_matrix;
 }
 
+// Equality
+bool Matrix4::operator==(const Matrix4& other) const {
+    return memcmp(data, other.data, 4 * 4 * sizeof(float)) == 0;
+}
+
 // Matrix Generation:
 // Static methods for generating matrices
 Matrix4 Matrix4::Identity() {

@@ -273,7 +273,7 @@
     <ClCompile Include="src\datamodel\core\DMTracking.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\scene\SceneManager.cpp">
+    <ClCompile Include="src\rendering\scene\SceneListener.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\terrain\TerrainSDF.cpp">
@@ -286,6 +286,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\pipeline\techniques\TerrainMesh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rendering\scene\SceneManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\math\CFrame.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -590,7 +596,7 @@
     <ClInclude Include="src\datamodel\core\DMCore.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\scene\SceneManager.h">
+    <ClInclude Include="src\rendering\scene\SceneListener.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\datamodel\core\DMListener.h">
@@ -603,6 +609,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\pipeline\techniques\TerrainMesh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rendering\scene\SceneManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\CFrame.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

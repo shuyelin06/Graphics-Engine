@@ -28,33 +28,27 @@ class RenderManagerImpl;
 // - Instancing support
 
 enum PipelineRenderPass {
-    kRenderPass_Terrain = 0,
+    kRenderPass_Shadows = 0,
+    kRenderPass_Opaque = 1,
+    kRenderPass_Terrain = 2,
     kRenderPass_Count_,
 };
 
-class PipelineRenderPassSet {
-    static_assert(PipelineRenderPass::kRenderPass_Count_ <= sizeof(uint8_t));
-    uint8_t bitMask;
-
-  public:
-    PipelineRenderPassSet(uint8_t bitMask);
-    bool hasRenderPass(PipelineRenderPass pass) const;
-};
-
-class RenderMesh {
-  public:
-    virtual void bindAndExecute(Pipeline* pipeline,
-                                ID3D11DeviceContext* context) = 0;
-};
-
-class RenderMaterial {
+class PixelTechnique {
   public:
     virtual void bind(Pipeline* pipeline, ID3D11DeviceContext* context) = 0;
 };
 
+class VertexTechnique {
+  public:
+    // Executes the draw call too?
+    virtual void bindAndDraw(Pipeline* pipeline, ID3D11DeviceContext* context,
+                             PixelTechnique* pixelTechnique) = 0;
+};
+
 struct DrawCall {
-    std::shared_ptr<RenderMesh> mesh;
-    std::shared_ptr<RenderMaterial> material;
+    VertexTechnique* vertexTechnique;
+    PixelTechnique* pixelTechnique;
 };
 
 class RenderManager {
@@ -64,8 +58,12 @@ class RenderManager {
                                                  ID3D11Device* device);
     ~RenderManager();
 
-    void submitDrawCall(const PipelineRenderPassSet passes,
-                        const DrawCall& drawCall);
+    void submitDrawCall_Shadows(VertexTechnique* vertexTechnique);
+    void submitDrawCall_Opaque(VertexTechnique* vertexTechnique,
+                               PixelTechnique* pixelTechnique);
+    void submitDrawCall_Terrain(VertexTechnique* vertexTechnique,
+                                PixelTechnique* pixelTechnique);
+
     void perform();
 
   private:

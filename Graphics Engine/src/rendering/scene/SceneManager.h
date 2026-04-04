@@ -1,34 +1,38 @@
 #pragma once
 
 #include <memory>
-#include <vector>
+#include <variant>
 
-#include "datamodel/core/DMTracking.h"
+#include "rendering/core/Camera.h"
 
 namespace Engine {
 namespace Graphics {
 class VisualSystem;
 class SceneManagerImpl;
 
-using namespace Datamodel;
-
-// Class SceneManager:
-// Interfaces with the datamodel. Processes datamodel
-// events and interfaces with the appropriate system for each event received.
-class SceneManager : public Datamodel::DMListener {
+class SceneManager {
   public:
-    static std::unique_ptr<SceneManager> create(VisualSystem* visual_system);
+    static std::unique_ptr<SceneManager> create(VisualSystem* visualSystem);
     ~SceneManager();
 
-    // Process all incoming datamodel events
+    // Datamodel Updates
+    struct UpdatePacket {
+        enum Operation { Create, Destroy, Update };
+
+        uint32_t handle; // Object Handle
+        Operation operation;
+        std::variant<Camera::UpdatePacket> data;
+    };
+    void submitUpdatePacket(const UpdatePacket& packet);
+
+    // Main Update Loop
     void update();
 
-    // Datamodel::DMListener Implementation
-    void onDatamodelEvent(const Datamodel::DMEvent& event) override;
+    // Accessors
+    Camera* getMainCamera();
 
   private:
     std::unique_ptr<SceneManagerImpl> mImpl;
-
     SceneManager();
 };
 

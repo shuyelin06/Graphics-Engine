@@ -1,8 +1,11 @@
 #pragma once
 
+#include <variant>
+
 #include "datamodel/DMBinding.h"
 #include "datamodel/objects/DMCamera.h"
 
+#include "math/CFrame.h"
 #include "math/Matrix4.h"
 #include "math/OBB.h"
 #include "math/Transform.h"
@@ -19,7 +22,7 @@ namespace Graphics {
 // on the screen is rendered from the camera's point of view.
 // Unless otherwise rotated, the camera's default view
 // is in the +Z axis.
-class Camera : public DMBinding {
+class Camera {
   protected:
     float fov;
     float z_near, z_far;
@@ -34,11 +37,23 @@ class Camera : public DMBinding {
     // and is used to compute the local to world matrix
     Matrix4 local_to_world_matrix;
 
-    void pullDatamodelDataImpl(Object* obj) override;
-
   public:
-    Camera(Object* dm_camera);
+    Camera();
     ~Camera();
+
+    // Updating
+    struct UpdatePacket {
+        enum class Property {
+            LocalMatrix,
+            FOV,
+            ZNear,
+            ZFar,
+        };
+        Property type;
+
+        std::variant<Matrix4, float> data;
+    };
+    void update(const UpdatePacket& packet);
 
     // Get the camera's attributes
     const Vector3 forward() const;
@@ -55,7 +70,7 @@ class Camera : public DMBinding {
     const Matrix4 getFrustumMatrix(void) const;
 
   private:
-    void setFrustumMatrix(float fov, float z_near, float z_far);
+    void computeFrustumMatrix();
 };
 } // namespace Graphics
 } // namespace Engine

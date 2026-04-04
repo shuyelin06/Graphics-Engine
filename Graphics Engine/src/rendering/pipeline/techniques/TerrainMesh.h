@@ -9,7 +9,7 @@ namespace Engine {
 using namespace Math;
 
 namespace Graphics {
-class TerrainMesh : public RenderMesh {
+class TerrainMesh : public VertexTechnique {
   public:
     struct MeshDescription {
         unsigned int index_start;
@@ -43,8 +43,8 @@ class TerrainMesh : public RenderMesh {
                        size_t numElements);
 
     // RenderMesh Implementation
-    void bindAndExecute(Pipeline* pipeline,
-                        ID3D11DeviceContext* context) override;
+    void bindAndDraw(Pipeline* pipeline, ID3D11DeviceContext* context,
+                        PixelTechnique* pixelTechnique) override;
 };
 
 } // namespace Graphics

@@ -171,8 +171,8 @@ void VisualTerrainImpl::updateAndUploadTerrainData(ID3D11DeviceContext* context,
     mMesh->uploadNormals(context, mesh_pool->cpu_vbuffers[NORMAL].get(),
                          mesh_pool->vertex_size);
 
-    visual_system->getRenderManager()->submitDrawCall(
-        PipelineRenderPassSet(1 << kRenderPass_Terrain), {mMesh, nullptr});
+    visual_system->getRenderManager()->submitDrawCall_Terrain(mMesh.get(),
+                                                              nullptr);
 }
 
 void VisualTerrainImpl::processSceneUpdates() {

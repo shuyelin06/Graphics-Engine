@@ -12,25 +12,36 @@
 namespace Engine {
 namespace Graphics {
 // --- Camera ---
-Camera::Camera(Object* dm_camera) : DMBinding(dm_camera) {
-    setFrustumMatrix(1.2f, 5.f, 500.f);
-}
+Camera::Camera() = default;
 Camera::~Camera() = default;
 
-// -- Pull Datamodel Data ---
-void Camera::pullDatamodelDataImpl(Object* obj) {
-    DMCamera* dm_camera = static_cast<DMCamera*>(obj);
+void Camera::update(const UpdatePacket& packet) {
+    using CameraProperty = UpdatePacket::Property;
 
-    local_to_world_matrix = dm_camera->getLocalMatrix();
-    setFrustumMatrix(dm_camera->getFOV(), dm_camera->getZNear(),
-                     dm_camera->getZFar());
+    switch (packet.type) {
+    case CameraProperty::LocalMatrix: {
+        const Matrix4& matrix = std::get<Matrix4>(packet.data);
+        local_to_world_matrix = matrix;
+    } break;
+
+    case CameraProperty::FOV: {
+        fov = std::get<float>(packet.data);
+        computeFrustumMatrix();
+    } break;
+
+    case CameraProperty::ZNear: {
+        z_near = std::get<float>(packet.data);
+        computeFrustumMatrix();
+    } break;
+
+    case CameraProperty::ZFar: {
+        z_far = std::get<float>(packet.data);
+        computeFrustumMatrix();
+    } break;
+    }
 }
 
-void Camera::setFrustumMatrix(float _fov, float _z_near, float _z_far) {
-    z_near = _z_near;
-    z_far = _z_far;
-    fov = _fov;
-
+void Camera::computeFrustumMatrix() {
     Matrix4 projection_matrix = Matrix4();
 
     const float fov_factor = cosf(fov / 2.f) / sinf(fov / 2.f);

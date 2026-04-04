@@ -3,22 +3,25 @@
 namespace Engine {
 namespace Datamodel {
 DMCamera::DMCamera()
-    : Object("Camera"), fov_test(&this->getDMHandle(), "FOV"),
+    : Object("Camera"), fov(&getDMHandle(), "FOV"),
+      zNear(&getDMHandle(), "ZNear"), zFar(&getDMHandle(), "ZFar"),
       Bindable<DMCamera>(this) {
-    fov = 1.2f;
+    fov.writeProperty(1.2f);
 
-    z_near = 5.f;
-    z_far = 500.f;
+    zNear.writeProperty(5.f);
+    zFar.writeProperty(500.f);
 
     DMCamera::SignalObjectCreation(this);
 }
 DMCamera::~DMCamera() = default;
 
-void DMCamera::propertyDisplay() { ImGui::SliderFloat("FOV", &fov, 0.1f, 2.f); }
+void DMCamera::propertyDisplay() {
+    // TODO
+}
 
-float DMCamera::getFOV() const { return fov; }
-float DMCamera::getZNear() const { return z_near; }
-float DMCamera::getZFar() const { return z_far; }
+float DMCamera::getFOV() const { return fov.readProperty(); }
+float DMCamera::getZNear() const { return zNear.readProperty(); }
+float DMCamera::getZFar() const { return zFar.readProperty(); }
 
 } // namespace Datamodel
 } // namespace Engine

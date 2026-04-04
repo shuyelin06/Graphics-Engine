@@ -36,7 +36,7 @@
 #include "input/InputSystem.h"
 #include "physics/PhysicsSystem.h"
 #include "rendering/VisualSystem.h"
-#include "rendering/scene/SceneManager.h"
+#include "rendering/scene/SceneListener.h"
 
 #include "datamodel/objects/DMCamera.h"
 
@@ -108,7 +108,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     ThreadPool::InitializeThreadPool();
 
     // --- Create my Scene ---
-    Datamodel::RegisterDatamodelListener(visual_system.getSceneManager());
+    Datamodel::RegisterDatamodelListener(visual_system.getSceneListener());
     Scene scene_graph = Scene();
 
     Object* root = new Object("Unknown");

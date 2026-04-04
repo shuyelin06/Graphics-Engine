@@ -16,7 +16,8 @@ namespace Datamodel {
 // Constructor:
 // Creates an object with no parent and a
 // local position of (0,0,0)
-Object::Object(const DMObjectTag& object_tag) : dm_handle(object_tag) {
+Object::Object(const DMObjectTag& object_tag)
+    : dm_handle(object_tag), m_local(&getDMHandle(), "LocalMatrix") {
     // Objects start with no parent and no children
     parent = nullptr;
     children = std::vector<Object*>(0);
@@ -24,7 +25,7 @@ Object::Object(const DMObjectTag& object_tag) : dm_handle(object_tag) {
 
     // Default transform
     transform = Transform();
-    m_local = Matrix4::Identity();
+    m_local.writeProperty(Matrix4::Identity());
 
     destroy = false;
 
@@ -109,7 +110,7 @@ Transform& Object::getTransform() { return transform; }
 // GetLocalToWorldMatrix:
 // Returns the Object's Local -> World matrix. This can be used
 // to transform points in the object's local space into world space.
-const Matrix4& Object::getLocalMatrix() const { return m_local; }
+const Matrix4& Object::getLocalMatrix() const { return m_local.readProperty(); }
 
 // UpdateLocalToWorldMatrix:
 // Update the Local -> World matrix for the object, given the
@@ -122,9 +123,9 @@ const Matrix4& Object::updateLocalMatrix(const Math::Matrix4& m_parent) {
     const Matrix4 m_parent_transform = m_parent;
 
     // Update local matrix.
-    m_local = m_parent_transform * m_local_transform;
+    m_local.writeProperty(m_parent_transform * m_local_transform);
 
-    return m_local;
+    return m_local.readProperty();
 }
 
 // Overrideable Methods

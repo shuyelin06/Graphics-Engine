@@ -15,6 +15,7 @@
 #include "pipeline/PipelineManager.h"
 #include "pipeline/RenderManager.h"
 #include "terrain/TerrainManager.h"
+#include "scene/SceneManager.h"
 
 #include "core/RenderableMesh.h"
 
@@ -35,15 +36,10 @@ namespace Engine {
 using namespace Datamodel;
 
 namespace Graphics {
+class SceneListener;
 class SceneManager;
 class ResourceManager;
 class TerrainManager;
-
-enum RenderPass {
-    RenderPass_Shadows,
-    RenderPass_Terrain,
-    RenderPass_Default,
-};
 
 // VisualParameters Struct:
 // Stores configuration parameters toggleable by the user
@@ -71,6 +67,7 @@ class VisualSystem {
     ID3D11DeviceContext* context;
 
     // Managers
+    std::unique_ptr<SceneListener> scene_listener;
     std::unique_ptr<SceneManager> scene_manager;
     std::unique_ptr<ResourceManager> resource_manager;
     std::unique_ptr<RenderManager> render_manager;
@@ -78,7 +75,6 @@ class VisualSystem {
     Pipeline* pipeline;
 
     // Supported Components
-    std::unique_ptr<Camera> camera;
     std::vector<RenderableMesh*> renderable_meshes;
     std::unique_ptr<TerrainManager> terrain;
 
@@ -99,6 +95,7 @@ class VisualSystem {
     void render();
 
     ResourceManager* getResourceManager() const;
+    SceneListener* getSceneListener() const;
     SceneManager* getSceneManager() const;
     TerrainManager* getVisualTerrain() const;
     RenderManager* getRenderManager() const;

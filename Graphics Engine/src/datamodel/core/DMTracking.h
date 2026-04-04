@@ -32,15 +32,17 @@ template <typename T> struct DMTrackedProperty {
         : owner(_owner), property_tag(_tag), data() {}
 
     void writeProperty(const T& new_value) {
-        data = new_value;
+        if (data != new_value) {
+            data = new_value;
 
-        DMEvent event;
-        event.event_type = DMEventType::kPropertyUpdated;
-        event.object = owner->getHandle();
-        event.object_type = owner->getObjectTag();
-        event.property_tag = property_tag;
-        event.property_data = data;
-        FireDatamodelEvent(event);
+            DMEvent event;
+            event.event_type = DMEventType::kPropertyUpdated;
+            event.object = owner->getHandle();
+            event.object_type = owner->getObjectTag();
+            event.property_tag = property_tag;
+            event.property_data = data;
+            FireDatamodelEvent(event);
+        }
     };
 
     T& readProperty() { return data; }

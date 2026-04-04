@@ -22,7 +22,7 @@ template <size_t MAX_SIZE> class StackString {
     }
     template <std::size_t N> bool operator==(const char (&str)[N]) const {
         constexpr size_t MIN_SIZE = N < MAX_SIZE ? N : MAX_SIZE;
-        return strncmp(buffer.data(), str, MIN_SIZE);
+        return strncmp(buffer.data(), str, MIN_SIZE) == 0;
     }
 
     const char* c_str() const { return buffer.data(); }

@@ -6,6 +6,7 @@
 
 #include "core/DMTracking.h"
 
+#include "math/CFrame.h"
 #include "math/Matrix4.h"
 #include "math/Transform.h"
 #include "math/Vector3.h"
@@ -47,7 +48,7 @@ class Object {
     // Transform of the object
     Transform transform;
     // Cached Local --> World Matrix
-    Matrix4 m_local;
+    DMTrackedProperty<Matrix4> m_local;
 
     // Used in the SceneGraph Management
     bool destroy;

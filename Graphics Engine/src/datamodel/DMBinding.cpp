@@ -5,8 +5,10 @@
 namespace Engine {
 namespace Datamodel {
 DMBinding::DMBinding(Object* obj) {
-    dm_object = obj;
-    dm_object->bind(this);
+    if (obj) {
+        dm_object = obj;
+        dm_object->bind(this);
+    }
 }
 DMBinding::~DMBinding() {
     // On destruction, notify the bound object that the

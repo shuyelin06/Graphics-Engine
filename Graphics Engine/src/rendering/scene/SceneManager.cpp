@@ -1,106 +1,93 @@
 #include "SceneManager.h"
 
-#include "../VisualSystem.h"
-
-#include "rendering/terrain/TerrainManager.h"
+#include <mutex>
 
 namespace Engine {
 namespace Graphics {
-using DMHandle = Datamodel::DMObjectHandle;
-using DMEvent = Datamodel::DMEvent;
-
+using UpdatePacket = SceneManager::UpdatePacket;
 class SceneManagerImpl {
   private:
     VisualSystem* mVisualSystem;
 
-    std::vector<DMEvent> mEventsScratch;
-    std::mutex mEventsScratchLock;
-    std::vector<DMEvent> mEvents;
+    std::vector<UpdatePacket> mUpdatePacketsScratch;
+    std::mutex mUpdatePacketsLock;
+    std::vector<UpdatePacket> mUpdatePackets;
+
+    std::unordered_map<uint32_t, std::unique_ptr<Camera>> cameras;
+    Camera* activeCamera = nullptr;
 
   public:
-    SceneManagerImpl(VisualSystem* visualSystem);
+    SceneManagerImpl(VisualSystem* _visualSystem);
     ~SceneManagerImpl();
+
+    void submitUpdatePacket(const UpdatePacket& packet);
 
     void update();
 
-    // Datamodel::DMListener Implementation
-    void onDatamodelEvent(const Datamodel::DMEvent& event);
-
-  private:
-    void processTerrainEvent(const DMEvent& event);
+    Camera* getMainCamera();
 };
 
-SceneManager::SceneManager() = default;
+SceneManager::SceneManager() {}
 SceneManager::~SceneManager() = default;
 
-std::unique_ptr<SceneManager> SceneManager::create(VisualSystem* visualSystem) {
-    std::unique_ptr<SceneManager> sceneManager =
-        std::unique_ptr<SceneManager>(new SceneManager());
-    sceneManager->mImpl = std::make_unique<SceneManagerImpl>(visualSystem);
-    return std::move(sceneManager);
+void SceneManager::submitUpdatePacket(const UpdatePacket& packet) {
+    mImpl->submitUpdatePacket(packet);
 }
 
 void SceneManager::update() { mImpl->update(); }
 
-void SceneManager::onDatamodelEvent(const Datamodel::DMEvent& event) {
-    mImpl->onDatamodelEvent(event);
+Camera* SceneManager::getMainCamera() { return mImpl->getMainCamera(); }
+
+std::unique_ptr<SceneManager> SceneManager::create(VisualSystem* visualSystem) {
+    std::unique_ptr<SceneManager> ptr =
+        std::unique_ptr<SceneManager>(new SceneManager());
+    ptr->mImpl = std::make_unique<SceneManagerImpl>(visualSystem);
+    return ptr;
 }
 
-SceneManagerImpl::SceneManagerImpl(VisualSystem* _visualSystem) {
-    mVisualSystem = _visualSystem;
-}
+SceneManagerImpl::SceneManagerImpl(VisualSystem* _visualSystem)
+    : mVisualSystem(_visualSystem) {}
 SceneManagerImpl::~SceneManagerImpl() = default;
+
+void SceneManagerImpl::submitUpdatePacket(const UpdatePacket& packet) {
+    std::scoped_lock<std::mutex> updatePacketsLock(mUpdatePacketsLock);
+    mUpdatePacketsScratch.emplace_back(packet);
+}
 
 void SceneManagerImpl::update() {
     {
-        std::scoped_lock<std::mutex> eventsScratchLock(mEventsScratchLock);
-        std::swap(mEvents, mEventsScratch);
-        mEventsScratch.clear();
+        std::scoped_lock<std::mutex> updatePacketsLock(mUpdatePacketsLock);
+        std::swap(mUpdatePackets, mUpdatePacketsScratch);
+        mUpdatePacketsScratch.clear();
     }
 
-    while (!mEvents.empty()) {
-        const DMEvent event = mEvents.back();
-        mEvents.pop_back();
+    while (!mUpdatePackets.empty()) {
+        const UpdatePacket packet = mUpdatePackets.back();
+        mUpdatePackets.pop_back();
 
-        if (event.object_type == "Terrain") {
-            processTerrainEvent(event);
+        switch (packet.operation) {
+        case UpdatePacket::Operation::Create: {
+            assert(!cameras.contains(packet.handle));
+            cameras[packet.handle] = std::make_unique<Camera>();
+            // HACK
+            activeCamera = cameras[packet.handle].get();
+        } break;
+
+        case UpdatePacket::Operation::Destroy: {
+            assert(cameras.contains(packet.handle));
+            cameras.erase(packet.handle);
+        } break;
+
+        case UpdatePacket::Operation::Update: {
+            assert(cameras.contains(packet.handle));
+            cameras[packet.handle]->update(
+                std::get<Camera::UpdatePacket>(packet.data));
+        } break;
         }
     }
 }
 
-void SceneManagerImpl::onDatamodelEvent(const Datamodel::DMEvent& event) {
-    std::scoped_lock<std::mutex> eventsScratchLock(mEventsScratchLock);
-    mEventsScratch.emplace_back(event);
-}
-
-void SceneManagerImpl::processTerrainEvent(const DMEvent& event) {
-    assert(event.object_type == "Terrain");
-    TerrainManager* visualTerrain = mVisualSystem->getVisualTerrain();
-    assert(visualTerrain);
-
-    TerrainManager::UpdatePacket packet;
-
-    switch (event.event_type) {
-    case DMEventType::kCreated:
-        packet.type = TerrainManager::UpdatePacket::Type::kToggleTerrain;
-        packet.data = true;
-        break;
-
-    case DMEventType::kDestroyed:
-        packet.type = TerrainManager::UpdatePacket::Type::kToggleTerrain;
-        packet.data = false;
-        break;
-
-    case DMEventType::kPropertyUpdated:
-        if (event.property_tag == "Seed") {
-            packet.type = TerrainManager::UpdatePacket::Type::kPropertySeed;
-            packet.data = std::get<uint32_t>(event.property_data);
-        }
-        break;
-    }
-
-    visualTerrain->submitSceneUpdate(packet);
-}
+Camera* SceneManagerImpl::getMainCamera() { return activeCamera; }
 
 } // namespace Graphics
 } // namespace Engine

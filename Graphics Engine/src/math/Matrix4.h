@@ -45,6 +45,7 @@ class Matrix4 {
     Vector4 operator*(const Vector4&) const;
     Matrix4 operator*(const float) const;
     Matrix4 operator/(const float) const;
+    bool operator==(const Matrix4&) const;
 
     static Matrix4 Identity();
     static Matrix4 T_Scale(float x_scale, float y_scale, float z_scale);

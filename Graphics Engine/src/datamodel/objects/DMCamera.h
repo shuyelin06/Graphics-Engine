@@ -11,10 +11,9 @@ namespace Datamodel {
 // Represents a camera in the scene.
 class DMCamera : public Object, public Bindable<DMCamera> {
   private:
-    DMTrackedProperty<float> fov_test;
-
-    float fov;
-    float z_near, z_far;
+    DMTrackedProperty<float> fov;
+    DMTrackedProperty<float> zNear;
+    DMTrackedProperty<float> zFar;
 
   public:
     DMCamera();

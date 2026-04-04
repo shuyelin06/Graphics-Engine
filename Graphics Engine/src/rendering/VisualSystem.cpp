@@ -4,6 +4,7 @@
 #include <d3d11_1.h>
 
 #include "resources/ResourceManager.h"
+#include "scene/SceneListener.h"
 #include "scene/SceneManager.h"
 
 #include "VisualDebug.h"
@@ -132,14 +133,10 @@ VisualSystem::VisualSystem(HWND window) {
     resource_manager = NULL;
     pipeline = NULL;
 
-    camera = nullptr;
-
     // Connect to Datamodel
     auto objectCreateFunc = [this](Object* obj) { onObjectCreate(obj); };
     DMCamera::ConnectToCreation(objectCreateFunc);
     DMMesh::ConnectToCreation(objectCreateFunc);
-
-    camera = nullptr;
 
     // Initialize my pipeline
     HRESULT result;
@@ -158,6 +155,7 @@ VisualSystem::VisualSystem(HWND window) {
     }
 
     // Initialize each of my managers with the resources they need
+    scene_listener = SceneListener::create(this);
     scene_manager = SceneManager::create(this);
     resource_manager = std::make_unique<ResourceManager>(device, context);
     resource_manager->initializeSystemResources();
@@ -171,9 +169,7 @@ VisualSystem::VisualSystem(HWND window) {
 void VisualSystem::onObjectCreate(Object* object) {
     const uint16_t class_id = object->getClassID();
 
-    if (class_id == DMCamera::ClassID()) {
-        camera.reset(new Camera(object));
-    } else if (class_id == DMMesh::ClassID()) {
+    if (class_id == DMMesh::ClassID()) {
         renderable_meshes.push_back(
             new RenderableMesh(object, resource_manager.get()));
     }
@@ -201,6 +197,7 @@ void VisualSystem::render() {
         // light_manager->updateTimeOfDay(15.f);
 
         // Upload CB0
+        Camera* camera = scene_manager->getMainCamera();
         {
             IConstantBuffer pcb0_common = pipeline->loadPixelCB(CB0);
 
@@ -271,7 +268,11 @@ void VisualSystem::render() {
     pipeline->endFrame();
 }
 
-void VisualSystem::renderPrepare() { scene_manager->update(); }
+void VisualSystem::renderPrepare() {
+    scene_listener->update();
+
+    scene_manager->update();
+}
 
 // PullSceneData:
 // Prepares the engine for rendering, by pulling all necessary
@@ -282,7 +283,6 @@ void VisualSystem::pullSceneData(Scene* scene, Vector3 pos) {
 #endif
 
     // Pull Datamodel Data
-    camera.get()->pullDatamodelData();
     cleanAndPullDatamodelData(renderable_meshes);
 
     light_manager->pullDatamodelData();
@@ -292,7 +292,7 @@ void VisualSystem::pullSceneData(Scene* scene, Vector3 pos) {
 
     // Prepare managers for data
     light_manager->updateSunDirection(config->sun_direction);
-    light_manager->updateSunCascades(camera->frustum());
+    light_manager->updateSunCascades(scene_manager->getMainCamera()->frustum());
 
     light_manager->resetShadowCasters();
 
@@ -380,6 +380,7 @@ void VisualSystem::pullSceneData(Scene* scene, Vector3 pos) {
     // Update the values stored in my cache
     Texture* target = pipeline->getRenderTargetDest();
 
+    Camera* camera = scene_manager->getMainCamera();
     cache->time += 1 / 60.f;
     cache->m_world_to_screen =
         camera->getFrustumMatrix() * camera->getWorldToCameraMatrix();
@@ -391,6 +392,9 @@ void VisualSystem::pullSceneData(Scene* scene, Vector3 pos) {
 
 ResourceManager* VisualSystem::getResourceManager() const {
     return resource_manager.get();
+}
+SceneListener* VisualSystem::getSceneListener() const {
+    return scene_listener.get();
 }
 SceneManager* VisualSystem::getSceneManager() const {
     return scene_manager.get();
@@ -467,6 +471,7 @@ void VisualSystem::performDefaultPass() {
     {
         IConstantBuffer vCB1 = pipeline->loadVertexCB(CB1);
 
+        Camera* camera = scene_manager->getMainCamera();
         const Matrix4 viewMatrix = camera->getWorldToCameraMatrix();
         vCB1.loadData(&viewMatrix, FLOAT4X4);
         const Matrix4 projectionMatrix = camera->getFrustumMatrix();
@@ -599,6 +604,7 @@ void VisualSystem::performLightFrustumPass() {
 
         // This matrix scales the unit cube to the frustum cube. The frustum
         // cube has x in [-1,1], y in [-1,1], z in [0,1].
+        Camera* camera = scene_manager->getMainCamera();
         const Matrix4 m_camera_to_screen =
             camera->getFrustumMatrix() * camera->getWorldToCameraMatrix();
         vcb0.loadData(&m_camera_to_screen, FLOAT4X4);
@@ -698,6 +704,7 @@ void VisualSystem::performWaterSurfacePass() {
     pipeline->bindRenderTarget(Target_UseExisting, Depth_TestAndWrite,
                                Blend_SrcAlphaOnly);
 
+    Camera* camera = scene_manager->getMainCamera();
     {
         IConstantBuffer vcb0 = pipeline->loadVertexCB(CB0);
         const Matrix4 m_camera_to_screen =
@@ -940,6 +947,7 @@ void VisualSystem::renderDebugPoints() {
     points.clear();
 
     if (numPoints > 0) {
+        Camera* camera = scene_manager->getMainCamera();
         // Vertex Constant Buffer 1:
         // Stores the camera view and projection matrices
         {
@@ -988,6 +996,7 @@ void VisualSystem::renderDebugLines() {
     int numLines = lines.size() * 2;
 
     if (numLines > 0) {
+        Camera* camera = scene_manager->getMainCamera();
         // Vertex Constant Buffer 1:
         // Stores the camera view and projection matrices
         {

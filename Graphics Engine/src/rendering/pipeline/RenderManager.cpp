@@ -30,13 +30,6 @@ class DebugRenderPassScope {
     ~DebugRenderPassScope() { annotation->EndEvent(); }
 };
 
-PipelineRenderPassSet::PipelineRenderPassSet(uint8_t _bitMask) {
-    bitMask = _bitMask;
-}
-bool PipelineRenderPassSet::hasRenderPass(PipelineRenderPass pass) const {
-    return (bitMask & (1 << pass)) == (1 << pass);
-}
-
 struct RenderPassContainer {
     std::vector<DrawCall> drawCalls;
     ID3DUserDefinedAnnotation* debugAnnotation;
@@ -55,7 +48,7 @@ class RenderManagerImpl {
                       ID3D11DeviceContext* _context, ID3D11Device* _device);
     ~RenderManagerImpl();
 
-    void submitDrawCall(const PipelineRenderPassSet passes,
+    void submitDrawCall(const PipelineRenderPass pass,
                         const DrawCall& drawCall);
     void perform();
 };
@@ -63,9 +56,15 @@ class RenderManagerImpl {
 RenderManager::RenderManager() = default;
 RenderManager::~RenderManager() = default;
 
-void RenderManager::submitDrawCall(const PipelineRenderPassSet passes,
-                                   const DrawCall& drawCall) {
-    mImpl->submitDrawCall(passes, drawCall);
+void RenderManager::submitDrawCall_Opaque(VertexTechnique* vertexTechnique,
+                                          PixelTechnique* pixelTechnique) {
+    mImpl->submitDrawCall(PipelineRenderPass::kRenderPass_Opaque,
+                          {vertexTechnique, pixelTechnique});
+}
+void RenderManager::submitDrawCall_Terrain(VertexTechnique* vertexTechnique,
+                                           PixelTechnique* pixelTechnique) {
+    mImpl->submitDrawCall(PipelineRenderPass::kRenderPass_Terrain,
+                          {vertexTechnique, pixelTechnique});
 }
 
 void RenderManager::perform() { mImpl->perform(); }
@@ -91,13 +90,9 @@ RenderManagerImpl::RenderManagerImpl(VisualSystem* _visualSystem,
 }
 RenderManagerImpl::~RenderManagerImpl() = default;
 
-void RenderManagerImpl::submitDrawCall(const PipelineRenderPassSet passes,
+void RenderManagerImpl::submitDrawCall(const PipelineRenderPass pass,
                                        const DrawCall& drawCall) {
-    for (int pass = 0; pass < PipelineRenderPass::kRenderPass_Count_; pass++) {
-        if (passes.hasRenderPass((PipelineRenderPass)pass)) {
-            mRenderPasses[pass].drawCalls.push_back(drawCall);
-        }
-    }
+    mRenderPasses[pass].drawCalls.emplace_back(drawCall);
 }
 
 void RenderManagerImpl::perform() {
@@ -117,15 +112,18 @@ void RenderManagerImpl::perform() {
     }
 
     // For now, only support terrain
-    assert(PipelineRenderPass::kRenderPass_Count_ == 1);
+    // assert(PipelineRenderPass::kRenderPass_Count_ == 1);
 
     {
         RENDER_PASS(PipelineRenderPass::kRenderPass_Terrain, "Terrain");
         for (auto& drawCall :
              mRenderPasses[PipelineRenderPass::kRenderPass_Terrain].drawCalls) {
-            if (drawCall.material)
-                drawCall.material->bind(pipeline, context);
-            drawCall.mesh->bindAndExecute(pipeline, context);
+            // TODO: Materials technically should not be
+            // null :)
+            if (drawCall.pixelTechnique)
+                drawCall.pixelTechnique->bind(pipeline, context);
+            drawCall.vertexTechnique->bindAndDraw(pipeline, context,
+                                                  drawCall.pixelTechnique);
         }
     }
 

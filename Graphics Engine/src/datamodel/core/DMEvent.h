@@ -4,6 +4,9 @@
 #include <string>
 #include <variant>
 
+#include "math/CFrame.h"
+#include "math/Matrix4.h"
+
 #include "core/StackString.h"
 
 namespace Engine {
@@ -19,7 +22,7 @@ using DMObjectHandle = uint32_t;
 using DMObjectTag = StackString<16>;
 using DMPropertyTag = StackString<16>;
 
-using DMPropertyData = std::variant<uint32_t>;
+using DMPropertyData = std::variant<float, uint32_t, Math::Matrix4>;
 
 struct DMEvent {
     DMEventType event_type;

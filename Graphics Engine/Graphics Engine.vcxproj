@@ -179,9 +179,11 @@
     <ClCompile Include="src\datamodel\objects\DMMesh.cpp" />
     <ClCompile Include="src\datamodel\objects\DMPhysics.cpp" />
     <ClCompile Include="src\datamodel\SceneGraph.cpp" />
+    <ClCompile Include="src\math\CFrame.cpp" />
     <ClCompile Include="src\rendering\pipeline\RenderManager.cpp" />
     <ClCompile Include="src\rendering\pipeline\RenderManager.h" />
     <ClCompile Include="src\rendering\pipeline\techniques\TerrainMesh.cpp" />
+    <ClCompile Include="src\rendering\scene\SceneListener.cpp" />
     <ClCompile Include="src\rendering\scene\SceneManager.cpp" />
     <ClCompile Include="src\rendering\terrain\TerrainOctree.cpp" />
     <ClCompile Include="src\datamodel\terrain\Terrain.cpp" />
@@ -277,7 +279,9 @@
     <ClInclude Include="src\datamodel\objects\DMLight.h" />
     <ClInclude Include="src\datamodel\objects\DMMesh.h" />
     <ClInclude Include="src\datamodel\objects\DMPhysics.h" />
+    <ClInclude Include="src\math\CFrame.h" />
     <ClInclude Include="src\rendering\pipeline\techniques\TerrainMesh.h" />
+    <ClInclude Include="src\rendering\scene\SceneListener.h" />
     <ClInclude Include="src\rendering\scene\SceneManager.h" />
     <ClInclude Include="src\rendering\terrain\TerrainOctree.h" />
     <ClInclude Include="src\datamodel\terrain\TerrainConfig.h" />
