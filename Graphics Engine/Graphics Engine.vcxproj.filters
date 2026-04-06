@@ -258,7 +258,7 @@
     <ClCompile Include="src\datamodel\objects\DMMesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\core\RenderableMesh.cpp">
+    <ClCompile Include="src\rendering\scene\RenderableMesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\core\DataFilePath.cpp">
@@ -292,6 +292,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\math\CFrame.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rendering\pipeline\techniques\PSTerrain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -563,16 +566,13 @@
     <ClInclude Include="src\datamodel\objects\DMMesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\core\RenderableMesh.h">
+    <ClInclude Include="src\rendering\scene\RenderableMesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\core\DataFilePath.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\core\Material.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\rendering\core\Geometry.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\terrain\ChunkBuilderJob.h">
@@ -615,6 +615,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\math\CFrame.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rendering\pipeline\techniques\PSShadowMap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rendering\pipeline\techniques\PSTerrain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

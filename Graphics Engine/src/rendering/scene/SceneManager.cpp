@@ -2,6 +2,8 @@
 
 #include <mutex>
 
+#include "rendering/VisualSystem.h"
+
 namespace Engine {
 namespace Graphics {
 using UpdatePacket = SceneManager::UpdatePacket;
@@ -16,6 +18,8 @@ class SceneManagerImpl {
     std::unordered_map<uint32_t, std::unique_ptr<Camera>> cameras;
     Camera* activeCamera = nullptr;
 
+    std::unordered_map<uint32_t, std::unique_ptr<RenderableMesh>> meshes;
+
   public:
     SceneManagerImpl(VisualSystem* _visualSystem);
     ~SceneManagerImpl();
@@ -25,6 +29,10 @@ class SceneManagerImpl {
     void update();
 
     Camera* getMainCamera();
+
+  private:
+    void processUpdatePackets();
+    void submitDrawCalls();
 };
 
 SceneManager::SceneManager() {}
@@ -55,6 +63,11 @@ void SceneManagerImpl::submitUpdatePacket(const UpdatePacket& packet) {
 }
 
 void SceneManagerImpl::update() {
+    processUpdatePackets();
+    submitDrawCalls();
+}
+
+void SceneManagerImpl::processUpdatePackets() {
     {
         std::scoped_lock<std::mutex> updatePacketsLock(mUpdatePacketsLock);
         std::swap(mUpdatePackets, mUpdatePacketsScratch);
@@ -65,26 +78,53 @@ void SceneManagerImpl::update() {
         const UpdatePacket packet = mUpdatePackets.back();
         mUpdatePackets.pop_back();
 
-        switch (packet.operation) {
-        case UpdatePacket::Operation::Create: {
-            assert(!cameras.contains(packet.handle));
-            cameras[packet.handle] = std::make_unique<Camera>();
-            // HACK
-            activeCamera = cameras[packet.handle].get();
-        } break;
+        if (std::holds_alternative<Camera::UpdatePacket>(packet.data)) {
+            switch (packet.operation) {
+            case UpdatePacket::Operation::Create: {
+                assert(!cameras.contains(packet.handle));
+                cameras[packet.handle] = std::make_unique<Camera>();
+                // HACK
+                activeCamera = cameras[packet.handle].get();
+            } break;
 
-        case UpdatePacket::Operation::Destroy: {
-            assert(cameras.contains(packet.handle));
-            cameras.erase(packet.handle);
-        } break;
+            case UpdatePacket::Operation::Destroy: {
+                assert(cameras.contains(packet.handle));
+                cameras.erase(packet.handle);
+            } break;
 
-        case UpdatePacket::Operation::Update: {
-            assert(cameras.contains(packet.handle));
-            cameras[packet.handle]->update(
-                std::get<Camera::UpdatePacket>(packet.data));
-        } break;
-        }
+            case UpdatePacket::Operation::Update: {
+                assert(cameras.contains(packet.handle));
+                cameras[packet.handle]->update(
+                    std::get<Camera::UpdatePacket>(packet.data));
+            } break;
+            }
+        } else if (std::holds_alternative<RenderableMesh::UpdatePacket>(
+                       packet.data)) {
+            switch (packet.operation) {
+            case UpdatePacket::Operation::Create: {
+                assert(!meshes.contains(packet.handle));
+                meshes[packet.handle] = std::make_unique<RenderableMesh>(
+                    mVisualSystem->getResourceManager());
+            } break;
+
+            case UpdatePacket::Operation::Destroy: {
+                assert(meshes.contains(packet.handle));
+                meshes.erase(packet.handle);
+            } break;
+
+            case UpdatePacket::Operation::Update: {
+                assert(meshes.contains(packet.handle));
+                meshes[packet.handle]->update(
+                    std::get<RenderableMesh::UpdatePacket>(packet.data));
+            } break;
+            }
+        } else
+            assert(false);
     }
+}
+
+void SceneManagerImpl::submitDrawCalls() {
+    // TODO
 }
 
 Camera* SceneManagerImpl::getMainCamera() { return activeCamera; }

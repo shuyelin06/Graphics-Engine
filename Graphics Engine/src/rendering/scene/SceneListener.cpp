@@ -28,6 +28,7 @@ class SceneListenerImpl {
 
   private:
     void processTerrainEvent(const DMEvent& event);
+    void processMeshEvent(const DMEvent& event);
     void processCameraEvent(const DMEvent& event);
 };
 
@@ -66,6 +67,8 @@ void SceneListenerImpl::update() {
 
         if (event.object_type == "Camera") {
             processCameraEvent(event);
+        } else if (event.object_type == "Mesh") {
+            processMeshEvent(event);
         } else if (event.object_type == "Terrain") {
             processTerrainEvent(event);
         }
@@ -111,23 +114,21 @@ void SceneListenerImpl::processCameraEvent(const DMEvent& event) {
     SceneManager* sceneManager = mVisualSystem->getSceneManager();
 
     SceneManager::UpdatePacket packet;
+    Camera::UpdatePacket& data = packet.data.emplace<Camera::UpdatePacket>();
+
+    packet.handle = event.object;
 
     switch (event.event_type) {
     case DMEventType::kCreated:
         packet.operation = SceneManager::UpdatePacket::Create;
-        packet.handle = event.object;
         break;
 
     case DMEventType::kDestroyed:
         packet.operation = SceneManager::UpdatePacket::Destroy;
-        packet.handle = event.object;
         break;
 
     case DMEventType::kPropertyUpdated: {
-        Camera::UpdatePacket& data =
-            packet.data.emplace<Camera::UpdatePacket>();
         packet.operation = SceneManager::UpdatePacket::Update;
-        packet.handle = event.object;
         if (event.property_tag == "FOV") {
             data.type = Camera::UpdatePacket::Property::FOV;
             data.data = std::get<float>(event.property_data);
@@ -141,7 +142,41 @@ void SceneListenerImpl::processCameraEvent(const DMEvent& event) {
             data.type = Camera::UpdatePacket::Property::LocalMatrix;
             data.data = std::get<Matrix4>(event.property_data);
         }
-        // TODO CFrame
+    } break;
+    }
+
+    sceneManager->submitUpdatePacket(packet);
+}
+
+void SceneListenerImpl::processMeshEvent(const DMEvent& event) {
+    assert(event.object_type == "Mesh");
+    SceneManager* sceneManager = mVisualSystem->getSceneManager();
+
+    SceneManager::UpdatePacket packet;
+    RenderableMesh::UpdatePacket& data =
+        packet.data.emplace<RenderableMesh::UpdatePacket>();
+
+    packet.handle = event.object;
+
+    switch (event.event_type) {
+    case DMEventType::kCreated:
+        packet.operation = SceneManager::UpdatePacket::Create;
+        break;
+
+    case DMEventType::kDestroyed:
+        packet.operation = SceneManager::UpdatePacket::Destroy;
+        break;
+
+    case DMEventType::kPropertyUpdated: {
+        using Property = RenderableMesh::UpdatePacket::Property;
+        packet.operation = SceneManager::UpdatePacket::Update;
+        if (event.property_tag == "MeshName") {
+            data.type = Property::MeshName;
+            data.data = std::get<std::string>(event.property_data);
+        } else if (event.property_tag == "ColormapName") {
+            data.type = Property::ColorMapName;
+            data.data = std::get<std::string>(event.property_data);
+        }
     } break;
     }
 

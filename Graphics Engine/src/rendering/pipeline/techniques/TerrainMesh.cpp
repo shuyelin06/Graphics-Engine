@@ -49,9 +49,8 @@ void TerrainMesh::uploadNormals(ID3D11DeviceContext* context, void* addr,
     sb_normals.uploadData(context, addr, numElements);
 }
 
-void TerrainMesh::bindAndDraw(Pipeline* pipeline,
-                                 ID3D11DeviceContext* context,
-                                 PixelTechnique* pixelTechnique) {
+void TerrainMesh::bindAndDraw(Pipeline* pipeline, ID3D11DeviceContext* context,
+                              PixelTechnique* pixelTechnique) {
     pipeline->bindVertexShader("Terrain");
     pipeline->bindPixelShader("Terrain");
 
@@ -68,16 +67,9 @@ void TerrainMesh::bindAndDraw(Pipeline* pipeline,
         IConstantBuffer vCB0 = pipeline->loadVertexCB(CB0);
         vCB0.loadData(&cache->m_world_to_screen, FLOAT4X4);
     }
-
-    // Pixel Constant Buffer 1: Light Data
-    // Stores data that is needed for lighting / shadowing.
-    {
-        IConstantBuffer pCB1 = pipeline->loadPixelCB(CB1);
-        light_manager->bindLightData(pCB1);
-    }
     */
 
-    context->IASetIndexBuffer(NULL, DXGI_FORMAT_R32_UINT, 0);
+    // context->IASetIndexBuffer(NULL, DXGI_FORMAT_R32_UINT, 0);
 
     sb_descriptors.VSBindResource(context, 0);
     sb_indices.VSBindResource(context, 1);

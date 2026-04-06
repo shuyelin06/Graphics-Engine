@@ -154,10 +154,11 @@ VisualSystem::VisualSystem(HWND window) {
     scene_manager = SceneManager::create(this);
     resource_manager = std::make_unique<ResourceManager>(device, context);
     resource_manager->initializeSystemResources();
-    terrain = TerrainManager::create(this);
     render_manager = RenderManager::create(this, context, device);
 
     light_manager = new LightManager(device, 4096);
+
+    terrain = TerrainManager::create(this);
 }
 
 // Render:
@@ -168,7 +169,6 @@ void VisualSystem::render() {
 #endif
 
     // Update Perform
-    resource_manager->updatePerform(context);
 
     pipeline->beginFrame(frame++);
 
@@ -205,18 +205,6 @@ void VisualSystem::render() {
 
         // Prepare the shadow maps
         performPrepass(); //..
-
-        // Bind my atlases
-        resource_manager->getTexture(SystemTexture_FallbackColormap)
-            ->PSBindResource(context, 0);
-        light_manager->getAtlasTexture()->PSBindResource(context, 1);
-
-        // Vertex Constant Buffer 0:
-        // Stores the camera view and projection matrices
-        {
-            IConstantBuffer vCB0 = pipeline->loadVertexCB(CB0);
-            vCB0.loadData(&cache->m_world_to_screen, FLOAT4X4);
-        }
 
         // This is the new rendering.
         // TODO Migrate everything to this.
@@ -275,6 +263,33 @@ void VisualSystem::renderPrepare() {
     light_manager->updateSunCascades(scene_manager->getMainCamera()->frustum());
     light_manager->resetShadowCasters();
     light_manager->clusterShadowCasters();
+
+    const int size = 750;
+    static BumpMapBuilder bump_builder = BumpMapBuilder(size, size);
+
+    static float freq = 0.02f;
+    static float AMP = 2.f;
+
+#if defined(_DEBUG)
+    if (ImGui::BeginMenu("Misc")) {
+        ImGui::SliderFloat("Frequency", &freq, 0.001f, 0.5f);
+        ImGui::SliderFloat("Amplitude", &AMP, 1.f, 25.f);
+
+        ImGui::EndMenu();
+    }
+#endif
+
+    if (bump_tex == nullptr) {
+        bump_builder.samplePerlinNoise(120512, freq, AMP);
+
+        if (bump_tex != nullptr) {
+            bump_builder.update(bump_tex, context);
+        } else
+            bump_tex = bump_builder.generate(device, true);
+    }
+
+    // Serve Resource Requests
+    resource_manager->updatePerform(context);
 
     // Update the values stored in my cache
     Texture* target = pipeline->getRenderTargetDest();

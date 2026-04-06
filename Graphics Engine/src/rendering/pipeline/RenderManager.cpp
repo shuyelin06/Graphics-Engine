@@ -102,26 +102,30 @@ void RenderManagerImpl::perform() {
     IGPUTimer gpu_timer = GPUTimer::TrackGPUTime(name);
 
     Pipeline* pipeline = visualSystem->getPipeline();
-    LightManager* lightManager = visualSystem->getLightManager();
 
-    // Pixel Constant Buffer 1: Light Data
-    // Stores data that is needed for lighting / shadowing.
+    Camera* camera = visualSystem->getSceneManager()->getMainCamera();
+    Matrix4 screenFromWorld =
+        camera->getFrustumMatrix() * camera->getWorldToCameraMatrix();
+
+    // Bind my atlases
+    visualSystem->getResourceManager()
+        ->getTexture(SystemTexture_FallbackColormap)
+        ->PSBindResource(context, 0);
+    visualSystem->getLightManager()->getAtlasTexture()->PSBindResource(context,
+                                                                       1);
+
+    // Vertex Constant Buffer 0:
+    // Stores the camera view and projection matrices
     {
-        IConstantBuffer pCB1 = pipeline->loadPixelCB(CB1);
-        lightManager->bindLightData(pCB1);
+        IConstantBuffer vCB0 = pipeline->loadVertexCB(CB0);
+        vCB0.loadData(&screenFromWorld, FLOAT4X4);
     }
-
-    // For now, only support terrain
-    // assert(PipelineRenderPass::kRenderPass_Count_ == 1);
 
     {
         RENDER_PASS(PipelineRenderPass::kRenderPass_Terrain, "Terrain");
         for (auto& drawCall :
              mRenderPasses[PipelineRenderPass::kRenderPass_Terrain].drawCalls) {
-            // TODO: Materials technically should not be
-            // null :)
-            if (drawCall.pixelTechnique)
-                drawCall.pixelTechnique->bind(pipeline, context);
+            drawCall.pixelTechnique->bind(pipeline, context);
             drawCall.vertexTechnique->bindAndDraw(pipeline, context,
                                                   drawCall.pixelTechnique);
         }

@@ -21,6 +21,7 @@
 #include "rendering/resources/MeshBuilder.h"
 #include "rendering/resources/ResourceManager.h"
 
+#include "rendering/pipeline/techniques/PSTerrain.h"
 #include "rendering/pipeline/techniques/TerrainMesh.h"
 
 #include "ChunkBuilderJob.h"
@@ -44,6 +45,7 @@ class VisualTerrainImpl {
     std::unique_ptr<TerrainOctree> octree;
 
     std::shared_ptr<TerrainMesh> mMesh;
+    std::shared_ptr<PSTerrain> mPixelTechnique;
 
     // Scene Update Queue
     std::vector<UpdatePacket> mUpdatePacketsScratch;
@@ -119,6 +121,8 @@ VisualTerrainImpl::VisualTerrainImpl(VisualSystem* m_visual_system) {
                                    visual_system->getResourceManager());
 
     mMesh = visual_system->getResourceManager()->requestTerrainMesh();
+    mPixelTechnique =
+        std::make_shared<PSTerrain>(visual_system->getLightManager());
 }
 
 VisualTerrainImpl::~VisualTerrainImpl() = default;
@@ -171,8 +175,8 @@ void VisualTerrainImpl::updateAndUploadTerrainData(ID3D11DeviceContext* context,
     mMesh->uploadNormals(context, mesh_pool->cpu_vbuffers[NORMAL].get(),
                          mesh_pool->vertex_size);
 
-    visual_system->getRenderManager()->submitDrawCall_Terrain(mMesh.get(),
-                                                              nullptr);
+    visual_system->getRenderManager()->submitDrawCall_Terrain(
+        mMesh.get(), mPixelTechnique.get());
 }
 
 void VisualTerrainImpl::processSceneUpdates() {

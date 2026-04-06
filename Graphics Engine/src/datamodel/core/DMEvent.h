@@ -22,7 +22,15 @@ using DMObjectHandle = uint32_t;
 using DMObjectTag = StackString<16>;
 using DMPropertyTag = StackString<16>;
 
-using DMPropertyData = std::variant<float, uint32_t, Math::Matrix4>;
+// clang-format off
+using DMPropertyData = std::variant
+<
+    float, 
+    uint32_t, 
+    Math::Matrix4, 
+    std::string
+>;
+// clang-format on
 
 struct DMEvent {
     DMEventType event_type;

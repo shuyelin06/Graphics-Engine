@@ -1,0 +1,45 @@
+#pragma once
+
+#include "datamodel/DMBinding.h"
+#include "datamodel/objects/DMMesh.h"
+
+#include "rendering/resources/ResourceManager.h"
+
+namespace Engine {
+using namespace Datamodel;
+
+namespace Graphics {
+// RenderableMesh:
+// Interfaces with the DMMesh datamodel object.
+// Stores the geometry information needed.
+class RenderableMesh {
+  private:
+    ResourceManager* mResourceManager;
+
+    std::shared_ptr<Mesh> mesh;
+    Material material;
+
+    Matrix4 mWorldFromLocal;
+
+  public:
+    RenderableMesh(ResourceManager* resourceManager);
+    ~RenderableMesh();
+
+    // Updating
+    struct UpdatePacket {
+        enum class Property {
+            LocalMatrix,
+            MeshName,
+            ColorMapName,
+        };
+        Property type;
+
+        std::variant<Matrix4, std::string> data;
+    };
+    void update(const UpdatePacket& packet);
+
+    const Matrix4& getLocalMatrix() const;
+};
+
+} // namespace Graphics
+} // namespace Engine

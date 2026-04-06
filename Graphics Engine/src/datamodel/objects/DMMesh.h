@@ -13,9 +13,8 @@ namespace Datamodel {
 // Represents a mesh in the scene.
 class DMMesh : public Object {
   private:
-    std::string mesh_name;
-
-    std::string colormap_name;
+    DMTrackedProperty<std::string> mesh_name;
+    DMTrackedProperty<std::string> colormap_name;
 
   public:
     DMMesh();

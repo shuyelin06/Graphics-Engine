@@ -80,21 +80,6 @@ std::shared_ptr<Texture> ResourceManager::getTexture(int index) const {
     assert(0 <= index && index < textures.size());
     return textures[index];
 }
-std::shared_ptr<Geometry> ResourceManager::getGeometry(int index) const {
-    assert(0 <= index && index < geometries.size());
-    return geometries[index];
-}
-
-// CreateGeometry:
-// Interface for creating geometry for the pipeline
-std::shared_ptr<Geometry>
-ResourceManager::CreateGeometry(const GeometryDesc& desc) {
-    std::shared_ptr<Geometry> geometry = std::make_shared<Geometry>();
-    geometry->mesh = desc.mesh;
-    geometry->material = desc.material;
-    geometries.emplace_back(std::move(geometry));
-    return geometries.back();
-}
 
 // LoadTexture:
 // Code path for loading all textures.
