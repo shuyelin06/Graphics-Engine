@@ -5,6 +5,7 @@
 #include "ConstantBuffer.h"
 #include "Shader.h"
 #include "ShaderManager.h"
+#include "StructuredBuffer.h"
 
 constexpr int SAMPLER_COUNT = 4;
 
@@ -147,15 +148,32 @@ class Pipeline {
     // Shader Resource Management
     void bindSamplers();
 
+    template <typename T>
+    void bindVertexSB(const StructuredBuffer<T>& sb, unsigned int slot) {
+        context->VSSetShaderResources(slot, 1, &sb.srv);
+    }
+    template <typename T>
+    void bindPixelSB(const StructuredBuffer<T>& sb, unsigned int slot) {
+        context->PSSetShaderResources(slot, 1, &sb.srv);
+    }
+
+    void bindVertexTexture(const Texture& texture, unsigned int slot);
+    void bindPixelTexture(const Texture& texture, unsigned int slot);
+
     // Constant Buffer Management
     IConstantBuffer loadVertexCB(CBSlot slot);
     IConstantBuffer loadPixelCB(CBSlot slot);
+
+    void clearDepthStencil(const Texture& texture);
 
     // Draw Calls. Set tri_end to -1 if you want it to draw all triangles
     // after tri_start.
     void drawMesh(const Mesh* mesh, int tri_start, int tri_end,
                   UINT instance_count);
     void drawPostProcessQuad();
+
+    void drawInstanced(unsigned int verticesPerInstance,
+                       unsigned int instanceCount);
 
     // Render to Screen
     void endFrame();

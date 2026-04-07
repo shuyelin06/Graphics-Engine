@@ -183,7 +183,8 @@
     <ClCompile Include="src\rendering\pipeline\RenderManager.cpp" />
     <ClCompile Include="src\rendering\pipeline\RenderManager.h" />
     <ClCompile Include="src\rendering\pipeline\techniques\PSTerrain.cpp" />
-    <ClCompile Include="src\rendering\pipeline\techniques\TerrainMesh.cpp" />
+    <ClCompile Include="src\rendering\pipeline\techniques\VSPSMesh.cpp" />
+    <ClCompile Include="src\rendering\pipeline\techniques\VSTerrain.cpp" />
     <ClCompile Include="src\rendering\scene\SceneListener.cpp" />
     <ClCompile Include="src\rendering\scene\SceneManager.cpp" />
     <ClCompile Include="src\rendering\terrain\TerrainOctree.cpp" />
@@ -283,7 +284,8 @@
     <ClInclude Include="src\math\CFrame.h" />
     <ClInclude Include="src\rendering\pipeline\techniques\PSShadowMap.h" />
     <ClInclude Include="src\rendering\pipeline\techniques\PSTerrain.h" />
-    <ClInclude Include="src\rendering\pipeline\techniques\TerrainMesh.h" />
+    <ClInclude Include="src\rendering\pipeline\techniques\VSPSMesh.h" />
+    <ClInclude Include="src\rendering\pipeline\techniques\VSTerrain.h" />
     <ClInclude Include="src\rendering\scene\SceneListener.h" />
     <ClInclude Include="src\rendering\scene\SceneManager.h" />
     <ClInclude Include="src\rendering\terrain\TerrainOctree.h" />

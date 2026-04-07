@@ -423,12 +423,26 @@ void Pipeline::bindSamplers() {
     context->PSSetSamplers(0, SamplerCount, samplers);
 }
 
+void Pipeline::bindVertexTexture(const Texture& texture, unsigned int slot) {
+    context->VSSetShaderResources(slot, 1, &texture.shader_view);
+}
+
+void Pipeline::bindPixelTexture(const Texture& texture, unsigned int slot) {
+    context->PSSetShaderResources(slot, 1, &texture.shader_view);
+}
+
 // Constant Buffer Loading
 IConstantBuffer Pipeline::loadVertexCB(CBSlot slot) {
     return IConstantBuffer(vcb_handles[slot], slot, CBVertex, device, context);
 }
 IConstantBuffer Pipeline::loadPixelCB(CBSlot slot) {
     return IConstantBuffer(pcb_handles[slot], slot, CBPixel, device, context);
+}
+
+void Pipeline::clearDepthStencil(const Texture& texture) {
+    assert(texture.depth_view != nullptr);
+    context->ClearDepthStencilView(texture.depth_view, D3D11_CLEAR_DEPTH, 1.0f,
+                                   0);
 }
 
 void Pipeline::drawMesh(const Mesh* mesh, int tri_start, int tri_end,
@@ -486,6 +500,11 @@ void Pipeline::drawPostProcessQuad() {
                                 &vertexOffset);
 
     context->Draw(6, 0);
+}
+
+void Pipeline::drawInstanced(unsigned int verticesPerInstance,
+                             unsigned int instanceCount) {
+    context->DrawInstanced(verticesPerInstance, instanceCount, 0, 0);
 }
 
 // Present:

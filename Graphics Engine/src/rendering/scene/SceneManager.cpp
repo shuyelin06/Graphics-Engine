@@ -4,6 +4,8 @@
 
 #include "rendering/VisualSystem.h"
 
+#include "rendering/pipeline/techniques/VSPSMesh.h"
+
 namespace Engine {
 namespace Graphics {
 using UpdatePacket = SceneManager::UpdatePacket;
@@ -19,6 +21,7 @@ class SceneManagerImpl {
     Camera* activeCamera = nullptr;
 
     std::unordered_map<uint32_t, std::unique_ptr<RenderableMesh>> meshes;
+    std::vector<std::pair<VSMesh, PSMesh>> meshTechniques;
 
   public:
     SceneManagerImpl(VisualSystem* _visualSystem);
@@ -124,7 +127,19 @@ void SceneManagerImpl::processUpdatePackets() {
 }
 
 void SceneManagerImpl::submitDrawCalls() {
-    // TODO
+    meshTechniques.clear();
+    for (const auto& pair : meshes) {
+        VSMesh vsMesh = VSMesh();
+        PSMesh psMesh = PSMesh(mVisualSystem->getLightManager(),
+                               mVisualSystem->getResourceManager());
+
+        vsMesh.update(pair.second->getMesh(), pair.second->getLocalMatrix());
+        psMesh.update(pair.second->getMaterial());
+
+        meshTechniques.push_back({vsMesh, psMesh});
+        mVisualSystem->getRenderManager()->submitDrawCall_Opaque(
+            &meshTechniques.back().first, &meshTechniques.back().second);
+    }
 }
 
 Camera* SceneManagerImpl::getMainCamera() { return activeCamera; }

@@ -13,7 +13,7 @@ class PSTerrain : public PixelTechnique {
     PSTerrain(LightManager* lightManager);
 
     // PixelTechnique Implementation
-    void bind(Pipeline* pipeline, ID3D11DeviceContext* context) override;
+    void bind(Pipeline* pipeline) override;
 };
 
 } // namespace Graphics

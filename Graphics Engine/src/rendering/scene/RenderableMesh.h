@@ -31,12 +31,16 @@ class RenderableMesh {
             LocalMatrix,
             MeshName,
             ColorMapName,
+            Invalid,
         };
-        Property type;
+        Property type = Property::Invalid;
 
         std::variant<Matrix4, std::string> data;
     };
     void update(const UpdatePacket& packet);
+
+    std::shared_ptr<Mesh> getMesh() const;
+    Material getMaterial() const;
 
     const Matrix4& getLocalMatrix() const;
 };

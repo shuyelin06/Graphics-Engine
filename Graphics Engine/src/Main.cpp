@@ -132,6 +132,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     mesh->setMeshFile("Macaroni3.gltf");
     mesh->setColorMapFile("textures/MacTex.png");
     mesh->getTransform().setScale(250, 250, 250);
+    
     root->addChild(mesh);
 
     DMLight* light = new DMLight();

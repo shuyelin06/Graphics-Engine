@@ -14,7 +14,7 @@
 #include "rendering/core/Mesh.h"
 #include "rendering/core/Texture.h"
 
-#include "rendering/pipeline/techniques/TerrainMesh.h"
+#include "rendering/pipeline/techniques/VSTerrain.h"
 
 namespace Engine {
 namespace Graphics {
@@ -88,7 +88,7 @@ class ResourceManager {
     std::shared_ptr<Mesh> requestMesh(const MeshBuilder& mesh_builder);
     std::shared_ptr<Texture> requestTexture(const TextureBuilder& tex_builder);
 
-    std::shared_ptr<TerrainMesh> requestTerrainMesh();
+    std::shared_ptr<VSTerrain> requestTerrainMesh();
 
     // Debug Display
     void imGui();

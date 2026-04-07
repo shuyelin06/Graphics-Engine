@@ -9,6 +9,8 @@ namespace Graphics {
 // An interface for working with structured buffers in this engine.
 template <typename T> class StructuredBuffer {
   private:
+    friend class Pipeline;
+
     ID3D11Buffer* buffer;
     ID3D11ShaderResourceView* srv;
 
@@ -58,15 +60,6 @@ template <typename T> class StructuredBuffer {
         context->Map(buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &sr);
         memcpy(sr.pData, addr, sizeof(T) * num_elements);
         context->Unmap(buffer, 0);
-    }
-
-    // BindBuffer:
-    // Binds ths buffer to the GPU.
-    void VSBindResource(ID3D11DeviceContext* context, unsigned int slot) const {
-        context->VSSetShaderResources(slot, 1, &srv);
-    }
-    void PSBindResource(ID3D11DeviceContext* context, unsigned int slot) const {
-        context->PSSetShaderResources(slot, 1, &srv);
     }
 };
 

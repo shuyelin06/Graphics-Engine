@@ -36,14 +36,13 @@ enum PipelineRenderPass {
 
 class PixelTechnique {
   public:
-    virtual void bind(Pipeline* pipeline, ID3D11DeviceContext* context) = 0;
+    virtual void bind(Pipeline* pipeline) = 0;
 };
 
 class VertexTechnique {
   public:
     // Executes the draw call too?
-    virtual void bindAndDraw(Pipeline* pipeline, ID3D11DeviceContext* context,
-                             PixelTechnique* pixelTechnique) = 0;
+    virtual void bindAndDraw(Pipeline* pipeline, PipelineRenderPass pass) = 0;
 };
 
 struct DrawCall {

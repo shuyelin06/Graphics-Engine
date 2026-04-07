@@ -125,9 +125,31 @@ void RenderManagerImpl::perform() {
         RENDER_PASS(PipelineRenderPass::kRenderPass_Terrain, "Terrain");
         for (auto& drawCall :
              mRenderPasses[PipelineRenderPass::kRenderPass_Terrain].drawCalls) {
-            drawCall.pixelTechnique->bind(pipeline, context);
-            drawCall.vertexTechnique->bindAndDraw(pipeline, context,
-                                                  drawCall.pixelTechnique);
+            drawCall.pixelTechnique->bind(pipeline);
+            drawCall.vertexTechnique->bindAndDraw(
+                pipeline, PipelineRenderPass::kRenderPass_Terrain);
+        }
+    }
+
+    // Vertex Constant Buffer 1:
+    // Stores the camera view and projection matrices
+    {
+        IConstantBuffer vCB1 = pipeline->loadVertexCB(CB1);
+
+        Camera* camera = visualSystem->getSceneManager()->getMainCamera();
+        const Matrix4 viewMatrix = camera->getWorldToCameraMatrix();
+        vCB1.loadData(&viewMatrix, FLOAT4X4);
+        const Matrix4 projectionMatrix = camera->getFrustumMatrix();
+        vCB1.loadData(&projectionMatrix, FLOAT4X4);
+    }
+
+    {
+        RENDER_PASS(PipelineRenderPass::kRenderPass_Opaque, "Opaque");
+        for (auto& drawCall :
+             mRenderPasses[PipelineRenderPass::kRenderPass_Opaque].drawCalls) {
+            drawCall.pixelTechnique->bind(pipeline);
+            drawCall.vertexTechnique->bindAndDraw(
+                pipeline, PipelineRenderPass::kRenderPass_Opaque);
         }
     }
 

@@ -183,8 +183,8 @@ ResourceManager::requestMesh(const MeshBuilder& mesh_builder) {
     return mesh_job.mesh;
 }
 
-std::shared_ptr<TerrainMesh> ResourceManager::requestTerrainMesh() {
-    std::shared_ptr<TerrainMesh> mesh = std::make_shared<TerrainMesh>();
+std::shared_ptr<VSTerrain> ResourceManager::requestTerrainMesh() {
+    std::shared_ptr<VSTerrain> mesh = std::make_shared<VSTerrain>();
     mesh->initialize(device, context);
     return mesh;
 }
@@ -309,6 +309,7 @@ void ResourceManager::processMeshJob(const MeshBuildingJob& job) {
     // Create my mesh
     const std::shared_ptr<Mesh>& mesh = job.mesh;
     pool->meshes.emplace_back(mesh);
+    mesh->buffer_pool = pool;
     mesh->layout = job.layout;
     mesh->vertex_start = pool->vertex_size;
     mesh->num_vertices = job.vertex_data.size();

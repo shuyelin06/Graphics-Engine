@@ -1,5 +1,4 @@
 #include "RenderableMesh.h"
-#include "RenderableMesh.h"
 
 namespace Engine {
 namespace Graphics {
@@ -29,6 +28,9 @@ void RenderableMesh::update(const UpdatePacket& packet) {
     } break;
     }
 }
+
+std::shared_ptr<Mesh> RenderableMesh::getMesh() const { return mesh; }
+Material RenderableMesh::getMaterial() const { return material; }
 
 const Matrix4& RenderableMesh::getLocalMatrix() const {
     return mWorldFromLocal;

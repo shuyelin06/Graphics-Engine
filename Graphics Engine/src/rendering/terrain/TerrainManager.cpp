@@ -22,7 +22,7 @@
 #include "rendering/resources/ResourceManager.h"
 
 #include "rendering/pipeline/techniques/PSTerrain.h"
-#include "rendering/pipeline/techniques/TerrainMesh.h"
+#include "rendering/pipeline/techniques/VSTerrain.h"
 
 #include "ChunkBuilderJob.h"
 #include "TerrainOctree.h"
@@ -44,7 +44,7 @@ class VisualTerrainImpl {
     std::unique_ptr<TerrainSDF> generator;
     std::unique_ptr<TerrainOctree> octree;
 
-    std::shared_ptr<TerrainMesh> mMesh;
+    std::shared_ptr<VSTerrain> mMesh;
     std::shared_ptr<PSTerrain> mPixelTechnique;
 
     // Scene Update Queue
@@ -160,7 +160,7 @@ void VisualTerrainImpl::updateAndUploadTerrainData(ID3D11DeviceContext* context,
     // TODO: We could throttle this so we only clean and compact every XX
     // frames..
     // Upload my data to the structured buffers
-    std::vector<TerrainMesh::MeshDescription> descriptors;
+    std::vector<VSTerrain::MeshDescription> descriptors;
     for (Mesh* mesh : terrain_meshes) {
         descriptors.emplace_back(mesh->triangle_start * 3,
                                  mesh->num_triangles * 3, mesh->vertex_start,

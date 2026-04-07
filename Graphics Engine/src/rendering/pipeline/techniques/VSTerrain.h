@@ -9,7 +9,7 @@ namespace Engine {
 using namespace Math;
 
 namespace Graphics {
-class TerrainMesh : public VertexTechnique {
+class VSTerrain : public VertexTechnique {
   public:
     struct MeshDescription {
         unsigned int index_start;
@@ -29,7 +29,7 @@ class TerrainMesh : public VertexTechnique {
     StructuredBuffer<Vector3> sb_normals;
 
   public:
-    TerrainMesh();
+    VSTerrain();
 
     void initialize(ID3D11Device* device, ID3D11DeviceContext* context);
 
@@ -42,9 +42,8 @@ class TerrainMesh : public VertexTechnique {
     void uploadNormals(ID3D11DeviceContext* context, void* addr,
                        size_t numElements);
 
-    // RenderMesh Implementation
-    void bindAndDraw(Pipeline* pipeline, ID3D11DeviceContext* context,
-                        PixelTechnique* pixelTechnique) override;
+    // VertexTechnique Implementation
+    void bindAndDraw(Pipeline* pipeline, PipelineRenderPass pass) override;
 };
 
 } // namespace Graphics

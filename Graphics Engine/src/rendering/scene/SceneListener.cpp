@@ -176,6 +176,9 @@ void SceneListenerImpl::processMeshEvent(const DMEvent& event) {
         } else if (event.property_tag == "ColormapName") {
             data.type = Property::ColorMapName;
             data.data = std::get<std::string>(event.property_data);
+        } else if (event.property_tag == "LocalMatrix") {
+            data.type = Property::LocalMatrix;
+            data.data = std::get<Matrix4>(event.property_data);
         }
     } break;
     }

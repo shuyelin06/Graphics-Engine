@@ -91,7 +91,6 @@ class VisualSystem {
 
   private:                     // Rendering Stages
     void performPrepass();     // Prepass (Shadowmaps)
-    void performDefaultPass(); // Render Pass
 
     void performLightFrustumPass(); // Light Frustum Pass
 

@@ -285,7 +285,7 @@
     <ClCompile Include="src\rendering\pipeline\RenderManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\pipeline\techniques\TerrainMesh.cpp">
+    <ClCompile Include="src\rendering\pipeline\techniques\VSTerrain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\scene\SceneManager.cpp">
@@ -295,6 +295,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\pipeline\techniques\PSTerrain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rendering\pipeline\techniques\VSPSMesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -608,7 +611,7 @@
     <ClInclude Include="src\core\StackString.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\pipeline\techniques\TerrainMesh.h">
+    <ClInclude Include="src\rendering\pipeline\techniques\VSTerrain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\scene\SceneManager.h">
@@ -621,6 +624,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\pipeline\techniques\PSTerrain.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rendering\pipeline\techniques\VSPSMesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
