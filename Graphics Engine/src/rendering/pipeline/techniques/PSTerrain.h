@@ -6,11 +6,8 @@
 namespace Engine {
 namespace Graphics {
 class PSTerrain : public PixelTechnique {
-  private:
-    LightManager* mLightManager;
-
   public:
-    PSTerrain(LightManager* lightManager);
+    PSTerrain();
 
     // PixelTechnique Implementation
     void bind(Pipeline* pipeline) override;

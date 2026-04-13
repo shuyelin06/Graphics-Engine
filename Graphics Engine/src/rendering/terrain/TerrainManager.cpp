@@ -121,8 +121,7 @@ VisualTerrainImpl::VisualTerrainImpl(VisualSystem* m_visual_system) {
                                    visual_system->getResourceManager());
 
     mMesh = visual_system->getResourceManager()->requestTerrainMesh();
-    mPixelTechnique =
-        std::make_shared<PSTerrain>(visual_system->getLightManager());
+    mPixelTechnique = std::make_shared<PSTerrain>();
 }
 
 VisualTerrainImpl::~VisualTerrainImpl() = default;
@@ -175,8 +174,11 @@ void VisualTerrainImpl::updateAndUploadTerrainData(ID3D11DeviceContext* context,
     mMesh->uploadNormals(context, mesh_pool->cpu_vbuffers[NORMAL].get(),
                          mesh_pool->vertex_size);
 
-    visual_system->getRenderManager()->submitDrawCall_Terrain(
-        mMesh.get(), mPixelTechnique.get());
+    RenderPassSet passes{};
+    passes.addPass(RenderPass::kOpaque);
+
+    visual_system->getRenderManager()->submitDrawCall(
+        {mMesh.get(), mPixelTechnique.get()}, passes);
 }
 
 void VisualTerrainImpl::processSceneUpdates() {

@@ -43,7 +43,7 @@ class VSTerrain : public VertexTechnique {
                        size_t numElements);
 
     // VertexTechnique Implementation
-    void bindAndDraw(Pipeline* pipeline, PipelineRenderPass pass) override;
+    void bindAndDraw(Pipeline* pipeline, RenderPass pass) override;
 };
 
 } // namespace Graphics

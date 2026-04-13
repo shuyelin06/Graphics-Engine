@@ -13,7 +13,7 @@ void VSMesh::update(const std::shared_ptr<Mesh>& _mesh,
     worldFromLocal = _localMatrix;
 }
 
-void VSMesh::bindAndDraw(Pipeline* pipeline, PipelineRenderPass pass) {
+void VSMesh::bindAndDraw(Pipeline* pipeline, RenderPass pass) {
     if (!mesh->ready)
         return;
 
@@ -38,8 +38,8 @@ void VSMesh::bindAndDraw(Pipeline* pipeline, PipelineRenderPass pass) {
     pipeline->drawMesh(mesh.get(), INDEX_LIST_START, INDEX_LIST_END, 1);
 }
 
-PSMesh::PSMesh(LightManager* lightManager, ResourceManager* resourceManager)
-    : mLightManager(lightManager), mResourceManager(resourceManager) {
+PSMesh::PSMesh(ResourceManager* resourceManager)
+    : mResourceManager(resourceManager) {
     mMaterial = Material();
 }
 
@@ -47,15 +47,6 @@ void PSMesh::update(Material material) { mMaterial = material; }
 
 void PSMesh::bind(Pipeline* pipeline) {
     pipeline->bindPixelShader("TexturedMesh");
-    pipeline->bindRenderTarget(Target_UseExisting, Depth_TestAndWrite,
-                               Blend_Default);
-
-    // Pixel Constant Buffer 1: Light Data
-    // Stores data that is needed for lighting / shadowing.
-    {
-        IConstantBuffer pCB1 = pipeline->loadPixelCB(CB1);
-        mLightManager->bindLightData(pCB1);
-    }
 
     // Pixel Shader Bindings:
     // Texture 0: Color Map

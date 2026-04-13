@@ -282,6 +282,7 @@
     <ClInclude Include="src\datamodel\objects\DMMesh.h" />
     <ClInclude Include="src\datamodel\objects\DMPhysics.h" />
     <ClInclude Include="src\math\CFrame.h" />
+    <ClInclude Include="src\rendering\pipeline\DrawCall.h" />
     <ClInclude Include="src\rendering\pipeline\techniques\PSShadowMap.h" />
     <ClInclude Include="src\rendering\pipeline\techniques\PSTerrain.h" />
     <ClInclude Include="src\rendering\pipeline\techniques\VSPSMesh.h" />

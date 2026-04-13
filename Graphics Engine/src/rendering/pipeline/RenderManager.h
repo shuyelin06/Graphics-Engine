@@ -4,6 +4,7 @@
 
 #include <memory>
 
+#include "DrawCall.h"
 #include "rendering/pipeline/PipelineManager.h"
 
 namespace Engine {
@@ -26,30 +27,6 @@ class RenderManagerImpl;
 // - Shadows. Skinned Meshes. Normal Meshes
 // - RenderManager should own pipeline.
 // - Instancing support
-
-enum PipelineRenderPass {
-    kRenderPass_Shadows = 0,
-    kRenderPass_Opaque = 1,
-    kRenderPass_Terrain = 2,
-    kRenderPass_Count_,
-};
-
-class PixelTechnique {
-  public:
-    virtual void bind(Pipeline* pipeline) = 0;
-};
-
-class VertexTechnique {
-  public:
-    // Executes the draw call too?
-    virtual void bindAndDraw(Pipeline* pipeline, PipelineRenderPass pass) = 0;
-};
-
-struct DrawCall {
-    VertexTechnique* vertexTechnique;
-    PixelTechnique* pixelTechnique;
-};
-
 class RenderManager {
   public:
     static std::unique_ptr<RenderManager> create(VisualSystem* engine,
@@ -57,11 +34,7 @@ class RenderManager {
                                                  ID3D11Device* device);
     ~RenderManager();
 
-    void submitDrawCall_Shadows(VertexTechnique* vertexTechnique);
-    void submitDrawCall_Opaque(VertexTechnique* vertexTechnique,
-                               PixelTechnique* pixelTechnique);
-    void submitDrawCall_Terrain(VertexTechnique* vertexTechnique,
-                                PixelTechnique* pixelTechnique);
+    void submitDrawCall(const DrawCall& drawCall, RenderPassSet renderPasses);
 
     void perform();
 

@@ -130,15 +130,19 @@ void SceneManagerImpl::submitDrawCalls() {
     meshTechniques.clear();
     for (const auto& pair : meshes) {
         VSMesh vsMesh = VSMesh();
-        PSMesh psMesh = PSMesh(mVisualSystem->getLightManager(),
-                               mVisualSystem->getResourceManager());
+        PSMesh psMesh = PSMesh(mVisualSystem->getResourceManager());
 
         vsMesh.update(pair.second->getMesh(), pair.second->getLocalMatrix());
         psMesh.update(pair.second->getMaterial());
 
         meshTechniques.push_back({vsMesh, psMesh});
-        mVisualSystem->getRenderManager()->submitDrawCall_Opaque(
-            &meshTechniques.back().first, &meshTechniques.back().second);
+
+        RenderPassSet passes{};
+        passes.addPass(RenderPass::kOpaque);
+
+        mVisualSystem->getRenderManager()->submitDrawCall(
+            {&meshTechniques.back().first, &meshTechniques.back().second},
+            passes);
     }
 }
 

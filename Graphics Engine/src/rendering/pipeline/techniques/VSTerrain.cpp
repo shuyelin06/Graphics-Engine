@@ -48,7 +48,7 @@ void VSTerrain::uploadNormals(ID3D11DeviceContext* context, void* addr,
     sb_normals.uploadData(context, addr, numElements);
 }
 
-void VSTerrain::bindAndDraw(Pipeline* pipeline, PipelineRenderPass pass) {
+void VSTerrain::bindAndDraw(Pipeline* pipeline, RenderPass pass) {
     pipeline->bindVertexShader("Terrain");
 
     pipeline->bindVertexSB(sb_descriptors, 0);

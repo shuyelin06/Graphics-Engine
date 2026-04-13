@@ -40,31 +40,31 @@ class RenderManagerImpl {
     ID3D11Device* device;
     VisualSystem* visualSystem;
 
-    std::array<RenderPassContainer, PipelineRenderPass::kRenderPass_Count_>
-        mRenderPasses;
+    std::array<RenderPassContainer, RenderPass::_Count_> mRenderPasses;
 
   public:
     RenderManagerImpl(VisualSystem* _visualSystem,
                       ID3D11DeviceContext* _context, ID3D11Device* _device);
     ~RenderManagerImpl();
 
-    void submitDrawCall(const PipelineRenderPass pass,
-                        const DrawCall& drawCall);
+    void submitDrawCall(const RenderPass pass, const DrawCall& drawCall);
     void perform();
+
+  private:
+    void executeRenderPass(const RenderPassContainer& drawCalls,
+                           RenderPass pass, const std::string& annotation);
 };
 
 RenderManager::RenderManager() = default;
 RenderManager::~RenderManager() = default;
 
-void RenderManager::submitDrawCall_Opaque(VertexTechnique* vertexTechnique,
-                                          PixelTechnique* pixelTechnique) {
-    mImpl->submitDrawCall(PipelineRenderPass::kRenderPass_Opaque,
-                          {vertexTechnique, pixelTechnique});
-}
-void RenderManager::submitDrawCall_Terrain(VertexTechnique* vertexTechnique,
-                                           PixelTechnique* pixelTechnique) {
-    mImpl->submitDrawCall(PipelineRenderPass::kRenderPass_Terrain,
-                          {vertexTechnique, pixelTechnique});
+void RenderManager::submitDrawCall(const DrawCall& drawCall,
+                                   RenderPassSet renderPasses) {
+    for (int i = 0; i < RenderPass::_Count_; i++) {
+        if (renderPasses.hasPass((RenderPass)i)) {
+            mImpl->submitDrawCall((RenderPass)i, drawCall);
+        }
+    }
 }
 
 void RenderManager::perform() { mImpl->perform(); }
@@ -83,24 +83,19 @@ RenderManagerImpl::RenderManagerImpl(VisualSystem* _visualSystem,
                                      ID3D11DeviceContext* _context,
                                      ID3D11Device* _device)
     : visualSystem(_visualSystem), context(_context), device(_device) {
-    for (int pass = 0; pass < PipelineRenderPass::kRenderPass_Count_; pass++) {
+    for (int pass = 0; pass < RenderPass::_Count_; pass++) {
         context->QueryInterface(
             IID_PPV_ARGS(&mRenderPasses[pass].debugAnnotation));
     }
 }
 RenderManagerImpl::~RenderManagerImpl() = default;
 
-void RenderManagerImpl::submitDrawCall(const PipelineRenderPass pass,
+void RenderManagerImpl::submitDrawCall(const RenderPass pass,
                                        const DrawCall& drawCall) {
     mRenderPasses[pass].drawCalls.emplace_back(drawCall);
 }
 
 void RenderManagerImpl::perform() {
-#define RENDER_PASS(pin, name)                                                 \
-    DebugRenderPassScope renderpass_debug =                                    \
-        DebugRenderPassScope(mRenderPasses[pin].debugAnnotation, name);        \
-    IGPUTimer gpu_timer = GPUTimer::TrackGPUTime(name);
-
     Pipeline* pipeline = visualSystem->getPipeline();
 
     Camera* camera = visualSystem->getSceneManager()->getMainCamera();
@@ -113,22 +108,13 @@ void RenderManagerImpl::perform() {
         ->PSBindResource(context, 0);
     visualSystem->getLightManager()->getAtlasTexture()->PSBindResource(context,
                                                                        1);
+    pipeline->getDepthStencil()->clearAsDepthStencil(context);
 
     // Vertex Constant Buffer 0:
     // Stores the camera view and projection matrices
     {
         IConstantBuffer vCB0 = pipeline->loadVertexCB(CB0);
         vCB0.loadData(&screenFromWorld, FLOAT4X4);
-    }
-
-    {
-        RENDER_PASS(PipelineRenderPass::kRenderPass_Terrain, "Terrain");
-        for (auto& drawCall :
-             mRenderPasses[PipelineRenderPass::kRenderPass_Terrain].drawCalls) {
-            drawCall.pixelTechnique->bind(pipeline);
-            drawCall.vertexTechnique->bindAndDraw(
-                pipeline, PipelineRenderPass::kRenderPass_Terrain);
-        }
     }
 
     // Vertex Constant Buffer 1:
@@ -143,22 +129,41 @@ void RenderManagerImpl::perform() {
         vCB1.loadData(&projectionMatrix, FLOAT4X4);
     }
 
+    // Pixel Constant Buffer 1: Light Data
+    // Stores data that is needed for lighting / shadowing.
     {
-        RENDER_PASS(PipelineRenderPass::kRenderPass_Opaque, "Opaque");
-        for (auto& drawCall :
-             mRenderPasses[PipelineRenderPass::kRenderPass_Opaque].drawCalls) {
-            drawCall.pixelTechnique->bind(pipeline);
-            drawCall.vertexTechnique->bindAndDraw(
-                pipeline, PipelineRenderPass::kRenderPass_Opaque);
-        }
+        IConstantBuffer pCB1 = pipeline->loadPixelCB(CB1);
+        visualSystem->getLightManager()->bindLightData(pCB1);
+    }
+
+    {
+        pipeline->bindRenderTarget(Target_UseExisting, Depth_TestAndWrite,
+                                   Blend_Default);
+        executeRenderPass(mRenderPasses[RenderPass::kOpaque],
+                          RenderPass::kOpaque, "Opaque");
     }
 
     // Clear all draw calls for the next frame.
-    for (int pass = 0; pass < PipelineRenderPass::kRenderPass_Count_; pass++) {
+    for (int pass = 0; pass < RenderPass::_Count_; pass++) {
         mRenderPasses[pass].drawCalls.clear();
     }
+}
 
-#undef RENDER_PASS
+void RenderManagerImpl::executeRenderPass(const RenderPassContainer& drawCalls,
+                                          RenderPass pass,
+                                          const std::string& annotation) {
+    Pipeline* pipeline = visualSystem->getPipeline();
+
+    {
+        DebugRenderPassScope renderpass_debug =
+            DebugRenderPassScope(drawCalls.debugAnnotation, annotation);
+        IGPUTimer gpu_timer = GPUTimer::TrackGPUTime(annotation);
+
+        for (auto& drawCall : drawCalls.drawCalls) {
+            drawCall.pixelTechnique->bind(pipeline);
+            drawCall.vertexTechnique->bindAndDraw(pipeline, pass);
+        }
+    }
 }
 
 } // namespace Graphics

@@ -21,18 +21,17 @@ class VSMesh : public VertexTechnique {
                 const Matrix4& _localMatrix);
 
     // VertexTechnique Implementation
-    void bindAndDraw(Pipeline* pipeline, PipelineRenderPass pass) override;
+    void bindAndDraw(Pipeline* pipeline, RenderPass pass) override;
 };
 
 class PSMesh : public PixelTechnique {
   private:
-    LightManager* mLightManager;
     ResourceManager* mResourceManager;
 
     Material mMaterial;
 
   public:
-    PSMesh(LightManager* lightManager, ResourceManager* resourceManager);
+    PSMesh(ResourceManager* resourceManager);
 
     void update(Material material);
 
