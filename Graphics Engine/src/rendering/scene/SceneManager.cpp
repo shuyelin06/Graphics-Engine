@@ -9,6 +9,15 @@
 namespace Engine {
 namespace Graphics {
 using UpdatePacket = SceneManager::UpdatePacket;
+
+struct RenderableMeshBlock {
+    std::unique_ptr<RenderableMesh> mesh;
+    DrawBlockKey blockKey = kInvalidDrawBlockKey;
+
+    std::unique_ptr<VSMesh> vsMesh;
+    std::unique_ptr<PSMesh> psMesh;
+};
+
 class SceneManagerImpl {
   private:
     VisualSystem* mVisualSystem;
@@ -20,7 +29,7 @@ class SceneManagerImpl {
     std::unordered_map<uint32_t, std::unique_ptr<Camera>> cameras;
     Camera* activeCamera = nullptr;
 
-    std::unordered_map<uint32_t, std::unique_ptr<RenderableMesh>> meshes;
+    std::unordered_map<uint32_t, RenderableMeshBlock> meshes;
     std::vector<std::pair<VSMesh, PSMesh>> meshTechniques;
 
   public:
@@ -35,7 +44,6 @@ class SceneManagerImpl {
 
   private:
     void processUpdatePackets();
-    void submitDrawCalls();
 };
 
 SceneManager::SceneManager() {}
@@ -65,10 +73,7 @@ void SceneManagerImpl::submitUpdatePacket(const UpdatePacket& packet) {
     mUpdatePacketsScratch.emplace_back(packet);
 }
 
-void SceneManagerImpl::update() {
-    processUpdatePackets();
-    submitDrawCalls();
-}
+void SceneManagerImpl::update() { processUpdatePackets(); }
 
 void SceneManagerImpl::processUpdatePackets() {
     {
@@ -106,43 +111,45 @@ void SceneManagerImpl::processUpdatePackets() {
             switch (packet.operation) {
             case UpdatePacket::Operation::Create: {
                 assert(!meshes.contains(packet.handle));
-                meshes[packet.handle] = std::make_unique<RenderableMesh>(
-                    mVisualSystem->getResourceManager());
+                meshes[packet.handle] = {
+                    std::make_unique<RenderableMesh>(
+                        mVisualSystem->getResourceManager()),
+                    kInvalidDrawBlockKey, std::make_unique<VSMesh>(),
+                    std::make_unique<PSMesh>(
+                        mVisualSystem->getResourceManager())};
+
+                auto& meshBlock = meshes[packet.handle];
+
+                RenderPassSet passes{};
+                passes.addPass(RenderPass::kOpaque);
+                DrawBlock drawBlock;
+                drawBlock.initialize(
+                    AABB(), passes,
+                    {meshBlock.vsMesh.get(), meshBlock.psMesh.get()});
+                meshBlock.blockKey =
+                    mVisualSystem->getRenderManager()->addDrawBlock(drawBlock);
             } break;
 
             case UpdatePacket::Operation::Destroy: {
                 assert(meshes.contains(packet.handle));
+                auto& meshBlock = meshes[packet.handle];
+                mVisualSystem->getRenderManager()->removeDrawBlock(
+                    meshBlock.blockKey);
                 meshes.erase(packet.handle);
             } break;
 
             case UpdatePacket::Operation::Update: {
                 assert(meshes.contains(packet.handle));
-                meshes[packet.handle]->update(
+                auto& meshBlock = meshes[packet.handle];
+                meshBlock.mesh->update(
                     std::get<RenderableMesh::UpdatePacket>(packet.data));
+                meshBlock.vsMesh->update(meshBlock.mesh->getMesh(),
+                                         meshBlock.mesh->getLocalMatrix());
+                meshBlock.psMesh->update(meshBlock.mesh->getMaterial());
             } break;
             }
         } else
             assert(false);
-    }
-}
-
-void SceneManagerImpl::submitDrawCalls() {
-    meshTechniques.clear();
-    for (const auto& pair : meshes) {
-        VSMesh vsMesh = VSMesh();
-        PSMesh psMesh = PSMesh(mVisualSystem->getResourceManager());
-
-        vsMesh.update(pair.second->getMesh(), pair.second->getLocalMatrix());
-        psMesh.update(pair.second->getMaterial());
-
-        meshTechniques.push_back({vsMesh, psMesh});
-
-        RenderPassSet passes{};
-        passes.addPass(RenderPass::kOpaque);
-
-        mVisualSystem->getRenderManager()->submitDrawCall(
-            {&meshTechniques.back().first, &meshTechniques.back().second},
-            passes);
     }
 }
 

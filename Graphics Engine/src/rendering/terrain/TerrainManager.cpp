@@ -44,6 +44,7 @@ class VisualTerrainImpl {
     std::unique_ptr<TerrainSDF> generator;
     std::unique_ptr<TerrainOctree> octree;
 
+    DrawBlockKey drawBlockKey = kInvalidDrawBlockKey;
     std::shared_ptr<VSTerrain> mMesh;
     std::shared_ptr<PSTerrain> mPixelTechnique;
 
@@ -174,11 +175,16 @@ void VisualTerrainImpl::updateAndUploadTerrainData(ID3D11DeviceContext* context,
     mMesh->uploadNormals(context, mesh_pool->cpu_vbuffers[NORMAL].get(),
                          mesh_pool->vertex_size);
 
-    RenderPassSet passes{};
-    passes.addPass(RenderPass::kOpaque);
+    if (drawBlockKey == kInvalidDrawBlockKey) {
+        RenderPassSet passes{};
+        passes.addPass(RenderPass::kOpaque);
 
-    visual_system->getRenderManager()->submitDrawCall(
-        {mMesh.get(), mPixelTechnique.get()}, passes);
+        DrawBlock drawBlock;
+        drawBlock.initialize(AABB(), passes,
+                             {mMesh.get(), mPixelTechnique.get()});
+        drawBlockKey =
+            visual_system->getRenderManager()->addDrawBlock(drawBlock);
+    }
 }
 
 void VisualTerrainImpl::processSceneUpdates() {

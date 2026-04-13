@@ -15,10 +15,11 @@ struct RenderPassSet {
     uint32_t bitset;
 
     RenderPassSet() { bitset = 0; }
+    RenderPassSet(uint32_t _bitset) { bitset = _bitset; }
 
     void addPass(RenderPass pass) { bitset |= (1 << pass); }
     void removePass(RenderPass pass) { bitset ^= (1 << pass); };
-    bool hasPass(RenderPass pass) { return bitset & (1 << pass); };
+    bool hasPass(RenderPass pass) const { return bitset & (1 << pass); };
 };
 static_assert(RenderPass::_Count_ < 32);
 
@@ -58,12 +59,15 @@ struct DefaultMeshMetadata {
 // Data is stored in order of what is most --> least important
 // when sorting draw calls. We do not want a separate sorting key as
 // that would be inefficient.
+using PixelTechniqueKey = uint16_t;
+using VertexTechniqueKey = uint16_t;
 struct DrawCall {
     uint16_t depth = 0xFF;
     MeshType meshType;
     uint8_t p0 = 0;
 
-    uint32_t p1 = 0;
+    PixelTechniqueKey pixelKey;
+    VertexTechniqueKey vertexKey;
 
     PixelTechnique* pixelTechnique;
     VertexTechnique* vertexTechnique;
@@ -74,6 +78,7 @@ struct DrawCall {
     } metadata;
     static_assert(sizeof(metadata) == 8);
 
+    DrawCall() = default;
     DrawCall(VertexTechnique* _vertexTechnique,
              PixelTechnique* _pixelTechnique) {
         vertexTechnique = _vertexTechnique;

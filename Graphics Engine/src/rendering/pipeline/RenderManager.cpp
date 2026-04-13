@@ -30,41 +30,51 @@ class DebugRenderPassScope {
     ~DebugRenderPassScope() { annotation->EndEvent(); }
 };
 
-struct RenderPassContainer {
-    std::vector<DrawCall> drawCalls;
-    ID3DUserDefinedAnnotation* debugAnnotation;
-};
+DrawBlock::DrawBlock() = default;
+
+void DrawBlock::initialize(AABB _extents, RenderPassSet _supportedPasses,
+                           DrawCall _drawCall) {
+    extents = _extents;
+    supportedPasses = _supportedPasses;
+    drawCall = _drawCall;
+}
 
 class RenderManagerImpl {
     ID3D11DeviceContext* context;
     ID3D11Device* device;
     VisualSystem* visualSystem;
 
-    std::array<RenderPassContainer, RenderPass::_Count_> mRenderPasses;
+    std::array<ID3DUserDefinedAnnotation*, RenderPass::_Count_>
+        mDebugAnnotations;
+
+    // TODO: Octree + Culling
+    DrawBlockKey counter = 0;
+    std::unordered_map<DrawBlockKey, DrawBlock> drawBlocks;
 
   public:
     RenderManagerImpl(VisualSystem* _visualSystem,
                       ID3D11DeviceContext* _context, ID3D11Device* _device);
     ~RenderManagerImpl();
 
-    void submitDrawCall(const RenderPass pass, const DrawCall& drawCall);
+    // TODO: This should be thread safe.
+    DrawBlockKey addDrawBlock(const DrawBlock& block);
+    void removeDrawBlock(const DrawBlockKey);
+
     void perform();
 
   private:
-    void executeRenderPass(const RenderPassContainer& drawCalls,
-                           RenderPass pass, const std::string& annotation);
+    void executeRenderPass(RenderPass pass, const std::string& annotation);
 };
 
 RenderManager::RenderManager() = default;
 RenderManager::~RenderManager() = default;
 
-void RenderManager::submitDrawCall(const DrawCall& drawCall,
-                                   RenderPassSet renderPasses) {
-    for (int i = 0; i < RenderPass::_Count_; i++) {
-        if (renderPasses.hasPass((RenderPass)i)) {
-            mImpl->submitDrawCall((RenderPass)i, drawCall);
-        }
-    }
+DrawBlockKey RenderManager::addDrawBlock(const DrawBlock& block) {
+    return mImpl->addDrawBlock(block);
+}
+
+void RenderManager::removeDrawBlock(const DrawBlockKey key) {
+    mImpl->removeDrawBlock(key);
 }
 
 void RenderManager::perform() { mImpl->perform(); }
@@ -84,15 +94,22 @@ RenderManagerImpl::RenderManagerImpl(VisualSystem* _visualSystem,
                                      ID3D11Device* _device)
     : visualSystem(_visualSystem), context(_context), device(_device) {
     for (int pass = 0; pass < RenderPass::_Count_; pass++) {
-        context->QueryInterface(
-            IID_PPV_ARGS(&mRenderPasses[pass].debugAnnotation));
+        context->QueryInterface(IID_PPV_ARGS(&mDebugAnnotations[pass]));
     }
+
+    counter = 0;
 }
 RenderManagerImpl::~RenderManagerImpl() = default;
 
-void RenderManagerImpl::submitDrawCall(const RenderPass pass,
-                                       const DrawCall& drawCall) {
-    mRenderPasses[pass].drawCalls.emplace_back(drawCall);
+DrawBlockKey RenderManagerImpl::addDrawBlock(const DrawBlock& block) {
+    const DrawBlockKey key = counter++;
+    drawBlocks[key] = block;
+    return key;
+}
+
+void RenderManagerImpl::removeDrawBlock(const DrawBlockKey key) {
+    assert(drawBlocks.contains(key));
+    drawBlocks.erase(key);
 }
 
 void RenderManagerImpl::perform() {
@@ -139,27 +156,31 @@ void RenderManagerImpl::perform() {
     {
         pipeline->bindRenderTarget(Target_UseExisting, Depth_TestAndWrite,
                                    Blend_Default);
-        executeRenderPass(mRenderPasses[RenderPass::kOpaque],
-                          RenderPass::kOpaque, "Opaque");
-    }
-
-    // Clear all draw calls for the next frame.
-    for (int pass = 0; pass < RenderPass::_Count_; pass++) {
-        mRenderPasses[pass].drawCalls.clear();
+        executeRenderPass(RenderPass::kOpaque, "Opaque");
     }
 }
 
-void RenderManagerImpl::executeRenderPass(const RenderPassContainer& drawCalls,
-                                          RenderPass pass,
+void RenderManagerImpl::executeRenderPass(RenderPass pass,
                                           const std::string& annotation) {
     Pipeline* pipeline = visualSystem->getPipeline();
 
+    // Query my draw blocks
+    // TODO This is quite inefficient. We should move this to a job or something
+    // later.
+    std::vector<DrawCall> drawCallsEx;
+    for (const auto& pair : drawBlocks) {
+        const DrawBlock& drawBlock = pair.second;
+        if (drawBlock.supportedPasses.hasPass(pass)) {
+            drawCallsEx.push_back(drawBlock.drawCall);
+        }
+    }
+
     {
         DebugRenderPassScope renderpass_debug =
-            DebugRenderPassScope(drawCalls.debugAnnotation, annotation);
+            DebugRenderPassScope(mDebugAnnotations[pass], annotation);
         IGPUTimer gpu_timer = GPUTimer::TrackGPUTime(annotation);
 
-        for (auto& drawCall : drawCalls.drawCalls) {
+        for (auto& drawCall : drawCallsEx) {
             drawCall.pixelTechnique->bind(pipeline);
             drawCall.vertexTechnique->bindAndDraw(pipeline, pass);
         }

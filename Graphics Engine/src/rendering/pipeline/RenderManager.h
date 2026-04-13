@@ -1,13 +1,18 @@
 #pragma once
+#pragma once
 
 #include "d3d11.h"
 
 #include <memory>
 
+#include "math/AABB.h"
+
 #include "DrawCall.h"
 #include "rendering/pipeline/PipelineManager.h"
 
 namespace Engine {
+using namespace Math;
+
 namespace Graphics {
 class VisualSystem;
 class RenderManagerImpl;
@@ -22,6 +27,26 @@ class RenderManagerImpl;
 // - RenderPass: Other configurable pipeline features (alpha blending,
 // rasterization, etc.)
 
+// A DrawBlock is an abstract spatial entity that contains
+// "renderable" things.
+// We cull and filter passes on draw blocks. Draw blocks then can be used
+// to generate draw calls that the pipeline can read.
+using DrawBlockKey = uint32_t;
+constexpr DrawBlockKey kInvalidDrawBlockKey = 0xFFFF;
+struct DrawBlock {
+    AABB extents;
+
+    RenderPassSet supportedPasses;
+    // Draw Call that will be submitted if Draw Block is rendered
+    // TODO: Draw Blocks should prob support multiple draw calls.
+    DrawCall drawCall;
+
+    DrawBlock();
+
+    void initialize(AABB _extents, RenderPassSet _supportedPasses,
+                    DrawCall _drawCall);
+};
+
 // TODO:
 // - Add batching to draw calls for instancing.
 // - Shadows. Skinned Meshes. Normal Meshes
@@ -34,7 +59,8 @@ class RenderManager {
                                                  ID3D11Device* device);
     ~RenderManager();
 
-    void submitDrawCall(const DrawCall& drawCall, RenderPassSet renderPasses);
+    DrawBlockKey addDrawBlock(const DrawBlock& block);
+    void removeDrawBlock(const DrawBlockKey key);
 
     void perform();
 
