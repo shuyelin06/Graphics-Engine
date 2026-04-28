@@ -1,14 +1,14 @@
-#include "RenderableMesh.h"
+#include "DefaultMesh.h"
 
 namespace Engine {
 namespace Graphics {
-RenderableMesh::RenderableMesh(ResourceManager* resourceManager)
+DefaultMesh::DefaultMesh(ResourceManager* resourceManager)
     : mResourceManager(resourceManager) {
     mWorldFromLocal = Matrix4::Identity();
 }
-RenderableMesh::~RenderableMesh() = default;
+DefaultMesh::~DefaultMesh() = default;
 
-void RenderableMesh::update(const UpdatePacket& packet) {
+void DefaultMesh::update(const UpdatePacket& packet) {
     GeometryDesc desc;
     bool dirty = false;
 
@@ -29,10 +29,10 @@ void RenderableMesh::update(const UpdatePacket& packet) {
     }
 }
 
-std::shared_ptr<Mesh> RenderableMesh::getMesh() const { return mesh; }
-Material RenderableMesh::getMaterial() const { return material; }
+std::shared_ptr<Mesh> DefaultMesh::getMesh() const { return mesh; }
+Material DefaultMesh::getMaterial() const { return material; }
 
-const Matrix4& RenderableMesh::getLocalMatrix() const {
+const Matrix4& DefaultMesh::getLocalMatrix() const {
     return mWorldFromLocal;
 }
 

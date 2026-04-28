@@ -159,6 +159,8 @@ VisualSystem::VisualSystem(HWND window) {
     light_manager = new LightManager(device, 4096);
 
     terrain = TerrainManager::create(this);
+
+    vsDebugLine.initialize(device);
 }
 
 // Render:
@@ -753,45 +755,17 @@ void VisualSystem::renderDebugLines() {
     if (lines.size() == 0)
         return;
 
-    pipeline->bindVertexShader("DebugLine");
-    pipeline->bindPixelShader("DebugLine");
+    vsDebugLine.uploadData(context, lines);
+    if (debugLineBlockKey == kInvalidDrawBlockKey) {
+        RenderPassSet passes{};
+        passes.addPass(RenderPass::kDebug);
 
-    // Load line data into a vertex buffer
-    if (line_vbuffer != nullptr)
-        line_vbuffer->Release();
+        DrawBlock drawBlock;
+        drawBlock.initialize(
+            AABB(), passes,
+            {(VertexTechnique*)&vsDebugLine, (PixelTechnique*)&psDebugDefault});
 
-    D3D11_BUFFER_DESC buff_desc = {};
-    buff_desc.ByteWidth = sizeof(LinePoint) * lines.size();
-    buff_desc.Usage = D3D11_USAGE_DEFAULT;
-    buff_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
-    D3D11_SUBRESOURCE_DATA sr_data = {0};
-    sr_data.pSysMem = (void*)lines.data();
-
-    device->CreateBuffer(&buff_desc, &sr_data, &line_vbuffer);
-
-    UINT vertexStride = sizeof(LinePoint);
-    UINT vertexOffset = 0;
-
-    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-    context->IASetVertexBuffers(DEBUG_LINE, 1, &line_vbuffer, &vertexStride,
-                                &vertexOffset);
-
-    int numLines = lines.size() * 2;
-
-    if (numLines > 0) {
-        Camera* camera = scene_manager->getMainCamera();
-        // Vertex Constant Buffer 1:
-        // Stores the camera view and projection matrices
-        {
-            IConstantBuffer vCB1 = pipeline->loadVertexCB(CB1);
-            const Matrix4 viewMatrix = camera->getWorldToCameraMatrix();
-            vCB1.loadData(&viewMatrix, FLOAT4X4);
-            const Matrix4 projectionMatrix = camera->getFrustumMatrix();
-            vCB1.loadData(&projectionMatrix, FLOAT4X4);
-        }
-
-        context->Draw(numLines, 0);
+        debugLineBlockKey = render_manager->addDrawBlock(drawBlock);
     }
 }
 #endif

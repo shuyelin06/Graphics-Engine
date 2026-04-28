@@ -10,8 +10,8 @@ namespace Engine {
 namespace Graphics {
 using UpdatePacket = SceneManager::UpdatePacket;
 
-struct RenderableMeshBlock {
-    std::unique_ptr<RenderableMesh> mesh;
+struct DefaultMeshBlock {
+    std::unique_ptr<DefaultMesh> mesh;
     DrawBlockKey blockKey = kInvalidDrawBlockKey;
 
     std::unique_ptr<VSMesh> vsMesh;
@@ -29,7 +29,7 @@ class SceneManagerImpl {
     std::unordered_map<uint32_t, std::unique_ptr<Camera>> cameras;
     Camera* activeCamera = nullptr;
 
-    std::unordered_map<uint32_t, RenderableMeshBlock> meshes;
+    std::unordered_map<uint32_t, DefaultMeshBlock> meshes;
     std::vector<std::pair<VSMesh, PSMesh>> meshTechniques;
 
   public:
@@ -44,6 +44,9 @@ class SceneManagerImpl {
 
   private:
     void processUpdatePackets();
+
+    void processCameraPacket(const UpdatePacket& packet);
+    void processMeshPacket(const UpdatePacket& packet);
 };
 
 SceneManager::SceneManager() {}
@@ -86,70 +89,73 @@ void SceneManagerImpl::processUpdatePackets() {
         const UpdatePacket packet = mUpdatePackets.back();
         mUpdatePackets.pop_back();
 
-        if (std::holds_alternative<Camera::UpdatePacket>(packet.data)) {
-            switch (packet.operation) {
-            case UpdatePacket::Operation::Create: {
-                assert(!cameras.contains(packet.handle));
-                cameras[packet.handle] = std::make_unique<Camera>();
-                // HACK
-                activeCamera = cameras[packet.handle].get();
-            } break;
+        if (std::holds_alternative<Camera::UpdatePacket>(packet.data))
+            processCameraPacket(packet);
+        else if (std::holds_alternative<DefaultMesh::UpdatePacket>(packet.data))
+            processMeshPacket(packet);
+        else
+            assert(false); // Unimplemented
+    }
+}
 
-            case UpdatePacket::Operation::Destroy: {
-                assert(cameras.contains(packet.handle));
-                cameras.erase(packet.handle);
-            } break;
+void SceneManagerImpl::processCameraPacket(const UpdatePacket& packet) {
+    switch (packet.operation) {
+    case UpdatePacket::Operation::Create: {
+        assert(!cameras.contains(packet.handle));
+        cameras[packet.handle] = std::make_unique<Camera>();
+        // HACK
+        activeCamera = cameras[packet.handle].get();
+    } break;
 
-            case UpdatePacket::Operation::Update: {
-                assert(cameras.contains(packet.handle));
-                cameras[packet.handle]->update(
-                    std::get<Camera::UpdatePacket>(packet.data));
-            } break;
-            }
-        } else if (std::holds_alternative<RenderableMesh::UpdatePacket>(
-                       packet.data)) {
-            switch (packet.operation) {
-            case UpdatePacket::Operation::Create: {
-                assert(!meshes.contains(packet.handle));
-                meshes[packet.handle] = {
-                    std::make_unique<RenderableMesh>(
-                        mVisualSystem->getResourceManager()),
-                    kInvalidDrawBlockKey, std::make_unique<VSMesh>(),
-                    std::make_unique<PSMesh>(
-                        mVisualSystem->getResourceManager())};
+    case UpdatePacket::Operation::Destroy: {
+        assert(cameras.contains(packet.handle));
+        cameras.erase(packet.handle);
+    } break;
 
-                auto& meshBlock = meshes[packet.handle];
+    case UpdatePacket::Operation::Update: {
+        assert(cameras.contains(packet.handle));
+        cameras[packet.handle]->update(
+            std::get<Camera::UpdatePacket>(packet.data));
+    } break;
+    }
+}
 
-                RenderPassSet passes{};
-                passes.addPass(RenderPass::kOpaque);
-                DrawBlock drawBlock;
-                drawBlock.initialize(
-                    AABB(), passes,
-                    {meshBlock.vsMesh.get(), meshBlock.psMesh.get()});
-                meshBlock.blockKey =
-                    mVisualSystem->getRenderManager()->addDrawBlock(drawBlock);
-            } break;
+void SceneManagerImpl::processMeshPacket(const UpdatePacket& packet) {
+    switch (packet.operation) {
+    case UpdatePacket::Operation::Create: {
+        assert(!meshes.contains(packet.handle));
+        meshes[packet.handle] = {
+            std::make_unique<DefaultMesh>(mVisualSystem->getResourceManager()),
+            kInvalidDrawBlockKey, std::make_unique<VSMesh>(),
+            std::make_unique<PSMesh>(mVisualSystem->getResourceManager())};
 
-            case UpdatePacket::Operation::Destroy: {
-                assert(meshes.contains(packet.handle));
-                auto& meshBlock = meshes[packet.handle];
-                mVisualSystem->getRenderManager()->removeDrawBlock(
-                    meshBlock.blockKey);
-                meshes.erase(packet.handle);
-            } break;
+        auto& meshBlock = meshes[packet.handle];
 
-            case UpdatePacket::Operation::Update: {
-                assert(meshes.contains(packet.handle));
-                auto& meshBlock = meshes[packet.handle];
-                meshBlock.mesh->update(
-                    std::get<RenderableMesh::UpdatePacket>(packet.data));
-                meshBlock.vsMesh->update(meshBlock.mesh->getMesh(),
-                                         meshBlock.mesh->getLocalMatrix());
-                meshBlock.psMesh->update(meshBlock.mesh->getMaterial());
-            } break;
-            }
-        } else
-            assert(false);
+        RenderPassSet passes{};
+        passes.addPass(RenderPass::kOpaque);
+        DrawBlock drawBlock;
+        drawBlock.initialize(AABB(), passes,
+                             {meshBlock.vsMesh.get(), meshBlock.psMesh.get()});
+        meshBlock.blockKey =
+            mVisualSystem->getRenderManager()->addDrawBlock(drawBlock);
+    } break;
+
+    case UpdatePacket::Operation::Destroy: {
+        assert(meshes.contains(packet.handle));
+        auto& meshBlock = meshes[packet.handle];
+        mVisualSystem->getRenderManager()->removeDrawBlock(meshBlock.blockKey);
+        meshes.erase(packet.handle);
+    } break;
+
+    case UpdatePacket::Operation::Update: {
+        assert(meshes.contains(packet.handle));
+        auto& meshBlock = meshes[packet.handle];
+        meshBlock.mesh->update(
+            std::get<DefaultMesh::UpdatePacket>(packet.data));
+        meshBlock.vsMesh->update(meshBlock.mesh->getMesh(),
+                                 meshBlock.mesh->getLocalMatrix());
+        meshBlock.psMesh->update(meshBlock.mesh->getMaterial());
+    } break;
     }
 }
 

@@ -4,7 +4,7 @@
 #include <variant>
 
 #include "rendering/core/Camera.h"
-#include "rendering/scene/RenderableMesh.h"
+#include "rendering/scene/DefaultMesh.h"
 
 namespace Engine {
 namespace Graphics {
@@ -22,7 +22,7 @@ class SceneManager {
 
         uint32_t handle; // Object Handle
         Operation operation;
-        std::variant<Camera::UpdatePacket, RenderableMesh::UpdatePacket> data;
+        std::variant<Camera::UpdatePacket, DefaultMesh::UpdatePacket> data;
     };
     void submitUpdatePacket(const UpdatePacket& packet);
 

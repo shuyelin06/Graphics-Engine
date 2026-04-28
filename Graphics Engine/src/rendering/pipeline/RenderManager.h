@@ -34,7 +34,7 @@ class RenderManagerImpl;
 using DrawBlockKey = uint32_t;
 constexpr DrawBlockKey kInvalidDrawBlockKey = 0xFFFF;
 struct DrawBlock {
-    AABB extents;
+    AABB extents{};
 
     RenderPassSet supportedPasses;
     // Draw Call that will be submitted if Draw Block is rendered

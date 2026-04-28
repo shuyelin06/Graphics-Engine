@@ -9,6 +9,7 @@ namespace Graphics {
 enum RenderPass {
     kShadows = 0,
     kOpaque = 1,
+    kDebug = 2,
     _Count_,
 };
 struct RenderPassSet {
@@ -62,15 +63,10 @@ struct DefaultMeshMetadata {
 using PixelTechniqueKey = uint16_t;
 using VertexTechniqueKey = uint16_t;
 struct DrawCall {
-    uint16_t depth = 0xFF;
-    MeshType meshType;
-    uint8_t p0 = 0;
+    uint32_t depth = 0xFF;
 
-    PixelTechniqueKey pixelKey;
-    VertexTechniqueKey vertexKey;
-
-    PixelTechnique* pixelTechnique;
-    VertexTechnique* vertexTechnique;
+    PixelTechnique* pixelTechnique = nullptr;
+    VertexTechnique* vertexTechnique = nullptr;
 
     union {
         TerrainMeshMetadata terrainData;

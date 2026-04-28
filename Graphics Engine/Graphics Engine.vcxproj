@@ -182,6 +182,7 @@
     <ClCompile Include="src\math\CFrame.cpp" />
     <ClCompile Include="src\rendering\pipeline\RenderManager.cpp" />
     <ClCompile Include="src\rendering\pipeline\RenderManager.h" />
+    <ClCompile Include="src\rendering\pipeline\techniques\DebugRenderTech.cpp" />
     <ClCompile Include="src\rendering\pipeline\techniques\PSTerrain.cpp" />
     <ClCompile Include="src\rendering\pipeline\techniques\VSPSMesh.cpp" />
     <ClCompile Include="src\rendering\pipeline\techniques\VSTerrain.cpp" />
@@ -191,7 +192,7 @@
     <ClCompile Include="src\datamodel\terrain\Terrain.cpp" />
     <ClCompile Include="src\core\ThreadPool.cpp" />
     <ClCompile Include="src\physics\PhysicsTerrain.cpp" />
-    <ClCompile Include="src\rendering\scene\RenderableMesh.cpp" />
+    <ClCompile Include="src\rendering\scene\DefaultMesh.cpp" />
     <ClCompile Include="src\rendering\core\VertexStreamIDs.cpp" />
     <ClCompile Include="src\rendering\resources\BumpMapBuilder.cpp" />
     <ClCompile Include="src\rendering\pipeline\ConstantBuffer.cpp" />
@@ -283,6 +284,7 @@
     <ClInclude Include="src\datamodel\objects\DMPhysics.h" />
     <ClInclude Include="src\math\CFrame.h" />
     <ClInclude Include="src\rendering\pipeline\DrawCall.h" />
+    <ClInclude Include="src\rendering\pipeline\techniques\DebugRenderTech.h" />
     <ClInclude Include="src\rendering\pipeline\techniques\PSShadowMap.h" />
     <ClInclude Include="src\rendering\pipeline\techniques\PSTerrain.h" />
     <ClInclude Include="src\rendering\pipeline\techniques\VSPSMesh.h" />
@@ -295,7 +297,7 @@
     <ClInclude Include="src\math\SDF.h" />
     <ClInclude Include="src\physics\PhysicsTerrain.h" />
     <ClInclude Include="src\rendering\core\Material.h" />
-    <ClInclude Include="src\rendering\scene\RenderableMesh.h" />
+    <ClInclude Include="src\rendering\scene\DefaultMesh.h" />
     <ClInclude Include="src\rendering\lights\LightDataGPU.h" />
     <ClInclude Include="src\rendering\resources\BumpMapBuilder.h" />
     <ClInclude Include="src\rendering\pipeline\ConstantBuffer.h" />

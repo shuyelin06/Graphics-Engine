@@ -158,6 +158,12 @@ void RenderManagerImpl::perform() {
                                    Blend_Default);
         executeRenderPass(RenderPass::kOpaque, "Opaque");
     }
+
+    {
+        pipeline->bindRenderTarget(Target_UseExisting, Depth_TestAndWrite,
+                                   Blend_Default);
+        executeRenderPass(RenderPass::kDebug, "Debug");
+    }
 }
 
 void RenderManagerImpl::executeRenderPass(RenderPass pass,

@@ -14,6 +14,14 @@ constexpr int SAMPLER_COUNT = 4;
 
 namespace Engine {
 namespace Graphics {
+// VertexTopology Enum:
+// Specifies how the vertices are arranged.
+enum class VertexTopology : uint8_t {
+    TriangleList = 0,
+    LineList = 1,
+    _Count_,
+};
+
 // SamplerSlot Enum:
 // References the sampler slots in the pipeline.
 // Most of the samplers are not to be rebound, as they are
@@ -135,34 +143,34 @@ class Pipeline {
     // Prepare
     void beginFrame(const uint64_t frame);
 
-    // Shader Management
+    // Vertex Technique API
     bool bindVertexShader(const std::string& vs_name);
-    bool bindPixelShader(const std::string& ps_name);
-
-    // Render Target Management
-    void bindRenderTarget(TargetFlags, DepthStencilFlags, BlendFlags);
-
-    void bindInactiveTarget(int slot);
-    void bindDepthStencil(int slot);
-
-    // Shader Resource Management
-    void bindSamplers();
+    void setVertexTopology(VertexTopology topology);
 
     template <typename T>
     void bindVertexSB(const StructuredBuffer<T>& sb, unsigned int slot) {
         context->VSSetShaderResources(slot, 1, &sb.srv);
     }
+    void bindVertexTexture(const Texture& texture, unsigned int slot);
+    IConstantBuffer loadVertexCB(CBSlot slot);
+
+    // Pixel Technique API
+    void bindRenderTarget(TargetFlags, DepthStencilFlags, BlendFlags);
+    bool bindPixelShader(const std::string& ps_name);
+
     template <typename T>
     void bindPixelSB(const StructuredBuffer<T>& sb, unsigned int slot) {
         context->PSSetShaderResources(slot, 1, &sb.srv);
     }
-
-    void bindVertexTexture(const Texture& texture, unsigned int slot);
     void bindPixelTexture(const Texture& texture, unsigned int slot);
-
-    // Constant Buffer Management
-    IConstantBuffer loadVertexCB(CBSlot slot);
     IConstantBuffer loadPixelCB(CBSlot slot);
+
+    // Misc
+    void bindInactiveTarget(int slot);
+    void bindDepthStencil(int slot);
+
+    // Shader Resource Management
+    void bindSamplers();
 
     void clearDepthStencil(const Texture& texture);
 

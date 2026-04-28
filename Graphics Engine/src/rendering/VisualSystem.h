@@ -12,9 +12,9 @@
 #include "lights/LightManager.h"
 #include "pipeline/PipelineManager.h"
 #include "pipeline/RenderManager.h"
+#include "resources/ResourceManager.h"
 #include "scene/SceneManager.h"
 #include "terrain/TerrainManager.h"
-#include "resources/ResourceManager.h"
 
 #if defined(_DEBUG)
 #include "util/CPUTimer.h"
@@ -22,6 +22,8 @@
 #endif
 
 #include "VisualDebug.h"
+
+#include "rendering/pipeline/techniques/DebugRenderTech.h"
 
 namespace Engine {
 using namespace Datamodel;
@@ -73,6 +75,10 @@ class VisualSystem {
     ID3D11RasterizerState* rast_state;
     Texture* bump_tex;
 
+    VSDebugRenderLine vsDebugLine;
+    PSDebugDefault psDebugDefault;
+    DrawBlockKey debugLineBlockKey = kInvalidDrawBlockKey;
+
   public:
     VisualSystem(HWND window);
 
@@ -89,8 +95,8 @@ class VisualSystem {
 
     Pipeline* getPipeline() const;
 
-  private:                     // Rendering Stages
-    void performPrepass();     // Prepass (Shadowmaps)
+  private:                 // Rendering Stages
+    void performPrepass(); // Prepass (Shadowmaps)
 
     void performLightFrustumPass(); // Light Frustum Pass
 

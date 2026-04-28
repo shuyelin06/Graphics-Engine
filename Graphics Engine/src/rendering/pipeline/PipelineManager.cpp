@@ -331,6 +331,21 @@ void Pipeline::beginFrame(const uint64_t frame) {
     render_target_dest->clearAsRenderTarget(context, Color(0.f, 0.f, 0.f));
 }
 
+void Pipeline::setVertexTopology(VertexTopology topology) {
+    switch (topology) {
+    case VertexTopology::TriangleList:
+        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        break;
+
+    case VertexTopology::LineList:
+        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+        break;
+
+    default:
+        assert(false);
+    }
+}
+
 // Shader Management
 bool Pipeline::bindVertexShader(const std::string& vs_name) {
     VertexShader* new_shader = shader_manager->getVertexShader(vs_name);

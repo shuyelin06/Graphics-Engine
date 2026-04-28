@@ -22,6 +22,12 @@ template <typename T> class StructuredBuffer {
         buffer = NULL;
         srv = NULL;
     };
+    ~StructuredBuffer() {
+        if (buffer)
+            buffer->Release();
+        if (srv)
+            srv->Release();
+    }
 
     void initialize(ID3D11Device* device, unsigned int num_elements) {
         size = num_elements;

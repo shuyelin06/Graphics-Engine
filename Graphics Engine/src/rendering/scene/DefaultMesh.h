@@ -9,10 +9,10 @@ namespace Engine {
 using namespace Datamodel;
 
 namespace Graphics {
-// RenderableMesh:
+// DefaultMesh:
 // Interfaces with the DMMesh datamodel object.
 // Stores the geometry information needed.
-class RenderableMesh {
+class DefaultMesh {
   private:
     ResourceManager* mResourceManager;
 
@@ -22,8 +22,8 @@ class RenderableMesh {
     Matrix4 mWorldFromLocal;
 
   public:
-    RenderableMesh(ResourceManager* resourceManager);
-    ~RenderableMesh();
+    DefaultMesh(ResourceManager* resourceManager);
+    ~DefaultMesh();
 
     // Updating
     struct UpdatePacket {

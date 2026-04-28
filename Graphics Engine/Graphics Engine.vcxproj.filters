@@ -258,7 +258,7 @@
     <ClCompile Include="src\datamodel\objects\DMMesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\scene\RenderableMesh.cpp">
+    <ClCompile Include="src\rendering\scene\DefaultMesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\core\DataFilePath.cpp">
@@ -298,6 +298,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\pipeline\techniques\VSPSMesh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rendering\pipeline\techniques\DebugRenderTech.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -569,7 +572,7 @@
     <ClInclude Include="src\datamodel\objects\DMMesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\scene\RenderableMesh.h">
+    <ClInclude Include="src\rendering\scene\DefaultMesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\core\DataFilePath.h">
@@ -630,6 +633,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\pipeline\DrawCall.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rendering\pipeline\techniques\DebugRenderTech.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

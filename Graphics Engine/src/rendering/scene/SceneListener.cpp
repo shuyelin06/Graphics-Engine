@@ -153,8 +153,8 @@ void SceneListenerImpl::processMeshEvent(const DMEvent& event) {
     SceneManager* sceneManager = mVisualSystem->getSceneManager();
 
     SceneManager::UpdatePacket packet;
-    RenderableMesh::UpdatePacket& data =
-        packet.data.emplace<RenderableMesh::UpdatePacket>();
+    DefaultMesh::UpdatePacket& data =
+        packet.data.emplace<DefaultMesh::UpdatePacket>();
 
     packet.handle = event.object;
 
@@ -168,7 +168,7 @@ void SceneListenerImpl::processMeshEvent(const DMEvent& event) {
         break;
 
     case DMEventType::kPropertyUpdated: {
-        using Property = RenderableMesh::UpdatePacket::Property;
+        using Property = DefaultMesh::UpdatePacket::Property;
         packet.operation = SceneManager::UpdatePacket::Update;
         if (event.property_tag == "MeshName") {
             data.type = Property::MeshName;
