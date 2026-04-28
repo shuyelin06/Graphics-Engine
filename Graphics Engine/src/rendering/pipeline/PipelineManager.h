@@ -115,8 +115,8 @@ class Pipeline {
     UINT vb_offsets[BINDABLE_STREAM_COUNT];
 
     // Constant Buffer Handles
-    CBHandle* vcb_handles[CBCOUNT];
-    CBHandle* pcb_handles[CBCOUNT];
+    ConstantBuffer_DEPRECATED* vcb_handles[CBCOUNT];
+    ConstantBuffer_DEPRECATED* pcb_handles[CBCOUNT];
 
     // Active Shaders
     ShaderManager* shader_manager;

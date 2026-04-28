@@ -46,7 +46,7 @@ struct MeshTriangle {
 class MeshBuilder {
     friend class ResourceManager;
 
-  private:
+  public:
     VertexLayout layout;
 
     std::vector<MeshVertex> vertex_buffer;

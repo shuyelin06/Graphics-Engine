@@ -16,7 +16,7 @@ namespace Engine {
 using namespace Datamodel;
 
 namespace Graphics {
-class CBHandle;
+class ConstantBuffer_DEPRECATED;
 
 // Struct ShadowMapViewport
 // Represents where in the shadowmap_atlas the light's

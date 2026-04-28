@@ -15,6 +15,7 @@
 
 #include "files/FileReader.h"
 
+#include "../Direct3D11.h"
 #include "../ImGui.h"
 
 // We use the lodepng library to read PNG files.
@@ -32,16 +33,137 @@ using namespace Math;
 namespace Graphics {
 static const std::string RESOURCE_FOLDER = "data/";
 
-ResourceManager::ResourceManager(ID3D11Device* _device,
-                                 ID3D11DeviceContext* _context) {
-    device = _device;
-    context = _context;
+class ResourceManagerImpl {
+  private:
+    struct MeshBuildingJob {
+        std::vector<MeshVertex> vertex_data;
+        std::vector<MeshTriangle> index_data;
+        VertexLayout layout;
+
+        std::shared_ptr<Mesh> mesh = nullptr;
+    };
+
+  private:
+    ID3D11Device* device;
+    ID3D11DeviceContext* context;
+
+    std::vector<std::unique_ptr<MeshPool>> mesh_pools;
+    std::vector<std::weak_ptr<Mesh>> meshes;
+
+    std::vector<std::shared_ptr<Texture>> textures;
+
+    std::vector<MeshBuildingJob> mesh_jobs;
+    std::mutex mesh_job_mutex;
+
+  public:
+    ResourceManagerImpl(ID3D11Device* device, ID3D11DeviceContext* context);
+    ~ResourceManagerImpl();
+
+    // Initialize System Resources.
+    // These are resources that exist for the entire application and are built
+    // into the engine.
+    void initializeSystemResources();
+
+    // Update Loop.
+    // Serve the various requests received by the resource manager.
+    void updatePerform();
+
+    // Get Resources
+    std::shared_ptr<Mesh> getMesh(int index) const;
+    std::shared_ptr<Texture> getTexture(int index) const;
+
+    // Create Resources
+    std::shared_ptr<Texture>
+    LoadTextureFromFile(const std::string& relative_path);
+    std::shared_ptr<Mesh> LoadMeshFromFile(const std::string& relative_path);
+
+    std::shared_ptr<TextureBuilder> createTextureBuilder();
+
+    MeshPool* getMeshPool(MeshPoolType pool_type);
+
+    std::shared_ptr<Mesh> requestMesh(const MeshBuilder& mesh_builder);
+    std::shared_ptr<Texture> requestTexture(const TextureBuilder& tex_builder);
+
+    std::shared_ptr<VSTerrain> requestTerrainMesh();
+
+    // Debug Display
+    void imGui();
+
+  private:
+    void processMeshJob(const MeshBuildingJob& job);
+
+    // System Asset Generation
+    void LoadCubeMesh();
+
+    void LoadFallbackColormap();
+
+    bool WriteTextureToPNG(ID3D11Texture2D* texture, std::string path,
+                           std::string file);
+};
+
+std::unique_ptr<ResourceManager>
+ResourceManager::create(ID3D11Device* device, ID3D11DeviceContext* context) {
+    std::unique_ptr<ResourceManager> ptr =
+        std::unique_ptr<ResourceManager>(new ResourceManager());
+    ptr->mImpl = std::make_unique<ResourceManagerImpl>(device, context);
+    return ptr;
 }
+ResourceManager::ResourceManager() = default;
 ResourceManager::~ResourceManager() = default;
+
+void ResourceManager::initializeSystemResources() {
+    mImpl->initializeSystemResources();
+}
+
+void ResourceManager::updatePerform() { mImpl->updatePerform(); }
+
+// Get Resources
+std::shared_ptr<Mesh> ResourceManager::getMesh(int index) const {
+    return mImpl->getMesh(index);
+}
+std::shared_ptr<Texture> ResourceManager::getTexture(int index) const {
+    return mImpl->getTexture(index);
+}
+
+std::shared_ptr<Texture>
+ResourceManager::LoadTextureFromFile(const std::string& relative_path) {
+    return mImpl->LoadTextureFromFile(relative_path);
+}
+std::shared_ptr<Mesh>
+ResourceManager::LoadMeshFromFile(const std::string& relative_path) {
+    return mImpl->LoadMeshFromFile(relative_path);
+}
+
+std::shared_ptr<TextureBuilder> ResourceManager::createTextureBuilder() {
+    return mImpl->createTextureBuilder();
+}
+
+MeshPool* ResourceManager::getMeshPool(MeshPoolType pool_type) {
+    return mImpl->getMeshPool(pool_type);
+}
+
+std::shared_ptr<Mesh>
+ResourceManager::requestMesh(const MeshBuilder& mesh_builder) {
+    return mImpl->requestMesh(mesh_builder);
+}
+
+std::shared_ptr<VSTerrain> ResourceManager::requestTerrainMesh() {
+    return mImpl->requestTerrainMesh();
+}
+
+// Debug Display
+void ResourceManager::imGui() { mImpl->imGui(); }
+
+ResourceManagerImpl::ResourceManagerImpl(ID3D11Device* device,
+                                         ID3D11DeviceContext* context)
+    : device(device), context(context) {
+    assert(device && context);
+}
+ResourceManagerImpl::~ResourceManagerImpl() = default;
 
 // Initialize:
 // Loads assets into the asset manager.
-void ResourceManager::initializeSystemResources() {
+void ResourceManagerImpl::initializeSystemResources() {
     // TODO: Be able to create mesh pools on demand
     VertexLayout terrainLayout;
     terrainLayout.addVertexStream(POSITION);
@@ -61,7 +183,7 @@ void ResourceManager::initializeSystemResources() {
     mesh_pools[MeshPoolType_Default]->updateGPUResources(context);
 }
 
-void ResourceManager::updatePerform(ID3D11DeviceContext* context) {
+void ResourceManagerImpl::updatePerform() {
     std::scoped_lock<std::mutex> job_lock(mesh_job_mutex);
 
     while (!mesh_jobs.empty()) {
@@ -72,11 +194,11 @@ void ResourceManager::updatePerform(ID3D11DeviceContext* context) {
 }
 
 // Get Resources
-std::shared_ptr<Mesh> ResourceManager::getMesh(int index) const {
+std::shared_ptr<Mesh> ResourceManagerImpl::getMesh(int index) const {
     assert(0 <= index && index < meshes.size());
     return meshes[index].lock();
 }
-std::shared_ptr<Texture> ResourceManager::getTexture(int index) const {
+std::shared_ptr<Texture> ResourceManagerImpl::getTexture(int index) const {
     assert(0 <= index && index < textures.size());
     return textures[index];
 }
@@ -84,7 +206,7 @@ std::shared_ptr<Texture> ResourceManager::getTexture(int index) const {
 // LoadTexture:
 // Code path for loading all textures.
 std::shared_ptr<Texture>
-ResourceManager::LoadTextureFromFile(const std::string& relative_path) {
+ResourceManagerImpl::LoadTextureFromFile(const std::string& relative_path) {
     if (relative_path.empty())
         return nullptr;
 
@@ -124,7 +246,7 @@ ResourceManager::LoadTextureFromFile(const std::string& relative_path) {
 }
 
 std::shared_ptr<Mesh>
-ResourceManager::LoadMeshFromFile(const std::string& relative_path) {
+ResourceManagerImpl::LoadMeshFromFile(const std::string& relative_path) {
     if (relative_path.empty())
         return nullptr;
 
@@ -156,16 +278,16 @@ ResourceManager::LoadMeshFromFile(const std::string& relative_path) {
         return nullptr;
 }
 
-std::shared_ptr<TextureBuilder> ResourceManager::createTextureBuilder() {
+std::shared_ptr<TextureBuilder> ResourceManagerImpl::createTextureBuilder() {
     return std::make_shared<TextureBuilder>(1, 1);
 }
 
-MeshPool* ResourceManager::getMeshPool(MeshPoolType pool_type) {
+MeshPool* ResourceManagerImpl::getMeshPool(MeshPoolType pool_type) {
     return mesh_pools[pool_type].get();
 }
 
 std::shared_ptr<Mesh>
-ResourceManager::requestMesh(const MeshBuilder& mesh_builder) {
+ResourceManagerImpl::requestMesh(const MeshBuilder& mesh_builder) {
     if (mesh_builder.index_buffer.empty() || mesh_builder.vertex_buffer.empty())
         return nullptr;
 
@@ -183,14 +305,14 @@ ResourceManager::requestMesh(const MeshBuilder& mesh_builder) {
     return mesh_job.mesh;
 }
 
-std::shared_ptr<VSTerrain> ResourceManager::requestTerrainMesh() {
+std::shared_ptr<VSTerrain> ResourceManagerImpl::requestTerrainMesh() {
     std::shared_ptr<VSTerrain> mesh = std::make_shared<VSTerrain>();
     mesh->initialize(device, context);
     return mesh;
 }
 
 // Debug Display
-void ResourceManager::imGui() {
+void ResourceManagerImpl::imGui() {
 #if defined(IMGUI_ENABLED)
     for (const auto& mesh_pool : mesh_pools) {
         ImGui::SeparatorText("Mesh Pool");
@@ -236,13 +358,14 @@ void ResourceManager::imGui() {
 
 // WriteTextureToPNG:
 // Uses the PNGFile interface to write a texture to a PNG file
-bool ResourceManager::WriteTextureToPNG(ID3D11Texture2D* texture,
-                                        std::string path, std::string file) {
+bool ResourceManagerImpl::WriteTextureToPNG(ID3D11Texture2D* texture,
+                                            std::string path,
+                                            std::string file) {
     PNGFile png_file = PNGFile(path + file);
     return png_file.writePNGData(device, context, texture);
 }
 
-void ResourceManager::processMeshJob(const MeshBuildingJob& job) {
+void ResourceManagerImpl::processMeshJob(const MeshBuildingJob& job) {
     // Iterate through my available mesh pools. Check for:
     // 1) Pools with the same layout
     // 2) Pools with space
@@ -331,7 +454,7 @@ void ResourceManager::processMeshJob(const MeshBuildingJob& job) {
 }
 
 // System Resources
-void ResourceManager::LoadCubeMesh() {
+void ResourceManagerImpl::LoadCubeMesh() {
     MeshBuilder builder = MeshBuilder();
     builder.addLayout(POSITION);
     builder.addCube(Vector3(0, 0, 0), Quaternion(), 1.f);
@@ -341,7 +464,7 @@ void ResourceManager::LoadCubeMesh() {
     meshes.emplace_back(mesh);
 }
 
-void ResourceManager::LoadFallbackColormap() {
+void ResourceManagerImpl::LoadFallbackColormap() {
     TextureBuilder builder = TextureBuilder(10, 10);
     builder.clear({90, 34, 139, 255});
     Texture* fallback_tex = builder.generate(device);

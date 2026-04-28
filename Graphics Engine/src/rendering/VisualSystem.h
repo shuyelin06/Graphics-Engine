@@ -6,7 +6,6 @@
 #include <utility>
 #include <vector>
 
-#include "Direct3D11.h"
 #include "ImGui.h"
 
 #include "lights/LightManager.h"

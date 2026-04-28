@@ -6,18 +6,24 @@
 #include <string>
 #include <unordered_map>
 
-#include "../Direct3D11.h"
-
 #include "MeshBuilder.h"
 #include "TextureBuilder.h"
 #include "rendering/core/Material.h"
 #include "rendering/core/Mesh.h"
 #include "rendering/core/Texture.h"
 
+#include "rendering/pipeline/ConstantBuffer.h"
+
 #include "rendering/pipeline/techniques/VSTerrain.h"
+
+// Forward Declare so that systems using ResourceManager don't pull in the D3D11
+// implementation
+struct ID3D11Device;
+struct ID3D11DeviceContext;
 
 namespace Engine {
 namespace Graphics {
+class ResourceManagerImpl;
 
 enum MeshPoolType {
     MeshPoolType_Terrain,
@@ -38,29 +44,9 @@ struct GeometryDesc {
 // Manages assets for the engine. Provides methods
 // to load assets, and prepare them for rendering.
 class ResourceManager {
-  private:
-    struct MeshBuildingJob {
-        std::vector<MeshVertex> vertex_data;
-        std::vector<MeshTriangle> index_data;
-        VertexLayout layout;
-
-        std::shared_ptr<Mesh> mesh = nullptr;
-    };
-
-  private:
-    ID3D11Device* device;
-    ID3D11DeviceContext* context;
-
-    std::vector<std::unique_ptr<MeshPool>> mesh_pools;
-    std::vector<std::weak_ptr<Mesh>> meshes;
-
-    std::vector<std::shared_ptr<Texture>> textures;
-
-    std::vector<MeshBuildingJob> mesh_jobs;
-    std::mutex mesh_job_mutex;
-
   public:
-    ResourceManager(ID3D11Device* device, ID3D11DeviceContext* context);
+    static std::unique_ptr<ResourceManager>
+    create(ID3D11Device* device, ID3D11DeviceContext* context);
     ~ResourceManager();
 
     // Initialize System Resources.
@@ -70,7 +56,7 @@ class ResourceManager {
 
     // Update Loop.
     // Serve the various requests received by the resource manager.
-    void updatePerform(ID3D11DeviceContext* context);
+    void updatePerform();
 
     // Get Resources
     std::shared_ptr<Mesh> getMesh(int index) const;
@@ -86,23 +72,14 @@ class ResourceManager {
     MeshPool* getMeshPool(MeshPoolType pool_type);
 
     std::shared_ptr<Mesh> requestMesh(const MeshBuilder& mesh_builder);
-    std::shared_ptr<Texture> requestTexture(const TextureBuilder& tex_builder);
-
     std::shared_ptr<VSTerrain> requestTerrainMesh();
 
     // Debug Display
     void imGui();
 
   private:
-    void processMeshJob(const MeshBuildingJob& job);
-
-    // System Asset Generation
-    void LoadCubeMesh();
-
-    void LoadFallbackColormap();
-
-    bool WriteTextureToPNG(ID3D11Texture2D* texture, std::string path,
-                           std::string file);
+    std::unique_ptr<ResourceManagerImpl> mImpl;
+    ResourceManager();
 };
 
 } // namespace Graphics

@@ -3,6 +3,8 @@
 #include <assert.h>
 #include <d3d11_1.h>
 
+#include "Direct3D11.h"
+
 #include "resources/ResourceManager.h"
 #include "scene/SceneListener.h"
 #include "scene/SceneManager.h"
@@ -152,7 +154,7 @@ VisualSystem::VisualSystem(HWND window) {
     // Initialize each of my managers with the resources they need
     scene_listener = SceneListener::create(this);
     scene_manager = SceneManager::create(this);
-    resource_manager = std::make_unique<ResourceManager>(device, context);
+    resource_manager = ResourceManager::create(device, context);
     resource_manager->initializeSystemResources();
     render_manager = RenderManager::create(this, context, device);
 
@@ -289,7 +291,7 @@ void VisualSystem::renderPrepare() {
     }
 
     // Serve Resource Requests
-    resource_manager->updatePerform(context);
+    resource_manager->updatePerform();
 
     // Update the values stored in my cache
     Texture* target = pipeline->getRenderTargetDest();

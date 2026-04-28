@@ -1,7 +1,8 @@
 #pragma once
 
-#include <vector>
 #include "../Direct3D11.h"
+#include <assert.h>
+#include <vector>
 
 namespace Engine {
 namespace Graphics {
@@ -27,18 +28,47 @@ enum CBDataFormat {
     FLOAT4X4 = 64
 };
 
-class CBHandle {
+// TODO: Make constant buffer owned by resourceManager
+// Resource Manager processes cbuffer invalidations (really, all
+// resource uploads to GPU) before RenderManager kicks off.
+template <typename DataType> class ConstantBuffer {
+  private:
+    DataType data;
+    ID3D11Buffer* gpuResource;
+
+    // Flag that tracks whether or not the buffer has been
+    // invalidated (had data uploaded to it) this frame, to check against
+    // double invalidates.
+    bool invalidated;
+
+  public:
+    ConstantBuffer();
+    ~ConstantBuffer();
+
+    void loadData(DataType data) {
+        assert(!invalidated);
+        this->data = data;
+        invalidated = true;
+    }
+
+    // Clear data stored within the constant buffer.
+    void clearData();
+};
+
+class ConstantBuffer_DEPRECATED {
     friend class IConstantBuffer;
 
   private:
     std::vector<uint8_t> data;
     ID3D11Buffer* resource;
 
-    UINT buffer_size;
+    size_t buffer_size;
+    size_t max_size;
 
   public:
-    CBHandle();
-    ~CBHandle();
+    ConstantBuffer_DEPRECATED();
+    ConstantBuffer_DEPRECATED(size_t max_size);
+    ~ConstantBuffer_DEPRECATED();
 
     // Returns the number of bytes currently loaded into the constant buffer.
     unsigned int byteSize();
@@ -61,13 +91,14 @@ class IConstantBuffer {
     ID3D11Device* device;
     ID3D11DeviceContext* context;
 
-    CBHandle* cb;
+    ConstantBuffer_DEPRECATED* cb;
     CBSlot slot;
     IBufferType type;
 
   public:
-    IConstantBuffer(CBHandle* cb, CBSlot slot, IBufferType type,
-                    ID3D11Device* device, ID3D11DeviceContext*);
+    IConstantBuffer(ConstantBuffer_DEPRECATED* cb, CBSlot slot,
+                    IBufferType type, ID3D11Device* device,
+                    ID3D11DeviceContext*);
     ~IConstantBuffer();
 
     void loadData(const void* dataPtr, size_t byteSize);
