@@ -76,8 +76,10 @@ class VisualSystem {
     Texture* bump_tex;
 
     VSDebugRenderLine vsDebugLine;
+    VSDebugRenderPoint vsDebugPoint;
     PSDebugDefault psDebugDefault;
     DrawBlockKey debugLineBlockKey = kInvalidDrawBlockKey;
+    DrawBlockKey debugPointBlockKey = kInvalidDrawBlockKey;
 
   public:
     VisualSystem(HWND window);

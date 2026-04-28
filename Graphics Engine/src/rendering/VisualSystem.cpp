@@ -161,6 +161,7 @@ VisualSystem::VisualSystem(HWND window) {
     terrain = TerrainManager::create(this);
 
     vsDebugLine.initialize(device);
+    vsDebugPoint.initialize(resource_manager->getMesh(SystemMesh_Cube));
 }
 
 // Render:
@@ -695,57 +696,17 @@ void VisualSystem::renderDebugPoints() {
     if (points.size() == 0)
         return;
 
-    pipeline->bindVertexShader("DebugPoint");
-    pipeline->bindPixelShader("DebugPoint");
-    pipeline->bindRenderTarget(Target_UseExisting, Depth_TestNoWrite,
-                               Blend_UseSrcAndDest);
+    vsDebugPoint.uploadData(context, points);
 
-    const Mesh* mesh = resource_manager->getMesh(SystemMesh_Cube).get();
+    if (debugPointBlockKey == kInvalidDrawBlockKey) {
+        RenderPassSet passes{};
+        passes.addPass(RenderPass::kDebug);
 
-    ID3D11Buffer* indexBuffer = mesh->buffer_pool->ibuffer;
-    ID3D11Buffer* vertexBuffer = mesh->buffer_pool->vbuffers[POSITION];
-    int numIndices = mesh->num_triangles * 3;
-
-    UINT vertexStride = sizeof(float) * 3;
-    UINT vertexOffset = 0;
-
-    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    context->IASetVertexBuffers(POSITION, 1, &vertexBuffer, &vertexStride,
-                                &vertexOffset);
-    context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
-
-    const int numPoints = points.size();
-
-    // Load data into the constant buffer handle, while removing points
-    // which are expired
-    {
-        IConstantBuffer vCB0 = pipeline->loadVertexCB(CB2);
-
-        for (int i = 0; i < points.size(); i++) {
-            PointData& data = points[i];
-            vCB0.loadData(&data.position, FLOAT3);
-            vCB0.loadData(&data.scale, FLOAT);
-            vCB0.loadData(&data.color, FLOAT3);
-            vCB0.loadData(nullptr, FLOAT);
-        }
-    }
-
-    points.clear();
-
-    if (numPoints > 0) {
-        Camera* camera = scene_manager->getMainCamera();
-        // Vertex Constant Buffer 1:
-        // Stores the camera view and projection matrices
-        {
-            IConstantBuffer vCB1 = pipeline->loadVertexCB(CB1);
-
-            const Matrix4 viewMatrix = camera->getWorldToCameraMatrix();
-            vCB1.loadData(&viewMatrix, FLOAT4X4);
-            const Matrix4 projectionMatrix = camera->getFrustumMatrix();
-            vCB1.loadData(&projectionMatrix, FLOAT4X4);
-        }
-
-        context->DrawIndexedInstanced(numIndices, numPoints, 0, 0, 1);
+        DrawBlock drawBlock;
+        drawBlock.initialize(AABB(), passes,
+                             {(VertexTechnique*)&vsDebugPoint,
+                              (PixelTechnique*)&psDebugDefault});
+        debugPointBlockKey = render_manager->addDrawBlock(drawBlock);
     }
 }
 
@@ -764,7 +725,6 @@ void VisualSystem::renderDebugLines() {
         drawBlock.initialize(
             AABB(), passes,
             {(VertexTechnique*)&vsDebugLine, (PixelTechnique*)&psDebugDefault});
-
         debugLineBlockKey = render_manager->addDrawBlock(drawBlock);
     }
 }

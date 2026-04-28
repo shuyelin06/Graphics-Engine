@@ -132,7 +132,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     mesh->setMeshFile("Macaroni3.gltf");
     mesh->setColorMapFile("textures/MacTex.png");
     mesh->getTransform().setScale(250, 250, 250);
-    
+
     root->addChild(mesh);
 
     DMLight* light = new DMLight();
@@ -204,6 +204,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         }
 #endif
 
+        VisualDebug::DrawPoint(Vector3(0, 0, 0), 2.5f);
         // Sync datamodel components with the engine systems
         light->getTransform().offsetRotation(Vector3(0, 1, 0), 0.01f);
 
