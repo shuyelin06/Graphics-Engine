@@ -4,15 +4,15 @@
 
 namespace Engine {
 namespace Graphics {
-ConstantBuffer_DEPRECATED::ConstantBuffer_DEPRECATED()
+ConstantBuffer::ConstantBuffer()
     : data(0), resource(nullptr), max_size(65536) {}
-ConstantBuffer_DEPRECATED::ConstantBuffer_DEPRECATED(size_t max_size)
+ConstantBuffer::ConstantBuffer(size_t max_size)
     : data(0), resource(nullptr), max_size(max_size) {}
-ConstantBuffer_DEPRECATED::~ConstantBuffer_DEPRECATED() = default;
+ConstantBuffer::~ConstantBuffer() = default;
 
-unsigned int ConstantBuffer_DEPRECATED::byteSize() { return data.size(); }
+unsigned int ConstantBuffer::byteSize() { return data.size(); }
 
-void ConstantBuffer_DEPRECATED::loadData(const void* dataPtr, size_t byteSize) {
+void ConstantBuffer::loadData(const void* dataPtr, size_t byteSize) {
     assert(byteSize != 0);
 
     // Convert our data into a character array, and read the number of bytes
@@ -29,9 +29,9 @@ void ConstantBuffer_DEPRECATED::loadData(const void* dataPtr, size_t byteSize) {
         memset(vectorEnd, 0, byteSize);
 }
 
-void ConstantBuffer_DEPRECATED::clearData() { data.clear(); }
+void ConstantBuffer::clearData() { data.clear(); }
 
-IConstantBuffer::IConstantBuffer(ConstantBuffer_DEPRECATED* _cb, CBSlot _slot,
+IConstantBuffer::IConstantBuffer(ConstantBuffer* _cb, CBSlot _slot,
                                  IBufferType _type, ID3D11Device* _device,
                                  ID3D11DeviceContext* _context) {
     device = _device;

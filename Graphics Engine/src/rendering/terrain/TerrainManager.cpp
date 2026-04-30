@@ -21,7 +21,6 @@
 #include "rendering/resources/MeshBuilder.h"
 #include "rendering/resources/ResourceManager.h"
 
-#include "rendering/pipeline/techniques/PSTerrain.h"
 #include "rendering/pipeline/techniques/VSTerrain.h"
 
 #include "ChunkBuilderJob.h"
@@ -46,7 +45,7 @@ class VisualTerrainImpl {
 
     DrawBlockKey drawBlockKey = kInvalidDrawBlockKey;
     std::shared_ptr<VSTerrain> mMesh;
-    std::shared_ptr<PSTerrain> mPixelTechnique;
+    std::unique_ptr<PixelTechnique> mPixelShader;
 
     // Scene Update Queue
     std::vector<UpdatePacket> mUpdatePacketsScratch;
@@ -122,7 +121,7 @@ VisualTerrainImpl::VisualTerrainImpl(VisualSystem* m_visual_system) {
                                    visual_system->getResourceManager());
 
     mMesh = visual_system->getResourceManager()->requestTerrainMesh();
-    mPixelTechnique = std::make_shared<PSTerrain>();
+    mPixelShader = std::make_unique<PixelTechnique>("Terrain");
 }
 
 VisualTerrainImpl::~VisualTerrainImpl() = default;
@@ -181,7 +180,7 @@ void VisualTerrainImpl::updateAndUploadTerrainData(ID3D11DeviceContext* context,
 
         DrawBlock drawBlock;
         drawBlock.initialize(AABB(), passes,
-                             {mMesh.get(), mPixelTechnique.get()});
+                             {mMesh.get(), mPixelShader.get()});
         drawBlockKey =
             visual_system->getRenderManager()->addDrawBlock(drawBlock);
     }

@@ -38,8 +38,8 @@ Pipeline::Pipeline(HWND window) {
 
     // Initialize my constant buffer handles
     for (int i = 0; i < CBSlot::CBCOUNT; i++) {
-        vcb_handles[i] = new ConstantBuffer_DEPRECATED();
-        pcb_handles[i] = new ConstantBuffer_DEPRECATED();
+        vcb_handles[i] = new ConstantBuffer();
+        pcb_handles[i] = new ConstantBuffer();
     }
 
     // Initialize my full screen quad

@@ -169,6 +169,7 @@ void RenderManagerImpl::perform() {
 void RenderManagerImpl::executeRenderPass(RenderPass pass,
                                           const std::string& annotation) {
     Pipeline* pipeline = visualSystem->getPipeline();
+    ResourceManager* resourceManager = visualSystem->getResourceManager();
 
     // Query my draw blocks
     // TODO This is quite inefficient. We should move this to a job or something
@@ -187,7 +188,31 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
         IGPUTimer gpu_timer = GPUTimer::TrackGPUTime(annotation);
 
         for (auto& drawCall : drawCallsEx) {
-            drawCall.pixelTechnique->bind(pipeline);
+            if (drawCall.pixelTechnique) {
+                // New, data-oriented path.
+                const auto& pixelTechnique = drawCall.pixelTechnique;
+                pipeline->bindPixelShader(pixelTechnique->getShader());
+
+                for (int slot = 0; slot < kConstantBufferMax; slot++) {
+                    if (const auto& cbuffer =
+                            pixelTechnique->getConstantBufferData(slot);
+                        !cbuffer.empty()) {
+                        IConstantBuffer cb =
+                            pipeline->loadPixelCB((CBSlot)slot);
+                        cb.loadData(cbuffer.data(), cbuffer.size());
+                    }
+                }
+
+                for (int slot = 0; slot < kTextureMax; slot++) {
+                    if (const auto& texture = pixelTechnique->getTexture(slot);
+                        texture) {
+                        pipeline->bindPixelTexture(*texture, slot);
+                    }
+                }
+
+            } else {
+                drawCall.pixelTechnique_DEPRECATED->bind(pipeline);
+            }
             drawCall.vertexTechnique->bindAndDraw(pipeline, pass);
         }
     }

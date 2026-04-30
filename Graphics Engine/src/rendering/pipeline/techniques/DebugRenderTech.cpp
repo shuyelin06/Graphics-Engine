@@ -83,11 +83,5 @@ void VSDebugRenderPoint::bindAndDraw(Pipeline* pipeline, RenderPass pass) {
     }
 }
 
-PSDebugDefault::PSDebugDefault() = default;
-
-void PSDebugDefault::bind(Pipeline* pipeline) {
-    pipeline->bindPixelShader("DebugLine");
-}
-
 } // namespace Graphics
 } // namespace Engine

@@ -28,34 +28,10 @@ enum CBDataFormat {
     FLOAT4X4 = 64
 };
 
-// TODO: Make constant buffer owned by resourceManager
-// Resource Manager processes cbuffer invalidations (really, all
-// resource uploads to GPU) before RenderManager kicks off.
-template <typename DataType> class ConstantBuffer {
-  private:
-    DataType data;
-    ID3D11Buffer* gpuResource;
+// TODO: Add ResourceManager interface for cbuffer. Make resourcemanager in
+// charge of cbuffer uploads.
 
-    // Flag that tracks whether or not the buffer has been
-    // invalidated (had data uploaded to it) this frame, to check against
-    // double invalidates.
-    bool invalidated;
-
-  public:
-    ConstantBuffer();
-    ~ConstantBuffer();
-
-    void loadData(DataType data) {
-        assert(!invalidated);
-        this->data = data;
-        invalidated = true;
-    }
-
-    // Clear data stored within the constant buffer.
-    void clearData();
-};
-
-class ConstantBuffer_DEPRECATED {
+class ConstantBuffer {
     friend class IConstantBuffer;
 
   private:
@@ -66,9 +42,9 @@ class ConstantBuffer_DEPRECATED {
     size_t max_size;
 
   public:
-    ConstantBuffer_DEPRECATED();
-    ConstantBuffer_DEPRECATED(size_t max_size);
-    ~ConstantBuffer_DEPRECATED();
+    ConstantBuffer();
+    ConstantBuffer(size_t max_size);
+    ~ConstantBuffer();
 
     // Returns the number of bytes currently loaded into the constant buffer.
     unsigned int byteSize();
@@ -91,14 +67,13 @@ class IConstantBuffer {
     ID3D11Device* device;
     ID3D11DeviceContext* context;
 
-    ConstantBuffer_DEPRECATED* cb;
+    ConstantBuffer* cb;
     CBSlot slot;
     IBufferType type;
 
   public:
-    IConstantBuffer(ConstantBuffer_DEPRECATED* cb, CBSlot slot,
-                    IBufferType type, ID3D11Device* device,
-                    ID3D11DeviceContext*);
+    IConstantBuffer(ConstantBuffer* cb, CBSlot slot, IBufferType type,
+                    ID3D11Device* device, ID3D11DeviceContext*);
     ~IConstantBuffer();
 
     void loadData(const void* dataPtr, size_t byteSize);

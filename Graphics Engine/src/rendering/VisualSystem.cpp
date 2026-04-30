@@ -164,6 +164,7 @@ VisualSystem::VisualSystem(HWND window) {
 
     vsDebugLine.initialize(device);
     vsDebugPoint.initialize(resource_manager->getMesh(SystemMesh_Cube));
+    psDebugDefault.setShader("DebugLine");
 }
 
 // Render:
@@ -724,9 +725,9 @@ void VisualSystem::renderDebugLines() {
         passes.addPass(RenderPass::kDebug);
 
         DrawBlock drawBlock;
-        drawBlock.initialize(
-            AABB(), passes,
-            {(VertexTechnique*)&vsDebugLine, (PixelTechnique*)&psDebugDefault});
+        drawBlock.initialize(AABB(), passes,
+                             {(VertexTechnique*)&vsDebugLine,
+                              (PixelTechnique*)&psDebugDefault});
         debugLineBlockKey = render_manager->addDrawBlock(drawBlock);
     }
 }

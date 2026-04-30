@@ -40,13 +40,5 @@ class VSDebugRenderPoint : VertexTechnique {
     void bindAndDraw(Pipeline* pipeline, RenderPass pass) override;
 };
 
-class PSDebugDefault : PixelTechnique {
-  public:
-    PSDebugDefault();
-
-    // PixelTechnique Implementation
-    void bind(Pipeline* pipeline) override;
-};
-
 } // namespace Graphics
 } // namespace Engine

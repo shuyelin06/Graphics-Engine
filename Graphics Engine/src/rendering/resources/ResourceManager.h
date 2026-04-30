@@ -20,6 +20,7 @@
 // implementation
 struct ID3D11Device;
 struct ID3D11DeviceContext;
+struct ID3D11Buffer;
 
 namespace Engine {
 namespace Graphics {
@@ -39,6 +40,10 @@ struct GeometryDesc {
     std::shared_ptr<Mesh> mesh;
     Material material;
 };
+
+// TODO: Make constant buffer owned by resourceManager
+// Resource Manager processes cbuffer invalidations (really, all
+// resource uploads to GPU) before RenderManager kicks off.
 
 // ResourceManager Class:
 // Manages assets for the engine. Provides methods

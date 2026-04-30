@@ -15,7 +15,7 @@ struct DefaultMeshBlock {
     DrawBlockKey blockKey = kInvalidDrawBlockKey;
 
     std::unique_ptr<VSMesh> vsMesh;
-    std::unique_ptr<PSMesh> psMesh;
+    std::unique_ptr<PixelTechnique> psMesh;
 };
 
 class SceneManagerImpl {
@@ -30,7 +30,6 @@ class SceneManagerImpl {
     Camera* activeCamera = nullptr;
 
     std::unordered_map<uint32_t, DefaultMeshBlock> meshes;
-    std::vector<std::pair<VSMesh, PSMesh>> meshTechniques;
 
   public:
     SceneManagerImpl(VisualSystem* _visualSystem);
@@ -127,7 +126,7 @@ void SceneManagerImpl::processMeshPacket(const UpdatePacket& packet) {
         meshes[packet.handle] = {
             std::make_unique<DefaultMesh>(mVisualSystem->getResourceManager()),
             kInvalidDrawBlockKey, std::make_unique<VSMesh>(),
-            std::make_unique<PSMesh>(mVisualSystem->getResourceManager())};
+            std::make_unique<PixelTechnique>("TexturedMesh")};
 
         auto& meshBlock = meshes[packet.handle];
 
@@ -154,7 +153,17 @@ void SceneManagerImpl::processMeshPacket(const UpdatePacket& packet) {
             std::get<DefaultMesh::UpdatePacket>(packet.data));
         meshBlock.vsMesh->update(meshBlock.mesh->getMesh(),
                                  meshBlock.mesh->getLocalMatrix());
-        meshBlock.psMesh->update(meshBlock.mesh->getMaterial());
+
+        if (meshBlock.mesh->getMaterial().colormap != nullptr) {
+            meshBlock.psMesh->setTexture(
+                0, meshBlock.mesh->getMaterial().colormap.get());
+        } else {
+            Texture* fallback = mVisualSystem->getResourceManager()
+                                    ->getTexture(SystemTexture_FallbackColormap)
+                                    .get();
+            meshBlock.psMesh->setTexture(0, fallback);
+        }
+
     } break;
     }
 }

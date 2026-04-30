@@ -294,13 +294,13 @@
     <ClCompile Include="src\math\CFrame.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\pipeline\techniques\PSTerrain.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\rendering\pipeline\techniques\VSPSMesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\pipeline\techniques\DebugRenderTech.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rendering\pipeline\DrawCall.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -621,12 +621,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\math\CFrame.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\rendering\pipeline\techniques\PSShadowMap.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\rendering\pipeline\techniques\PSTerrain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\pipeline\techniques\VSPSMesh.h">

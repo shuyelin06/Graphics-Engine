@@ -1,7 +1,10 @@
 #pragma once
 
 #include <stdint.h>
+#include <string>
+#include <vector>
 
+#include "rendering/core/Texture.h"
 #include "rendering/pipeline/PipelineManager.h"
 
 namespace Engine {
@@ -29,9 +32,32 @@ enum class MeshType : uint8_t {
     kTerrain = 1,
 };
 
-class PixelTechnique {
+class PixelTechnique_DEPRECATED {
   public:
     virtual void bind(Pipeline* pipeline) = 0;
+};
+
+constexpr uint8_t kConstantBufferMax = 4;
+constexpr uint8_t kTextureMax = 4;
+class PixelTechnique {
+  private:
+    std::string shaderName;
+
+    std::vector<uint8_t> cbuffers[kConstantBufferMax];
+    Texture* textures[kTextureMax];
+
+  public:
+    PixelTechnique();
+    PixelTechnique(const std::string&& shader);
+
+    void setShader(const std::string&& shader);
+    const std::string& getShader() const;
+
+    void setConstantBufferData(uint8_t slot, const void* data, size_t size);
+    const std::vector<uint8_t> getConstantBufferData(uint8_t slot) const;
+
+    void setTexture(uint8_t slot, Texture* texture);
+    const Texture* getTexture(uint8_t slot) const;
 };
 
 class VertexTechnique {
@@ -65,6 +91,7 @@ using VertexTechniqueKey = uint16_t;
 struct DrawCall {
     uint32_t depth = 0xFF;
 
+    PixelTechnique_DEPRECATED* pixelTechnique_DEPRECATED = nullptr;
     PixelTechnique* pixelTechnique = nullptr;
     VertexTechnique* vertexTechnique = nullptr;
 
@@ -75,6 +102,11 @@ struct DrawCall {
     static_assert(sizeof(metadata) == 8);
 
     DrawCall() = default;
+    DrawCall(VertexTechnique* _vertexTechnique,
+             PixelTechnique_DEPRECATED* _pixelTechnique) {
+        vertexTechnique = _vertexTechnique;
+        pixelTechnique_DEPRECATED = _pixelTechnique;
+    }
     DrawCall(VertexTechnique* _vertexTechnique,
              PixelTechnique* _pixelTechnique) {
         vertexTechnique = _vertexTechnique;

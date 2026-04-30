@@ -24,19 +24,5 @@ class VSMesh : public VertexTechnique {
     void bindAndDraw(Pipeline* pipeline, RenderPass pass) override;
 };
 
-class PSMesh : public PixelTechnique {
-  private:
-    ResourceManager* mResourceManager;
-
-    Material mMaterial;
-
-  public:
-    PSMesh(ResourceManager* resourceManager);
-
-    void update(Material material);
-
-    void bind(Pipeline* pipeline) override;
-};
-
 } // namespace Graphics
 } // namespace Engine

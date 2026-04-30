@@ -76,7 +76,7 @@ class VisualSystem {
 
     VSDebugRenderLine vsDebugLine;
     VSDebugRenderPoint vsDebugPoint;
-    PSDebugDefault psDebugDefault;
+    PixelTechnique psDebugDefault;
     DrawBlockKey debugLineBlockKey = kInvalidDrawBlockKey;
     DrawBlockKey debugPointBlockKey = kInvalidDrawBlockKey;
 
