@@ -14,8 +14,6 @@
 
 #include "rendering/pipeline/ConstantBuffer.h"
 
-#include "rendering/pipeline/techniques/VSTerrain.h"
-
 // Forward Declare so that systems using ResourceManager don't pull in the D3D11
 // implementation
 struct ID3D11Device;
@@ -77,8 +75,7 @@ class ResourceManager {
     MeshPool* getMeshPool(MeshPoolType pool_type);
 
     std::shared_ptr<Mesh> requestMesh(const MeshBuilder& mesh_builder);
-    std::shared_ptr<VSTerrain> requestTerrainMesh();
-
+    
     // Debug Display
     void imGui();
 

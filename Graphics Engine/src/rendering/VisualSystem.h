@@ -22,8 +22,6 @@
 
 #include "VisualDebug.h"
 
-#include "rendering/pipeline/techniques/DebugRenderTech.h"
-
 namespace Engine {
 using namespace Datamodel;
 
@@ -74,8 +72,10 @@ class VisualSystem {
     ID3D11RasterizerState* rast_state;
     Texture* bump_tex;
 
-    VSDebugRenderLine vsDebugLine;
-    VSDebugRenderPoint vsDebugPoint;
+    VertexTechnique vsDebugLine;
+    StructuredBuffer sbLines;
+
+    VertexTechnique vsDebugPoint;
     PixelTechnique psDebugDefault;
     DrawBlockKey debugLineBlockKey = kInvalidDrawBlockKey;
     DrawBlockKey debugPointBlockKey = kInvalidDrawBlockKey;
@@ -86,6 +86,9 @@ class VisualSystem {
     // Call these functions to render the scene. Renders an entire scene
     void renderPrepare();
     void render();
+
+    ID3D11Device* getDevice() { return device; }
+    ID3D11DeviceContext* getContext() { return context; };
 
     ResourceManager* getResourceManager() const;
     SceneListener* getSceneListener() const;

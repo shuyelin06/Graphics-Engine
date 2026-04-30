@@ -162,8 +162,9 @@ VisualSystem::VisualSystem(HWND window) {
 
     terrain = TerrainManager::create(this);
 
-    vsDebugLine.initialize(device);
-    vsDebugPoint.initialize(resource_manager->getMesh(SystemMesh_Cube));
+    vsDebugLine.setShader("DebugLine");
+    sbLines.initialize(device, sizeof(LinePoint), 2000);
+    vsDebugPoint.setShader("DebugPoint");
     psDebugDefault.setShader("DebugLine");
 }
 
@@ -699,7 +700,13 @@ void VisualSystem::renderDebugPoints() {
     if (points.size() == 0)
         return;
 
-    vsDebugPoint.uploadData(context, points);
+    vsDebugPoint.setVertexData(
+        resource_manager->getMesh(SystemMesh_Cube).get(),
+        resource_manager->getMesh(SystemMesh_Cube).get()->num_triangles * 3,
+        points.size());
+    vsDebugPoint.setConstantBufferData(0, points.data(), points.size() * sizeof(PointData));
+
+    points.clear();
 
     if (debugPointBlockKey == kInvalidDrawBlockKey) {
         RenderPassSet passes{};
@@ -719,7 +726,11 @@ void VisualSystem::renderDebugLines() {
     if (lines.size() == 0)
         return;
 
-    vsDebugLine.uploadData(context, lines);
+    sbLines.uploadData(context, lines.data(), lines.size());
+    vsDebugLine.setVertexData(nullptr, 2, lines.size());
+    vsDebugLine.setStructuredBuffer(0, &sbLines);
+    vsDebugLine.setVertexTopology(VertexTopology::LineList);
+
     if (debugLineBlockKey == kInvalidDrawBlockKey) {
         RenderPassSet passes{};
         passes.addPass(RenderPass::kDebug);

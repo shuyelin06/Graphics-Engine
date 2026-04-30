@@ -4,8 +4,7 @@
 
 namespace Engine {
 namespace Graphics {
-PixelTechnique::PixelTechnique()
-    : shaderName(), cbuffers{}, textures{nullptr} {}
+PixelTechnique::PixelTechnique() = default;
 PixelTechnique::PixelTechnique(const std::string&& shader)
     : shaderName(shader), cbuffers{}, textures{nullptr} {}
 
@@ -21,7 +20,8 @@ void PixelTechnique::setConstantBufferData(uint8_t slot, const void* data,
     cbuffer.resize(size);
     memcpy(cbuffer.data(), data, size);
 }
-const std::vector<uint8_t>
+
+const std::vector<uint8_t>&
 PixelTechnique::getConstantBufferData(uint8_t slot) const {
     assert(slot < kConstantBufferMax);
     return cbuffers[slot];
@@ -32,6 +32,58 @@ void PixelTechnique::setTexture(uint8_t slot, Texture* texture) {
 }
 const Texture* PixelTechnique::getTexture(uint8_t slot) const {
     return textures[slot];
+}
+
+VertexTechnique::VertexTechnique() = default;
+VertexTechnique::VertexTechnique(const std::string&& shader) {
+    shaderName = std::move(shader);
+}
+
+void VertexTechnique::setShader(const std::string&& name) {
+    shaderName = std::move(name);
+}
+const std::string& VertexTechnique::getShader() const { return shaderName; }
+
+void VertexTechnique::setVertexData(Mesh* mesh, unsigned verticesPerInstance,
+                                    unsigned instanceCount) {
+    this->mesh = mesh;
+    this->verticesPerInstance = verticesPerInstance;
+    this->instanceCount = instanceCount;
+}
+const Mesh* VertexTechnique::getMesh() const { return mesh; }
+unsigned VertexTechnique::getVerticesPerInstance() const {
+    return verticesPerInstance;
+}
+unsigned VertexTechnique::getInstanceCount() const { return instanceCount; }
+
+void VertexTechnique::setVertexTopology(VertexTopology topology) {
+    vertexTopology = topology;
+}
+VertexTopology VertexTechnique::getVertexTopology() const {
+    return vertexTopology;
+}
+
+void VertexTechnique::setConstantBufferData(uint8_t slot, const void* data,
+                                            size_t size) {
+    assert(slot < kConstantBufferMax);
+    std::vector<uint8_t>& cbuffer = cbuffers[slot];
+    cbuffer.resize(size);
+    memcpy(cbuffer.data(), data, size);
+}
+const std::vector<uint8_t>&
+VertexTechnique::getConstantBufferData(uint8_t slot) const {
+    assert(slot < kConstantBufferMax);
+    return cbuffers[slot];
+}
+
+void VertexTechnique::setStructuredBuffer(uint8_t slot,
+                                          StructuredBuffer* buffer) {
+    ShaderResource& resource = shaderResources[slot];
+    resource.type = ShaderResourceType::kStructuredBuffer;
+    resource.pointer = buffer;
+}
+const ShaderResource& VertexTechnique::getShaderResource(uint8_t slot) const {
+    return shaderResources[slot];
 }
 
 /*

@@ -84,8 +84,6 @@ class ResourceManagerImpl {
     std::shared_ptr<Mesh> requestMesh(const MeshBuilder& mesh_builder);
     std::shared_ptr<Texture> requestTexture(const TextureBuilder& tex_builder);
 
-    std::shared_ptr<VSTerrain> requestTerrainMesh();
-
     // Debug Display
     void imGui();
 
@@ -145,10 +143,6 @@ MeshPool* ResourceManager::getMeshPool(MeshPoolType pool_type) {
 std::shared_ptr<Mesh>
 ResourceManager::requestMesh(const MeshBuilder& mesh_builder) {
     return mImpl->requestMesh(mesh_builder);
-}
-
-std::shared_ptr<VSTerrain> ResourceManager::requestTerrainMesh() {
-    return mImpl->requestTerrainMesh();
 }
 
 // Debug Display
@@ -303,12 +297,6 @@ ResourceManagerImpl::requestMesh(const MeshBuilder& mesh_builder) {
     mesh_job.mesh->ready = false;
 
     return mesh_job.mesh;
-}
-
-std::shared_ptr<VSTerrain> ResourceManagerImpl::requestTerrainMesh() {
-    std::shared_ptr<VSTerrain> mesh = std::make_shared<VSTerrain>();
-    mesh->initialize(device, context);
-    return mesh;
 }
 
 // Debug Display

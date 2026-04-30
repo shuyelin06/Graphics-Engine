@@ -147,8 +147,7 @@ class Pipeline {
     bool bindVertexShader(const std::string& vs_name);
     void setVertexTopology(VertexTopology topology);
 
-    template <typename T>
-    void bindVertexSB(const StructuredBuffer<T>& sb, unsigned int slot) {
+    void bindVertexSB(const StructuredBuffer& sb, unsigned int slot) {
         context->VSSetShaderResources(slot, 1, &sb.srv);
     }
     void bindVertexTexture(const Texture& texture, unsigned int slot);
@@ -159,7 +158,7 @@ class Pipeline {
     bool bindPixelShader(const std::string& ps_name);
 
     template <typename T>
-    void bindPixelSB(const StructuredBuffer<T>& sb, unsigned int slot) {
+    void bindPixelSB(const StructuredBuffer& sb, unsigned int slot) {
         context->PSSetShaderResources(slot, 1, &sb.srv);
     }
     void bindPixelTexture(const Texture& texture, unsigned int slot);

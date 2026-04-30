@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "rendering/core/Mesh.h"
 #include "rendering/core/Texture.h"
 #include "rendering/pipeline/PipelineManager.h"
 
@@ -32,19 +33,24 @@ enum class MeshType : uint8_t {
     kTerrain = 1,
 };
 
-class PixelTechnique_DEPRECATED {
-  public:
-    virtual void bind(Pipeline* pipeline) = 0;
+enum class ShaderResourceType : uint8_t {
+    kInvalid = 0,
+    kStructuredBuffer = 1,
+    kTexture = 2,
+};
+struct ShaderResource {
+    ShaderResourceType type = ShaderResourceType::kInvalid;
+    void* pointer = nullptr;
 };
 
 constexpr uint8_t kConstantBufferMax = 4;
-constexpr uint8_t kTextureMax = 4;
+constexpr uint8_t kShaderResourceMax = 4;
 class PixelTechnique {
   private:
-    std::string shaderName;
+    std::string shaderName{};
 
-    std::vector<uint8_t> cbuffers[kConstantBufferMax];
-    Texture* textures[kTextureMax];
+    std::vector<uint8_t> cbuffers[kConstantBufferMax] = {};
+    Texture* textures[kShaderResourceMax] = {};
 
   public:
     PixelTechnique();
@@ -54,16 +60,46 @@ class PixelTechnique {
     const std::string& getShader() const;
 
     void setConstantBufferData(uint8_t slot, const void* data, size_t size);
-    const std::vector<uint8_t> getConstantBufferData(uint8_t slot) const;
+    const std::vector<uint8_t>& getConstantBufferData(uint8_t slot) const;
 
     void setTexture(uint8_t slot, Texture* texture);
     const Texture* getTexture(uint8_t slot) const;
 };
 
 class VertexTechnique {
+  private:
+    std::string shaderName;
+
+    Mesh* mesh;
+    unsigned verticesPerInstance;
+    unsigned instanceCount;
+
+    VertexTopology vertexTopology = VertexTopology::TriangleList;
+
+    std::vector<uint8_t> cbuffers[kConstantBufferMax] = {};
+    ShaderResource shaderResources[kShaderResourceMax] = {};
+
   public:
-    // Executes the draw call too?
-    virtual void bindAndDraw(Pipeline* pipeline, RenderPass pass) = 0;
+    VertexTechnique();
+    VertexTechnique(const std::string&& shader);
+
+    void setShader(const std::string&& name);
+    const std::string& getShader() const;
+
+    void setVertexData(Mesh* mesh, unsigned verticesPerInstance,
+                       unsigned instanceCount);
+    const Mesh* getMesh() const;
+    unsigned getVerticesPerInstance() const;
+    unsigned getInstanceCount() const;
+
+    void setVertexTopology(VertexTopology topology);
+    VertexTopology getVertexTopology() const;
+
+    void setConstantBufferData(uint8_t slot, const void* data, size_t size);
+    const std::vector<uint8_t>& getConstantBufferData(uint8_t slot) const;
+
+    void setStructuredBuffer(uint8_t slot, StructuredBuffer* buffer);
+    const ShaderResource& getShaderResource(uint8_t slot) const;
 };
 
 struct TerrainMeshMetadata {
@@ -91,7 +127,6 @@ using VertexTechniqueKey = uint16_t;
 struct DrawCall {
     uint32_t depth = 0xFF;
 
-    PixelTechnique_DEPRECATED* pixelTechnique_DEPRECATED = nullptr;
     PixelTechnique* pixelTechnique = nullptr;
     VertexTechnique* vertexTechnique = nullptr;
 
@@ -102,11 +137,6 @@ struct DrawCall {
     static_assert(sizeof(metadata) == 8);
 
     DrawCall() = default;
-    DrawCall(VertexTechnique* _vertexTechnique,
-             PixelTechnique_DEPRECATED* _pixelTechnique) {
-        vertexTechnique = _vertexTechnique;
-        pixelTechnique_DEPRECATED = _pixelTechnique;
-    }
     DrawCall(VertexTechnique* _vertexTechnique,
              PixelTechnique* _pixelTechnique) {
         vertexTechnique = _vertexTechnique;

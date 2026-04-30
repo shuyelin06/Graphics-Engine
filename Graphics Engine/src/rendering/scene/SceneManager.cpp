@@ -4,8 +4,6 @@
 
 #include "rendering/VisualSystem.h"
 
-#include "rendering/pipeline/techniques/VSPSMesh.h"
-
 namespace Engine {
 namespace Graphics {
 using UpdatePacket = SceneManager::UpdatePacket;
@@ -14,7 +12,7 @@ struct DefaultMeshBlock {
     std::unique_ptr<DefaultMesh> mesh;
     DrawBlockKey blockKey = kInvalidDrawBlockKey;
 
-    std::unique_ptr<VSMesh> vsMesh;
+    std::unique_ptr<VertexTechnique> vsMesh;
     std::unique_ptr<PixelTechnique> psMesh;
 };
 
@@ -119,13 +117,19 @@ void SceneManagerImpl::processCameraPacket(const UpdatePacket& packet) {
     }
 }
 
+struct MeshTransform {
+    Matrix4 localToWorld;
+    Matrix4 normalTransform;
+};
+
 void SceneManagerImpl::processMeshPacket(const UpdatePacket& packet) {
     switch (packet.operation) {
     case UpdatePacket::Operation::Create: {
         assert(!meshes.contains(packet.handle));
         meshes[packet.handle] = {
             std::make_unique<DefaultMesh>(mVisualSystem->getResourceManager()),
-            kInvalidDrawBlockKey, std::make_unique<VSMesh>(),
+            kInvalidDrawBlockKey,
+            std::make_unique<VertexTechnique>("TexturedMesh"),
             std::make_unique<PixelTechnique>("TexturedMesh")};
 
         auto& meshBlock = meshes[packet.handle];
@@ -151,8 +155,15 @@ void SceneManagerImpl::processMeshPacket(const UpdatePacket& packet) {
         auto& meshBlock = meshes[packet.handle];
         meshBlock.mesh->update(
             std::get<DefaultMesh::UpdatePacket>(packet.data));
-        meshBlock.vsMesh->update(meshBlock.mesh->getMesh(),
-                                 meshBlock.mesh->getLocalMatrix());
+
+        meshBlock.vsMesh->setVertexData(meshBlock.mesh->getMesh().get(), 0, 1);
+
+        MeshTransform cbufferData;
+        cbufferData.localToWorld = meshBlock.mesh->getLocalMatrix();
+        cbufferData.normalTransform =
+            cbufferData.localToWorld.inverse().transpose();
+        meshBlock.vsMesh->setConstantBufferData(2, &cbufferData,
+                                                sizeof(MeshTransform));
 
         if (meshBlock.mesh->getMaterial().colormap != nullptr) {
             meshBlock.psMesh->setTexture(

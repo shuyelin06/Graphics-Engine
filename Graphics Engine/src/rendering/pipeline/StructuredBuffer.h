@@ -1,72 +1,38 @@
 #pragma once
 
-#include "../Direct3D11.h"
 #include <assert.h>
+
+struct ID3D11Device;
+struct ID3D11DeviceContext;
+struct ID3D11Buffer;
+struct ID3D11ShaderResourceView;
 
 namespace Engine {
 namespace Graphics {
 // StructuredBuffer Class:
 // An interface for working with structured buffers in this engine.
-template <typename T> class StructuredBuffer {
+class StructuredBuffer {
   private:
     friend class Pipeline;
 
     ID3D11Buffer* buffer;
     ID3D11ShaderResourceView* srv;
 
-    unsigned int size;
+    size_t elementSize;
+    size_t numElements;
 
   public:
-    StructuredBuffer() {
-        size = 0;
-        buffer = NULL;
-        srv = NULL;
-    };
-    ~StructuredBuffer() {
-        if (buffer)
-            buffer->Release();
-        if (srv)
-            srv->Release();
-    }
+    StructuredBuffer();
+    ~StructuredBuffer();
 
-    void initialize(ID3D11Device* device, unsigned int num_elements) {
-        size = num_elements;
-
-        // Create my buffer
-        D3D11_BUFFER_DESC desc = {};
-        desc.ByteWidth = size * sizeof(T);
-        desc.Usage = D3D11_USAGE_DYNAMIC;
-        desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-        desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-        desc.StructureByteStride = sizeof(T);
-
-        device->CreateBuffer(&desc, NULL, &buffer);
-        assert(buffer != NULL);
-
-        // Create my shader resource view
-        D3D11_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
-        srv_desc.Format = DXGI_FORMAT_UNKNOWN;
-        srv_desc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-        srv_desc.Buffer.ElementOffset = 0;
-        srv_desc.Buffer.NumElements = size;
-
-        device->CreateShaderResourceView(buffer, &srv_desc, &srv);
-        assert(srv != NULL);
-    }
+    void initialize(ID3D11Device* device, size_t elementSize,
+                    size_t numElements);
 
     // UploadData:
     // Given a vector of data elements, uploads the data to the structured
     // buffer. Takes the minimum of the two sizes to upload.
     void uploadData(ID3D11DeviceContext* context, const void* addr,
-                    unsigned int array_size) {
-        const unsigned int num_elements = min(size, array_size);
-
-        D3D11_MAPPED_SUBRESOURCE sr = {};
-        context->Map(buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &sr);
-        memcpy(sr.pData, addr, sizeof(T) * num_elements);
-        context->Unmap(buffer, 0);
-    }
+                    unsigned int array_size);
 };
 
 } // namespace Graphics
