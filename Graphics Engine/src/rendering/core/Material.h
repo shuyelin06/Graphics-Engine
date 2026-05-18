@@ -15,7 +15,7 @@ struct TextureRegion {
     float x, y, width, height;
 };
 
-struct Material {
+struct Material_DEPRECATED {
     std::shared_ptr<Texture> colormap;
 };
 

@@ -187,6 +187,10 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
             DebugRenderPassScope(mDebugAnnotations[pass], annotation);
         IGPUTimer gpu_timer = GPUTimer::TrackGPUTime(annotation);
 
+        // TODO These just call pipeline methods. Move it to pipeline
+        // (i.e. pipeline->draw(VertexTechnique, PixelTechnique).
+        // TODO ResourceManager needs to enforce lifetime of the pointer
+        // resources
         for (auto& drawCall : drawCallsEx) {
             // New, data-oriented path.
             // TODO Should probably be moved into the pipeline
@@ -253,7 +257,6 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
                     pipeline->drawInstanced(vertsPerInstance, numInstances);
                 }
             }
-            
         }
     }
 }

@@ -17,7 +17,7 @@ class DefaultMesh {
     ResourceManager* mResourceManager;
 
     std::shared_ptr<Mesh> mesh;
-    Material material;
+    Material_DEPRECATED material;
 
     Matrix4 mWorldFromLocal;
 
@@ -40,7 +40,7 @@ class DefaultMesh {
     void update(const UpdatePacket& packet);
 
     std::shared_ptr<Mesh> getMesh() const;
-    Material getMaterial() const;
+    Material_DEPRECATED getMaterial() const;
 
     const Matrix4& getLocalMatrix() const;
 };

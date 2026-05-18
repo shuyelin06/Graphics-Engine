@@ -9,7 +9,6 @@ DefaultMesh::DefaultMesh(ResourceManager* resourceManager)
 DefaultMesh::~DefaultMesh() = default;
 
 void DefaultMesh::update(const UpdatePacket& packet) {
-    GeometryDesc desc;
     bool dirty = false;
 
     switch (packet.type) {
@@ -30,7 +29,7 @@ void DefaultMesh::update(const UpdatePacket& packet) {
 }
 
 std::shared_ptr<Mesh> DefaultMesh::getMesh() const { return mesh; }
-Material DefaultMesh::getMaterial() const { return material; }
+Material_DEPRECATED DefaultMesh::getMaterial() const { return material; }
 
 const Matrix4& DefaultMesh::getLocalMatrix() const {
     return mWorldFromLocal;

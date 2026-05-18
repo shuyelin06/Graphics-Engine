@@ -34,11 +34,6 @@ enum MeshPoolType {
 enum SystemMesh { SystemMesh_Cube = 0 };
 enum SystemTexture { SystemTexture_FallbackColormap = 0 };
 
-struct GeometryDesc {
-    std::shared_ptr<Mesh> mesh;
-    Material material;
-};
-
 // TODO: Make constant buffer owned by resourceManager
 // Resource Manager processes cbuffer invalidations (really, all
 // resource uploads to GPU) before RenderManager kicks off.
