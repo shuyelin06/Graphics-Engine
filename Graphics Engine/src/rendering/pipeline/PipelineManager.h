@@ -133,6 +133,12 @@ class Pipeline {
     Pipeline(HWND window);
     ~Pipeline();
 
+    struct Stats {
+        uint32_t numDraws = 0;
+    };
+    Stats stats;
+    const Stats& getStats() const { return stats; }
+
     ID3D11Device* getDevice() const;
     ID3D11DeviceContext* getContext() const;
     Texture* getRenderTargetDest() const;

@@ -81,6 +81,9 @@ void VisualSystem::imGui() {
     static bool imgui_visual_terrain = false;
 
     if (ImGui::BeginMenu("Rendering")) {
+        const Pipeline::Stats& stats = pipeline->getStats();
+        ImGui::Text("Draw Call Count: %zu", stats.numDraws);
+
         if (ImGui::Button("Resource Manager"))
             imgui_resource_manager = true;
         if (ImGui::Button("Light Manager"))
@@ -112,6 +115,7 @@ void VisualSystem::imGui() {
         }
         ImGui::End();
     }
+
 #endif
 }
 
@@ -709,6 +713,7 @@ void VisualSystem::renderDebugPoints() {
     points.clear();
 
     if (debugPointBlockKey == kInvalidDrawBlockKey) {
+        // TODO: Hook up to material generator
         RenderPassSet passes{};
         passes.addPass(RenderPass::kDebug);
 
@@ -732,6 +737,7 @@ void VisualSystem::renderDebugLines() {
     vsDebugLine.setVertexTopology(VertexTopology::LineList);
 
     if (debugLineBlockKey == kInvalidDrawBlockKey) {
+        // TODO: Hook up to material generator
         RenderPassSet passes{};
         passes.addPass(RenderPass::kDebug);
 

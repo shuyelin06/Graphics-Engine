@@ -174,7 +174,6 @@ void RenderManagerImpl::perform() {
 void RenderManagerImpl::executeRenderPass(RenderPass pass,
                                           const std::string& annotation) {
     Pipeline* pipeline = visualSystem->getPipeline();
-    ResourceManager* resourceManager = visualSystem->getResourceManager();
 
     // Query my draw blocks
     // TODO This is quite inefficient. We should move this to a job or something
@@ -231,9 +230,6 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
                         cbHandle.loadData(buffer.data(), buffer.size());
                     }
                 }
-
-                const unsigned vertsPerInstance = 0;
-                const unsigned numInstances = 0;
 
                 pipeline->drawMesh(mesh, 1);
             } else {

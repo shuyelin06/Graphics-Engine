@@ -328,6 +328,7 @@ Texture* Pipeline::getDepthStencilCopy() const { return depth_stencil_copy; }
 void Pipeline::beginFrame(const uint64_t frame) {
     // Clear the the target destination color
     GPUTimer::BeginFrame(frame);
+    stats = Pipeline::Stats();
     render_target_dest->clearAsRenderTarget(context, Color(0.f, 0.f, 0.f));
 }
 
@@ -489,6 +490,8 @@ void Pipeline::drawMesh(const Mesh* mesh, UINT instance_count, int tri_start,
 
     context->DrawIndexedInstanced(num_indices, instance_count, index_start,
                                   index_offset, 0);
+
+    stats.numDraws++;
 }
 
 void Pipeline::drawPostProcessQuad() {
