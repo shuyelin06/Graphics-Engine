@@ -144,7 +144,7 @@ class Pipeline {
     void beginFrame(const uint64_t frame);
 
     // Vertex Technique API
-    bool bindVertexShader(const std::string& vs_name);
+    void bindVertexShader(const std::string& vs_name);
     void setVertexTopology(VertexTopology topology);
 
     void bindVertexSB(const StructuredBuffer& sb, unsigned int slot) {
@@ -155,7 +155,7 @@ class Pipeline {
 
     // Pixel Technique API
     void bindRenderTarget(TargetFlags, DepthStencilFlags, BlendFlags);
-    bool bindPixelShader(const std::string& ps_name);
+    void bindPixelShader(const std::string& ps_name);
 
     template <typename T>
     void bindPixelSB(const StructuredBuffer& sb, unsigned int slot) {

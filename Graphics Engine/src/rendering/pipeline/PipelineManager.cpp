@@ -347,34 +347,27 @@ void Pipeline::setVertexTopology(VertexTopology topology) {
 }
 
 // Shader Management
-bool Pipeline::bindVertexShader(const std::string& vs_name) {
-    VertexShader* new_shader = shader_manager->getVertexShader(vs_name);
+void Pipeline::bindVertexShader(const std::string& vs_name) {
+    VertexShader* newVS = shader_manager->getVertexShader(vs_name);
+    assert(newVS);
 
-    // Check if shader exists
-    if (new_shader == nullptr)
-        assert(false);
+    if (newVS != vs_active) {
+        vs_active = newVS;
 
-    // Save the active vertex shader
-    vs_active = new_shader;
-
-    // Bind shader and input layout
-    context->IASetInputLayout(vs_active->layout);
-    context->VSSetShader(vs_active->shader, NULL, 0);
-
-    return true;
+        // Bind shader and input layout
+        context->IASetInputLayout(vs_active->layout);
+        context->VSSetShader(vs_active->shader, NULL, 0);
+    }
 }
 
-bool Pipeline::bindPixelShader(const std::string& ps_name) {
-    ps_active = shader_manager->getPixelShader(ps_name);
+void Pipeline::bindPixelShader(const std::string& ps_name) {
+    PixelShader* newPS = shader_manager->getPixelShader(ps_name);
+    assert(newPS);
 
-    // Check if shader exists
-    if (ps_active == nullptr)
-        assert(false);
-
-    // Bind shader
-    context->PSSetShader(ps_active->shader, NULL, 0);
-
-    return true;
+    if (newPS != ps_active) {
+        ps_active = newPS;
+        context->PSSetShader(ps_active->shader, NULL, 0);
+    }
 }
 
 // Render Target Binding
