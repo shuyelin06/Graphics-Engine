@@ -8,7 +8,10 @@
 #include "math/AABB.h"
 
 #include "DrawCall.h"
+#include "RenderPass.h"
+
 #include "rendering/pipeline/PipelineManager.h"
+#include "rendering/resources/MaterialManager.h"
 
 namespace Engine {
 using namespace Math;
@@ -41,10 +44,14 @@ struct DrawBlock {
     // TODO: Draw Blocks should prob support multiple draw calls.
     DrawCall drawCall;
 
+    Mesh* mesh = nullptr;
+    Material* material = nullptr;
+
     DrawBlock();
 
     void initialize(AABB _extents, RenderPassSet _supportedPasses,
                     DrawCall _drawCall);
+    void initialize(AABB _extents, Mesh* mesh, Material* material);
 };
 
 // TODO:
@@ -60,6 +67,7 @@ class RenderManager {
     ~RenderManager();
 
     DrawBlockKey addDrawBlock(const DrawBlock& block);
+    void updateInstanceData(const DrawBlockKey key);
     void removeDrawBlock(const DrawBlockKey key);
 
     void perform();

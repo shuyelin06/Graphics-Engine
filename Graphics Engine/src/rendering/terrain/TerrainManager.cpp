@@ -49,6 +49,7 @@ class VisualTerrainImpl {
     std::unique_ptr<TerrainSDF> generator;
     std::unique_ptr<TerrainOctree> octree;
 
+    std::vector<DrawBlockKey> drawBlockKeys;
     DrawBlockKey drawBlockKey = kInvalidDrawBlockKey;
 
     StructuredBuffer sb_descriptors;
@@ -171,7 +172,8 @@ void VisualTerrainImpl::updateAndUploadTerrainData(ID3D11DeviceContext* context,
     octree->update(camera_pos);
 
     std::vector<Mesh*> terrain_meshes;
-    octree->pullTerrainMeshes(terrain_meshes);
+    octree->pullTerrainMeshes(visual_system->getRenderManager(),
+                              terrain_meshes);
 
     // Temp... Should be in ResourceManager.
     MeshPool* mesh_pool =
@@ -223,8 +225,7 @@ void VisualTerrainImpl::updateAndUploadTerrainData(ID3D11DeviceContext* context,
         passes.addPass(RenderPass::kOpaque);
 
         DrawBlock drawBlock;
-        drawBlock.initialize(AABB(), passes,
-                             {mMesh.get(), mPixelShader.get()});
+        drawBlock.initialize(AABB(), passes, {mMesh.get(), mPixelShader.get()});
         drawBlockKey =
             visual_system->getRenderManager()->addDrawBlock(drawBlock);
     }

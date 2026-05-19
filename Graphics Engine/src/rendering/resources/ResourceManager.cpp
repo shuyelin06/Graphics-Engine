@@ -48,7 +48,7 @@ class ResourceManagerImpl {
     ID3D11DeviceContext* context;
 
     std::vector<std::unique_ptr<MeshPool>> mesh_pools;
-    std::vector<std::weak_ptr<Mesh>> meshes;
+    std::vector<std::shared_ptr<Mesh>> meshes;
 
     std::vector<std::shared_ptr<Texture>> textures;
 
@@ -173,6 +173,9 @@ void ResourceManagerImpl::initializeSystemResources() {
     LoadCubeMesh();
     LoadFallbackColormap();
 
+    mesh_pools[MeshPoolType_Terrain]->createGPUResources(device);
+    mesh_pools[MeshPoolType_Terrain]->updateGPUResources(context);
+
     mesh_pools[MeshPoolType_Default]->createGPUResources(device);
     mesh_pools[MeshPoolType_Default]->updateGPUResources(context);
 }
@@ -185,12 +188,18 @@ void ResourceManagerImpl::updatePerform() {
         processMeshJob(job);
         mesh_jobs.pop_back();
     }
+
+    // TODO: Might want to throttle this
+    for (std::unique_ptr<MeshPool>& pool : mesh_pools) {
+        pool->cleanAndCompact();
+        pool->updateGPUResources(context);
+    }
 }
 
 // Get Resources
 std::shared_ptr<Mesh> ResourceManagerImpl::getMesh(int index) const {
     assert(0 <= index && index < meshes.size());
-    return meshes[index].lock();
+    return meshes[index];
 }
 std::shared_ptr<Texture> ResourceManagerImpl::getTexture(int index) const {
     assert(0 <= index && index < textures.size());
@@ -322,7 +331,7 @@ void ResourceManagerImpl::imGui() {
 
         int mesh_index = 0;
         for (const auto& mesh : meshes) {
-            const std::shared_ptr<Mesh> mesh_ptr = mesh.lock();
+            const std::shared_ptr<Mesh> mesh_ptr = mesh;
 
             if (!mesh_ptr)
                 continue;

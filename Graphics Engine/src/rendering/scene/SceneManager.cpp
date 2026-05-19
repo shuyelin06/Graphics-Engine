@@ -10,10 +10,9 @@ using UpdatePacket = SceneManager::UpdatePacket;
 
 struct DefaultMeshBlock {
     std::unique_ptr<DefaultMesh> mesh;
-    DrawBlockKey blockKey = kInvalidDrawBlockKey;
 
-    std::unique_ptr<VertexTechnique> vsMesh;
-    std::unique_ptr<PixelTechnique> psMesh;
+    DrawBlockKey blockKey = kInvalidDrawBlockKey;
+    bool dirty = false;
 };
 
 class SceneManagerImpl {
@@ -126,36 +125,39 @@ void SceneManagerImpl::processMeshPacket(const UpdatePacket& packet) {
     switch (packet.operation) {
     case UpdatePacket::Operation::Create: {
         assert(!meshes.contains(packet.handle));
-        meshes[packet.handle] = {
-            std::make_unique<DefaultMesh>(mVisualSystem->getResourceManager()),
-            kInvalidDrawBlockKey,
-            std::make_unique<VertexTechnique>("TexturedMesh"),
-            std::make_unique<PixelTechnique>("TexturedMesh")};
+        meshes[packet.handle] = DefaultMeshBlock();
 
-        auto& meshBlock = meshes[packet.handle];
-
-        RenderPassSet passes{};
-        passes.addPass(RenderPass::kOpaque);
-        DrawBlock drawBlock;
-        drawBlock.initialize(AABB(), passes,
-                             {meshBlock.vsMesh.get(), meshBlock.psMesh.get()});
-        meshBlock.blockKey =
-            mVisualSystem->getRenderManager()->addDrawBlock(drawBlock);
+        auto& mesh = meshes[packet.handle];
+        mesh.mesh = std::make_unique<DefaultMesh>();
+        mesh.dirty = false;
     } break;
 
     case UpdatePacket::Operation::Destroy: {
         assert(meshes.contains(packet.handle));
-        auto& meshBlock = meshes[packet.handle];
-        mVisualSystem->getRenderManager()->removeDrawBlock(meshBlock.blockKey);
+        auto& mesh = meshes[packet.handle];
+        if (mesh.blockKey != kInvalidDrawBlockKey) {
+            mVisualSystem->getRenderManager()->removeDrawBlock(mesh.blockKey);
+        }
         meshes.erase(packet.handle);
     } break;
 
     case UpdatePacket::Operation::Update: {
         assert(meshes.contains(packet.handle));
-        auto& meshBlock = meshes[packet.handle];
-        meshBlock.mesh->update(
-            std::get<DefaultMesh::UpdatePacket>(packet.data));
+        auto& mesh = meshes[packet.handle];
 
+        bool dirty = false;
+        mesh.mesh->update(std::get<DefaultMesh::UpdatePacket>(packet.data),
+                          mVisualSystem->getResourceManager(), dirty);
+
+        if (dirty) {
+            mesh.dirty = true;
+            if (mesh.blockKey != kInvalidDrawBlockKey) {
+                mVisualSystem->getRenderManager()->removeDrawBlock(
+                    mesh.blockKey);
+            }
+            mesh.blockKey = kInvalidDrawBlockKey;
+        }
+        /*
         meshBlock.vsMesh->setVertexData(meshBlock.mesh->getMesh().get(), 0, 1);
 
         MeshTransform cbufferData;
@@ -174,7 +176,7 @@ void SceneManagerImpl::processMeshPacket(const UpdatePacket& packet) {
                                     .get();
             meshBlock.psMesh->setTexture(0, fallback);
         }
-
+        */
     } break;
     }
 }

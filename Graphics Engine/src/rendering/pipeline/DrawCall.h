@@ -7,27 +7,10 @@
 #include "rendering/core/Mesh.h"
 #include "rendering/core/Texture.h"
 #include "rendering/pipeline/PipelineManager.h"
+#include "rendering/resources/MaterialManager.h"
 
 namespace Engine {
 namespace Graphics {
-enum RenderPass {
-    kShadows = 0,
-    kOpaque = 1,
-    kDebug = 2,
-    _Count_,
-};
-struct RenderPassSet {
-    uint32_t bitset;
-
-    RenderPassSet() { bitset = 0; }
-    RenderPassSet(uint32_t _bitset) { bitset = _bitset; }
-
-    void addPass(RenderPass pass) { bitset |= (1 << pass); }
-    void removePass(RenderPass pass) { bitset ^= (1 << pass); };
-    bool hasPass(RenderPass pass) const { return bitset & (1 << pass); };
-};
-static_assert(RenderPass::_Count_ < 32);
-
 enum class MeshType : uint8_t {
     kDefaultMesh = 0,
     kTerrain = 1,
@@ -126,6 +109,10 @@ using PixelTechniqueKey = uint16_t;
 using VertexTechniqueKey = uint16_t;
 struct DrawCall {
     uint32_t depth = 0xFF;
+
+    // Mesh, Technique Replaces both Vertex and Pixel Technique
+    const Mesh* mesh = nullptr;
+    const Technique* technique = nullptr;
 
     PixelTechnique* pixelTechnique = nullptr;
     VertexTechnique* vertexTechnique = nullptr;

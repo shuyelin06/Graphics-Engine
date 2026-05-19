@@ -7,6 +7,8 @@
 
 namespace Engine {
 namespace Graphics {
+class RenderManager;
+
 // TerrainOctree
 // Implementation of an octree, which divides 3D space into recursively
 // subdivided cubes.
@@ -27,7 +29,8 @@ class TerrainOctree {
     void resetOctree(unsigned int _maxDepth, float _voxelSize);
 
     void update(const Vector3& pointOfFocus);
-    void pullTerrainMeshes(std::vector<Mesh*>& meshes);
+    void pullTerrainMeshes(RenderManager* renderManager,
+                           std::vector<Mesh*>& meshes);
 
   private:
     TerrainOctree();

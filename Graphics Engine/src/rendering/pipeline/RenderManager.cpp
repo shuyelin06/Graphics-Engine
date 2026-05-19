@@ -38,6 +38,11 @@ void DrawBlock::initialize(AABB _extents, RenderPassSet _supportedPasses,
     supportedPasses = _supportedPasses;
     drawCall = _drawCall;
 }
+void DrawBlock::initialize(AABB _extents, Mesh* _mesh, Material* _material) {
+    extents = _extents;
+    mesh = _mesh;
+    material = _material;
+}
 
 class RenderManagerImpl {
     ID3D11DeviceContext* context;
@@ -177,7 +182,17 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
     std::vector<DrawCall> drawCallsEx;
     for (const auto& pair : drawBlocks) {
         const DrawBlock& drawBlock = pair.second;
-        if (drawBlock.supportedPasses.hasPass(pass)) {
+        if (drawBlock.mesh && drawBlock.material) {
+            const Technique* technique = drawBlock.material->getTechnique(pass);
+            if (technique != nullptr)
+            {
+                DrawCall call;
+                call.mesh = drawBlock.mesh;
+                call.technique = technique;
+                drawCallsEx.push_back(call);
+            }
+                
+        } else if (drawBlock.supportedPasses.hasPass(pass)) {
             drawCallsEx.push_back(drawBlock.drawCall);
         }
     }
@@ -192,69 +207,103 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
         // TODO ResourceManager needs to enforce lifetime of the pointer
         // resources
         for (auto& drawCall : drawCallsEx) {
-            // New, data-oriented path.
-            // TODO Should probably be moved into the pipeline
-            {
-                const auto& pixelTechnique = drawCall.pixelTechnique;
-                pipeline->bindPixelShader(pixelTechnique->getShader());
+            if (drawCall.technique && drawCall.mesh) {
+                const Mesh* mesh = drawCall.mesh;
+                const Technique* technique = drawCall.technique;
 
-                for (int slot = 0; slot < kConstantBufferMax; slot++) {
-                    if (const auto& cbuffer =
-                            pixelTechnique->getConstantBufferData(slot);
-                        !cbuffer.empty()) {
-                        IConstantBuffer cb =
-                            pipeline->loadPixelCB((CBSlot)slot);
-                        cb.loadData(cbuffer.data(), cbuffer.size());
-                    }
+                // TODO Shader Resources
+
+                pipeline->bindVertexShader(technique->vertexShader);
+                for (int slot = 0; slot < kVertexConstantBufferMax; slot++) {
+                    const auto& buffer = technique->vertexCBuffers[slot];
+                    IConstantBuffer cbHandle =
+                        pipeline->loadVertexCB((CBSlot)slot);
+                    cbHandle.loadData(buffer.data(), buffer.size());
                 }
 
-                for (int slot = 0; slot < kShaderResourceMax; slot++) {
-                    if (const auto& texture = pixelTechnique->getTexture(slot);
-                        texture) {
-                        pipeline->bindPixelTexture(*texture, slot);
-                    }
-                }
-            }
-
-            {
-                const VertexTechnique* vertexTechnique =
-                    drawCall.vertexTechnique;
-                pipeline->setVertexTopology(
-                    vertexTechnique->getVertexTopology());
-                pipeline->bindVertexShader(vertexTechnique->getShader());
-
-                for (int slot = 0; slot < kConstantBufferMax; slot++) {
-                    if (const auto& cbuffer =
-                            vertexTechnique->getConstantBufferData(slot);
-                        !cbuffer.empty()) {
-                        IConstantBuffer cb =
-                            pipeline->loadVertexCB((CBSlot)slot);
-                        cb.loadData(cbuffer.data(), cbuffer.size());
-                    }
+                pipeline->bindPixelShader(technique->pixelShader);
+                for (int slot = 0; slot < kVertexConstantBufferMax; slot++) {
+                    const auto& buffer = technique->pixelCbuffers[slot];
+                    IConstantBuffer cbHandle =
+                        pipeline->loadPixelCB((CBSlot)slot);
+                    cbHandle.loadData(buffer.data(), buffer.size());
                 }
 
-                for (int slot = 0; slot < kShaderResourceMax; slot++) {
-                    const auto& shaderResource =
-                        vertexTechnique->getShaderResource(slot);
-                    if (shaderResource.type ==
-                        ShaderResourceType::kStructuredBuffer) {
-                        pipeline->bindVertexSB(
-                            *(StructuredBuffer*)shaderResource.pointer, slot);
-                    }
-                    assert(shaderResource.type != ShaderResourceType::kTexture);
-                }
+                const unsigned vertsPerInstance = 0;
+                const unsigned numInstances = 0;
 
-                const unsigned vertsPerInstance =
-                    vertexTechnique->getVerticesPerInstance();
-                const unsigned numInstances =
-                    vertexTechnique->getInstanceCount();
-                if (vertexTechnique->getMesh() &&
-                    vertexTechnique->getMesh()->ready) {
-                    pipeline->drawMesh(vertexTechnique->getMesh(),
-                                       INDEX_LIST_START, INDEX_LIST_END,
-                                       numInstances);
-                } else {
+                pipeline->drawMesh(mesh, INDEX_LIST_START, INDEX_LIST_END, 1);
+                /*{
                     pipeline->drawInstanced(vertsPerInstance, numInstances);
+                }*/
+            } else {
+                // New, data-oriented path.
+                // TODO Should probably be moved into the pipeline
+                {
+                    const auto& pixelTechnique = drawCall.pixelTechnique;
+                    pipeline->bindPixelShader(pixelTechnique->getShader());
+
+                    for (int slot = 0; slot < kConstantBufferMax; slot++) {
+                        if (const auto& cbuffer =
+                                pixelTechnique->getConstantBufferData(slot);
+                            !cbuffer.empty()) {
+                            IConstantBuffer cb =
+                                pipeline->loadPixelCB((CBSlot)slot);
+                            cb.loadData(cbuffer.data(), cbuffer.size());
+                        }
+                    }
+
+                    for (int slot = 0; slot < kShaderResourceMax; slot++) {
+                        if (const auto& texture =
+                                pixelTechnique->getTexture(slot);
+                            texture) {
+                            pipeline->bindPixelTexture(*texture, slot);
+                        }
+                    }
+                }
+
+                {
+                    const VertexTechnique* vertexTechnique =
+                        drawCall.vertexTechnique;
+                    pipeline->setVertexTopology(
+                        vertexTechnique->getVertexTopology());
+                    pipeline->bindVertexShader(vertexTechnique->getShader());
+
+                    for (int slot = 0; slot < kConstantBufferMax; slot++) {
+                        if (const auto& cbuffer =
+                                vertexTechnique->getConstantBufferData(slot);
+                            !cbuffer.empty()) {
+                            IConstantBuffer cb =
+                                pipeline->loadVertexCB((CBSlot)slot);
+                            cb.loadData(cbuffer.data(), cbuffer.size());
+                        }
+                    }
+
+                    for (int slot = 0; slot < kShaderResourceMax; slot++) {
+                        const auto& shaderResource =
+                            vertexTechnique->getShaderResource(slot);
+                        if (shaderResource.type ==
+                            ShaderResourceType::kStructuredBuffer) {
+                            pipeline->bindVertexSB(
+                                *(StructuredBuffer*)shaderResource.pointer,
+                                slot);
+                        }
+                        assert(shaderResource.type !=
+                               ShaderResourceType::kTexture);
+                    }
+
+                    const unsigned vertsPerInstance =
+                        vertexTechnique->getVerticesPerInstance();
+                    const unsigned numInstances =
+                        vertexTechnique->getInstanceCount();
+                    if (vertexTechnique->getMesh() &&
+                        vertexTechnique->getMesh()->ready) {
+                        pipeline->drawMesh(vertexTechnique->getMesh(),
+                                           INDEX_LIST_START, INDEX_LIST_END,
+                                           numInstances);
+                    } else {
+                        pipeline->drawInstanced(vertsPerInstance, numInstances);
+                    }
                 }
             }
         }

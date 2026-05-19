@@ -3,6 +3,7 @@
 #include "datamodel/DMBinding.h"
 #include "datamodel/objects/DMMesh.h"
 
+#include "rendering/resources/MaterialManager.h"
 #include "rendering/resources/ResourceManager.h"
 
 namespace Engine {
@@ -14,15 +15,15 @@ namespace Graphics {
 // Stores the geometry information needed.
 class DefaultMesh {
   private:
-    ResourceManager* mResourceManager;
-
     std::shared_ptr<Mesh> mesh;
+    std::shared_ptr<Material> material_new;
+
     Material_DEPRECATED material;
 
     Matrix4 mWorldFromLocal;
 
   public:
-    DefaultMesh(ResourceManager* resourceManager);
+    DefaultMesh();
     ~DefaultMesh();
 
     // Updating
@@ -37,12 +38,17 @@ class DefaultMesh {
 
         std::variant<Matrix4, std::string> data;
     };
-    void update(const UpdatePacket& packet);
+    void update(const UpdatePacket& packet, ResourceManager* resourceManager,
+                bool& dirty);
 
     std::shared_ptr<Mesh> getMesh() const;
+    std::shared_ptr<Material> getMaterialNew() const;
+
     Material_DEPRECATED getMaterial() const;
 
     const Matrix4& getLocalMatrix() const;
+
+    bool isReady() const;
 };
 
 } // namespace Graphics

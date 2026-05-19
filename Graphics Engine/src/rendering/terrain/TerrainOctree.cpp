@@ -11,6 +11,8 @@
 #include "rendering/core/Mesh.h"
 #include "rendering/resources/ResourceManager.h"
 
+#include "rendering/pipeline/RenderManager.h"
+
 #include "../VisualDebug.h"
 #include "ChunkBuilderJob.h"
 
@@ -32,8 +34,19 @@ struct TerrainNode {
     unsigned int depth; // Depth = 0 is the smallest node possible
 
     // Node Renderable Mesh
-    std::shared_ptr<Mesh> mesh = nullptr;
     bool loaded = false;
+    std::shared_ptr<Mesh> mesh = nullptr;
+
+    inline bool isReadyForRendering() const {
+        // Note that a node may be loaded but the mesh null.
+        // This means that the node does not have a mesh (it's completely in the
+        // surface, or in air). So, if the mesh is null the node is by default
+        // "ready".
+        return loaded && (!mesh || mesh->ready);
+    }
+
+    // Node Draw Block Key
+    DrawBlockKey blockKey = kInvalidDrawBlockKey;
 
     // Node Children
     TerrainNode* children[8]{nullptr};
@@ -147,7 +160,8 @@ class TerrainOctreeImpl {
     void resetOctree(unsigned int _maxDepth, float _voxelSize);
 
     void update(const Vector3& pointOfFocus);
-    void pullTerrainMeshes(std::vector<Mesh*>& meshes);
+    void pullTerrainMeshes(RenderManager* renderManager,
+                           std::vector<Mesh*>& meshes);
 
   private:
     // Update
@@ -192,8 +206,9 @@ void TerrainOctree::resetOctree(unsigned int _maxDepth, float _voxelSize) {
 void TerrainOctree::update(const Vector3& pointOfFocus) {
     mImpl->update(pointOfFocus);
 }
-void TerrainOctree::pullTerrainMeshes(std::vector<Mesh*>& meshes) {
-    mImpl->pullTerrainMeshes(meshes);
+void TerrainOctree::pullTerrainMeshes(RenderManager* renderManager,
+                                      std::vector<Mesh*>& meshes) {
+    mImpl->pullTerrainMeshes(renderManager, meshes);
 }
 
 TerrainOctreeImpl::TerrainOctreeImpl(SDFGeneratorDelegate* _sdfGenerator,
@@ -362,45 +377,38 @@ void TerrainOctreeImpl::serveBuildRequests() {
 }
 
 static void findValidMeshesHelper(TerrainNode* node,
+                                  RenderManager* renderManager,
                                   std::vector<Mesh*>& meshes) {
-    if (node->isLeaf()) {
-        if (node->mesh) {
-            assert(node->mesh->ready);
-            meshes.push_back(node->mesh.get());
-        }
-    } else {
-        bool all_child_meshes_valid = true;
+    bool allChildrenReady = false;
+
+    if (!node->isLeaf()) {
+        allChildrenReady = true;
 
         for (int i = 0; i < 8; i++) {
             const auto& child = node->children[i];
             assert(child);
 
-            if (!child->loaded) {
-                all_child_meshes_valid = false;
-            } else if (child->mesh && !child->mesh->ready) {
-                all_child_meshes_valid = false;
-            }
+            allChildrenReady = allChildrenReady && child->isReadyForRendering();
         }
+    }
 
-        if (all_child_meshes_valid) {
-            for (int i = 0; i < 8; i++) {
-                findValidMeshesHelper(node->children[i], meshes);
-            }
-        } else {
-            if (node->mesh) {
-                assert(node->mesh->ready);
-                meshes.push_back(node->mesh.get());
-            }
+    if (allChildrenReady) {
+        for (int i = 0; i < 8; i++) {
+            findValidMeshesHelper(node->children[i], renderManager, meshes);
+        }
+    } else {
+        if (node->mesh) {
+            assert(node->mesh->ready);
+            meshes.push_back(node->mesh.get());
         }
     }
 }
 
-void TerrainOctreeImpl::pullTerrainMeshes(std::vector<Mesh*>& meshes) {
+void TerrainOctreeImpl::pullTerrainMeshes(RenderManager* renderManager,
+                                          std::vector<Mesh*>& meshes) {
     meshes.clear();
-    if (root && root->loaded) {
-        if (!root->mesh || root->mesh->ready) {
-            findValidMeshesHelper(root, meshes);
-        }
+    if (root && root->isReadyForRendering()) {
+        findValidMeshesHelper(root, renderManager, meshes);
     }
 }
 

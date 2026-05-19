@@ -2,15 +2,11 @@
 
 namespace Engine {
 namespace Graphics {
-DefaultMesh::DefaultMesh(ResourceManager* resourceManager)
-    : mResourceManager(resourceManager) {
-    mWorldFromLocal = Matrix4::Identity();
-}
+DefaultMesh::DefaultMesh() { mWorldFromLocal = Matrix4::Identity(); }
 DefaultMesh::~DefaultMesh() = default;
 
-void DefaultMesh::update(const UpdatePacket& packet) {
-    bool dirty = false;
-
+void DefaultMesh::update(const UpdatePacket& packet,
+                         ResourceManager* resourceManager, bool& dirty) {
     switch (packet.type) {
     case UpdatePacket::Property::LocalMatrix:
         mWorldFromLocal = std::get<Matrix4>(packet.data);
@@ -18,21 +14,30 @@ void DefaultMesh::update(const UpdatePacket& packet) {
 
     case UpdatePacket::Property::MeshName: {
         const std::string& meshName = std::get<std::string>(packet.data);
-        mesh = mResourceManager->LoadMeshFromFile(meshName);
+        mesh = resourceManager->LoadMeshFromFile(meshName);
+
+        dirty = true;
     } break;
 
     case UpdatePacket::Property::ColorMapName: {
         const std::string& colormapName = std::get<std::string>(packet.data);
-        material.colormap = mResourceManager->LoadTextureFromFile(colormapName);
+        material.colormap = resourceManager->LoadTextureFromFile(colormapName);
+
+        dirty = true;
     } break;
     }
 }
 
 std::shared_ptr<Mesh> DefaultMesh::getMesh() const { return mesh; }
+std::shared_ptr<Material> DefaultMesh::getMaterialNew() const {
+    return material_new;
+}
 Material_DEPRECATED DefaultMesh::getMaterial() const { return material; }
 
-const Matrix4& DefaultMesh::getLocalMatrix() const {
-    return mWorldFromLocal;
+const Matrix4& DefaultMesh::getLocalMatrix() const { return mWorldFromLocal; }
+
+bool DefaultMesh::isReady() const {
+    return mesh->ready && material_new->ready();
 }
 
 } // namespace Graphics
