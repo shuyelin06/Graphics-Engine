@@ -36,7 +36,7 @@ class Material {
     ~Material();
 
     // Used by Material Manager
-    void setTechnique(const RenderPass pass, Technique* technique);
+    Technique* setTechnique(const RenderPass pass);
 
     // Used by Render Manager
     bool hasTechnique(const RenderPass pass) const;

@@ -64,6 +64,7 @@ class VisualSystem {
     LightManager* light_manager;
 
     std::unique_ptr<ResourceManager> resource_manager;
+    std::unique_ptr<MaterialManager> material_manager;
     std::unique_ptr<RenderManager> render_manager;
     Pipeline* pipeline;
 
@@ -91,6 +92,9 @@ class VisualSystem {
     ID3D11DeviceContext* getContext() { return context; };
 
     ResourceManager* getResourceManager() const;
+    MaterialManager* getMaterialManager() const {
+        return material_manager.get();
+    }
     SceneListener* getSceneListener() const;
     SceneManager* getSceneManager() const;
     TerrainManager* getVisualTerrain() const;

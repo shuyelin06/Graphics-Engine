@@ -130,6 +130,7 @@ class TerrainOctreeImpl {
   private:
     SDFGeneratorDelegate* sdfGenerator;
     ResourceManager* resourceManager;
+    MaterialManager* materialManager;
     RenderManager* renderManager;
 
     // Root of Octree
@@ -150,7 +151,7 @@ class TerrainOctreeImpl {
     // Rendering
     // TODO Move outside of this into some sort of "Biome" generator that will
     // handle the materials.
-    std::unique_ptr<PixelTechnique> mPixelShader;
+    std::shared_ptr<Material> terrainMaterial;
 
     // Config
     constexpr static unsigned int kDefaultMaxDepth = 8;
@@ -162,6 +163,7 @@ class TerrainOctreeImpl {
   public:
     TerrainOctreeImpl(SDFGeneratorDelegate* sdfGenerator,
                       ResourceManager* resourceManager,
+                      MaterialManager* materialManager,
                       RenderManager* renderManager);
     ~TerrainOctreeImpl();
 
@@ -194,14 +196,13 @@ class TerrainOctreeImpl {
     void destroyAllChildren(TerrainNode* node);
 };
 
-std::unique_ptr<TerrainOctree>
-TerrainOctree::create(SDFGeneratorDelegate* sdfGenerator,
-                      ResourceManager* resourceManager,
-                      RenderManager* renderManager) {
+std::unique_ptr<TerrainOctree> TerrainOctree::create(
+    SDFGeneratorDelegate* sdfGenerator, ResourceManager* resourceManager,
+    MaterialManager* materialManager, RenderManager* renderManager) {
     std::unique_ptr<TerrainOctree> ptr =
         std::unique_ptr<TerrainOctree>(new TerrainOctree());
     ptr->mImpl = std::make_unique<TerrainOctreeImpl>(
-        sdfGenerator, resourceManager, renderManager);
+        sdfGenerator, resourceManager, materialManager, renderManager);
     return std::move(ptr);
 }
 
@@ -220,9 +221,11 @@ void TerrainOctree::updateDrawBlocks() { mImpl->updateDrawBlocks(); }
 
 TerrainOctreeImpl::TerrainOctreeImpl(SDFGeneratorDelegate* _sdfGenerator,
                                      ResourceManager* _resourceManager,
+                                     MaterialManager* _materialManager,
                                      RenderManager* _renderManager) {
     sdfGenerator = _sdfGenerator;
     resourceManager = _resourceManager;
+    materialManager = _materialManager;
     renderManager = _renderManager;
 
     idCounter = kInvalidNodeID + 1;
@@ -236,7 +239,8 @@ TerrainOctreeImpl::TerrainOctreeImpl(SDFGeneratorDelegate* _sdfGenerator,
     root = nullptr;
     resetOctree(kDefaultMaxDepth, kDefaultVoxelSize);
 
-    mPixelShader = std::make_unique<PixelTechnique>("Terrain");
+    MaterialManager::TerrainMaterialParams terrainParams{};
+    terrainMaterial = materialManager->createMaterial(terrainParams);
 }
 TerrainOctreeImpl::~TerrainOctreeImpl() { destroyNode(root); }
 
@@ -411,23 +415,12 @@ void TerrainOctreeImpl::updateDrawBlocksRecursive(TerrainNode* node) {
     } else {
         if (node->mesh) {
             if (node->blockKey == kInvalidDrawBlockKey) {
-                RenderPassSet passes{};
-                passes.addPass(RenderPass::kOpaque);
-
-                node->mMesh = std::make_unique<VertexTechnique>("Terrain");
-                node->mMesh->setVertexTopology(VertexTopology::TriangleList);
-                node->mMesh->setVertexData(node->mesh.get(),
-                                           node->mesh->num_triangles * 3, 1);
-
                 DrawBlock drawBlock;
-                drawBlock.initialize(AABB(), passes,
-                                     {node->mMesh.get(), mPixelShader.get()});
+                drawBlock.initialize(AABB(), node->mesh.get(),
+                                     terrainMaterial.get());
                 node->blockKey = renderManager->addDrawBlock(drawBlock);
             }
         }
-
-        /*assert(node->mesh->ready);
-        meshes.push_back(node->mesh.get());*/
     }
 }
 

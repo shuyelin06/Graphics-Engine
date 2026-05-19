@@ -184,14 +184,13 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
         const DrawBlock& drawBlock = pair.second;
         if (drawBlock.mesh && drawBlock.material) {
             const Technique* technique = drawBlock.material->getTechnique(pass);
-            if (technique != nullptr)
-            {
+            if (technique != nullptr) {
                 DrawCall call;
                 call.mesh = drawBlock.mesh;
                 call.technique = technique;
                 drawCallsEx.push_back(call);
             }
-                
+
         } else if (drawBlock.supportedPasses.hasPass(pass)) {
             drawCallsEx.push_back(drawBlock.drawCall);
         }
@@ -216,17 +215,21 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
                 pipeline->bindVertexShader(technique->vertexShader);
                 for (int slot = 0; slot < kVertexConstantBufferMax; slot++) {
                     const auto& buffer = technique->vertexCBuffers[slot];
-                    IConstantBuffer cbHandle =
-                        pipeline->loadVertexCB((CBSlot)slot);
-                    cbHandle.loadData(buffer.data(), buffer.size());
+                    if (buffer.size() > 0) {
+                        IConstantBuffer cbHandle =
+                            pipeline->loadVertexCB((CBSlot)slot);
+                        cbHandle.loadData(buffer.data(), buffer.size());
+                    }
                 }
 
                 pipeline->bindPixelShader(technique->pixelShader);
                 for (int slot = 0; slot < kVertexConstantBufferMax; slot++) {
                     const auto& buffer = technique->pixelCbuffers[slot];
-                    IConstantBuffer cbHandle =
-                        pipeline->loadPixelCB((CBSlot)slot);
-                    cbHandle.loadData(buffer.data(), buffer.size());
+                    if (buffer.size() > 0) {
+                        IConstantBuffer cbHandle =
+                            pipeline->loadPixelCB((CBSlot)slot);
+                        cbHandle.loadData(buffer.data(), buffer.size());
+                    }
                 }
 
                 const unsigned vertsPerInstance = 0;

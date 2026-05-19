@@ -156,6 +156,7 @@ VisualSystem::VisualSystem(HWND window) {
     scene_manager = SceneManager::create(this);
     resource_manager = ResourceManager::create(device, context);
     resource_manager->initializeSystemResources();
+    material_manager = MaterialManager::create();
     render_manager = RenderManager::create(this, context, device);
 
     light_manager = new LightManager(device, 4096);
@@ -704,7 +705,8 @@ void VisualSystem::renderDebugPoints() {
         resource_manager->getMesh(SystemMesh_Cube).get(),
         resource_manager->getMesh(SystemMesh_Cube).get()->num_triangles * 3,
         points.size());
-    vsDebugPoint.setConstantBufferData(0, points.data(), points.size() * sizeof(PointData));
+    vsDebugPoint.setConstantBufferData(0, points.data(),
+                                       points.size() * sizeof(PointData));
 
     points.clear();
 
@@ -736,9 +738,9 @@ void VisualSystem::renderDebugLines() {
         passes.addPass(RenderPass::kDebug);
 
         DrawBlock drawBlock;
-        drawBlock.initialize(AABB(), passes,
-                             {(VertexTechnique*)&vsDebugLine,
-                              (PixelTechnique*)&psDebugDefault});
+        drawBlock.initialize(
+            AABB(), passes,
+            {(VertexTechnique*)&vsDebugLine, (PixelTechnique*)&psDebugDefault});
         debugLineBlockKey = render_manager->addDrawBlock(drawBlock);
     }
 }

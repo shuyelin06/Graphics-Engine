@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "rendering/core/Mesh.h"
+#include "rendering/resources/MaterialManager.h"
 #include "rendering/resources/ResourceManager.h"
 
 namespace Engine {
@@ -23,7 +24,7 @@ class TerrainOctree {
 
     static std::unique_ptr<TerrainOctree>
     create(SDFGeneratorDelegate* sdfGenerator, ResourceManager* resourceManager,
-           RenderManager* renderManager);
+           MaterialManager* materialManager, RenderManager* renderManager);
     ~TerrainOctree();
 
     void resetOctree(unsigned int _maxDepth, float _voxelSize);

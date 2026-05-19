@@ -119,9 +119,9 @@ VisualTerrainImpl::VisualTerrainImpl(VisualSystem* m_visual_system) {
     surface_level = 0.f;
 
     generator = TerrainSDF::create();
-    octree = TerrainOctree::create(generator.get(),
-                                   visual_system->getResourceManager(),
-                                   visual_system->getRenderManager());
+    octree = TerrainOctree::create(
+        generator.get(), visual_system->getResourceManager(),
+        visual_system->getMaterialManager(), visual_system->getRenderManager());
 }
 
 VisualTerrainImpl::~VisualTerrainImpl() = default;
@@ -167,6 +167,7 @@ void VisualTerrainImpl::processSceneUpdates() {
             generator->seedGenerator(seed);
             octree = TerrainOctree::create(generator.get(),
                                            visual_system->getResourceManager(),
+                                           visual_system->getMaterialManager(),
                                            visual_system->getRenderManager());
         } break;
         }

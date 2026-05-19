@@ -26,9 +26,10 @@ Material::~Material() {
     }
 }
 
-void Material::setTechnique(const RenderPass pass, Technique* technique) {
+Technique* Material::setTechnique(const RenderPass pass) {
     assert(techniques[pass] == nullptr);
-    techniques[pass] = technique;
+    techniques[pass] = new Technique();
+    return techniques[pass];
 }
 
 bool Material::hasTechnique(const RenderPass pass) const {
@@ -72,10 +73,9 @@ MaterialManagerImpl::createMaterial(const DefaultMaterialParams& params) {
     // TODO: Hash on material params for deduplication
     std::shared_ptr<Material> material = std::make_shared<Material>();
 
-    Technique* technique = new Technique();
+    Technique* technique = material->setTechnique(RenderPass::kOpaque);
     technique->vertexShader = "TexturedMesh";
     technique->pixelShader = "TexturedMesh";
-    material->setTechnique(RenderPass::kOpaque, technique);
 
     technique->ready = true;
 
@@ -84,7 +84,15 @@ MaterialManagerImpl::createMaterial(const DefaultMaterialParams& params) {
 
 std::shared_ptr<Material>
 MaterialManagerImpl::createMaterial(const TerrainMaterialParams& params) {
-    return nullptr;
+    std::shared_ptr<Material> material = std::make_shared<Material>();
+
+    Technique* technique = material->setTechnique(RenderPass::kOpaque);
+    technique->vertexShader = "Terrain";
+    technique->pixelShader = "Terrain";
+
+    technique->ready = true;
+
+    return material;
 }
 
 } // namespace Graphics
