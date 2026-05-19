@@ -5,6 +5,21 @@
 
 namespace Engine {
 namespace Graphics {
+void Technique::uploadVertexCBData(uint8_t slot, const void* src,
+                                   size_t byteSize) {
+    assert(slot <= kVertexConstantBufferMax);
+    auto& cb = vertexCBuffers[slot];
+    cb.resize(byteSize);
+    memcpy(cb.data(), src, byteSize);
+}
+void Technique::uploadPixelCBData(uint8_t slot, const void* src,
+                                  size_t byteSize) {
+    assert(slot <= kPixelConstantBufferMax);
+    auto& cb = pixelCbuffers[slot];
+    cb.resize(byteSize);
+    memcpy(cb.data(), src, byteSize);
+}
+
 using DefaultMaterialParams = MaterialManager::DefaultMaterialParams;
 using TerrainMaterialParams = MaterialManager::TerrainMaterialParams;
 class MaterialManagerImpl {

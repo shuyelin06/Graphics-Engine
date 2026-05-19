@@ -3,6 +3,7 @@
 #include <bitset>
 #include <vector>
 
+#include "rendering/core/VertexStreamIDs.h"
 #include "../Direct3D11.h"
 
 namespace Engine {
@@ -21,7 +22,7 @@ struct VertexShader {
     // Each bit tells us if the VertexDataStream
     // at that bit (slot) position is to be used
     // (see VertexStreamIDs.h)
-    uint16_t layout_pin; 
+    VertexLayout vertexLayout; 
 
     VertexShader(ID3D11VertexShader* shader, ID3D11InputLayout* layout);
     ~VertexShader();

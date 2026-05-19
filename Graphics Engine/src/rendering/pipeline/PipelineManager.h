@@ -175,8 +175,9 @@ class Pipeline {
 
     // Draw Calls. Set tri_end to -1 if you want it to draw all triangles
     // after tri_start.
-    void drawMesh(const Mesh* mesh, int tri_start, int tri_end,
-                  UINT instance_count);
+    void drawMesh(const Mesh* mesh, UINT instance_count,
+                  int tri_start = INDEX_LIST_START,
+                  int tri_end = INDEX_LIST_END);
     void drawPostProcessQuad();
 
     void drawInstanced(unsigned int verticesPerInstance,

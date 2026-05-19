@@ -235,10 +235,7 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
                 const unsigned vertsPerInstance = 0;
                 const unsigned numInstances = 0;
 
-                pipeline->drawMesh(mesh, INDEX_LIST_START, INDEX_LIST_END, 1);
-                /*{
-                    pipeline->drawInstanced(vertsPerInstance, numInstances);
-                }*/
+                pipeline->drawMesh(mesh, 1);
             } else {
                 // New, data-oriented path.
                 // TODO Should probably be moved into the pipeline
@@ -302,7 +299,6 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
                     if (vertexTechnique->getMesh() &&
                         vertexTechnique->getMesh()->ready) {
                         pipeline->drawMesh(vertexTechnique->getMesh(),
-                                           INDEX_LIST_START, INDEX_LIST_END,
                                            numInstances);
                     } else {
                         pipeline->drawInstanced(vertsPerInstance, numInstances);

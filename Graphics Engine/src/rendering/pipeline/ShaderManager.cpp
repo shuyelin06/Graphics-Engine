@@ -449,7 +449,7 @@ void ShaderManager::createVertexShader(const ShaderConfig& config) {
     VertexShader* v_shader = new VertexShader(vertexShader, inputLayout);
     for (const VertexDataStream& stream : config.input_layout)
         if (stream < BINDABLE_STREAM_COUNT)
-            v_shader->layout_pin |= (1 << stream);
+            v_shader->vertexLayout.addVertexStream(stream);
 
     vertex_shaders[config.shader_name] = v_shader;
 }

@@ -19,12 +19,15 @@ constexpr uint8_t kVertexConstantBufferMax = 4;
 constexpr uint8_t kPixelConstantBufferMax = 4;
 struct Technique {
     std::string vertexShader;
-    std::vector<uint8_t> vertexCBuffers[kVertexConstantBufferMax];
+    std::array<std::vector<uint8_t>, kVertexConstantBufferMax> vertexCBuffers;
 
     std::string pixelShader;
-    std::vector<uint8_t> pixelCbuffers[kPixelConstantBufferMax];
+    std::array<std::vector<uint8_t>, kPixelConstantBufferMax> pixelCbuffers;
 
     std::atomic<bool> ready;
+
+    void uploadVertexCBData(uint8_t slot, const void* src, size_t byteSize);
+    void uploadPixelCBData(uint8_t slot, const void* src, size_t byteSize);
 };
 
 class Material {
@@ -54,6 +57,8 @@ class MaterialManager {
   public:
     struct DefaultMaterialParams {
         std::string colormap;
+
+        bool debug;
     };
     struct TerrainMaterialParams {};
 

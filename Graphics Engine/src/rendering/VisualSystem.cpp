@@ -374,7 +374,7 @@ void VisualSystem::performPrepass() {
                 vCB1.loadData(&mLocalToWorld, FLOAT4X4);
             }
 
-            pipeline->drawMesh(mesh, INDEX_LIST_START, INDEX_LIST_END, 1);
+            pipeline->drawMesh(mesh, 1);
         }
     }
 }
@@ -460,8 +460,7 @@ void VisualSystem::performLightFrustumPass() {
     const std::shared_ptr<Mesh> cube_mesh =
         resource_manager->getMesh(SystemMesh_Cube);
 
-    pipeline->drawMesh(cube_mesh.get(), INDEX_LIST_START, INDEX_LIST_END,
-                       num_lights);
+    pipeline->drawMesh(cube_mesh.get(), num_lights);
 
     // Render the Rest
     pipeline->bindVertexShader("LightFrustum");
@@ -473,8 +472,7 @@ void VisualSystem::performLightFrustumPass() {
     pipeline->bindDepthStencil(3);
     context->PSSetShaderResources(4, 1, &depth_copy->shader_view);
 
-    pipeline->drawMesh(cube_mesh.get(), INDEX_LIST_START, INDEX_LIST_END,
-                       num_lights);
+    pipeline->drawMesh(cube_mesh.get(), num_lights);
 
     context->RSSetState(NULL);
 }
@@ -587,9 +585,9 @@ void VisualSystem::performWaterSurfacePass() {
     const int num_inner_tri =
         terrain->getWaterSurface()->getNumInnerTriangles();
 
-    pipeline->drawMesh(surface_mesh, 0, num_inner_tri, 4);
-    pipeline->drawMesh(surface_mesh, num_inner_tri, total_triangles,
-                       NUM_LODS * 4);
+    pipeline->drawMesh(surface_mesh, 4, 0, num_inner_tri);
+    pipeline->drawMesh(surface_mesh, NUM_LODS * 4, num_inner_tri,
+                       total_triangles);
 }
 
 void VisualSystem::processSky() {

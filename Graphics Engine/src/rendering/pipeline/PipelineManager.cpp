@@ -354,11 +354,6 @@ bool Pipeline::bindVertexShader(const std::string& vs_name) {
     if (new_shader == nullptr)
         assert(false);
 
-    // If the new vertex shader has a different layout, invalidate
-    // the active mesh pool as we'll have to upload additional stream data
-    if (active_pool_addr != NULL && vs_active->layout != new_shader->layout)
-        active_pool_addr = NULL;
-
     // Save the active vertex shader
     vs_active = new_shader;
 
@@ -460,40 +455,37 @@ void Pipeline::clearDepthStencil(const Texture& texture) {
                                    0);
 }
 
-void Pipeline::drawMesh(const Mesh* mesh, int tri_start, int tri_end,
-                        UINT instance_count) {
-    // This is failing?
-    // assert((vs_active->layout_pin & mesh->layout) == vs_active->layout_pin);
-    if (!mesh || !mesh->buffer_pool)
-        return;
+void Pipeline::drawMesh(const Mesh* mesh, UINT instance_count, int tri_start,
+                        int tri_end) {
+    assert(mesh);
+    assert(mesh->buffer_pool);
 
     const MeshPool* pool = mesh->buffer_pool;
+    assert(pool->layout.vertexLayoutSupports(vs_active->vertexLayout));
 
     // All meshes are assumed to havae a triangle list topology.
     // While there are more efficient representations, this is done
     // for simplicity.
     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    // UNTESTED: If the MeshPool is the same, we don't need to rebind anything
-    // if (pool != active_pool_addr) {
-    active_pool_addr = pool;
+    if (pool != active_pool_addr) {
+        active_pool_addr = pool;
 
-    // Bind my index buffer. All meshes are assumed to have one index
-    // buffer, associated with multiple vertex buffers.
-    context->IASetIndexBuffer(pool->ibuffer, DXGI_FORMAT_R32_UINT, 0);
+        // Bind my index buffer. All meshes are assumed to have one index
+        // buffer, associated with multiple vertex buffers.
+        context->IASetIndexBuffer(pool->ibuffer, DXGI_FORMAT_R32_UINT, 0);
 
-    // Iterate through the layout of my vertex shader
-    // and bind the vertex buffers that the vertex shader needs.
-    memset(vb_buffers, 0, sizeof(ID3D11Buffer*) * BINDABLE_STREAM_COUNT);
-    for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
-        if (((1 << i) & vs_active->layout_pin) == (1 << i)) {
-            vb_buffers[i] = pool->vbuffers[i];
+        // Iterate through the layout of my pool and bind all vertex buffers.
+        memset(vb_buffers, 0, sizeof(ID3D11Buffer*) * BINDABLE_STREAM_COUNT);
+        for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
+            if (pool->layout.hasVertexStream((VertexDataStream)i)) {
+                vb_buffers[i] = pool->vbuffers[i];
+            }
         }
-    }
 
-    context->IASetVertexBuffers(0, BINDABLE_STREAM_COUNT, vb_buffers,
-                                vb_strides, vb_offsets);
-    //}
+        context->IASetVertexBuffers(0, BINDABLE_STREAM_COUNT, vb_buffers,
+                                    vb_strides, vb_offsets);
+    }
 
     // Issue my draw call. We will always draw indexed instanced, even if the
     // number of instances is 1.
