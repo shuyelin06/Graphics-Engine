@@ -49,18 +49,6 @@ class VisualTerrainImpl {
     std::unique_ptr<TerrainSDF> generator;
     std::unique_ptr<TerrainOctree> octree;
 
-    std::vector<DrawBlockKey> drawBlockKeys;
-    DrawBlockKey drawBlockKey = kInvalidDrawBlockKey;
-
-    StructuredBuffer sb_descriptors;
-    StructuredBuffer sb_indices;
-    StructuredBuffer sb_positions;
-    StructuredBuffer sb_normals;
-    int num_active_chunks;
-    int max_chunk_triangles;
-    std::unique_ptr<VertexTechnique> mMesh;
-    std::unique_ptr<PixelTechnique> mPixelShader;
-
     // Scene Update Queue
     std::vector<UpdatePacket> mUpdatePacketsScratch;
     std::mutex mUpdatePacketsLock;
@@ -132,22 +120,8 @@ VisualTerrainImpl::VisualTerrainImpl(VisualSystem* m_visual_system) {
 
     generator = TerrainSDF::create();
     octree = TerrainOctree::create(generator.get(),
-                                   visual_system->getResourceManager());
-
-    mMesh = std::make_unique<VertexTechnique>("Terrain");
-
-    ID3D11Device* device = visual_system->getDevice();
-    constexpr int MAX_CHUNK_COUNT =
-        TERRAIN_CHUNK_COUNT * TERRAIN_CHUNK_COUNT * TERRAIN_CHUNK_COUNT;
-    sb_descriptors.initialize(device, sizeof(MeshDescription), MAX_CHUNK_COUNT);
-    sb_indices.initialize(device, sizeof(unsigned int), 200000 * 3);
-    sb_positions.initialize(device, sizeof(Vector3), 300000);
-    sb_normals.initialize(device, sizeof(Vector3), 300000);
-
-    num_active_chunks = 0;
-    max_chunk_triangles = 0;
-
-    mPixelShader = std::make_unique<PixelTechnique>("Terrain");
+                                   visual_system->getResourceManager(),
+                                   visual_system->getRenderManager());
 }
 
 VisualTerrainImpl::~VisualTerrainImpl() = default;
@@ -168,67 +142,9 @@ void VisualTerrainImpl::updateAndUploadTerrainData(ID3D11DeviceContext* context,
 
     ICPUTimer cpu_timer = CPUTimer::TrackCPUTime("Terrain Update");
 
-    // Update the Octree
-    octree->update(camera_pos);
-
-    std::vector<Mesh*> terrain_meshes;
-    octree->pullTerrainMeshes(visual_system->getRenderManager(),
-                              terrain_meshes);
-
-    // Temp... Should be in ResourceManager.
-    MeshPool* mesh_pool =
-        visual_system->getResourceManager()->getMeshPool(MeshPoolType_Terrain);
-    // TODO..
-    mesh_pool->cleanAndCompact();
-
-    // If anything wrote to our mesh pool, then we will upload the data to
-    // GPU again.
-    // TODO: We could throttle this so we only clean and compact every XX
-    // frames..
-    // Upload my data to the structured buffers
-    std::vector<MeshDescription> descriptors;
-    for (Mesh* mesh : terrain_meshes) {
-        descriptors.emplace_back(mesh->triangle_start * 3,
-                                 mesh->num_triangles * 3, mesh->vertex_start,
-                                 mesh->num_vertices);
-    }
-
-    {
-        num_active_chunks = descriptors.size();
-        max_chunk_triangles = 0;
-
-        for (const auto& descriptor : descriptors) {
-            max_chunk_triangles =
-                max(max_chunk_triangles, descriptor.index_count / 3);
-        }
-
-        sb_descriptors.uploadData(context, descriptors.data(),
-                                  descriptors.size());
-        sb_indices.uploadData(context, mesh_pool->cpu_ibuffer.get(),
-                              mesh_pool->triangle_size * 3);
-        sb_positions.uploadData(context,
-                                mesh_pool->cpu_vbuffers[POSITION].get(),
-                                mesh_pool->vertex_size);
-        sb_normals.uploadData(context, mesh_pool->cpu_vbuffers[NORMAL].get(),
-                              mesh_pool->vertex_size);
-
-        mMesh->setVertexData(nullptr, max_chunk_triangles * 3,
-                             num_active_chunks);
-        mMesh->setStructuredBuffer(0, &sb_descriptors);
-        mMesh->setStructuredBuffer(1, &sb_indices);
-        mMesh->setStructuredBuffer(2, &sb_positions);
-        mMesh->setStructuredBuffer(3, &sb_normals);
-    }
-
-    if (drawBlockKey == kInvalidDrawBlockKey) {
-        RenderPassSet passes{};
-        passes.addPass(RenderPass::kOpaque);
-
-        DrawBlock drawBlock;
-        drawBlock.initialize(AABB(), passes, {mMesh.get(), mPixelShader.get()});
-        drawBlockKey =
-            visual_system->getRenderManager()->addDrawBlock(drawBlock);
-    }
+    octree->updateMeshLODs(camera_pos);
+    octree->serveBuildRequests();
+    octree->updateDrawBlocks();
 }
 
 void VisualTerrainImpl::processSceneUpdates() {
@@ -250,7 +166,8 @@ void VisualTerrainImpl::processSceneUpdates() {
             const uint32_t seed = std::get<uint32_t>(updatePacket.data);
             generator->seedGenerator(seed);
             octree = TerrainOctree::create(generator.get(),
-                                           visual_system->getResourceManager());
+                                           visual_system->getResourceManager(),
+                                           visual_system->getRenderManager());
         } break;
         }
     }

@@ -22,15 +22,15 @@ class TerrainOctree {
     };
 
     static std::unique_ptr<TerrainOctree>
-    create(SDFGeneratorDelegate* sdfGenerator,
-           ResourceManager* resourceManager);
+    create(SDFGeneratorDelegate* sdfGenerator, ResourceManager* resourceManager,
+           RenderManager* renderManager);
     ~TerrainOctree();
 
     void resetOctree(unsigned int _maxDepth, float _voxelSize);
 
-    void update(const Vector3& pointOfFocus);
-    void pullTerrainMeshes(RenderManager* renderManager,
-                           std::vector<Mesh*>& meshes);
+    void updateMeshLODs(const Vector3& pointOfFocus);
+    void serveBuildRequests();
+    void updateDrawBlocks();
 
   private:
     TerrainOctree();

@@ -49,7 +49,12 @@ void ShaderManager::initializeShaders() {
          "vs_main",
          {POSITION, INSTANCE_ID},
          {}},
-        {Pixel, "DebugPoint", "misc/DebugPointRenderer.hlsl", "ps_main", {}, {}},
+        {Pixel,
+         "DebugPoint",
+         "misc/DebugPointRenderer.hlsl",
+         "ps_main",
+         {},
+         {}},
         // DebugLine:
         // Uses instancing to draw colored lines in the scene. Only
         // available if the debug flag is flipped.
@@ -72,7 +77,7 @@ void ShaderManager::initializeShaders() {
          "Terrain",
          "V_Terrain.hlsl",
          "vsterrain_main",
-         {INSTANCE_ID, VERTEX_ID},
+         {POSITION, NORMAL},
          {}},
         {Pixel, "Terrain", "P_Terrain.hlsl", "psterrain_main", {}, {}},
         // Shadow:
@@ -107,7 +112,12 @@ void ShaderManager::initializeShaders() {
          "vs_main",
          {POSITION, INSTANCE_ID},
          {}},
-        {Pixel, "PreLightFrustum", "P_LightFrustum.hlsl", "forward_pass", {}, {}},
+        {Pixel,
+         "PreLightFrustum",
+         "P_LightFrustum.hlsl",
+         "forward_pass",
+         {},
+         {}},
         {Pixel, "LightFrustum", "P_LightFrustum.hlsl", "ps_main", {}, {}},
         // Water Surface
         {Vertex,

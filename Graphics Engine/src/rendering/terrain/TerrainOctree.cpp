@@ -46,6 +46,7 @@ struct TerrainNode {
     }
 
     // Node Draw Block Key
+    std::unique_ptr<VertexTechnique> mMesh;
     DrawBlockKey blockKey = kInvalidDrawBlockKey;
 
     // Node Children
@@ -129,6 +130,7 @@ class TerrainOctreeImpl {
   private:
     SDFGeneratorDelegate* sdfGenerator;
     ResourceManager* resourceManager;
+    RenderManager* renderManager;
 
     // Root of Octree
     TerrainNode* root;
@@ -145,6 +147,11 @@ class TerrainOctreeImpl {
     TerrainNodeID idCounter;
     PoolAllocator<TerrainNode, 1000> allocator;
 
+    // Rendering
+    // TODO Move outside of this into some sort of "Biome" generator that will
+    // handle the materials.
+    std::unique_ptr<PixelTechnique> mPixelShader;
+
     // Config
     constexpr static unsigned int kDefaultMaxDepth = 8;
     unsigned int maxDepth = kDefaultMaxDepth;
@@ -154,20 +161,21 @@ class TerrainOctreeImpl {
 
   public:
     TerrainOctreeImpl(SDFGeneratorDelegate* sdfGenerator,
-                      ResourceManager* resourceManager);
+                      ResourceManager* resourceManager,
+                      RenderManager* renderManager);
     ~TerrainOctreeImpl();
 
     void resetOctree(unsigned int _maxDepth, float _voxelSize);
 
-    void update(const Vector3& pointOfFocus);
-    void pullTerrainMeshes(RenderManager* renderManager,
-                           std::vector<Mesh*>& meshes);
+    void updateMeshLODs(const Vector3& pointOfFocus);
+    void serveBuildRequests();
+    void updateDrawBlocks();
 
   private:
     // Update
-    void updateLODsRecursive(TerrainNode* node,
-                             const LODSelector& lodRequestor);
-    void serveBuildRequests();
+    void updateMeshLODsRecursive(TerrainNode* node,
+                                 const LODSelector& lodRequestor);
+    void updateDrawBlocksRecursive(TerrainNode* node);
 
     // Node Management
     friend struct TerrainNode;
@@ -188,11 +196,12 @@ class TerrainOctreeImpl {
 
 std::unique_ptr<TerrainOctree>
 TerrainOctree::create(SDFGeneratorDelegate* sdfGenerator,
-                      ResourceManager* resourceManager) {
+                      ResourceManager* resourceManager,
+                      RenderManager* renderManager) {
     std::unique_ptr<TerrainOctree> ptr =
         std::unique_ptr<TerrainOctree>(new TerrainOctree());
-    ptr->mImpl =
-        std::make_unique<TerrainOctreeImpl>(sdfGenerator, resourceManager);
+    ptr->mImpl = std::make_unique<TerrainOctreeImpl>(
+        sdfGenerator, resourceManager, renderManager);
     return std::move(ptr);
 }
 
@@ -203,18 +212,18 @@ void TerrainOctree::resetOctree(unsigned int _maxDepth, float _voxelSize) {
     mImpl->resetOctree(_maxDepth, _voxelSize);
 }
 
-void TerrainOctree::update(const Vector3& pointOfFocus) {
-    mImpl->update(pointOfFocus);
+void TerrainOctree::updateMeshLODs(const Vector3& pointOfFocus) {
+    mImpl->updateMeshLODs(pointOfFocus);
 }
-void TerrainOctree::pullTerrainMeshes(RenderManager* renderManager,
-                                      std::vector<Mesh*>& meshes) {
-    mImpl->pullTerrainMeshes(renderManager, meshes);
-}
+void TerrainOctree::serveBuildRequests() { mImpl->serveBuildRequests(); }
+void TerrainOctree::updateDrawBlocks() { mImpl->updateDrawBlocks(); }
 
 TerrainOctreeImpl::TerrainOctreeImpl(SDFGeneratorDelegate* _sdfGenerator,
-                                     ResourceManager* _resourceManager) {
+                                     ResourceManager* _resourceManager,
+                                     RenderManager* _renderManager) {
     sdfGenerator = _sdfGenerator;
     resourceManager = _resourceManager;
+    renderManager = _renderManager;
 
     idCounter = kInvalidNodeID + 1;
 
@@ -226,6 +235,8 @@ TerrainOctreeImpl::TerrainOctreeImpl(SDFGeneratorDelegate* _sdfGenerator,
 
     root = nullptr;
     resetOctree(kDefaultMaxDepth, kDefaultVoxelSize);
+
+    mPixelShader = std::make_unique<PixelTechnique>("Terrain");
 }
 TerrainOctreeImpl::~TerrainOctreeImpl() { destroyNode(root); }
 
@@ -240,16 +251,14 @@ void TerrainOctreeImpl::resetOctree(unsigned int _maxDepth, float _voxelSize) {
     root = allocateNode(Vector3(0, 0, 0), root_extents, maxDepth);
 }
 
-void TerrainOctreeImpl::update(const Vector3& pointOfFocus) {
+void TerrainOctreeImpl::updateMeshLODs(const Vector3& pointOfFocus) {
     LODSelector lodRequestor;
     lodRequestor.configure(pointOfFocus, voxelSize, maxDepth);
-    updateLODsRecursive(root, lodRequestor);
-
-    serveBuildRequests();
+    updateMeshLODsRecursive(root, lodRequestor);
 }
 
-void TerrainOctreeImpl::updateLODsRecursive(TerrainNode* node,
-                                            const LODSelector& lodRequestor) {
+void TerrainOctreeImpl::updateMeshLODsRecursive(
+    TerrainNode* node, const LODSelector& lodRequestor) {
     // Nodes are boxes in 3D space, so a node can intersect multiple LOD
     // spheres. First get the smallest (highest detail) LOD sphere that the
     // node intersects.
@@ -264,7 +273,7 @@ void TerrainOctreeImpl::updateLODsRecursive(TerrainNode* node,
         }
         assert(!node->isLeaf());
         for (int i = 0; i < 8; i++) {
-            updateLODsRecursive(node->children[i], lodRequestor);
+            updateMeshLODsRecursive(node->children[i], lodRequestor);
         }
     } else if (node->depth <= smallestRequestedLOD) {
         if (!node->isLeaf()) {
@@ -376,9 +385,7 @@ void TerrainOctreeImpl::serveBuildRequests() {
     }
 }
 
-static void findValidMeshesHelper(TerrainNode* node,
-                                  RenderManager* renderManager,
-                                  std::vector<Mesh*>& meshes) {
+void TerrainOctreeImpl::updateDrawBlocksRecursive(TerrainNode* node) {
     bool allChildrenReady = false;
 
     if (!node->isLeaf()) {
@@ -393,22 +400,40 @@ static void findValidMeshesHelper(TerrainNode* node,
     }
 
     if (allChildrenReady) {
+        if (node->blockKey != kInvalidDrawBlockKey) {
+            renderManager->removeDrawBlock(node->blockKey);
+            node->blockKey = kInvalidDrawBlockKey;
+        }
+
         for (int i = 0; i < 8; i++) {
-            findValidMeshesHelper(node->children[i], renderManager, meshes);
+            updateDrawBlocksRecursive(node->children[i]);
         }
     } else {
         if (node->mesh) {
-            assert(node->mesh->ready);
-            meshes.push_back(node->mesh.get());
+            if (node->blockKey == kInvalidDrawBlockKey) {
+                RenderPassSet passes{};
+                passes.addPass(RenderPass::kOpaque);
+
+                node->mMesh = std::make_unique<VertexTechnique>("Terrain");
+                node->mMesh->setVertexTopology(VertexTopology::TriangleList);
+                node->mMesh->setVertexData(node->mesh.get(),
+                                           node->mesh->num_triangles * 3, 1);
+
+                DrawBlock drawBlock;
+                drawBlock.initialize(AABB(), passes,
+                                     {node->mMesh.get(), mPixelShader.get()});
+                node->blockKey = renderManager->addDrawBlock(drawBlock);
+            }
         }
+
+        /*assert(node->mesh->ready);
+        meshes.push_back(node->mesh.get());*/
     }
 }
 
-void TerrainOctreeImpl::pullTerrainMeshes(RenderManager* renderManager,
-                                          std::vector<Mesh*>& meshes) {
-    meshes.clear();
+void TerrainOctreeImpl::updateDrawBlocks() {
     if (root && root->isReadyForRendering()) {
-        findValidMeshesHelper(root, renderManager, meshes);
+        updateDrawBlocksRecursive(root);
     }
 }
 
@@ -426,6 +451,8 @@ TerrainNode* TerrainOctreeImpl::allocateNode(const Vector3& center,
     newNode->extents = extents;
     newNode->depth = depth;
 
+    newNode->blockKey = kInvalidDrawBlockKey;
+
     assert(!node_map.contains(nodeID));
     node_map[nodeID] = newNode;
 
@@ -436,8 +463,12 @@ TerrainNode* TerrainOctreeImpl::allocateNode(const Vector3& center,
 
 void TerrainOctreeImpl::destroyNode(TerrainNode* node) {
     assert(node_map.contains(node->uniqueID));
-    node_map.erase(node->uniqueID);
 
+    if (node->blockKey != kInvalidDrawBlockKey) {
+        renderManager->removeDrawBlock(node->blockKey);
+    }
+
+    node_map.erase(node->uniqueID);
     allocator.free(node);
 }
 
