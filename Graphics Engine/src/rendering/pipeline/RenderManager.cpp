@@ -2,11 +2,13 @@
 
 #include "core/PoolAllocator.h"
 
+#include "d3d11.h"
 #include "rendering/Direct3D11.h"
 #include <d3d11_1.h>
 
 #include "rendering/util/GPUTimer.h"
 
+#include "DrawCall.h"
 #include "rendering/VisualSystem.h"
 
 #include <assert.h>
@@ -327,8 +329,7 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
                 if (buffer.size() > 0) {
                     pipeline->markVertexCBUsage(slot, true);
 
-                    IConstantBuffer cbHandle =
-                        pipeline->loadVertexCB(slot);
+                    IConstantBuffer cbHandle = pipeline->loadVertexCB(slot);
                     cbHandle.loadData(buffer.data(), buffer.size());
 
                     pipeline->markVertexCBUsage(slot, false);
@@ -341,8 +342,7 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
                 if (buffer.size() > 0) {
                     pipeline->markPixelCBUsage(slot, true);
 
-                    IConstantBuffer cbHandle =
-                        pipeline->loadPixelCB(slot);
+                    IConstantBuffer cbHandle = pipeline->loadPixelCB(slot);
                     cbHandle.loadData(buffer.data(), buffer.size());
 
                     pipeline->markPixelCBUsage(slot, false);

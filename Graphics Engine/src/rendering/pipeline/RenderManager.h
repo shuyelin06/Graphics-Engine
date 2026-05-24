@@ -1,7 +1,4 @@
 #pragma once
-#pragma once
-
-#include "d3d11.h"
 
 #include <memory>
 
@@ -9,11 +6,9 @@
 #include "math/Matrix4.h"
 
 #include "DrawCall.h"
-
-#include "rendering/core/RenderPass.h"
-
-#include "rendering/pipeline/PipelineManager.h"
-#include "rendering/resources/MaterialManager.h"
+#include "rendering/core/Material.h"
+#include "rendering/core/Mesh.h"
+#include "rendering/core/Texture.h"
 
 namespace Engine {
 using namespace Math;
