@@ -31,7 +31,7 @@ void ConstantBuffer::loadData(const void* dataPtr, size_t byteSize) {
 
 void ConstantBuffer::clearData() { data.clear(); }
 
-IConstantBuffer::IConstantBuffer(ConstantBuffer* _cb, CBSlot _slot,
+IConstantBuffer::IConstantBuffer(ConstantBuffer* _cb, int _slot,
                                  IBufferType _type, ID3D11Device* _device,
                                  ID3D11DeviceContext* _context) {
     device = _device;

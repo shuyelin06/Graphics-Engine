@@ -21,7 +21,7 @@ void DefaultMesh::update(const UpdatePacket& packet,
 
     case UpdatePacket::Property::ColorMapName: {
         const std::string& colormapName = std::get<std::string>(packet.data);
-        material.colormap = resourceManager->LoadTextureFromFile(colormapName);
+        // material.colormap = resourceManager->LoadTextureFromFile(colormapName);
 
         dirty = true;
     } break;
@@ -30,14 +30,13 @@ void DefaultMesh::update(const UpdatePacket& packet,
 
 std::shared_ptr<Mesh> DefaultMesh::getMesh() const { return mesh; }
 std::shared_ptr<Material> DefaultMesh::getMaterialNew() const {
-    return material_new;
+    return material;
 }
-Material_DEPRECATED DefaultMesh::getMaterial() const { return material; }
 
 const Matrix4& DefaultMesh::getLocalMatrix() const { return mWorldFromLocal; }
 
 bool DefaultMesh::isReady() const {
-    return mesh->ready && material_new->ready();
+    return mesh->ready && material->ready();
 }
 
 } // namespace Graphics

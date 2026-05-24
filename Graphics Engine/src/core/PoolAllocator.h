@@ -34,6 +34,14 @@ template <typename T, size_t SIZE> class PoolAllocator {
             (uintptr_t(ptr) - uintptr_t(data.data())) / sizeof(T);
         free_indices.push_back(index);
     }
+
+    uint32_t getIndex(T* ptr) {
+        const uint32_t index =
+            (uintptr_t(ptr) - uintptr_t(data.data())) / sizeof(T);
+        return index;
+    }
+    T* getData() { return data.data(); }
+    size_t getSize() { return SIZE; }
 };
 
 } // namespace Engine

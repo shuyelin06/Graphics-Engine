@@ -1,22 +1,47 @@
 #pragma once
 
+#include <array>
 #include <memory>
 
-#include "Texture.h"
+#include "RenderPass.h"
+#include "RenderSettings.h"
 
 namespace Engine {
 namespace Graphics {
-// --- Material ---
-// Renderable properties of a mesh. A mesh is rendered with a material,
-// which determines how it is rendered.
+// A technique determines all shader bindings, including:
+// - Vertex Shader + Resources
+// - Pixel Shader + Resources
+// A material is a collection of techniques by render pass.
+struct Technique {
+    std::string vertexShader;
+    std::array<std::vector<uint8_t>, kVertexConstantBufferMax> vertexCBuffers;
 
-// Normalized [0,1] coordinates into a material texture atlas.
-struct TextureRegion {
-    float x, y, width, height;
+    std::string pixelShader;
+    std::array<std::vector<uint8_t>, kPixelConstantBufferMax> pixelCbuffers;
+
+    std::atomic<bool> ready;
+
+    void uploadVertexCBData(uint8_t slot, const void* src, size_t byteSize);
+    void uploadPixelCBData(uint8_t slot, const void* src, size_t byteSize);
 };
 
-struct Material_DEPRECATED {
-    std::shared_ptr<Texture> colormap;
+class Material {
+  private:
+    std::array<Technique*, RenderPass::_Count_> techniques;
+
+  public:
+    Material();
+    ~Material();
+
+    // Used by Material Manager
+    Technique* setTechnique(const RenderPass pass);
+
+    // Used by Render Manager
+    bool hasTechnique(const RenderPass pass) const;
+    const Technique* getTechnique(const RenderPass pass) const;
+
+    // Used by Other Systems
+    bool ready() const;
 };
 
 } // namespace Graphics

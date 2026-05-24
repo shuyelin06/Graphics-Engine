@@ -20,8 +20,8 @@ cbuffer CB0_GLOBAL_DATA : register(b0)
     float3 view_direction;
     float view_zfar;
     
-    float4x4 m_screen_to_world;
     float4x4 m_world_to_screen;
+    float4x4 m_screen_to_world;
     
     // Render Target Information
     float resolution_x;

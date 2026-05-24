@@ -1,5 +1,7 @@
 #include "RenderManager.h"
 
+#include "core/PoolAllocator.h"
+
 #include "rendering/Direct3D11.h"
 #include <d3d11_1.h>
 
@@ -32,17 +34,24 @@ class DebugRenderPassScope {
 
 DrawBlock::DrawBlock() = default;
 
-void DrawBlock::initialize(AABB _extents, RenderPassSet _supportedPasses,
-                           DrawCall _drawCall) {
-    extents = _extents;
-    supportedPasses = _supportedPasses;
-    drawCall = _drawCall;
-}
 void DrawBlock::initialize(AABB _extents, Mesh* _mesh, Material* _material) {
     extents = _extents;
     mesh = _mesh;
     material = _material;
 }
+
+struct GlobalPixelShaderData {
+    Vector3 viewPosition = Vector3();
+    float viewZNear = 0.f;
+
+    Vector3 viewDirection = Vector3(1, 0, 0);
+    float viewZFar = 0.f;
+
+    Matrix4 mWorldToScreen = Matrix4::Identity();
+    Matrix4 mScreenToWorld = Matrix4::Identity();
+
+    Vector4 resolutionInfo = Vector4();
+};
 
 class RenderManagerImpl {
     ID3D11DeviceContext* context;
@@ -56,6 +65,15 @@ class RenderManagerImpl {
     DrawBlockKey counter = 0;
     std::unordered_map<DrawBlockKey, DrawBlock> drawBlocks;
 
+    // Instance Data
+    PoolAllocator<InstanceData, 500> instanceDataPool;
+    bool instanceDataDirty;
+
+    // Constant Buffer Data
+    RenderView mainView;
+
+    GlobalPixelShaderData pcb0Data;
+
   public:
     RenderManagerImpl(VisualSystem* _visualSystem,
                       ID3D11DeviceContext* _context, ID3D11Device* _device);
@@ -63,7 +81,11 @@ class RenderManagerImpl {
 
     // TODO: This should be thread safe.
     DrawBlockKey addDrawBlock(const DrawBlock& block);
+    void updateInstanceData(const DrawBlockKey key, InstanceData instanceData);
     void removeDrawBlock(const DrawBlockKey);
+
+    void setMainView(const RenderView& view);
+    void setShadowViews(const RenderView* viewArr, uint32_t count);
 
     void perform();
 
@@ -78,8 +100,17 @@ DrawBlockKey RenderManager::addDrawBlock(const DrawBlock& block) {
     return mImpl->addDrawBlock(block);
 }
 
+void RenderManager::updateInstanceData(const DrawBlockKey key,
+                                       InstanceData instanceData) {
+    return mImpl->updateInstanceData(key, instanceData);
+}
+
 void RenderManager::removeDrawBlock(const DrawBlockKey key) {
     mImpl->removeDrawBlock(key);
+}
+
+void RenderManager::setMainView(const RenderView& view) {
+    mImpl->setMainView(view);
 }
 
 void RenderManager::perform() { mImpl->perform(); }
@@ -102,6 +133,8 @@ RenderManagerImpl::RenderManagerImpl(VisualSystem* _visualSystem,
         context->QueryInterface(IID_PPV_ARGS(&mDebugAnnotations[pass]));
     }
 
+    instanceDataDirty = false;
+
     counter = 0;
 }
 RenderManagerImpl::~RenderManagerImpl() = default;
@@ -112,17 +145,46 @@ DrawBlockKey RenderManagerImpl::addDrawBlock(const DrawBlock& block) {
     return key;
 }
 
+void RenderManagerImpl::updateInstanceData(const DrawBlockKey key,
+                                           InstanceData instanceData) {
+    assert(drawBlocks.contains(key));
+    auto& drawBlock = drawBlocks[key];
+
+    instanceDataDirty = true;
+
+    if (drawBlock.instanceData) {
+        instanceDataPool.free(drawBlock.instanceData);
+    }
+
+    drawBlock.instanceData = instanceDataPool.allocate();
+    *drawBlock.instanceData = instanceData;
+}
+
 void RenderManagerImpl::removeDrawBlock(const DrawBlockKey key) {
     assert(drawBlocks.contains(key));
+
+    auto& drawBlock = drawBlocks[key];
+    if (drawBlock.instanceData) {
+        instanceDataPool.free(drawBlock.instanceData);
+    }
+
     drawBlocks.erase(key);
 }
 
+void RenderManagerImpl::setMainView(const RenderView& view) { mainView = view; }
+
+// Executes the Render Pipeline. Critical Path.
+// A couple of assumptions are made here:
+// --- CBUFFER LAYOUT ---
+// CB0 is the global buffer. It is set once per frame.
+// CB1 is the render pass buffer. It is set once per render pass.
+// CB2 is the draw call buffer. It is set once per draw call.
+// CB3 is the instance buffer. It stores instance data.
+// Other constant buffers are unallocated and can be used for whatever.
 void RenderManagerImpl::perform() {
     Pipeline* pipeline = visualSystem->getPipeline();
-
-    Camera* camera = visualSystem->getSceneManager()->getMainCamera();
-    Matrix4 screenFromWorld =
-        camera->getFrustumMatrix() * camera->getWorldToCameraMatrix();
+    Texture* renderTarget = pipeline->getRenderTargetDest();
+    Texture* depthStencil = pipeline->getDepthStencil();
 
     // Bind my atlases
     visualSystem->getResourceManager()
@@ -132,43 +194,92 @@ void RenderManagerImpl::perform() {
                                                                        1);
     pipeline->getDepthStencil()->clearAsDepthStencil(context);
 
+    // Bind my global constant buffers (CB0)
     // Vertex Constant Buffer 0:
     // Stores the camera view and projection matrices
+    pipeline->markVertexCBUsage(0, true);
+    pipeline->markVertexCBUsage(3, true);
+    pipeline->markPixelCBUsage(0, true);
+
     {
-        IConstantBuffer vCB0 = pipeline->loadVertexCB(CB0);
+        IConstantBuffer vCB0 = pipeline->loadVertexCB(0);
+        Matrix4 screenFromWorld =
+            mainView.mLocalToFrustum * mainView.mWorldToLocal;
         vCB0.loadData(&screenFromWorld, FLOAT4X4);
+    }
+
+    {
+        pcb0Data.viewPosition = mainView.position;
+        pcb0Data.viewZNear = mainView.zNear;
+        pcb0Data.viewDirection = mainView.direction;
+        pcb0Data.viewZFar = mainView.zFar;
+        pcb0Data.mWorldToScreen =
+            mainView.mLocalToFrustum * mainView.mWorldToLocal;
+        pcb0Data.mScreenToWorld = pcb0Data.mWorldToScreen.inverse();
+        pcb0Data.resolutionInfo = mainView.viewport;
+
+        IConstantBuffer pcb0_common = pipeline->loadPixelCB(0);
+        pcb0_common.loadData(&pcb0Data, sizeof(pcb0Data));
     }
 
     // Vertex Constant Buffer 1:
     // Stores the camera view and projection matrices
     {
-        IConstantBuffer vCB1 = pipeline->loadVertexCB(CB1);
+        IConstantBuffer vCB1 = pipeline->loadVertexCB(1);
 
-        Camera* camera = visualSystem->getSceneManager()->getMainCamera();
-        const Matrix4 viewMatrix = camera->getWorldToCameraMatrix();
+        const Matrix4 viewMatrix = mainView.mWorldToLocal;
         vCB1.loadData(&viewMatrix, FLOAT4X4);
-        const Matrix4 projectionMatrix = camera->getFrustumMatrix();
+        const Matrix4 projectionMatrix = mainView.mLocalToFrustum;
         vCB1.loadData(&projectionMatrix, FLOAT4X4);
     }
 
     // Pixel Constant Buffer 1: Light Data
     // Stores data that is needed for lighting / shadowing.
     {
-        IConstantBuffer pCB1 = pipeline->loadPixelCB(CB1);
+        IConstantBuffer pCB1 = pipeline->loadPixelCB(1);
         visualSystem->getLightManager()->bindLightData(pCB1);
     }
 
+    // Vertex Constant Buffer 3: Instance Data
     {
+        // TODO We only need to reupload if instance data was uploaded this
+        // frame. But that can only be done once we are completely migrated to
+        // RenderManager.
+
+        // if (instanceDataDirty)
+        {
+            IConstantBuffer vCB3 = pipeline->loadVertexCB(3);
+            vCB3.loadData(instanceDataPool.getData(),
+                          instanceDataPool.getSize() * sizeof(InstanceData));
+        }
+    }
+
+    {
+        LightManager* lightManager = visualSystem->getLightManager();
+        /*
         pipeline->bindRenderTarget(Target_UseExisting, Depth_TestAndWrite,
                                    Blend_Default);
+        executeRenderPass(RenderPass::kOpaque, "Opaque");
+        */
+    }
+
+    {
+        pipeline->bindRenderTarget(mainView.renderTarget, mainView.depthStencil,
+                                   Depth_TestAndWrite);
+        pipeline->bindBlendSettings(Blend_Default);
         executeRenderPass(RenderPass::kOpaque, "Opaque");
     }
 
     {
-        pipeline->bindRenderTarget(Target_UseExisting, Depth_TestAndWrite,
-                                   Blend_Default);
+        pipeline->bindRenderTarget(mainView.renderTarget, mainView.depthStencil,
+                                   Depth_TestAndWrite);
+        pipeline->bindBlendSettings(Blend_Default);
         executeRenderPass(RenderPass::kDebug, "Debug");
     }
+
+    pipeline->markVertexCBUsage(0, false);
+    pipeline->markVertexCBUsage(3, false);
+    pipeline->markPixelCBUsage(0, false);
 }
 
 void RenderManagerImpl::executeRenderPass(RenderPass pass,
@@ -181,17 +292,17 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
     std::vector<DrawCall> drawCallsEx;
     for (const auto& pair : drawBlocks) {
         const DrawBlock& drawBlock = pair.second;
-        if (drawBlock.mesh && drawBlock.material) {
-            const Technique* technique = drawBlock.material->getTechnique(pass);
-            if (technique != nullptr) {
-                DrawCall call;
-                call.mesh = drawBlock.mesh;
-                call.technique = technique;
-                drawCallsEx.push_back(call);
-            }
+        const Technique* technique = drawBlock.material->getTechnique(pass);
 
-        } else if (drawBlock.supportedPasses.hasPass(pass)) {
-            drawCallsEx.push_back(drawBlock.drawCall);
+        if (technique != nullptr) {
+            DrawCall call;
+            call.mesh = drawBlock.mesh;
+            call.technique = technique;
+            if (drawBlock.instanceData) {
+                call.instanceDataIndex =
+                    instanceDataPool.getIndex(drawBlock.instanceData);
+            }
+            drawCallsEx.push_back(call);
         }
     }
 
@@ -205,105 +316,108 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
         // TODO ResourceManager needs to enforce lifetime of the pointer
         // resources
         for (auto& drawCall : drawCallsEx) {
-            if (drawCall.technique && drawCall.mesh) {
-                const Mesh* mesh = drawCall.mesh;
-                const Technique* technique = drawCall.technique;
+            const Mesh* mesh = drawCall.mesh;
+            const Technique* technique = drawCall.technique;
 
-                // TODO Shader Resources
+            // TODO Shader Resources
 
-                pipeline->bindVertexShader(technique->vertexShader);
-                for (int slot = 0; slot < kVertexConstantBufferMax; slot++) {
-                    const auto& buffer = technique->vertexCBuffers[slot];
-                    if (buffer.size() > 0) {
-                        IConstantBuffer cbHandle =
-                            pipeline->loadVertexCB((CBSlot)slot);
-                        cbHandle.loadData(buffer.data(), buffer.size());
-                    }
-                }
+            pipeline->bindVertexShader(technique->vertexShader);
+            for (int slot = 0; slot < kVertexConstantBufferMax; slot++) {
+                const auto& buffer = technique->vertexCBuffers[slot];
+                if (buffer.size() > 0) {
+                    pipeline->markVertexCBUsage(slot, true);
 
-                pipeline->bindPixelShader(technique->pixelShader);
-                for (int slot = 0; slot < kVertexConstantBufferMax; slot++) {
-                    const auto& buffer = technique->pixelCbuffers[slot];
-                    if (buffer.size() > 0) {
-                        IConstantBuffer cbHandle =
-                            pipeline->loadPixelCB((CBSlot)slot);
-                        cbHandle.loadData(buffer.data(), buffer.size());
-                    }
-                }
+                    IConstantBuffer cbHandle =
+                        pipeline->loadVertexCB(slot);
+                    cbHandle.loadData(buffer.data(), buffer.size());
 
-                pipeline->drawMesh(mesh, 1);
-            } else {
-                // New, data-oriented path.
-                // TODO Should probably be moved into the pipeline
-                {
-                    const auto& pixelTechnique = drawCall.pixelTechnique;
-                    pipeline->bindPixelShader(pixelTechnique->getShader());
-
-                    for (int slot = 0; slot < kConstantBufferMax; slot++) {
-                        if (const auto& cbuffer =
-                                pixelTechnique->getConstantBufferData(slot);
-                            !cbuffer.empty()) {
-                            IConstantBuffer cb =
-                                pipeline->loadPixelCB((CBSlot)slot);
-                            cb.loadData(cbuffer.data(), cbuffer.size());
-                        }
-                    }
-
-                    for (int slot = 0; slot < kShaderResourceMax; slot++) {
-                        if (const auto& texture =
-                                pixelTechnique->getTexture(slot);
-                            texture) {
-                            pipeline->bindPixelTexture(*texture, slot);
-                        }
-                    }
-                }
-
-                {
-                    const VertexTechnique* vertexTechnique =
-                        drawCall.vertexTechnique;
-                    pipeline->setVertexTopology(
-                        vertexTechnique->getVertexTopology());
-                    pipeline->bindVertexShader(vertexTechnique->getShader());
-
-                    for (int slot = 0; slot < kConstantBufferMax; slot++) {
-                        if (const auto& cbuffer =
-                                vertexTechnique->getConstantBufferData(slot);
-                            !cbuffer.empty()) {
-                            IConstantBuffer cb =
-                                pipeline->loadVertexCB((CBSlot)slot);
-                            cb.loadData(cbuffer.data(), cbuffer.size());
-                        }
-                    }
-
-                    for (int slot = 0; slot < kShaderResourceMax; slot++) {
-                        const auto& shaderResource =
-                            vertexTechnique->getShaderResource(slot);
-                        if (shaderResource.type ==
-                            ShaderResourceType::kStructuredBuffer) {
-                            pipeline->bindVertexSB(
-                                *(StructuredBuffer*)shaderResource.pointer,
-                                slot);
-                        }
-                        assert(shaderResource.type !=
-                               ShaderResourceType::kTexture);
-                    }
-
-                    const unsigned vertsPerInstance =
-                        vertexTechnique->getVerticesPerInstance();
-                    const unsigned numInstances =
-                        vertexTechnique->getInstanceCount();
-                    if (vertexTechnique->getMesh() &&
-                        vertexTechnique->getMesh()->ready) {
-                        pipeline->drawMesh(vertexTechnique->getMesh(),
-                                           numInstances);
-                    } else {
-                        pipeline->drawInstanced(vertsPerInstance, numInstances);
-                    }
+                    pipeline->markVertexCBUsage(slot, false);
                 }
             }
+
+            pipeline->bindPixelShader(technique->pixelShader);
+            for (int slot = 0; slot < kVertexConstantBufferMax; slot++) {
+                const auto& buffer = technique->pixelCbuffers[slot];
+                if (buffer.size() > 0) {
+                    pipeline->markPixelCBUsage(slot, true);
+
+                    IConstantBuffer cbHandle =
+                        pipeline->loadPixelCB(slot);
+                    cbHandle.loadData(buffer.data(), buffer.size());
+
+                    pipeline->markPixelCBUsage(slot, false);
+                }
+            }
+
+            pipeline->drawMesh(mesh, 1);
         }
     }
 }
+
+/*
+    // Old skinning code that needs to be ported...
+    for (const AssetComponent* comp : asset_components) {
+        const Asset* asset = comp->getAsset();
+
+        if (asset->isSkinned()) {
+            pipeline->bindVertexShader("SkinnedMesh");
+        } else
+            pipeline->bindVertexShader("TexturedMesh");
+
+        for (const auto& mesh : asset->getMeshes()) {
+
+            const Material mat = mesh->material;
+
+            // Pixel CB2: Mesh Material Data
+            {
+                IConstantBuffer pCB2 = pipeline->loadPixelCB(CB2);
+
+                const TextureRegion& region = mat.tex_region;
+                pCB2.loadData(&region.x, FLOAT);
+                pCB2.loadData(&region.y, FLOAT);
+                pCB2.loadData(&region.width, FLOAT);
+                pCB2.loadData(&region.height, FLOAT);
+            }
+
+            // Vertex CB2: Transform matrices
+            const Matrix4& mLocalToWorld = comp->getLocalToWorldMatrix();
+            {
+                IConstantBuffer vCB2 = pipeline->loadVertexCB(CB2);
+
+                // Load mesh vertex transformation matrix
+                vCB2.loadData(&mLocalToWorld, FLOAT4X4);
+                // Load mesh normal transformation matrix
+                Matrix4 normalTransform = mLocalToWorld.inverse().transpose();
+                vCB2.loadData(&(normalTransform), FLOAT4X4);
+            }
+
+            // Skinning
+            if (asset->isSkinned()) {
+                // Vertex CB3: Joint Matrices
+                {
+                    IConstantBuffer vCB3 = pipeline->loadVertexCB(CB3);
+
+                    const std::vector<SkinJoint>& skin = asset->getSkinJoints();
+                    for (int i = 0; i < skin.size(); i++) {
+                        // SUPER INEFFICIENT RN
+                        // TODO: THIS IS BOTTLE NECKING MY CODE
+                        const Matrix4 skin_matrix =
+                            skin[i].getTransform(skin[i].node) *
+                            skin[i].m_inverse_bind;
+                        const Matrix4 skin_normal_matrix =
+                            skin_matrix.inverse().transpose();
+
+                        vCB3.loadData(&skin_matrix, FLOAT4X4);
+                        vCB3.loadData(&skin_normal_matrix, FLOAT4X4);
+                    }
+                }
+            }
+
+            // Draw each mesh
+            pipeline->drawMesh(mesh.get(), INDEX_LIST_START, INDEX_LIST_END, 1);
+        }
+    }
+*/
 
 } // namespace Graphics
 } // namespace Engine

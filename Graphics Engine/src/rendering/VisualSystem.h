@@ -34,10 +34,6 @@ class TerrainManager;
 // VisualParameters Struct:
 // Stores configuration parameters toggleable by the user
 struct VisualParameters;
-// VisualCache Struct:
-// Stores precomputed data so that it can be reused many times in
-// different parts of the pipeline
-struct VisualCache;
 
 // VisualSystem Class:
 // Provides an interface for the application's graphics.
@@ -50,8 +46,7 @@ class VisualSystem {
 
     // Configuration + Cache
     VisualParameters* config;
-    VisualCache* cache;
-
+    
     // Direct 3D 11 Interfaces
     ID3D11Device* device;
     ID3D11DeviceContext* context;
@@ -73,13 +68,7 @@ class VisualSystem {
     ID3D11RasterizerState* rast_state;
     Texture* bump_tex;
 
-    VertexTechnique vsDebugLine;
-    StructuredBuffer sbLines;
-
-    VertexTechnique vsDebugPoint;
-    PixelTechnique psDebugDefault;
-    DrawBlockKey debugLineBlockKey = kInvalidDrawBlockKey;
-    DrawBlockKey debugPointBlockKey = kInvalidDrawBlockKey;
+    float time;
 
   public:
     VisualSystem(HWND window);

@@ -11,14 +11,6 @@ namespace Graphics {
 // and cannot be changed for that invocation of the program.
 // Handling of any given constant buffer for a shader will be done by
 // a corresponding CBHandle object.
-enum CBSlot {
-    CB0 = 0,
-    CB1 = 1,
-    CB2 = 2,
-    CB3 = 3,
-    CBCOUNT // Enum trick to track the # of slots supported
-};
-
 enum CBDataFormat {
     INT = 4,
     FLOAT = 4,
@@ -27,9 +19,6 @@ enum CBDataFormat {
     FLOAT4 = 16,
     FLOAT4X4 = 64
 };
-
-// TODO: Add ResourceManager interface for cbuffer. Make resourcemanager in
-// charge of cbuffer uploads.
 
 class ConstantBuffer {
     friend class IConstantBuffer;
@@ -68,11 +57,11 @@ class IConstantBuffer {
     ID3D11DeviceContext* context;
 
     ConstantBuffer* cb;
-    CBSlot slot;
+    int slot;
     IBufferType type;
 
   public:
-    IConstantBuffer(ConstantBuffer* cb, CBSlot slot, IBufferType type,
+    IConstantBuffer(ConstantBuffer* cb, int slot, IBufferType type,
                     ID3D11Device* device, ID3D11DeviceContext*);
     ~IConstantBuffer();
 

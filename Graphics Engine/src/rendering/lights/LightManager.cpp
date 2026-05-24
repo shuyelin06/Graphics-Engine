@@ -267,6 +267,12 @@ void LightManager::imGui() {
                 Color::Green());
         }
     }
+
+    static bool show_atlas = false;
+    ImGui::Checkbox("Show Shadow Atlas", &show_atlas);
+    if (show_atlas) {
+        shadow_atlas->getTexture()->displayImGui();
+    }
 #endif
 }
 

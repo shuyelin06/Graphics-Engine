@@ -291,9 +291,6 @@
     <ClCompile Include="src\math\CFrame.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\pipeline\DrawCall.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\rendering\pipeline\StructuredBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -623,7 +620,10 @@
     <ClInclude Include="src\rendering\resources\MaterialManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\pipeline\RenderPass.h">
+    <ClInclude Include="src\rendering\core\RenderPass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rendering\core\RenderSettings.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

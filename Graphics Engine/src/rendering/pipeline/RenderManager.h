@@ -6,9 +6,11 @@
 #include <memory>
 
 #include "math/AABB.h"
+#include "math/Matrix4.h"
 
 #include "DrawCall.h"
-#include "RenderPass.h"
+
+#include "rendering/core/RenderPass.h"
 
 #include "rendering/pipeline/PipelineManager.h"
 #include "rendering/resources/MaterialManager.h"
@@ -25,32 +27,49 @@ class RenderManagerImpl;
 // Render passes are ran in a pre-determined order.
 // To render, a system can add a draw call to a particular render pass.
 // Any single draw call is configured as follows:
-// - RenderMesh: Vertex Shader + Vertex / Index Buffer, and any other resources
-// - RenderMaterial: Pixel Shader + any other resources
-// - RenderPass: Other configurable pipeline features (alpha blending,
-// rasterization, etc.)
+// - Mesh: Vertex / Index Buffer (ResourceManager)
+// - Material: All Shaders + Bindings (MaterialManager)
+// - RenderPass: Other configurable pipeline fseatures (alpha blending,
+//   rasterization, etc.)
+// External systems can also set RenderView settings.
+
+// A RenderView is an entity that the scene can be rendered from.
+// Think of it like a "camera". RenderManager provides a few entrypoints for
+// systems to provide it views
+struct RenderView {
+    Vector3 position;
+    float zNear;
+    Vector3 direction;
+    float zFar;
+
+    Matrix4 mWorldToLocal;
+    Matrix4 mLocalToFrustum;
+    Vector4 viewport; // x, y, width, height
+
+    Texture* renderTarget = nullptr;
+    Texture* depthStencil = nullptr;
+};
 
 // A DrawBlock is an abstract spatial entity that contains
 // "renderable" things.
+// Draw blocks can be instanced. If a draw block has the same mesh and material,
+// but different instance data, then the render manager will automatically batch
+// into one draw call.
 // We cull and filter passes on draw blocks. Draw blocks then can be used
 // to generate draw calls that the pipeline can read.
 using DrawBlockKey = uint32_t;
 constexpr DrawBlockKey kInvalidDrawBlockKey = 0xFFFF;
+
 struct DrawBlock {
     AABB extents{};
-
-    RenderPassSet supportedPasses;
-    // Draw Call that will be submitted if Draw Block is rendered
-    // TODO: Draw Blocks should prob support multiple draw calls.
-    DrawCall drawCall;
 
     Mesh* mesh = nullptr;
     Material* material = nullptr;
 
+    InstanceData* instanceData = nullptr;
+
     DrawBlock();
 
-    void initialize(AABB _extents, RenderPassSet _supportedPasses,
-                    DrawCall _drawCall);
     void initialize(AABB _extents, Mesh* mesh, Material* material);
 };
 
@@ -67,8 +86,11 @@ class RenderManager {
     ~RenderManager();
 
     DrawBlockKey addDrawBlock(const DrawBlock& block);
-    void updateInstanceData(const DrawBlockKey key);
+    void updateInstanceData(const DrawBlockKey key, InstanceData instanceData);
     void removeDrawBlock(const DrawBlockKey key);
+
+    void setMainView(const RenderView& view);
+    void setShadowViews(const RenderView* viewArr, uint32_t count);
 
     void perform();
 

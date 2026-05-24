@@ -2,12 +2,14 @@
 
 #include <cstdint>
 
+#include "rendering/core/RenderSettings.h"
+
 #include "ConstantBuffer.h"
 #include "Shader.h"
 #include "ShaderManager.h"
 #include "StructuredBuffer.h"
 
-constexpr int SAMPLER_COUNT = 4;
+inline constexpr int SAMPLER_COUNT = 4;
 
 #define INDEX_LIST_START 0
 #define INDEX_LIST_END -1
@@ -115,8 +117,10 @@ class Pipeline {
     UINT vb_offsets[BINDABLE_STREAM_COUNT];
 
     // Constant Buffer Handles
-    ConstantBuffer* vcb_handles[CBCOUNT];
-    ConstantBuffer* pcb_handles[CBCOUNT];
+    ConstantBuffer* vcb_handles[kVertexConstantBufferMax];
+    ConstantBuffer* pcb_handles[kPixelConstantBufferMax];
+    bool debug_vcb_usages[kVertexConstantBufferMax];
+    bool debug_pcb_usages[kPixelConstantBufferMax];
 
     // Active Shaders
     ShaderManager* shader_manager;
@@ -157,9 +161,13 @@ class Pipeline {
         context->VSSetShaderResources(slot, 1, &sb.srv);
     }
     void bindVertexTexture(const Texture& texture, unsigned int slot);
-    IConstantBuffer loadVertexCB(CBSlot slot);
+    IConstantBuffer loadVertexCB(int slot);
 
     // Pixel Technique API
+    void bindRenderTarget(Texture* renderTarget, Texture* depthStencil,
+                          DepthStencilFlags depthFlags);
+    void bindBlendSettings(BlendFlags);
+
     void bindRenderTarget(TargetFlags, DepthStencilFlags, BlendFlags);
     void bindPixelShader(const std::string& ps_name);
 
@@ -168,7 +176,11 @@ class Pipeline {
         context->PSSetShaderResources(slot, 1, &sb.srv);
     }
     void bindPixelTexture(const Texture& texture, unsigned int slot);
-    IConstantBuffer loadPixelCB(CBSlot slot);
+    IConstantBuffer loadPixelCB(int slot);
+
+    // Debug (Pipeline Enforcement)
+    void markVertexCBUsage(int slot, bool usage);
+    void markPixelCBUsage(int slot, bool usage);
 
     // Misc
     void bindInactiveTarget(int slot);

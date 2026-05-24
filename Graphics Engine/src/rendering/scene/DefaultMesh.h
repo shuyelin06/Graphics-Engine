@@ -16,9 +16,7 @@ namespace Graphics {
 class DefaultMesh {
   private:
     std::shared_ptr<Mesh> mesh;
-    std::shared_ptr<Material> material_new;
-
-    Material_DEPRECATED material;
+    std::shared_ptr<Material> material;
 
     Matrix4 mWorldFromLocal;
 
@@ -43,8 +41,6 @@ class DefaultMesh {
 
     std::shared_ptr<Mesh> getMesh() const;
     std::shared_ptr<Material> getMaterialNew() const;
-
-    Material_DEPRECATED getMaterial() const;
 
     const Matrix4& getLocalMatrix() const;
 

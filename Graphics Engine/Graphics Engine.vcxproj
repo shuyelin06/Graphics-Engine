@@ -29,26 +29,26 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -180,7 +180,6 @@
     <ClCompile Include="src\datamodel\objects\DMPhysics.cpp" />
     <ClCompile Include="src\datamodel\SceneGraph.cpp" />
     <ClCompile Include="src\math\CFrame.cpp" />
-    <ClCompile Include="src\rendering\pipeline\DrawCall.cpp" />
     <ClCompile Include="src\rendering\pipeline\RenderManager.cpp" />
     <ClCompile Include="src\rendering\pipeline\RenderManager.h" />
     <ClCompile Include="src\rendering\pipeline\StructuredBuffer.cpp" />
@@ -282,8 +281,9 @@
     <ClInclude Include="src\datamodel\objects\DMMesh.h" />
     <ClInclude Include="src\datamodel\objects\DMPhysics.h" />
     <ClInclude Include="src\math\CFrame.h" />
+    <ClInclude Include="src\rendering\core\RenderSettings.h" />
     <ClInclude Include="src\rendering\pipeline\DrawCall.h" />
-    <ClInclude Include="src\rendering\pipeline\RenderPass.h" />
+    <ClInclude Include="src\rendering\core\RenderPass.h" />
     <ClInclude Include="src\rendering\resources\MaterialManager.h" />
     <ClInclude Include="src\rendering\scene\SceneListener.h" />
     <ClInclude Include="src\rendering\scene\SceneManager.h" />

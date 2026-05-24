@@ -46,7 +46,6 @@ struct TerrainNode {
     }
 
     // Node Draw Block Key
-    std::unique_ptr<VertexTechnique> mMesh;
     DrawBlockKey blockKey = kInvalidDrawBlockKey;
 
     // Node Children

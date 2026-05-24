@@ -119,20 +119,12 @@ void VisualSystem::imGui() {
 #endif
 }
 
-struct VisualCache {
-    float time;
-
-    Matrix4 m_world_to_screen;
-    Matrix4 m_screen_to_world;
-
-    Vector4 resolution_info;
-};
-
 // Constructor
 // Initializes the VisualSystem
 VisualSystem::VisualSystem(HWND window) {
     config = new VisualParameters();
-    cache = new VisualCache();
+
+    time = 0.f;
 
     bump_tex = nullptr;
 
@@ -166,11 +158,6 @@ VisualSystem::VisualSystem(HWND window) {
     light_manager = new LightManager(device, 4096);
 
     terrain = TerrainManager::create(this);
-
-    vsDebugLine.setShader("DebugLine");
-    sbLines.initialize(device, sizeof(LinePoint), 2000);
-    vsDebugPoint.setShader("DebugPoint");
-    psDebugDefault.setShader("DebugLine");
 }
 
 // Render:
@@ -193,28 +180,6 @@ void VisualSystem::render() {
         // TEMP
         // light_manager->updateTimeOfDay(15.f);
 
-        // Upload CB0
-        Camera* camera = scene_manager->getMainCamera();
-        {
-            IConstantBuffer pcb0_common = pipeline->loadPixelCB(CB0);
-
-            const Vector3 cam_pos = camera->getPosition();
-            const Vector3 cam_direc = camera->forward();
-            const float z_near = camera->getZNear();
-            const float z_far = camera->getZFar();
-
-            pcb0_common.loadData(&cam_pos, FLOAT3);
-            pcb0_common.loadData(&z_near, FLOAT);
-            pcb0_common.loadData(&cam_direc, FLOAT3);
-            pcb0_common.loadData(&z_far, FLOAT);
-
-            pcb0_common.loadData(&cache->m_screen_to_world, FLOAT4X4);
-            pcb0_common.loadData(&cache->m_world_to_screen, FLOAT4X4);
-
-            pcb0_common.loadData(&cache->resolution_info.x, FLOAT);
-            pcb0_common.loadData(&cache->resolution_info.y, FLOAT);
-        }
-
         // Prepare the shadow maps
         performPrepass(); //..
 
@@ -224,6 +189,7 @@ void VisualSystem::render() {
 
         // Rendering is different depending on if we're below
         // or above the surface of the water
+        Camera* camera = scene_manager->getMainCamera();
         const Vector3& cam_pos = camera->getPosition();
         if (cam_pos.y <= terrain->getSurfaceLevel() + 6.5f) {
             // Underwater rendering
@@ -300,17 +266,22 @@ void VisualSystem::renderPrepare() {
     // Serve Resource Requests
     resource_manager->updatePerform();
 
-    // Update the values stored in my cache
-    Texture* target = pipeline->getRenderTargetDest();
+    time += 1 / 60.f;
 
     Camera* camera = scene_manager->getMainCamera();
-    cache->time += 1 / 60.f;
-    cache->m_world_to_screen =
-        camera->getFrustumMatrix() * camera->getWorldToCameraMatrix();
-    cache->m_screen_to_world = cache->m_world_to_screen.inverse();
-    cache->resolution_info =
-        Vector4((float)target->width, (float)target->height, camera->getZNear(),
-                camera->getZFar());
+    Texture* target = pipeline->getRenderTargetDest();
+    RenderView mainView;
+    mainView.position = camera->getPosition();
+    mainView.zNear = camera->getZNear();
+    mainView.direction = camera->forward();
+    mainView.zFar = camera->getZFar();
+    mainView.mWorldToLocal = camera->getWorldToCameraMatrix();
+    mainView.mLocalToFrustum = camera->getFrustumMatrix();
+    mainView.viewport = Vector4((float)target->width, (float)target->height,
+                                camera->getZNear(), camera->getZFar());
+    mainView.renderTarget = target;
+    mainView.depthStencil = pipeline->getDepthStencil();
+    render_manager->setMainView(mainView);
 }
 
 ResourceManager* VisualSystem::getResourceManager() const {
@@ -352,7 +323,7 @@ void VisualSystem::performPrepass() {
 
         // Load light view and projection matrix
         {
-            IConstantBuffer vCB0 = pipeline->loadVertexCB(CB2);
+            IConstantBuffer vCB0 = pipeline->loadVertexCB(2);
 
             const Matrix4& m_world_to_local = light->getWorldMatrix().inverse();
             vCB0.loadData(&m_world_to_local, FLOAT4X4);
@@ -374,7 +345,7 @@ void VisualSystem::performPrepass() {
             const Matrix4& mLocalToWorld = caster.m_localToWorld;
 
             {
-                IConstantBuffer vCB1 = pipeline->loadVertexCB(CB1);
+                IConstantBuffer vCB1 = pipeline->loadVertexCB(1);
                 vCB1.loadData(&mLocalToWorld, FLOAT4X4);
             }
 
@@ -396,7 +367,7 @@ void VisualSystem::performLightFrustumPass() {
     const int num_lights = lights.size() - SUN_NUM_CASCADES;
 
     {
-        IConstantBuffer vcb0 = pipeline->loadVertexCB(CB0);
+        IConstantBuffer vcb0 = pipeline->loadVertexCB(0);
 
         // This matrix scales the unit cube to the frustum cube. The frustum
         // cube has x in [-1,1], y in [-1,1], z in [0,1].
@@ -416,7 +387,7 @@ void VisualSystem::performLightFrustumPass() {
     }
 
     {
-        IConstantBuffer pCB2 = pipeline->loadPixelCB(CB2);
+        IConstantBuffer pCB2 = pipeline->loadPixelCB(2);
 
         const Vector3 sun_direc = config->sun_direction.unit();
         pCB2.loadData(&sun_direc, FLOAT3);
@@ -500,7 +471,7 @@ void VisualSystem::performWaterSurfacePass() {
 
     Camera* camera = scene_manager->getMainCamera();
     {
-        IConstantBuffer vcb0 = pipeline->loadVertexCB(CB0);
+        IConstantBuffer vcb0 = pipeline->loadVertexCB(0);
         const Matrix4 m_camera_to_screen =
             camera->getFrustumMatrix() * camera->getWorldToCameraMatrix();
         vcb0.loadData(&m_camera_to_screen, FLOAT4X4);
@@ -517,9 +488,9 @@ void VisualSystem::performWaterSurfacePass() {
         terrain->getWaterSurface()->getWaveConfig();
     const int num_waves = terrain->getWaterSurface()->getNumWaves();
     {
-        IConstantBuffer vcb1 = pipeline->loadVertexCB(CB1);
+        IConstantBuffer vcb1 = pipeline->loadVertexCB(1);
 
-        vcb1.loadData(&cache->time, FLOAT);
+        vcb1.loadData(&time, FLOAT);
         vcb1.loadData(&num_waves, INT);
         vcb1.loadData(nullptr, FLOAT2);
 
@@ -531,7 +502,7 @@ void VisualSystem::performWaterSurfacePass() {
     }
 
     {
-        IConstantBuffer pcb2 = pipeline->loadPixelCB(CB2);
+        IConstantBuffer pcb2 = pipeline->loadPixelCB(2);
 
         pcb2.loadData(&config->sun_direction, FLOAT3);
         pcb2.loadData(nullptr, FLOAT);
@@ -546,7 +517,7 @@ void VisualSystem::performWaterSurfacePass() {
     const float STARTING_SCALE = 5.f;
     constexpr int NUM_LODS = 3;
     {
-        IConstantBuffer vCB2 = pipeline->loadVertexCB(CB2);
+        IConstantBuffer vCB2 = pipeline->loadVertexCB(2);
 
         float scale = STARTING_SCALE;
         for (int i = 0; i < NUM_LODS; i++) {
@@ -609,7 +580,7 @@ void VisualSystem::processSky() {
     pipeline->bindDepthStencil(3);
 
     {
-        IConstantBuffer pcb2 = pipeline->loadPixelCB(CB2);
+        IConstantBuffer pcb2 = pipeline->loadPixelCB(2);
 
         pcb2.loadData(&config->sun_direction, FLOAT3);
         const float sun_size = 0.0125f;
@@ -675,7 +646,7 @@ void VisualSystem::processUnderwater() {
 
     // Set parameters
     {
-        IConstantBuffer pCB2 = pipeline->loadPixelCB(CB2);
+        IConstantBuffer pCB2 = pipeline->loadPixelCB(2);
 
         const Vector3 sun_direc = config->sun_direction.unit();
         pCB2.loadData(&sun_direc, FLOAT3);
@@ -698,6 +669,7 @@ void VisualSystem::processUnderwater() {
 
 #if defined(ENABLE_DEBUG_DRAWING)
 void VisualSystem::renderDebugPoints() {
+    /*
     std::vector<PointData>& points = VisualDebug::points;
 
     if (points.size() == 0)
@@ -723,9 +695,11 @@ void VisualSystem::renderDebugPoints() {
                               (PixelTechnique*)&psDebugDefault});
         debugPointBlockKey = render_manager->addDrawBlock(drawBlock);
     }
+    */
 }
 
 void VisualSystem::renderDebugLines() {
+    /*
     std::vector<LinePoint>& lines = VisualDebug::lines;
 
     if (lines.size() == 0)
@@ -747,6 +721,7 @@ void VisualSystem::renderDebugLines() {
             {(VertexTechnique*)&vsDebugLine, (PixelTechnique*)&psDebugDefault});
         debugLineBlockKey = render_manager->addDrawBlock(drawBlock);
     }
+    */
 }
 #endif
 

@@ -37,9 +37,13 @@ Pipeline::Pipeline(HWND window) {
     vb_strides[WEIGHTS] = sizeof(float) * 4;
 
     // Initialize my constant buffer handles
-    for (int i = 0; i < CBSlot::CBCOUNT; i++) {
+    for (int i = 0; i < kVertexConstantBufferMax; i++) {
         vcb_handles[i] = new ConstantBuffer();
+        debug_vcb_usages[i] = false;
+    }
+    for (int i = 0; i < kPixelConstantBufferMax; i++) {
         pcb_handles[i] = new ConstantBuffer();
+        debug_pcb_usages[i] = false;
     }
 
     // Initialize my full screen quad
@@ -75,8 +79,10 @@ Pipeline::~Pipeline() {
     imGuiShutdown();
 #endif
 
-    for (int i = 0; i < CBSlot::CBCOUNT; i++) {
+    for (int i = 0; i < kVertexConstantBufferMax; i++) {
         delete vcb_handles[i];
+    }
+    for (int i = 0; i < kPixelConstantBufferMax; i++) {
         delete pcb_handles[i];
     }
 
@@ -372,6 +378,49 @@ void Pipeline::bindPixelShader(const std::string& ps_name) {
 }
 
 // Render Target Binding
+void Pipeline::bindRenderTarget(Texture* renderTarget, Texture* depthStencil,
+                                DepthStencilFlags depthFlags) {
+    assert(renderTarget || depthStencil);
+
+    ID3D11RenderTargetView** targetViewPtr = nullptr;
+    ID3D11DepthStencilView* depthView = nullptr;
+
+    D3D11_VIEWPORT viewport = {0.f, 0.f, -1.f, -1.f, 0.f, 1.f};
+
+    if (renderTarget) {
+        assert(renderTarget->target_view);
+        targetViewPtr = &renderTarget->target_view;
+
+        viewport.Width = renderTarget->width;
+        viewport.Height = renderTarget->height;
+    }
+
+    if (depthStencil) {
+        assert(depthStencil->depth_view);
+        ID3D11DepthStencilState* state = depth_states[depthFlags];
+        context->OMSetDepthStencilState(state, 0);
+        depthView = depthStencil->depth_view;
+
+        assert(viewport.Width == -1.f || viewport.Width == depthStencil->width);
+        assert(viewport.Height == -1.f ||
+               viewport.Height == depthStencil->height);
+        if (viewport.Width == -1) {
+            viewport.Width = depthStencil->width;
+        }
+        if (viewport.Height == -1) {
+            viewport.Height = depthStencil->height;
+        }
+    }
+
+    context->OMSetRenderTargets(1, targetViewPtr, depthView);
+
+    context->RSSetViewports(1, &viewport);
+}
+
+void Pipeline::bindBlendSettings(BlendFlags blendFlag) {
+    context->OMSetBlendState(blend_states[blendFlag], nullptr, 0xFFFFFFFF);
+}
+
 void Pipeline::bindRenderTarget(TargetFlags f_target, DepthStencilFlags f_depth,
                                 BlendFlags f_blend) {
     flag_target = f_target;
@@ -436,11 +485,21 @@ void Pipeline::bindPixelTexture(const Texture& texture, unsigned int slot) {
 }
 
 // Constant Buffer Loading
-IConstantBuffer Pipeline::loadVertexCB(CBSlot slot) {
+IConstantBuffer Pipeline::loadVertexCB(int slot) {
+    assert(0 <= slot && slot < kVertexConstantBufferMax);
     return IConstantBuffer(vcb_handles[slot], slot, CBVertex, device, context);
 }
-IConstantBuffer Pipeline::loadPixelCB(CBSlot slot) {
+IConstantBuffer Pipeline::loadPixelCB(int slot) {
+    assert(0 <= slot && slot < kPixelConstantBufferMax);
     return IConstantBuffer(pcb_handles[slot], slot, CBPixel, device, context);
+}
+void Pipeline::markVertexCBUsage(int slot, bool usage) {
+    assert(debug_vcb_usages[slot] == !usage);
+    debug_vcb_usages[slot] = usage;
+}
+void Pipeline::markPixelCBUsage(int slot, bool usage) {
+    assert(debug_pcb_usages[slot] == !usage);
+    debug_pcb_usages[slot] = usage;
 }
 
 void Pipeline::clearDepthStencil(const Texture& texture) {
