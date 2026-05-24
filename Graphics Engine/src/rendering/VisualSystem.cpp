@@ -5,6 +5,7 @@
 
 #include "Direct3D11.h"
 
+#include "resources/MaterialManager.h"
 #include "resources/ResourceManager.h"
 #include "scene/SceneListener.h"
 #include "scene/SceneManager.h"
@@ -12,7 +13,6 @@
 #include "VisualDebug.h"
 #include "core/Frustum.h"
 #include "datamodel/Object.h"
-#include "datamodel/objects/DMCamera.h"
 
 #include "core/Material.h"
 #include "math/Vector4.h"

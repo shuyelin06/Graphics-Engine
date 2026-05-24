@@ -56,7 +56,8 @@ const Technique* Material::getTechnique(const RenderPass pass) const {
 bool Material::ready() const {
     bool ready = true;
     for (const Technique* technique : techniques) {
-        ready = ready && technique->ready;
+        if (technique)
+            ready = ready && technique->ready;
     }
     return ready;
 }

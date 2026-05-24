@@ -17,8 +17,10 @@ template <typename T, size_t SIZE> class PoolAllocator {
   public:
     PoolAllocator() {
         data.resize(SIZE);
-        for (uint16_t i = 0; i < SIZE; i++) {
-            free_indices.push_back(i);
+        // Add to free indices in descending order, so that when we pop we use
+        // free indices from 0 --> size (better for caching)s
+        for (uint16_t i = SIZE; i > 0; i--) {
+            free_indices.push_back(i - 1);
         }
     }
 

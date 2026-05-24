@@ -12,6 +12,7 @@
 #include "pipeline/PipelineManager.h"
 #include "pipeline/RenderManager.h"
 #include "resources/ResourceManager.h"
+#include "resources/MaterialManager.h"
 #include "scene/SceneManager.h"
 #include "terrain/TerrainManager.h"
 
@@ -30,6 +31,7 @@ class SceneListener;
 class SceneManager;
 class ResourceManager;
 class TerrainManager;
+class MaterialManager;
 
 // VisualParameters Struct:
 // Stores configuration parameters toggleable by the user
@@ -46,7 +48,7 @@ class VisualSystem {
 
     // Configuration + Cache
     VisualParameters* config;
-    
+
     // Direct 3D 11 Interfaces
     ID3D11Device* device;
     ID3D11DeviceContext* context;

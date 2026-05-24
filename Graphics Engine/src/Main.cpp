@@ -128,12 +128,23 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     // physics_system.bindTerrain(scene_graph.getTerrain());
 
     // Extra
-    DMMesh* mesh = new DMMesh();
-    mesh->setMeshFile("Macaroni3.gltf");
-    mesh->setColorMapFile("textures/MacTex.png");
-    mesh->getTransform().setScale(250, 250, 250);
+    auto createMesh = [&root](const Vector3& position, float scale) {
+        DMMesh* mesh = new DMMesh();
+        mesh->setMeshFile("Macaroni3.gltf");
+        mesh->setColorMapFile("textures/MacTex.png");
+        mesh->getTransform().setPosition(position);
+        mesh->getTransform().setScale(scale, scale, scale);
+        root->addChild(mesh);
+    };
 
-    root->addChild(mesh);
+    createMesh(Vector3(0, 0, 0), 250.f);
+    createMesh(Vector3(0, 200.f, 0), 250.f);
+    createMesh(Vector3(0, -200.f, 0), 250.f);
+
+
+
+    for (int i = 0; i < 5; i++) {
+    }
 
     DMLight* light = new DMLight();
     root->addChild(light);

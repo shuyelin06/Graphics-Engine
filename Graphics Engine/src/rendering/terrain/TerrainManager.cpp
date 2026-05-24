@@ -5,23 +5,16 @@
 
 #include "core/ThreadPool.h"
 
-#include "math/AABB.h"
 #include "math/Vector3.h"
 
 #include "rendering/ImGui.h"
-
-#include "../VisualDebug.h"
-#include "../util/CPUTimer.h"
+#include "rendering/util/CPUTimer.h"
 
 #include "rendering/VisualSystem.h"
 
-#include "rendering/core/Frustum.h"
 #include "rendering/core/Mesh.h"
-#include "rendering/pipeline/StructuredBuffer.h"
 #include "rendering/resources/MeshBuilder.h"
-#include "rendering/resources/ResourceManager.h"
 
-#include "ChunkBuilderJob.h"
 #include "TerrainOctree.h"
 #include "TerrainSDF.h"
 

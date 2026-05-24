@@ -6,13 +6,14 @@
 
 #include "math/Color.h"
 
-#include "rendering/core/Mesh.h"
 #include "rendering/core/Material.h"
+#include "rendering/core/Mesh.h"
 
 namespace Engine {
 namespace Graphics {
 struct InstanceData {
-    Matrix4 localMatrix = Matrix4::Identity();
+    Matrix4 mLocalToWorld = Matrix4::Identity();
+    Matrix4 mNormalTransform = Matrix4::Identity();
 
     Color color = Color(1, 1, 1);
     float _padding = 0;

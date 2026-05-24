@@ -1,18 +1,22 @@
 #include "SceneManager.h"
 
 #include <mutex>
+#include <unordered_set>
 
 #include "rendering/VisualSystem.h"
+#include "rendering/resources/MaterialManager.h"
+#include "rendering/resources/ResourceManager.h"
 
 namespace Engine {
 namespace Graphics {
 using UpdatePacket = SceneManager::UpdatePacket;
 
 struct DefaultMeshBlock {
-    std::unique_ptr<DefaultMesh> mesh;
+    std::shared_ptr<Mesh> mesh = nullptr;
+    std::shared_ptr<Material> material = nullptr;
+    InstanceData instanceData{};
 
     DrawBlockKey blockKey = kInvalidDrawBlockKey;
-    bool dirty = false;
 };
 
 class SceneManagerImpl {
@@ -27,6 +31,7 @@ class SceneManagerImpl {
     Camera* activeCamera = nullptr;
 
     std::unordered_map<uint32_t, DefaultMeshBlock> meshes;
+    std::unordered_set<uint32_t> dirtyMeshes;
 
   public:
     SceneManagerImpl(VisualSystem* _visualSystem);
@@ -39,6 +44,7 @@ class SceneManagerImpl {
     Camera* getMainCamera();
 
   private:
+    void processDirtyMeshes();
     void processUpdatePackets();
 
     void processCameraPacket(const UpdatePacket& packet);
@@ -72,7 +78,10 @@ void SceneManagerImpl::submitUpdatePacket(const UpdatePacket& packet) {
     mUpdatePacketsScratch.emplace_back(packet);
 }
 
-void SceneManagerImpl::update() { processUpdatePackets(); }
+void SceneManagerImpl::update() {
+    processUpdatePackets();
+    processDirtyMeshes();
+}
 
 void SceneManagerImpl::processUpdatePackets() {
     {
@@ -87,10 +96,53 @@ void SceneManagerImpl::processUpdatePackets() {
 
         if (std::holds_alternative<Camera::UpdatePacket>(packet.data))
             processCameraPacket(packet);
-        else if (std::holds_alternative<DefaultMesh::UpdatePacket>(packet.data))
+        else if (std::holds_alternative<RenderableMeshUpdatePacket>(
+                     packet.data))
             processMeshPacket(packet);
         else
             assert(false); // Unimplemented
+    }
+}
+
+void SceneManagerImpl::processDirtyMeshes() {
+    RenderManager* renderManager = mVisualSystem->getRenderManager();
+
+    std::unordered_set<uint32_t>::iterator iter;
+    for (iter = dirtyMeshes.begin(); iter != dirtyMeshes.end();) {
+        bool remove = false;
+
+        if (!meshes.contains(*iter)) {
+            remove = true;
+        } else {
+            auto& mesh = meshes[*iter];
+
+            bool resourcesReady = true;
+            if (mesh.mesh && !mesh.mesh->ready)
+                resourcesReady = false;
+            if (mesh.material && !mesh.material->ready())
+                resourcesReady = false;
+
+            if (resourcesReady) {
+                if (mesh.mesh && mesh.material) {
+                    assert(mesh.mesh->ready && mesh.material->ready());
+                    assert(mesh.blockKey == kInvalidDrawBlockKey);
+
+                    DrawBlock drawBlock;
+                    drawBlock.initialize(AABB(), mesh.mesh.get(),
+                                         mesh.material.get());
+                    mesh.blockKey = renderManager->addDrawBlock(drawBlock);
+                    renderManager->updateInstanceData(mesh.blockKey,
+                                                      mesh.instanceData);
+                }
+                remove = true;
+            }
+        }
+
+        if (remove) {
+            iter = dirtyMeshes.erase(iter);
+        } else {
+            ++iter;
+        }
     }
 }
 
@@ -116,27 +168,20 @@ void SceneManagerImpl::processCameraPacket(const UpdatePacket& packet) {
     }
 }
 
-struct MeshTransform {
-    Matrix4 localToWorld;
-    Matrix4 normalTransform;
-};
-
 void SceneManagerImpl::processMeshPacket(const UpdatePacket& packet) {
+    RenderManager* renderManager = mVisualSystem->getRenderManager();
+
     switch (packet.operation) {
     case UpdatePacket::Operation::Create: {
         assert(!meshes.contains(packet.handle));
         meshes[packet.handle] = DefaultMeshBlock();
-
-        auto& mesh = meshes[packet.handle];
-        mesh.mesh = std::make_unique<DefaultMesh>();
-        mesh.dirty = false;
     } break;
 
     case UpdatePacket::Operation::Destroy: {
         assert(meshes.contains(packet.handle));
         auto& mesh = meshes[packet.handle];
         if (mesh.blockKey != kInvalidDrawBlockKey) {
-            mVisualSystem->getRenderManager()->removeDrawBlock(mesh.blockKey);
+            renderManager->removeDrawBlock(mesh.blockKey);
         }
         meshes.erase(packet.handle);
     } break;
@@ -145,38 +190,49 @@ void SceneManagerImpl::processMeshPacket(const UpdatePacket& packet) {
         assert(meshes.contains(packet.handle));
         auto& mesh = meshes[packet.handle];
 
-        bool dirty = false;
-        mesh.mesh->update(std::get<DefaultMesh::UpdatePacket>(packet.data),
-                          mVisualSystem->getResourceManager(), dirty);
+        const RenderableMeshUpdatePacket& data =
+            std::get<RenderableMeshUpdatePacket>(packet.data);
+        bool isDirty = false;
 
-        if (dirty) {
-            mesh.dirty = true;
+        switch (data.type) {
+        case RenderableMeshUpdatePacket::Property::LocalMatrix: {
+            mesh.instanceData.mLocalToWorld = std::get<Matrix4>(data.data);
+            mesh.instanceData.mNormalTransform =
+                mesh.instanceData.mLocalToWorld.inverse().transpose();
             if (mesh.blockKey != kInvalidDrawBlockKey) {
-                mVisualSystem->getRenderManager()->removeDrawBlock(
-                    mesh.blockKey);
+                renderManager->updateInstanceData(mesh.blockKey,
+                                                  mesh.instanceData);
             }
-            mesh.blockKey = kInvalidDrawBlockKey;
-        }
-        /*
-        meshBlock.vsMesh->setVertexData(meshBlock.mesh->getMesh().get(), 0, 1);
+        } break;
 
-        MeshTransform cbufferData;
-        cbufferData.localToWorld = meshBlock.mesh->getLocalMatrix();
-        cbufferData.normalTransform =
-            cbufferData.localToWorld.inverse().transpose();
-        meshBlock.vsMesh->setConstantBufferData(2, &cbufferData,
-                                                sizeof(MeshTransform));
+        case RenderableMeshUpdatePacket::Property::MeshName: {
+            const std::string& meshName = std::get<std::string>(data.data);
+            mesh.mesh =
+                mVisualSystem->getResourceManager()->LoadMeshFromFile(meshName);
+            isDirty = true;
+        } break;
 
-        if (meshBlock.mesh->getMaterial().colormap != nullptr) {
-            meshBlock.psMesh->setTexture(
-                0, meshBlock.mesh->getMaterial().colormap.get());
-        } else {
-            Texture* fallback = mVisualSystem->getResourceManager()
-                                    ->getTexture(SystemTexture_FallbackColormap)
-                                    .get();
-            meshBlock.psMesh->setTexture(0, fallback);
+        case RenderableMeshUpdatePacket::Property::ColorMapName: {
+            const std::string& colormapName = std::get<std::string>(data.data);
+            MaterialManager::DefaultMaterialParams params;
+            params.colormap = colormapName;
+            mesh.material =
+                mVisualSystem->getMaterialManager()->createMaterial(params);
+            isDirty = true;
+        } break;
+
+        default:
+            assert(false);
+            break;
         }
-        */
+
+        if (isDirty) {
+            dirtyMeshes.insert(packet.handle);
+            if (mesh.blockKey != kInvalidDrawBlockKey) {
+                renderManager->removeDrawBlock(mesh.blockKey);
+                mesh.blockKey = kInvalidDrawBlockKey;
+            }
+        }
     } break;
     }
 }

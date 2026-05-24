@@ -1,18 +1,12 @@
 #pragma once
 
-#include <map>
 #include <memory>
-#include <mutex>
 #include <string>
-#include <unordered_map>
 
 #include "MeshBuilder.h"
 #include "TextureBuilder.h"
-#include "rendering/core/Material.h"
 #include "rendering/core/Mesh.h"
 #include "rendering/core/Texture.h"
-
-#include "rendering/pipeline/ConstantBuffer.h"
 
 // Forward Declare so that systems using ResourceManager don't pull in the D3D11
 // implementation
@@ -70,7 +64,7 @@ class ResourceManager {
     MeshPool* getMeshPool(MeshPoolType pool_type);
 
     std::shared_ptr<Mesh> requestMesh(const MeshBuilder& mesh_builder);
-    
+
     // Debug Display
     void imGui();
 

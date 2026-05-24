@@ -11,6 +11,7 @@
 #include "DrawCall.h"
 #include "rendering/VisualSystem.h"
 
+#include <algorithm>
 #include <assert.h>
 #include <vector>
 
@@ -68,7 +69,8 @@ class RenderManagerImpl {
     std::unordered_map<DrawBlockKey, DrawBlock> drawBlocks;
 
     // Instance Data
-    PoolAllocator<InstanceData, 500> instanceDataPool;
+    PoolAllocator<InstanceData, 4096 * 16 / sizeof(InstanceData)>
+        instanceDataPool;
     bool instanceDataDirty;
 
     // Constant Buffer Data
@@ -307,21 +309,52 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
             drawCallsEx.push_back(call);
         }
     }
+    std::sort(drawCallsEx.begin(), drawCallsEx.end(),
+              [](const DrawCall& a, const DrawCall& b) {
+                  return (a.depth <= b.depth) && (a.technique <= b.technique) &&
+                         (a.mesh <= b.mesh);
+              });
 
-    {
-        DebugRenderPassScope renderpass_debug =
-            DebugRenderPassScope(mDebugAnnotations[pass], annotation);
-        IGPUTimer gpu_timer = GPUTimer::TrackGPUTime(annotation);
+    DebugRenderPassScope renderpass_debug =
+        DebugRenderPassScope(mDebugAnnotations[pass], annotation);
+    IGPUTimer gpu_timer = GPUTimer::TrackGPUTime(annotation);
 
-        // TODO These just call pipeline methods. Move it to pipeline
-        // (i.e. pipeline->draw(VertexTechnique, PixelTechnique).
-        // TODO ResourceManager needs to enforce lifetime of the pointer
-        // resources
-        for (auto& drawCall : drawCallsEx) {
+    // TODO These just call pipeline methods. Move it to pipeline
+    // (i.e. pipeline->draw(VertexTechnique, PixelTechnique).
+    // TODO ResourceManager needs to enforce lifetime of the pointer
+    // resources
+    size_t head = 0;
+    size_t tail = 0;
+
+    bool stop = false;
+    while (tail < drawCallsEx.size()) {
+        bool draw = true;
+
+        const DrawCall& drawCall = drawCallsEx[tail];
+
+        // Check if we can batch.
+        // We can only batch if everything is equal except for the instance
+        // data handle (and the instance data handle is provided)
+        bool canBatch = drawCall.instanceDataIndex != kInvalidInstanceDataKey;
+        {
+            const DrawCall& drawCallInBatch = drawCallsEx[head];
+            (drawCallInBatch.depth == drawCall.depth);
+            canBatch =
+                canBatch && (drawCallInBatch.technique == drawCall.technique);
+            canBatch = canBatch && (drawCallInBatch.mesh == drawCall.mesh);
+        }
+        // Do not batch if we are on the last draw call of the list. Just render
+        // what we have.
+        canBatch = canBatch && (tail != drawCallsEx.size() - 1);
+
+        draw = !canBatch;
+
+        if (draw) {
+            // Bind everything
+            // TODO Shader Resources
+
             const Mesh* mesh = drawCall.mesh;
             const Technique* technique = drawCall.technique;
-
-            // TODO Shader Resources
 
             pipeline->bindVertexShader(technique->vertexShader);
             for (int slot = 0; slot < kVertexConstantBufferMax; slot++) {
@@ -349,8 +382,26 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
                 }
             }
 
-            pipeline->drawMesh(mesh, 1);
+            // 2 Paths:
+            // - Instanced Draw Call. We upload the instance handles into Cb4.
+            // - Non-Instanced Draw Call. We still do the instanced draw call
+            // API, but do not touch CB4.
+            int numInstances = (tail - head) + 1;
+            if (drawCall.instanceDataIndex != kInvalidInstanceDataKey) {
+                IConstantBuffer cbHandle = pipeline->loadVertexCB(4);
+
+                for (; head <= tail; head++) {
+                    assert(sizeof(InstanceDataKey) == sizeof(uint32_t));
+                    cbHandle.loadData(&(drawCallsEx[head].instanceDataIndex),
+                                      sizeof(InstanceDataKey));
+                }
+                // cbHandle.loadData(nullptr, 16);
+            }
+
+            pipeline->drawMesh(mesh, numInstances);
         }
+
+        tail++;
     }
 }
 
@@ -387,8 +438,9 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
                 // Load mesh vertex transformation matrix
                 vCB2.loadData(&mLocalToWorld, FLOAT4X4);
                 // Load mesh normal transformation matrix
-                Matrix4 normalTransform = mLocalToWorld.inverse().transpose();
-                vCB2.loadData(&(normalTransform), FLOAT4X4);
+                Matrix4 normalTransform =
+   mLocalToWorld.inverse().transpose(); vCB2.loadData(&(normalTransform),
+   FLOAT4X4);
             }
 
             // Skinning
@@ -397,8 +449,8 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
                 {
                     IConstantBuffer vCB3 = pipeline->loadVertexCB(CB3);
 
-                    const std::vector<SkinJoint>& skin = asset->getSkinJoints();
-                    for (int i = 0; i < skin.size(); i++) {
+                    const std::vector<SkinJoint>& skin =
+   asset->getSkinJoints(); for (int i = 0; i < skin.size(); i++) {
                         // SUPER INEFFICIENT RN
                         // TODO: THIS IS BOTTLE NECKING MY CODE
                         const Matrix4 skin_matrix =
@@ -414,7 +466,8 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
             }
 
             // Draw each mesh
-            pipeline->drawMesh(mesh.get(), INDEX_LIST_START, INDEX_LIST_END, 1);
+            pipeline->drawMesh(mesh.get(), INDEX_LIST_START, INDEX_LIST_END,
+   1);
         }
     }
 */

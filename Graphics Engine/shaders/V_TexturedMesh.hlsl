@@ -5,21 +5,37 @@ cbuffer CB1_VIEW_TRANSFORM : register(b1)
     float4x4 m_projection;
 }
 
-// Per-Mesh Data
-cbuffer CB2_MESH_TRANSFORM : register(b2)
+// CB3: Global Instance Buffer
+struct InstanceData
 {
-    float4x4 m_world;
-    float4x4 m_normals;
+    float4x4 mLocalMatrix;
+    float4x4 mNormalTransform;
+    float3 color;
+    float padding;
+};
+cbuffer CB3_INSTANCE_DATA : register(b3)
+{
+    InstanceData instanceData[200];
 }
 
-// CB3: Skinning Data
+// CB4: Instance ID Data
+struct InstanceHandleGlob
+{
+    uint4 handleGlob; // 4 Handles. Forces dense packing
+};
+cbuffer CB4_PER_DRAW_DATA : register(b4)
+{
+    InstanceHandleGlob instanceHandles[100];
+}
+
+// CB5: Skinning Data
 #if defined(SKINNED_MESH)
 struct SkinnedJoint
 {
     float4x4 m_joint;
     float4x4 m_joint_normal;
 };
-cbuffer CB3_SKIN_DATA : register(b3)
+cbuffer CB5_SKIN_DATA : register(b5)
 {
     SkinnedJoint joint_data[100];
 }
@@ -35,6 +51,8 @@ struct VS_IN
 
     float4 joints : JOINTS;
     float4 weights : WEIGHTS;
+
+    uint instance : SV_InstanceID;
 };
 #else
 struct VS_IN
@@ -42,6 +60,8 @@ struct VS_IN
     float3 position_local : POSITION;
     float2 tex_coord : TEXTURE;
     float3 normal : NORMAL;
+    
+    uint instance : SV_InstanceID;
 };
 #endif
 
@@ -64,6 +84,8 @@ VS_OUT vs_main(VS_IN input)
 {
 	// Zero the Memory
     VS_OUT output = (VS_OUT) 0;
+    
+    uint instanceID = instanceHandles[input.instance / 4].handleGlob[input.instance % 4];
     
     // Texture Coordinates:
     output.tex_coord = input.tex_coord;
@@ -88,7 +110,7 @@ VS_OUT vs_main(VS_IN input)
 #if defined(SKINNED_MESH)
     pos = mul(m_skin, pos);
 #endif
-    pos = mul(m_world, pos);
+    pos = mul(instanceData[instanceID].mLocalMatrix, pos);
     output.world_position = pos.xyz;
     
     // Find Clipping Position
@@ -99,7 +121,7 @@ VS_OUT vs_main(VS_IN input)
     // Normals:
     float4 norm = float4(input.normal, 0.0f);
     
-    norm = mul(m_normals, norm);
+    norm = mul(instanceData[instanceID].mNormalTransform, norm);
 #if defined(SKINNED_MESH)
     norm = mul(m_skin_normal, norm);
 #endif

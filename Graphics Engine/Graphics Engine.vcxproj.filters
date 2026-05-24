@@ -258,9 +258,6 @@
     <ClCompile Include="src\datamodel\objects\DMMesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\scene\DefaultMesh.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\core\DataFilePath.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -564,9 +561,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\datamodel\objects\DMMesh.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\rendering\scene\DefaultMesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\core\DataFilePath.h">

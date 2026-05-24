@@ -1,15 +1,29 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include <variant>
 
+#include "math/Matrix4.h"
+
 #include "rendering/core/Camera.h"
-#include "rendering/scene/DefaultMesh.h"
 
 namespace Engine {
 namespace Graphics {
 class VisualSystem;
 class SceneManagerImpl;
+
+struct RenderableMeshUpdatePacket {
+    enum class Property {
+        LocalMatrix,
+        MeshName,
+        ColorMapName,
+        Invalid,
+    };
+    Property type = Property::Invalid;
+
+    std::variant<Matrix4, std::string> data;
+};
 
 class SceneManager {
   public:
@@ -22,7 +36,7 @@ class SceneManager {
 
         uint32_t handle; // Object Handle
         Operation operation;
-        std::variant<Camera::UpdatePacket, DefaultMesh::UpdatePacket> data;
+        std::variant<Camera::UpdatePacket, RenderableMeshUpdatePacket> data;
     };
     void submitUpdatePacket(const UpdatePacket& packet);
 

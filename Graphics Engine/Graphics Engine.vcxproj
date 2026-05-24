@@ -190,7 +190,6 @@
     <ClCompile Include="src\datamodel\terrain\Terrain.cpp" />
     <ClCompile Include="src\core\ThreadPool.cpp" />
     <ClCompile Include="src\physics\PhysicsTerrain.cpp" />
-    <ClCompile Include="src\rendering\scene\DefaultMesh.cpp" />
     <ClCompile Include="src\rendering\core\VertexStreamIDs.cpp" />
     <ClCompile Include="src\rendering\resources\BumpMapBuilder.cpp" />
     <ClCompile Include="src\rendering\pipeline\ConstantBuffer.cpp" />
@@ -293,7 +292,6 @@
     <ClInclude Include="src\math\SDF.h" />
     <ClInclude Include="src\physics\PhysicsTerrain.h" />
     <ClInclude Include="src\rendering\core\Material.h" />
-    <ClInclude Include="src\rendering\scene\DefaultMesh.h" />
     <ClInclude Include="src\rendering\lights\LightDataGPU.h" />
     <ClInclude Include="src\rendering\resources\BumpMapBuilder.h" />
     <ClInclude Include="src\rendering\pipeline\ConstantBuffer.h" />
