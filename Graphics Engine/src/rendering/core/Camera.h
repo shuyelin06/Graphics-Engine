@@ -2,19 +2,13 @@
 
 #include <variant>
 
-#include "datamodel/DMBinding.h"
-#include "datamodel/objects/DMCamera.h"
-
 #include "math/CFrame.h"
 #include "math/Matrix4.h"
-#include "math/OBB.h"
-#include "math/Transform.h"
 
 #include "Frustum.h"
 
 namespace Engine {
 using namespace Math;
-using namespace Datamodel;
 
 namespace Graphics {
 // Camera Class:
