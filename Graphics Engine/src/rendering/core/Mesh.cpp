@@ -50,29 +50,27 @@ MeshPool::MeshPool(VertexLayout _layout, uint32_t tri_size, uint32_t v_size)
 }
 
 void MeshPool::cleanAndCompact() {
-    std::vector<std::shared_ptr<Mesh>>& allocs = meshes;
-
-    int head = 0;
+    std::vector<std::shared_ptr<Mesh>> meshesStrong;
+    meshesStrong.reserve(meshes.size());
 
     // Iterate through the mesh pointers, removing pointers with only one
     // reference. These are meshes that are no longer being used anywhere else.
-    for (int i = 0; i < allocs.size(); i++) {
-        if (allocs[i].use_count() != 1) {
-            if (head != i) {
-                allocs[head] = std::move(allocs[i]);
-            }
-            head++;
-        } else
-            allocs[i] = nullptr;
+    std::vector<std::weak_ptr<Mesh>>::iterator iter;
+    for (iter = meshes.begin(); iter != meshes.end();) {
+        std::shared_ptr<Mesh> mesh = (*iter).lock();
+        if (!mesh) {
+            iter = meshes.erase(iter);
+        } else {
+            meshesStrong.emplace_back(std::move(mesh));
+            ++iter;
+        }
     }
-    allocs.resize(head);
 
     // Iterate through meshes, removing fragmentation in the index buffer
     // We do this on the CPU side first.
-    head = 0;
-
-    for (int i = 0; i < allocs.size(); i++) {
-        Mesh* mesh = allocs[i].get();
+    int head = 0;
+    for (int i = 0; i < meshesStrong.size(); i++) {
+        Mesh* mesh = meshesStrong[i].get();
 
         if (head != mesh->triangle_start) {
             const UINT STRIDE = 3 * sizeof(UINT);
@@ -90,8 +88,8 @@ void MeshPool::cleanAndCompact() {
     // Remove fragmentation in the vertex buffers on the CPU-side
     head = 0;
 
-    for (int i = 0; i < allocs.size(); i++) {
-        Mesh* mesh = allocs[i].get();
+    for (int i = 0; i < meshesStrong.size(); i++) {
+        Mesh* mesh = meshesStrong[i].get();
 
         if (head != mesh->vertex_start) {
             for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {

@@ -5,9 +5,13 @@
 #include <string>
 #include <vector>
 
+#include "math/Compute.h"
+
 #include "rendering/core/Material.h"
 
 namespace Engine {
+using namespace Math;
+
 namespace Graphics {
 class MaterialManagerImpl;
 
@@ -20,7 +24,7 @@ class MaterialManager {
     struct DefaultMaterialParams {
         std::string colormap;
 
-        bool debug;
+        MD5Hash generateHash() const;
     };
     struct TerrainMaterialParams {};
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 #include "Vector3.h"
 
 namespace Engine {
@@ -41,6 +43,12 @@ Vector3 SphericalToEuler(const Vector3& spherical);
 Vector3 SphericalToEuler(float r, float theta, float phi);
 Vector3 EulerToSpherical(const Vector3& euler);
 Vector3 EulerToSpherical(float x, float y, float z);
+
+// MD5 Hash of some Data Stream
+using MD5Hash = std::array<uint32_t, 4>;
+static_assert(sizeof(MD5Hash) == 16);
+MD5Hash hashMD5(const void* data, size_t byteSize);
+MD5Hash hashMD5(const void** dataArr, const size_t* byteSizeArr, size_t numElements);
 
 } // namespace Math
 } // namespace Engine

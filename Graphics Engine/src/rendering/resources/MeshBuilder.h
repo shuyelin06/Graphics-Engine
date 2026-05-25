@@ -6,6 +6,8 @@
 #include <vector>
 
 #include "../core/Mesh.h"
+
+#include "math/Compute.h"
 #include "math/Quaternion.h"
 
 namespace Engine {
@@ -62,6 +64,8 @@ class MeshBuilder {
     const std::vector<MeshTriangle>& getIndices() const;
     std::vector<MeshVertex>& getVertices();
     std::vector<MeshTriangle>& getIndices();
+
+    MD5Hash generateHash() const;
 
     bool isEmpty() const;
 

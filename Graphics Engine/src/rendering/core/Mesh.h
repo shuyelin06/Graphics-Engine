@@ -38,7 +38,7 @@ struct MeshPool {
   public:
     // Meshes Allocated to this Pool.
     // This pool is in charge of deallocating them.
-    std::vector<std::shared_ptr<Mesh>> meshes;
+    std::vector<std::weak_ptr<Mesh>> meshes;
     // Layout, i.e. the streams that the pool stores
     VertexLayout layout;
 

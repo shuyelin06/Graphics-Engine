@@ -23,6 +23,9 @@ void Technique::uploadPixelCBData(uint8_t slot, const void* src,
 using DefaultMaterialParams = MaterialManager::DefaultMaterialParams;
 using TerrainMaterialParams = MaterialManager::TerrainMaterialParams;
 class MaterialManagerImpl {
+  private:
+    std::unordered_map<uint32_t, std::weak_ptr<Material>> materialMap;
+
   public:
     MaterialManagerImpl();
     ~MaterialManagerImpl();
@@ -62,6 +65,10 @@ bool Material::ready() const {
     return ready;
 }
 
+MD5Hash MaterialManager::DefaultMaterialParams::generateHash() const {
+    return hashMD5(colormap.data(), colormap.size());
+}
+
 std::unique_ptr<MaterialManager> MaterialManager::create() {
     std::unique_ptr<MaterialManager> ptr =
         std::unique_ptr<MaterialManager>(new MaterialManager());
@@ -86,7 +93,21 @@ MaterialManagerImpl::~MaterialManagerImpl() = default;
 
 std::shared_ptr<Material>
 MaterialManagerImpl::createMaterial(const DefaultMaterialParams& params) {
-    // TODO: Hash on material params for deduplication
+    MD5Hash md5 = params.generateHash();
+    // TODO figure out better way to combine the hash values
+    const uint32_t hash = md5[0] ^ md5[1] ^ md5[2] ^ md5[3];
+
+    if (auto iter = materialMap.find(hash); iter != materialMap.end()) {
+        std::weak_ptr<Material> materialWeak = materialMap[hash];
+        std::shared_ptr<Material> material = materialWeak.lock();
+
+        if (material) {
+            return material;
+        } else {
+            materialMap.erase(iter);
+        }
+    }
+
     std::shared_ptr<Material> material = std::make_shared<Material>();
 
     Technique* technique = material->setTechnique(RenderPass::kOpaque);
@@ -94,6 +115,8 @@ MaterialManagerImpl::createMaterial(const DefaultMaterialParams& params) {
     technique->pixelShader = "TexturedMesh";
 
     technique->ready = true;
+
+    materialMap[hash] = material;
 
     return material;
 }

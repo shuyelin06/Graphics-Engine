@@ -6,6 +6,7 @@
 #include <mutex>
 #include <regex>
 #include <string.h>
+#include <unordered_map>
 #include <vector>
 
 #include <assert.h>
@@ -49,6 +50,7 @@ class ResourceManagerImpl {
 
     std::vector<std::unique_ptr<MeshPool>> mesh_pools;
     std::vector<std::shared_ptr<Mesh>> meshes;
+    std::unordered_map<uint32_t, std::weak_ptr<Mesh>> mesh_map;
 
     std::vector<std::shared_ptr<Texture>> textures;
 
@@ -78,8 +80,6 @@ class ResourceManagerImpl {
     std::shared_ptr<Mesh> LoadMeshFromFile(const std::string& relative_path);
 
     std::shared_ptr<TextureBuilder> createTextureBuilder();
-
-    MeshPool* getMeshPool(MeshPoolType pool_type);
 
     std::shared_ptr<Mesh> requestMesh(const MeshBuilder& mesh_builder);
     std::shared_ptr<Texture> requestTexture(const TextureBuilder& tex_builder);
@@ -134,10 +134,6 @@ ResourceManager::LoadMeshFromFile(const std::string& relative_path) {
 
 std::shared_ptr<TextureBuilder> ResourceManager::createTextureBuilder() {
     return mImpl->createTextureBuilder();
-}
-
-MeshPool* ResourceManager::getMeshPool(MeshPoolType pool_type) {
-    return mImpl->getMeshPool(pool_type);
 }
 
 std::shared_ptr<Mesh>
@@ -285,16 +281,30 @@ std::shared_ptr<TextureBuilder> ResourceManagerImpl::createTextureBuilder() {
     return std::make_shared<TextureBuilder>(1, 1);
 }
 
-MeshPool* ResourceManagerImpl::getMeshPool(MeshPoolType pool_type) {
-    return mesh_pools[pool_type].get();
-}
-
 std::shared_ptr<Mesh>
 ResourceManagerImpl::requestMesh(const MeshBuilder& mesh_builder) {
     if (mesh_builder.index_buffer.empty() || mesh_builder.vertex_buffer.empty())
         return nullptr;
 
     std::scoped_lock<std::mutex> mesh_job_lock(mesh_job_mutex);
+
+    MD5Hash md5 = mesh_builder.generateHash();
+    // TODO figure out better way to combine the hash values
+    const uint32_t hash = md5[0] ^ md5[1] ^ md5[2] ^ md5[3];
+
+    // Attempt to pull mesh from existing map based on hash of the MeshBuilder.
+    // This can save a lot of work for duplicate meshes.
+    if (auto iter = mesh_map.find(hash); iter != mesh_map.end()) {
+        std::weak_ptr<Mesh> meshWeak = mesh_map[hash];
+        std::shared_ptr<Mesh> mesh = meshWeak.lock();
+
+        if (mesh) {
+            return mesh;
+        } else {
+            mesh_map.erase(iter);
+        }
+        // Fallthrough
+    }
 
     MeshBuildingJob& mesh_job = mesh_jobs.emplace_back();
 
@@ -304,6 +314,8 @@ ResourceManagerImpl::requestMesh(const MeshBuilder& mesh_builder) {
 
     mesh_job.mesh = std::make_shared<Mesh>();
     mesh_job.mesh->ready = false;
+
+    mesh_map[hash] = mesh_job.mesh;
 
     return mesh_job.mesh;
 }
@@ -435,6 +447,9 @@ void ResourceManagerImpl::processMeshJob(const MeshBuildingJob& job) {
     mesh->num_vertices = job.vertex_data.size();
     mesh->triangle_start = pool->triangle_size;
     mesh->num_triangles = job.index_data.size();
+
+    // TODO
+    // meshes.push_back(mesh);
 
     for (const MeshVertex& vertex : job.vertex_data)
         mesh->aabb.expandToContain(vertex.position);

@@ -1,15 +1,14 @@
 #include "Compute.h"
 
-#include <math.h>
+#include "md5/md5.h"
 
 #include <assert.h>
+#include <math.h>
 #include <stdlib.h>
 #include <time.h>
 
 #include "Vector2.h"
 #include "Vector4.h"
-
-#include <assert.h>
 
 namespace Engine {
 
@@ -81,6 +80,32 @@ Vector3 EulerToSpherical(float x, float y, float z) {
     const float phi = atan2f(y, x);
 
     return Vector3(r, theta, phi);
+}
+
+MD5Hash hashMD5(const void* data, size_t byteSize) {
+    MD5Context context;
+    md5Init(&context);
+    md5Update(&context, (uint8_t*)data, byteSize);
+    md5Finalize(&context);
+
+    MD5Hash output;
+    memcpy(output.data(), context.digest, 16);
+
+    return output;
+}
+
+MD5Hash hashMD5(const void** dataArr, const size_t* byteSizeArr, size_t numElements) {
+    MD5Context context;
+    md5Init(&context);
+    for (size_t i = 0; i < numElements; i++) {
+        md5Update(&context, (uint8_t*)(dataArr[i]), byteSizeArr[i]);
+    }
+    md5Finalize(&context);
+
+    MD5Hash output;
+    memcpy(output.data(), context.digest, 16);
+
+    return output;
 }
 
 } // namespace Math

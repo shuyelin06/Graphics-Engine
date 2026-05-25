@@ -27,7 +27,7 @@ struct InstanceData {
 // when sorting draw calls. We do not want a separate sorting key as
 // that would be inefficient.
 using InstanceDataKey = uint32_t;
-constexpr InstanceDataKey kInvalidInstanceDataKey = 0xFFFF;
+inline constexpr InstanceDataKey kInvalidInstanceDataKey = 0xFFFF;
 
 struct DrawCall {
     uint32_t depth = 0xFF;

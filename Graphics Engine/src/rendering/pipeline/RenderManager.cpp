@@ -311,8 +311,24 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
     }
     std::sort(drawCallsEx.begin(), drawCallsEx.end(),
               [](const DrawCall& a, const DrawCall& b) {
-                  return (a.depth <= b.depth) && (a.technique <= b.technique) &&
-                         (a.mesh <= b.mesh);
+                  // Depth back to front
+                  if (a.depth != b.depth) {
+                      return a.depth > b.depth;
+                  }
+                  // Technique in any order
+                  else if (a.technique != b.technique) {
+                      return a.technique < b.technique;
+                  }
+                  // Sort by mesh pool since that causes rebindings.
+                  // Less than technique, but still meaningful.
+                  else if (a.mesh->buffer_pool != b.mesh->buffer_pool) {
+                      return a.mesh->buffer_pool < b.mesh->buffer_pool;
+                  }
+                  // Finally, sort by mesh pointer. Having the same mesh means
+                  // we can do an instanced draw call.
+                  // Even so, multiple meshes in the same pool minimizes the
+                  // number of bindings we need to do.
+                  return a.mesh < b.mesh;
               });
 
     DebugRenderPassScope renderpass_debug =
@@ -323,83 +339,91 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
     // (i.e. pipeline->draw(VertexTechnique, PixelTechnique).
     // TODO ResourceManager needs to enforce lifetime of the pointer
     // resources
-    size_t head = 0;
     size_t tail = 0;
 
     bool stop = false;
     while (tail < drawCallsEx.size()) {
-        bool draw = true;
-
-        const DrawCall& drawCall = drawCallsEx[tail];
+        size_t head = tail;
+        const DrawCall& baseDrawCall = drawCallsEx[head];
 
         // Check if we can batch.
         // We can only batch if everything is equal except for the instance
         // data handle (and the instance data handle is provided)
-        bool canBatch = drawCall.instanceDataIndex != kInvalidInstanceDataKey;
-        {
-            const DrawCall& drawCallInBatch = drawCallsEx[head];
-            (drawCallInBatch.depth == drawCall.depth);
-            canBatch =
-                canBatch && (drawCallInBatch.technique == drawCall.technique);
-            canBatch = canBatch && (drawCallInBatch.mesh == drawCall.mesh);
+        bool canBatch = false;
+        if (baseDrawCall.instanceDataIndex != kInvalidDrawBlockKey) {
+            canBatch = true;
+
+            bool stop = false;
+            while (!stop && tail + 1 < drawCallsEx.size()) {
+                const DrawCall& nextDrawCall = drawCallsEx[tail + 1];
+
+                bool batchNext = true;
+                batchNext = batchNext && nextDrawCall.instanceDataIndex !=
+                                             kInvalidInstanceDataKey;
+                batchNext =
+                    batchNext && (baseDrawCall.depth == nextDrawCall.depth);
+                batchNext = batchNext &&
+                            (baseDrawCall.technique == nextDrawCall.technique);
+                batchNext = batchNext && (baseDrawCall.mesh->buffer_pool ==
+                                          nextDrawCall.mesh->buffer_pool);
+                batchNext =
+                    batchNext && (baseDrawCall.mesh == nextDrawCall.mesh);
+
+                if (batchNext)
+                    tail++;
+                else
+                    stop = true;
+            }
         }
-        // Do not batch if we are on the last draw call of the list. Just render
-        // what we have.
-        canBatch = canBatch && (tail != drawCallsEx.size() - 1);
 
-        draw = !canBatch;
+        // Bind everything
+        // TODO Shader Resources
 
-        if (draw) {
-            // Bind everything
-            // TODO Shader Resources
+        const Mesh* mesh = baseDrawCall.mesh;
+        const Technique* technique = baseDrawCall.technique;
 
-            const Mesh* mesh = drawCall.mesh;
-            const Technique* technique = drawCall.technique;
+        pipeline->bindVertexShader(technique->vertexShader);
+        for (int slot = 0; slot < kVertexConstantBufferMax; slot++) {
+            const auto& buffer = technique->vertexCBuffers[slot];
+            if (buffer.size() > 0) {
+                pipeline->markVertexCBUsage(slot, true);
 
-            pipeline->bindVertexShader(technique->vertexShader);
-            for (int slot = 0; slot < kVertexConstantBufferMax; slot++) {
-                const auto& buffer = technique->vertexCBuffers[slot];
-                if (buffer.size() > 0) {
-                    pipeline->markVertexCBUsage(slot, true);
+                IConstantBuffer cbHandle = pipeline->loadVertexCB(slot);
+                cbHandle.loadData(buffer.data(), buffer.size());
 
-                    IConstantBuffer cbHandle = pipeline->loadVertexCB(slot);
-                    cbHandle.loadData(buffer.data(), buffer.size());
-
-                    pipeline->markVertexCBUsage(slot, false);
-                }
+                pipeline->markVertexCBUsage(slot, false);
             }
-
-            pipeline->bindPixelShader(technique->pixelShader);
-            for (int slot = 0; slot < kVertexConstantBufferMax; slot++) {
-                const auto& buffer = technique->pixelCbuffers[slot];
-                if (buffer.size() > 0) {
-                    pipeline->markPixelCBUsage(slot, true);
-
-                    IConstantBuffer cbHandle = pipeline->loadPixelCB(slot);
-                    cbHandle.loadData(buffer.data(), buffer.size());
-
-                    pipeline->markPixelCBUsage(slot, false);
-                }
-            }
-
-            // 2 Paths:
-            // - Instanced Draw Call. We upload the instance handles into Cb4.
-            // - Non-Instanced Draw Call. We still do the instanced draw call
-            // API, but do not touch CB4.
-            int numInstances = (tail - head) + 1;
-            if (drawCall.instanceDataIndex != kInvalidInstanceDataKey) {
-                IConstantBuffer cbHandle = pipeline->loadVertexCB(4);
-
-                for (; head <= tail; head++) {
-                    assert(sizeof(InstanceDataKey) == sizeof(uint32_t));
-                    cbHandle.loadData(&(drawCallsEx[head].instanceDataIndex),
-                                      sizeof(InstanceDataKey));
-                }
-                // cbHandle.loadData(nullptr, 16);
-            }
-
-            pipeline->drawMesh(mesh, numInstances);
         }
+
+        pipeline->bindPixelShader(technique->pixelShader);
+        for (int slot = 0; slot < kVertexConstantBufferMax; slot++) {
+            const auto& buffer = technique->pixelCbuffers[slot];
+            if (buffer.size() > 0) {
+                pipeline->markPixelCBUsage(slot, true);
+
+                IConstantBuffer cbHandle = pipeline->loadPixelCB(slot);
+                cbHandle.loadData(buffer.data(), buffer.size());
+
+                pipeline->markPixelCBUsage(slot, false);
+            }
+        }
+
+        // 2 Paths:
+        // - Instanced Draw Call. We upload the instance handles into Cb4.
+        // - Non-Instanced Draw Call. We still do the instanced draw call
+        // API, but do not touch CB4.
+        int numInstances = (tail - head) + 1;
+        if (canBatch) {
+            IConstantBuffer cbHandle = pipeline->loadVertexCB(4);
+
+            for (; head <= tail; head++) {
+                assert(sizeof(InstanceDataKey) == sizeof(uint32_t));
+                cbHandle.loadData(&(drawCallsEx[head].instanceDataIndex),
+                                  sizeof(InstanceDataKey));
+            }
+        }
+
+        pipeline->drawMesh(mesh, numInstances);
 
         tail++;
     }

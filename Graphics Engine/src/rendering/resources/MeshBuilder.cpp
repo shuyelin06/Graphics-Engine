@@ -85,6 +85,20 @@ const std::vector<MeshTriangle>& MeshBuilder::getIndices() const {
     return index_buffer;
 }
 std::vector<MeshTriangle>& MeshBuilder::getIndices() { return index_buffer; }
+
+MD5Hash MeshBuilder::generateHash() const {
+    const void* dataArr[3];
+    size_t byteSizeArr[3];
+
+    dataArr[0] = vertex_buffer.data();
+    byteSizeArr[0] = vertex_buffer.size() * sizeof(MeshVertex);
+    dataArr[1] = index_buffer.data();
+    byteSizeArr[1] = index_buffer.size() * sizeof(MeshTriangle);
+    dataArr[2] = &layout;
+    byteSizeArr[2] = sizeof(VertexLayout);
+
+    return hashMD5(dataArr, byteSizeArr, 3);
+}
 bool MeshBuilder::isEmpty() const { return index_buffer.size() == 0; }
 
 // AddLayout:

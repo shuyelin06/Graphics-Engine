@@ -61,8 +61,6 @@ class ResourceManager {
 
     std::shared_ptr<TextureBuilder> createTextureBuilder();
 
-    MeshPool* getMeshPool(MeshPoolType pool_type);
-
     std::shared_ptr<Mesh> requestMesh(const MeshBuilder& mesh_builder);
 
     // Debug Display
