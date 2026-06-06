@@ -105,7 +105,7 @@
     <ClCompile Include="src\math\PerlinNoise.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\terrain\MarchingCube.cpp">
+    <ClCompile Include="src\rendering\terrain3D\MarchingCube.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\core\VertexStreamIDs.h">
@@ -177,7 +177,7 @@
     <ClCompile Include="src\physics\PhysicsObject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\terrain\TerrainManager.cpp">
+    <ClCompile Include="src\rendering\terrain3D\TerrainManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\physics\collisions\AABBTree.cpp">
@@ -225,7 +225,7 @@
     <ClCompile Include="src\physics\PhysicsTerrain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\terrain\WaterSurface.cpp">
+    <ClCompile Include="src\rendering\terrain3D\WaterSurface.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\resources\BumpMapBuilder.cpp">
@@ -261,10 +261,10 @@
     <ClCompile Include="src\core\DataFilePath.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\terrain\ChunkBuilderJob.cpp">
+    <ClCompile Include="src\rendering\terrain3D\ChunkBuilderJob.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\terrain\TerrainOctree.cpp">
+    <ClCompile Include="src\rendering\terrain3D\TerrainOctree.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\datamodel\core\DMTracking.cpp">
@@ -273,7 +273,7 @@
     <ClCompile Include="src\rendering\scene\SceneListener.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\terrain\TerrainSDF.cpp">
+    <ClCompile Include="src\rendering\terrain3D\TerrainSDF.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\pipeline\RenderManager.h">
@@ -362,7 +362,7 @@
     <ClInclude Include="src\math\Color.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\terrain\MarchingCubeTables.h">
+    <ClInclude Include="src\rendering\terrain3D\MarchingCubeTables.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\math\Quaternion.h">
@@ -470,7 +470,7 @@
     <ClInclude Include="src\physics\PhysicsObject.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\terrain\TerrainManager.h">
+    <ClInclude Include="src\rendering\terrain3D\TerrainManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\physics\collisions\AABBTree.h">
@@ -512,7 +512,7 @@
     <ClInclude Include="src\datamodel\bvh\BVH.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\terrain\MarchingCube.h">
+    <ClInclude Include="src\rendering\terrain3D\MarchingCube.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\datamodel\bvh\TLAS.h">
@@ -524,7 +524,7 @@
     <ClInclude Include="src\physics\PhysicsTerrain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\terrain\WaterSurface.h">
+    <ClInclude Include="src\rendering\terrain3D\WaterSurface.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\resources\BumpMapBuilder.h">
@@ -572,13 +572,13 @@
     <ClInclude Include="src\rendering\core\Material.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\terrain\ChunkBuilderJob.h">
+    <ClInclude Include="src\rendering\terrain3D\ChunkBuilderJob.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\math\SDF.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\terrain\TerrainOctree.h">
+    <ClInclude Include="src\rendering\terrain3D\TerrainOctree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\core\PoolAllocator.h">
@@ -599,7 +599,7 @@
     <ClInclude Include="src\datamodel\core\DMListener.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\terrain\TerrainSDF.h">
+    <ClInclude Include="src\rendering\terrain3D\TerrainSDF.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\core\StackString.h">

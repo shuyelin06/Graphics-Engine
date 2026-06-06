@@ -14,7 +14,7 @@
 #include "resources/ResourceManager.h"
 #include "resources/MaterialManager.h"
 #include "scene/SceneManager.h"
-#include "terrain/TerrainManager.h"
+#include "terrain3D/TerrainManager.h"
 
 #if defined(_DEBUG)
 #include "util/CPUTimer.h"

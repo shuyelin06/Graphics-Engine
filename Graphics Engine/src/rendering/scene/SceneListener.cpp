@@ -2,7 +2,7 @@
 
 #include "../VisualSystem.h"
 
-#include "rendering/terrain/TerrainManager.h"
+#include "rendering/terrain3D/TerrainManager.h"
 
 namespace Engine {
 namespace Graphics {
