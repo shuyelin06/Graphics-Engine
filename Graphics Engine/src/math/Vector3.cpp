@@ -21,6 +21,12 @@ Vector3::Vector3(const Vector3& copy) {
 
 // Constructor:
 // Creates a vector given input x,y,z values
+Vector3::Vector3(const Vector2& _xy, float _z) {
+    x = _xy.x;
+    y = _xy.y;
+    z = _z;
+}
+
 Vector3::Vector3(float _x, float _y, float _z) {
     x = _x;
     y = _y;
@@ -38,6 +44,7 @@ void Vector3::set(const Vector3& vec) {
 // XZY:
 // Returns a new vector with the components rearranged
 Vector3 Vector3::xzy() const { return Vector3(x, z, y); }
+Vector2 Vector3::xz() const { return Vector2(x, z); }
 
 // Magnitude:
 // Returns the vector's magnitude

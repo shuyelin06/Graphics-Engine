@@ -11,9 +11,10 @@
 #include "lights/LightManager.h"
 #include "pipeline/PipelineManager.h"
 #include "pipeline/RenderManager.h"
-#include "resources/ResourceManager.h"
 #include "resources/MaterialManager.h"
+#include "resources/ResourceManager.h"
 #include "scene/SceneManager.h"
+#include "terrain2D/Terrain2DManager.h"
 #include "terrain3D/TerrainManager.h"
 
 #if defined(_DEBUG)
@@ -58,6 +59,7 @@ class VisualSystem {
 
     std::unique_ptr<SceneManager> scene_manager;
     std::unique_ptr<TerrainManager> terrain;
+    std::unique_ptr<Terrain2DManager> terrain2D;
     LightManager* light_manager;
 
     std::unique_ptr<ResourceManager> resource_manager;

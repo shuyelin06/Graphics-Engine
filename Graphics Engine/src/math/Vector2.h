@@ -38,6 +38,7 @@ class Vector2 {
     Vector2 operator-(const Vector2&) const; // Subtraction
     Vector2& operator-=(const Vector2&);     // Compound (In-Place) Subtraction
     Vector2 operator-() const;               // Negation
+    Vector2 operator/(float) const; // Division
 };
 } // namespace Math
 } // namespace Engine

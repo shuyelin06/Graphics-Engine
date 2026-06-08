@@ -79,6 +79,7 @@ void VisualSystem::imGui() {
     static bool imgui_resource_manager = false;
     static bool imgui_light_manager = false;
     static bool imgui_visual_terrain = false;
+    static bool imgui_2d_terrain = false;
 
     if (ImGui::BeginMenu("Rendering")) {
         const Pipeline::Stats& stats = pipeline->getStats();
@@ -90,6 +91,8 @@ void VisualSystem::imGui() {
             imgui_light_manager = true;
         if (terrain && ImGui::Button("Visual Terrain"))
             imgui_visual_terrain = true;
+        if (terrain2D && ImGui::Button("2D Terrain"))
+            imgui_2d_terrain = true;
         ImGui::EndMenu();
     }
 
@@ -112,6 +115,13 @@ void VisualSystem::imGui() {
         if (ImGui::Begin("Visual Terrain", &imgui_visual_terrain,
                          ImGuiWindowFlags_NoCollapse)) {
             terrain->imGui();
+        }
+        ImGui::End();
+    }
+    if (imgui_2d_terrain) {
+        if (ImGui::Begin("2D Terrain"), &imgui_2d_terrain,
+            ImGuiWindowFlags_NoCollapse) {
+            terrain2D->imGui();
         }
         ImGui::End();
     }
@@ -158,6 +168,7 @@ VisualSystem::VisualSystem(HWND window) {
     light_manager = new LightManager(device, 4096);
 
     terrain = TerrainManager::create(this);
+    terrain2D = Terrain2DManager::create(this);
 }
 
 // Render:
@@ -229,9 +240,12 @@ void VisualSystem::renderPrepare() {
 
     light_manager->pullDatamodelData();
 
+    /*
     if (terrain)
         terrain->updateAndUploadTerrainData(
             context, scene_manager->getMainCamera()->getPosition());
+    */
+    terrain2D->update(scene_manager->getMainCamera()->getPosition());
 
     // Prepare managers for data
     light_manager->updateSunDirection(config->sun_direction);

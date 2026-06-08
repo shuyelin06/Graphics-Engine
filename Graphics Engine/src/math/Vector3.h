@@ -2,6 +2,8 @@
 
 #include <functional>
 
+#include "Vector2.h"
+
 namespace Engine {
 namespace Math {
 
@@ -14,6 +16,7 @@ class Vector3 {
 
     Vector3();
     Vector3(const Vector3& copy);
+    Vector3(const Vector2& xy, float z);
     Vector3(float _x, float _y, float _z);
 
     ~Vector3() {};
@@ -23,6 +26,7 @@ class Vector3 {
 
     // Return a vector with the contents rearranged
     Vector3 xzy() const;
+    Vector2 xz() const;
 
     // Normalize the vector
     void inplaceNormalize(); // In-Place Normalize

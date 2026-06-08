@@ -187,6 +187,8 @@
     <ClCompile Include="src\rendering\resources\MaterialManager.cpp" />
     <ClCompile Include="src\rendering\scene\SceneListener.cpp" />
     <ClCompile Include="src\rendering\scene\SceneManager.cpp" />
+    <ClCompile Include="src\rendering\terrain2D\HeightMapGenerator.cpp" />
+    <ClCompile Include="src\rendering\terrain2D\Terrain2DManager.cpp" />
     <ClCompile Include="src\rendering\terrain3D\TerrainOctree.cpp" />
     <ClCompile Include="src\datamodel\terrain\Terrain.cpp" />
     <ClCompile Include="src\core\ThreadPool.cpp" />
@@ -288,6 +290,8 @@
     <ClInclude Include="src\rendering\resources\MaterialManager.h" />
     <ClInclude Include="src\rendering\scene\SceneListener.h" />
     <ClInclude Include="src\rendering\scene\SceneManager.h" />
+    <ClInclude Include="src\rendering\terrain2D\HeightMapGenerator.h" />
+    <ClInclude Include="src\rendering\terrain2D\Terrain2DManager.h" />
     <ClInclude Include="src\rendering\terrain3D\TerrainOctree.h" />
     <ClInclude Include="src\datamodel\terrain\TerrainConfig.h" />
     <ClInclude Include="src\GlobalConfig.h" />

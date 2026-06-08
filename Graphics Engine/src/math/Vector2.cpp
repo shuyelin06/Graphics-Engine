@@ -21,9 +21,7 @@ Vector2 Vector2::unit() const {
 }
 // Magnitude:
 // Returns the magnitude (length) of the vector.
-float Vector2::magnitude() const {
-    return sqrtf(x * x + y * y);
-}
+float Vector2::magnitude() const { return sqrtf(x * x + y * y); }
 
 // Dot:
 // Calculates the dot product between two 2D vectors.
@@ -33,9 +31,7 @@ float Vector2::dot(const Vector2& vector) const {
 
 // Orthogonal:
 // Returns some vector orthogonal to this vector
-Vector2 Vector2::orthogonal() const {
-    return Vector2(y, -x);
-}
+Vector2 Vector2::orthogonal() const { return Vector2(y, -x); }
 
 // + Operator:
 // Returns a new vector which is the summation of
@@ -76,6 +72,11 @@ Vector2& Vector2::operator-=(const Vector2& vec) {
 // Returns a new vector which is the negation of this vector's
 // x,y,z values
 Vector2 Vector2::operator-() const { return Vector2(-x, -y); }
+
+// / Operator (Divide)
+Vector2 Vector2::operator/(float divisor) const {
+    return Vector2(x / divisor, y / divisor);
+}
 
 } // namespace Math
 } // namespace Engine

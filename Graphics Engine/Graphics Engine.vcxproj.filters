@@ -297,6 +297,12 @@
     <ClCompile Include="include\md5\md5.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\rendering\terrain2D\Terrain2DManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rendering\terrain2D\HeightMapGenerator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\math\Vector3.h">
@@ -624,6 +630,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\md5\md5.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rendering\terrain2D\Terrain2DManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rendering\terrain2D\HeightMapGenerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
