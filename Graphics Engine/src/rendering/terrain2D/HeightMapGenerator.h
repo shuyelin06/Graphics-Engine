@@ -12,9 +12,20 @@ class HeightMapGenerator {
   private:
     PerlinNoise mNoise;
 
+    float frequency = 0.005f;
+    int octaves = 1;
+    float persistence = 0.75f;
+
+    float exponential = 3.5f;
+
+    float heightMin = -30.f;
+    float heightMax = 500.f;
+
   public:
     HeightMapGenerator();
     ~HeightMapGenerator();
+
+    void imGui();
 
     void seed(uint32_t seed);
 

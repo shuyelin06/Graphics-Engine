@@ -29,6 +29,8 @@ class AABB {
 
     // Modify the AABB
     void expandToContain(const Vector3& point);
+
+    bool operator==(const AABB& aabb) const;
 };
 
 } // namespace Math

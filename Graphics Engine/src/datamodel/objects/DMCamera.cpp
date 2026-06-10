@@ -7,7 +7,7 @@ DMCamera::DMCamera()
       zNear(&getDMHandle(), "ZNear"), zFar(&getDMHandle(), "ZFar") {
     fov.writeProperty(1.2f);
     zNear.writeProperty(5.f);
-    zFar.writeProperty(500.f);
+    zFar.writeProperty(1500.f);
 }
 DMCamera::~DMCamera() = default;
 

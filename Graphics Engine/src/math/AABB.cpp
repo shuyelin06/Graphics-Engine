@@ -1,7 +1,7 @@
 #include "AABB.h"
 
-#include <math.h>
 #include <algorithm>
+#include <math.h>
 
 namespace Engine {
 namespace Math {
@@ -49,6 +49,10 @@ void AABB::fillArrWithPoints(Vector3* point_arr) const {
 void AABB::expandToContain(const Vector3& point) {
     minimum = minimum.componentMin(point);
     maximum = maximum.componentMax(point);
+}
+
+bool AABB::operator==(const AABB& aabb) const {
+    return minimum == aabb.minimum && maximum == aabb.maximum;
 }
 
 } // namespace Math

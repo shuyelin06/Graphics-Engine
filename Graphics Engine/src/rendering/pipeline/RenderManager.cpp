@@ -6,6 +6,7 @@
 #include "rendering/Direct3D11.h"
 #include <d3d11_1.h>
 
+#include "rendering/core/Frustum.h"
 #include "rendering/util/GPUTimer.h"
 
 #include "DrawCall.h"
@@ -94,7 +95,8 @@ class RenderManagerImpl {
     void perform();
 
   private:
-    void executeRenderPass(RenderPass pass, const std::string& annotation);
+    void executeRenderPass(RenderPass pass, const RenderView& view,
+                           const std::string& annotation);
 };
 
 RenderManager::RenderManager() = default;
@@ -271,14 +273,14 @@ void RenderManagerImpl::perform() {
         pipeline->bindRenderTarget(mainView.renderTarget, mainView.depthStencil,
                                    Depth_TestAndWrite);
         pipeline->bindBlendSettings(Blend_Default);
-        executeRenderPass(RenderPass::kOpaque, "Opaque");
+        executeRenderPass(RenderPass::kOpaque, mainView, "Opaque");
     }
 
     {
         pipeline->bindRenderTarget(mainView.renderTarget, mainView.depthStencil,
                                    Depth_TestAndWrite);
         pipeline->bindBlendSettings(Blend_Default);
-        executeRenderPass(RenderPass::kDebug, "Debug");
+        executeRenderPass(RenderPass::kDebug, mainView, "Debug");
     }
 
     pipeline->markVertexCBUsage(0, false);
@@ -287,8 +289,12 @@ void RenderManagerImpl::perform() {
 }
 
 void RenderManagerImpl::executeRenderPass(RenderPass pass,
+                                          const RenderView& view,
                                           const std::string& annotation) {
     Pipeline* pipeline = visualSystem->getPipeline();
+
+    const Frustum viewFrustum =
+        Frustum(view.mLocalToFrustum * view.mWorldToLocal);
 
     // Query my draw blocks
     // TODO This is quite inefficient. We should move this to a job or something
@@ -299,14 +305,27 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
         const Technique* technique = drawBlock.material->getTechnique(pass);
 
         if (technique != nullptr) {
-            DrawCall call;
-            call.mesh = drawBlock.mesh;
-            call.technique = technique;
-            if (drawBlock.instanceData) {
-                call.instanceDataIndex =
-                    instanceDataPool.getIndex(drawBlock.instanceData);
+            bool frustumCull = false;
+            if (drawBlock.extents != AABB()) {
+                // TODO Investigate. Frustum Culling doesn't work and is needed.
+                Matrix4 localToWorld = Matrix4::Identity();
+                if (drawBlock.instanceData) {
+                    localToWorld = drawBlock.instanceData->mLocalToWorld;
+                }
+                OBB obb = OBB(drawBlock.extents, localToWorld);
+                frustumCull = !viewFrustum.intersectsOBB(obb);
             }
-            drawCallsEx.push_back(call);
+
+            if (!frustumCull) {
+                DrawCall call;
+                call.mesh = drawBlock.mesh;
+                call.technique = technique;
+                if (drawBlock.instanceData) {
+                    call.instanceDataIndex =
+                        instanceDataPool.getIndex(drawBlock.instanceData);
+                }
+                drawCallsEx.push_back(call);
+            }
         }
     }
     std::sort(drawCallsEx.begin(), drawCallsEx.end(),

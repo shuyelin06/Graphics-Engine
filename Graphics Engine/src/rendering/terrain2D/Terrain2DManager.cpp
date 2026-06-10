@@ -47,10 +47,12 @@ struct QuadTreeNode {
 class Terrain2DManagerImpl {
   private:
     // Settings
-    static constexpr int kMaxQuadTreeDepth = 4;
-    static constexpr float kTerrainNodeSize = 50.f;
-    static constexpr int kNumSamples = (int)kTerrainNodeSize;
+    static constexpr int kMaximumNodes = 5000;
+    static constexpr int kMaxQuadTreeDepth = 10;
+    static constexpr float kTerrainNodeSize = 25.f;
+    static constexpr int kNumSamples = 10;
     static constexpr int kNumBuilderJobs = 8;
+    float kLODAttenuation = 3000.f;
 
     VisualSystem* mVisualSystem;
     RenderManager* mRenderManager;
@@ -60,8 +62,8 @@ class Terrain2DManagerImpl {
 
     // QuadTree
     QuadTreeNode* root = nullptr;
-    PoolAllocator<QuadTreeNode, 1000> mQuadTreeAllocator;
-    std::bitset<1000> mAllocationTracker;
+    PoolAllocator<QuadTreeNode, kMaximumNodes> mQuadTreeAllocator;
+    std::bitset<kMaximumNodes> mAllocationTracker;
     uint32_t mIDCounter;
 
     // Terrain Mesh Building
@@ -69,12 +71,12 @@ class Terrain2DManagerImpl {
         std::atomic<bool> loading = false;
 
         // Input
-        TerrainChunk chunkData;
+        TerrainChunk chunkData{};
         QuadTreeNode* ptr = nullptr;
 
         // Output
-        MeshBuilder output;
-        bool hasOutput;
+        MeshBuilder output{};
+        bool hasOutput = false;
     };
     std::array<MeshBuilderJob, kNumBuilderJobs> mMeshBuilderJobs;
     std::vector<std::pair<TerrainChunkID, QuadTreeNode*>> mDirtyChunks;
@@ -85,6 +87,7 @@ class Terrain2DManagerImpl {
 
     void update(const Vector3& cameraPosition);
     void imGui();
+    void reset();
 
   private:
     void processMeshBuilds();
@@ -131,9 +134,7 @@ Terrain2DManagerImpl::Terrain2DManagerImpl(VisualSystem* visualSystem)
     mTerrainMaterial =
         visualSystem->getMaterialManager()->createMaterial(terrainParams);
 
-    const float rootSize = kTerrainNodeSize * (1 << kMaxQuadTreeDepth);
-    root = allocateNode(Vector2(-rootSize / 2, -rootSize / 2),
-                        Vector2(rootSize, rootSize));
+    reset();
 }
 Terrain2DManagerImpl::~Terrain2DManagerImpl() = default;
 
@@ -150,13 +151,34 @@ void Terrain2DManagerImpl::imGui() {
 #if defined(IMGUI_ENABLED)
     ImGui::Text("# Chunks: %zu", mQuadTreeAllocator.getNumAllocations());
 
+    if (ImGui::CollapsingHeader("Generation Settings")) {
+        mHeightMap->imGui();
+        
+        if (ImGui::Button("Reset")) {
+            reset();
+        }
+    }
+
     if (ImGui::CollapsingHeader("Chunk Loading")) {
         ImGui::Text("# Dirty Chunks: %zu", mDirtyChunks.size());
         ImGui::Text("# Active Jobs: %zu",
                     kNumBuilderJobs - mMeshBuilderJobs.size());
     }
+
+    ImGui::SliderFloat("LOD Attenuation", &kLODAttenuation, 0.0, 10000.f);
     ImGui::Text("Terain2D");
 #endif
+}
+
+void Terrain2DManagerImpl::reset() {
+    if (root) {
+        destroyNode(root);
+        root = nullptr;
+    }
+
+    const float rootSize = kTerrainNodeSize * (1 << kMaxQuadTreeDepth);
+    root = allocateNode(Vector2(-rootSize / 2, -rootSize / 2),
+                        Vector2(rootSize, rootSize));
 }
 
 void Terrain2DManagerImpl::processMeshBuilds() {
@@ -209,19 +231,32 @@ void Terrain2DManagerImpl::processMeshBuilds() {
             job.chunkData = node->data;
             job.ptr = node;
 
-            ThreadPool::GetThreadPool()->scheduleJob(
-                [this, &job] { buildTerrainMesh(job); });
+            job.loading = true;
+            ThreadPool::GetThreadPool()->scheduleJob([this, &job] {
+                buildTerrainMesh(job);
+                job.loading = false;
+            });
         }
     }
 }
 
 uint8_t Terrain2DManagerImpl::computeIdealLOD(QuadTreeNode* node,
                                               const Vector3& cameraPosition) {
-    const Vector2 cameraXZ = cameraPosition.xz();
-    const float distance = (node->data.position - cameraXZ).magnitude();
-    constexpr float kLODAttenuation = 0.01f;
+    // Find distance from node to camera. If node is in the camera, distance is
+    // 0.
+    const Vector2 halfExtents = node->data.extents / 2;
+    const Vector2 center = node->data.position + halfExtents;
 
-    const uint8_t lod = kMaxQuadTreeDepth / (distance * kLODAttenuation);
+    Vector2 relPos = cameraPosition.xz() - center;
+    relPos.x = abs(relPos.x);
+    relPos.y = abs(relPos.y);
+
+    relPos.x = max(relPos.x - halfExtents.x, 0.f);
+    relPos.y = max(relPos.y - halfExtents.y, 0.f);
+
+    const float distance = relPos.magnitude();
+
+    const uint8_t lod = kMaxQuadTreeDepth / (1 + distance / kLODAttenuation);
     if (lod > kMaxQuadTreeDepth)
         return kMaxQuadTreeDepth;
     else
@@ -257,7 +292,7 @@ void Terrain2DManagerImpl::selectQuadTreeMeshes(QuadTreeNode* node) {
     if (node->isLeaf()) {
         if (node->data.blockKey == kInvalidDrawBlockKey) {
             DrawBlock drawBlock;
-            drawBlock.initialize(AABB(), node->data.mesh.get(),
+            drawBlock.initialize(node->data.mesh->aabb, node->data.mesh.get(),
                                  mTerrainMaterial.get());
             node->data.blockKey = mRenderManager->addDrawBlock(drawBlock);
         }
@@ -341,9 +376,28 @@ void Terrain2DManagerImpl::mergeNode(QuadTreeNode& node) {
     }
 }
 
-void Terrain2DManagerImpl::buildTerrainMesh(MeshBuilderJob& job) {
-    job.loading = true;
+inline static unsigned int
+addVertexToBuilder(std::unordered_map<Vector3, unsigned int>& vertexMap,
+                   MeshBuilder& builder, const Vector3& v) {
+    unsigned int i;
+    if (vertexMap.contains(v)) {
+        i = vertexMap[v];
+    } else {
+        i = builder.addVertex(v);
+        vertexMap[v] = i;
+    }
+    return i;
+}
+inline static void
+addTriangleToBuilder(std::unordered_map<Vector3, unsigned int>& vertexMap,
+                     MeshBuilder& builder, const Vector3& a, const Vector3& b,
+                     const Vector3& c) {
+    builder.addTriangle(addVertexToBuilder(vertexMap, builder, a),
+                        addVertexToBuilder(vertexMap, builder, b),
+                        addVertexToBuilder(vertexMap, builder, c));
+}
 
+void Terrain2DManagerImpl::buildTerrainMesh(MeshBuilderJob& job) {
     auto indexToWorldPosition = [&job](int xIndex, int zIndex) {
         const TerrainChunk& chunk = job.chunkData;
         // Local Space [0,1]
@@ -361,24 +415,6 @@ void Terrain2DManagerImpl::buildTerrainMesh(MeshBuilderJob& job) {
     MeshBuilder& builder = job.output;
 
     std::unordered_map<Vector3, unsigned int> vertexMap;
-    auto addVertexToBuilder = [&builder, &vertexMap](const Vector3& v) {
-        unsigned int i;
-        if (vertexMap.contains(v)) {
-            i = vertexMap[v];
-        } else {
-            i = builder.addVertex(v);
-            vertexMap[v] = i;
-        }
-        return i;
-    };
-
-    auto addTriangleToBuilder = [&builder, &vertexMap, &addVertexToBuilder](
-                                    const Vector3& a, const Vector3& b,
-                                    const Vector3& c) {
-        builder.addTriangle(addVertexToBuilder(a), addVertexToBuilder(b),
-                            addVertexToBuilder(c));
-    };
-
     builder.reset();
     builder.addLayout(POSITION);
     builder.addLayout(NORMAL);
@@ -410,14 +446,17 @@ void Terrain2DManagerImpl::buildTerrainMesh(MeshBuilderJob& job) {
                 borderTriangles.push_back(
                     Triangle(worldPos11, worldPos10, worldPos01));
             } else {
-                addTriangleToBuilder(worldPos00, worldPos01, worldPos10);
-                addTriangleToBuilder(worldPos11, worldPos10, worldPos01);
+                addTriangleToBuilder(vertexMap, builder, worldPos00, worldPos01,
+                                     worldPos10);
+                addTriangleToBuilder(vertexMap, builder, worldPos11, worldPos10,
+                                     worldPos01);
             }
         }
     }
 
     for (const Triangle& tri : borderTriangles) {
-        addTriangleToBuilder(tri.vertex(0), tri.vertex(1), tri.vertex(2));
+        addTriangleToBuilder(vertexMap, builder, tri.vertex(0), tri.vertex(1),
+                             tri.vertex(2));
     }
     builder.regenerateNormals();
     builder.popTriangles(borderTriangles.size());
@@ -425,7 +464,6 @@ void Terrain2DManagerImpl::buildTerrainMesh(MeshBuilderJob& job) {
     // Done. Change job status
     assert(!builder.isEmpty());
     job.hasOutput = !builder.isEmpty();
-    job.loading = false;
 }
 
 } // namespace Graphics

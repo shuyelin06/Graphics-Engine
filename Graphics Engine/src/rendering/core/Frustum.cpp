@@ -130,22 +130,17 @@ bool Frustum::intersectsOBB(const OBB& obb) const {
     return true;
 }
 
-bool testSeparationAlongAxis(const Vector3& _axis,
+bool testSeparationAlongAxis(const Vector3& axis,
                              const Vector3* frustum_points,
                              const Vector3* obb_points) {
-    if (_axis.magnitude() < 0.0001f)
-        return false;
-
-    const Vector3 axis = _axis.unit();
-
     // Project both points to the axis, and see if the intervals of projections
     // overlap.
     // - If they overlap, then we have to test another axis.
     // - If they don't overlap, then we have a separating axis and by the SAT
     // the frustum
     //   and OBB cannot overlap.
-    float frustum_min = FLT_MAX, frustum_max = FLT_MIN;
-    float obb_min = FLT_MAX, obb_max = FLT_MIN;
+    float frustum_min = FLT_MAX, frustum_max = -FLT_MAX;
+    float obb_min = FLT_MAX, obb_max = FLT_MAX;
 
     for (int i = 0; i < 8; i++) {
         // Project frustum points
@@ -162,10 +157,7 @@ bool testSeparationAlongAxis(const Vector3& _axis,
     }
 
     // See if the projection intervals are separate. If they are, return true.
-    if (obb_max < frustum_min || frustum_max < obb_min)
-        return true;
-    else
-        return false;
+    return (obb_max < frustum_min - 0.0001f || frustum_max < obb_min - 0.0001f);
 }
 
 const Matrix4& Frustum::getFrustumToWorldMatrix() const {
