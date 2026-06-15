@@ -136,11 +136,15 @@ VisualSystem::VisualSystem(HWND window) {
     material_manager = MaterialManager::create(resource_manager.get());
     render_manager = RenderManager::create(this, context, device);
 
-    light_manager = new LightManager(device, 4096);
+    water_surface = std::make_unique<WaterSurface>();
+    water_surface->generateSurfaceMesh(this->getResourceManager(), 15);
+    water_surface->generateWaveConfig(14);
 
-    terrain = TerrainManager::create(this);
+    light_manager = new LightManager(device, 4096);
     terrain2D = Terrain2DManager::create(this);
 }
+
+constexpr float kWaterSurfaceLevel = 0.f;
 
 // Render:
 // Renders the entire scene to the screen.
@@ -169,7 +173,7 @@ void VisualSystem::render() {
         // or above the surface of the water
         Camera* camera = scene_manager->getMainCamera();
         const Vector3& cam_pos = camera->getPosition();
-        if (cam_pos.y <= terrain->getSurfaceLevel() + 6.5f) {
+        if (cam_pos.y <= kWaterSurfaceLevel + 6.5f) {
             // Underwater rendering
             processUnderwater();
             performLightFrustumPass();
@@ -210,12 +214,6 @@ void VisualSystem::renderPrepare() {
     scene_manager->update();
 
     light_manager->pullDatamodelData();
-
-    /*
-    if (terrain)
-        terrain->updateAndUploadTerrainData(
-            context, scene_manager->getMainCamera()->getPosition());
-    */
     terrain2D->update(scene_manager->getMainCamera()->getPosition());
 
     // Prepare managers for data
@@ -278,7 +276,6 @@ SceneListener* VisualSystem::getSceneListener() const {
 SceneManager* VisualSystem::getSceneManager() const {
     return scene_manager.get();
 }
-TerrainManager* VisualSystem::getVisualTerrain() const { return terrain.get(); }
 RenderManager* VisualSystem::getRenderManager() const {
     return render_manager.get();
 }
@@ -376,7 +373,7 @@ void VisualSystem::performLightFrustumPass() {
 
         const Vector3 sun_direc = config->sun_direction.unit();
         pCB2.loadData(&sun_direc, FLOAT3);
-        const float surface_height = terrain->getSurfaceLevel() + 3.f;
+        const float surface_height = kWaterSurfaceLevel + 3.f;
         pCB2.loadData(&surface_height, FLOAT);
 
         const auto& underwater_params = config->underwater;
@@ -464,14 +461,14 @@ void VisualSystem::performWaterSurfacePass() {
         const Vector3& camera_pos = camera->getPosition();
         vcb0.loadData(&camera_pos, FLOAT3);
 
-        const float surface_height = terrain->getSurfaceLevel();
+        const float surface_height = kWaterSurfaceLevel;
         vcb0.loadData(&surface_height, FLOAT);
     }
 
     // VCB1: Wave Information
     const std::vector<WaveConfig>& wave_config =
-        terrain->getWaterSurface()->getWaveConfig();
-    const int num_waves = terrain->getWaterSurface()->getNumWaves();
+        water_surface->getWaveConfig();
+    const int num_waves = water_surface->getNumWaves();
     {
         IConstantBuffer vcb1 = pipeline->loadVertexCB(1);
 
@@ -540,10 +537,9 @@ void VisualSystem::performWaterSurfacePass() {
         }
     }
 
-    const Mesh* surface_mesh = terrain->getWaterSurface()->getSurfaceMesh();
+    const Mesh* surface_mesh = water_surface->getSurfaceMesh();
     const int total_triangles = surface_mesh->num_triangles;
-    const int num_inner_tri =
-        terrain->getWaterSurface()->getNumInnerTriangles();
+    const int num_inner_tri = water_surface->getNumInnerTriangles();
 
     pipeline->drawMesh(surface_mesh, 4, 0, num_inner_tri);
     pipeline->drawMesh(surface_mesh, NUM_LODS * 4, num_inner_tri,
@@ -635,7 +631,7 @@ void VisualSystem::processUnderwater() {
 
         const Vector3 sun_direc = config->sun_direction.unit();
         pCB2.loadData(&sun_direc, FLOAT3);
-        const float surface_height = terrain->getSurfaceLevel() + 3.f;
+        const float surface_height = kWaterSurfaceLevel + 3.f;
         pCB2.loadData(&surface_height, FLOAT);
 
         const auto& underwater_params = config->underwater;

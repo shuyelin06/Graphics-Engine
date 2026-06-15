@@ -15,7 +15,7 @@
 #include "resources/ResourceManager.h"
 #include "scene/SceneManager.h"
 #include "terrain2D/Terrain2DManager.h"
-#include "terrain3D/TerrainManager.h"
+#include "terrain2D/WaterSurface.h"
 
 #if defined(_DEBUG)
 #include "util/CPUTimer.h"
@@ -31,7 +31,6 @@ namespace Graphics {
 class SceneListener;
 class SceneManager;
 class ResourceManager;
-class TerrainManager;
 class MaterialManager;
 
 // VisualParameters Struct:
@@ -58,13 +57,14 @@ class VisualSystem {
     std::unique_ptr<SceneListener> scene_listener;
 
     std::unique_ptr<SceneManager> scene_manager;
-    std::unique_ptr<TerrainManager> terrain;
     std::unique_ptr<Terrain2DManager> terrain2D;
     LightManager* light_manager;
 
     std::unique_ptr<ResourceManager> resource_manager;
     std::unique_ptr<MaterialManager> material_manager;
     std::unique_ptr<RenderManager> render_manager;
+    // This should be moved somewhere else.. maybe terrain?
+    std::unique_ptr<WaterSurface> water_surface;
     Pipeline* pipeline;
 
     // Temp for now; should be moved later.
@@ -90,7 +90,6 @@ class VisualSystem {
     }
     SceneListener* getSceneListener() const;
     SceneManager* getSceneManager() const;
-    TerrainManager* getVisualTerrain() const;
     RenderManager* getRenderManager() const;
     LightManager* getLightManager() const;
 

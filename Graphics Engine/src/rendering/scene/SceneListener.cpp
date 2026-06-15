@@ -2,8 +2,6 @@
 
 #include "../VisualSystem.h"
 
-#include "rendering/terrain3D/TerrainManager.h"
-
 namespace Engine {
 namespace Graphics {
 using DMHandle = Datamodel::DMObjectHandle;
@@ -27,7 +25,6 @@ class SceneListenerImpl {
     void onDatamodelEvent(const Datamodel::DMEvent& event);
 
   private:
-    void processTerrainEvent(const DMEvent& event);
     void processMeshEvent(const DMEvent& event);
     void processCameraEvent(const DMEvent& event);
 };
@@ -69,8 +66,6 @@ void SceneListenerImpl::update() {
             processCameraEvent(event);
         } else if (event.object_type == "Mesh") {
             processMeshEvent(event);
-        } else if (event.object_type == "Terrain") {
-            processTerrainEvent(event);
         }
     }
 }
@@ -78,35 +73,6 @@ void SceneListenerImpl::update() {
 void SceneListenerImpl::onDatamodelEvent(const Datamodel::DMEvent& event) {
     std::scoped_lock<std::mutex> eventsScratchLock(mEventsScratchLock);
     mEventsScratch.emplace_back(event);
-}
-
-void SceneListenerImpl::processTerrainEvent(const DMEvent& event) {
-    assert(event.object_type == "Terrain");
-    TerrainManager* visualTerrain = mVisualSystem->getVisualTerrain();
-    assert(visualTerrain);
-
-    TerrainManager::UpdatePacket packet;
-
-    switch (event.event_type) {
-    case DMEventType::kCreated:
-        packet.type = TerrainManager::UpdatePacket::Type::kToggleTerrain;
-        packet.data = true;
-        break;
-
-    case DMEventType::kDestroyed:
-        packet.type = TerrainManager::UpdatePacket::Type::kToggleTerrain;
-        packet.data = false;
-        break;
-
-    case DMEventType::kPropertyUpdated:
-        if (event.property_tag == "Seed") {
-            packet.type = TerrainManager::UpdatePacket::Type::kPropertySeed;
-            packet.data = std::get<uint32_t>(event.property_data);
-        }
-        break;
-    }
-
-    visualTerrain->submitSceneUpdate(packet);
 }
 
 void SceneListenerImpl::processCameraEvent(const DMEvent& event) {
