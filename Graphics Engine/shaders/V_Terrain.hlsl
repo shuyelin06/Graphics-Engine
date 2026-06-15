@@ -49,8 +49,18 @@ VS_OUT vsterrain_main(VS_IN input)
     float4 pos = float4(position, 1);
     pos = mul(m_world_to_screen, pos);
     
+    // Generate my normal
+    float normX1 = g_heightmap.SampleLevel(g_heightmapSampler, float2(u, v), 0, float2(-1, 0)).r;
+    float normX2 = g_heightmap.SampleLevel(g_heightmapSampler, float2(u, v), 0, float2(1, 0)).r;
+    float normZ1 = g_heightmap.SampleLevel(g_heightmapSampler, float2(u, v), 0, float2(0, -1)).r;
+    float normZ2 = g_heightmap.SampleLevel(g_heightmapSampler, float2(u, v), 0, float2(0, 1)).r;
+    float3 tangentX = float3(0, (normX2 - normX1) * 0.5f, 1);
+    float3 tangentZ = float3(1, (normZ2 - normZ1) * 0.5f, 1);
+    
+    float3 normal = normalize(cross(tangentX, tangentZ));
+    
     output.world_position = position;
-    output.normal = float3(0, 1, 0);
+    output.normal = normal;
     output.position_clip = pos;
     
     return output;
