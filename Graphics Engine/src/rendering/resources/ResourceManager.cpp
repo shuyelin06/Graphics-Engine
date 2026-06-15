@@ -162,6 +162,9 @@ ResourceManagerImpl::ResourceManagerImpl(ID3D11Device* device,
                                          ID3D11DeviceContext* context)
     : device(device), context(context) {
     assert(device && context);
+
+    ImGuiHelper::registerImGuiCallback("Render/Resources",
+                                       [this]() { imGui(); });
 }
 ResourceManagerImpl::~ResourceManagerImpl() = default;
 

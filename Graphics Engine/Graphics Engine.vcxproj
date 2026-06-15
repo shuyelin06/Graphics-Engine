@@ -181,6 +181,7 @@
     <ClCompile Include="src\datamodel\objects\DMPhysics.cpp" />
     <ClCompile Include="src\datamodel\SceneGraph.cpp" />
     <ClCompile Include="src\math\CFrame.cpp" />
+    <ClCompile Include="src\rendering\ImGuiHelper.cpp" />
     <ClCompile Include="src\rendering\pipeline\RenderManager.cpp" />
     <ClCompile Include="src\rendering\pipeline\RenderManager.h" />
     <ClCompile Include="src\rendering\pipeline\StructuredBuffer.cpp" />

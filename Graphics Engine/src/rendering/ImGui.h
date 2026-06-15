@@ -1,6 +1,15 @@
 #pragma once
 
+#include <functional>
+#include <string>
+
 #define IMGUI_ENABLED
+
+namespace ImGuiHelper {
+void registerImGuiCallback(const std::string& path,
+                           std::function<void(void)> callback);
+void renderImGui();
+} // namespace ImGuiSetup
 
 // Includes the libraries necessary for using ImGui in
 // any part of the application.

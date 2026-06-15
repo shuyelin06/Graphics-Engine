@@ -74,36 +74,22 @@ struct VisualParameters {
 // Sets configuration parameters
 void VisualSystem::imGui() {
 #if defined(IMGUI_ENABLED)
+    ImGuiHelper::renderImGui();
+
     config->imGuiConfig();
 
-    static bool imgui_resource_manager = false;
     static bool imgui_light_manager = false;
-    static bool imgui_visual_terrain = false;
-    static bool imgui_2d_terrain = false;
 
     if (ImGui::BeginMenu("Rendering")) {
         const Pipeline::Stats& stats = pipeline->getStats();
         ImGui::Text("Draw Call Count: %zu", stats.numDraws);
 
-        if (ImGui::Button("Resource Manager"))
-            imgui_resource_manager = true;
         if (ImGui::Button("Light Manager"))
             imgui_light_manager = true;
-        if (terrain && ImGui::Button("Visual Terrain"))
-            imgui_visual_terrain = true;
-        if (terrain2D && ImGui::Button("2D Terrain"))
-            imgui_2d_terrain = true;
         ImGui::EndMenu();
     }
 
     // Property Panel
-    if (imgui_resource_manager) {
-        if (ImGui::Begin("Resource Manager", &imgui_resource_manager,
-                         ImGuiWindowFlags_NoCollapse)) {
-            resource_manager->imGui();
-        }
-        ImGui::End();
-    }
     if (imgui_light_manager) {
         if (ImGui::Begin("Light Manager", &imgui_light_manager,
                          ImGuiWindowFlags_NoCollapse)) {
@@ -111,21 +97,6 @@ void VisualSystem::imGui() {
         }
         ImGui::End();
     }
-    if (imgui_visual_terrain) {
-        if (ImGui::Begin("Visual Terrain", &imgui_visual_terrain,
-                         ImGuiWindowFlags_NoCollapse)) {
-            terrain->imGui();
-        }
-        ImGui::End();
-    }
-    if (imgui_2d_terrain) {
-        if (ImGui::Begin("2D Terrain"), &imgui_2d_terrain,
-            ImGuiWindowFlags_NoCollapse) {
-            terrain2D->imGui();
-        }
-        ImGui::End();
-    }
-
 #endif
 }
 

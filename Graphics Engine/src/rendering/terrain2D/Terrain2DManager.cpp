@@ -51,7 +51,6 @@ class Terrain2DManagerImpl {
     static constexpr int kMaximumNodes = 5000;
     static constexpr int kMaxQuadTreeDepth = 10;
     static constexpr float kTerrainNodeSize = 25.f;
-    
 
     VisualSystem* mVisualSystem;
     RenderManager* mRenderManager;
@@ -124,6 +123,9 @@ Terrain2DManagerImpl::Terrain2DManagerImpl(VisualSystem* visualSystem)
     regenerateHeightmapTexture();
 
     reset();
+
+    ImGuiHelper::registerImGuiCallback("Render/Terrain2D",
+                                       [this]() { imGui(); });
 }
 Terrain2DManagerImpl::~Terrain2DManagerImpl() = default;
 
@@ -304,7 +306,8 @@ uint8_t Terrain2DManagerImpl::computeIdealLOD(QuadTreeNode* node,
 
     const float distance = relPos.magnitude();
 
-    const uint8_t lod = kMaxQuadTreeDepth / (1 + distance / config.lodAttenuation);
+    const uint8_t lod =
+        kMaxQuadTreeDepth / (1 + distance / config.lodAttenuation);
     if (lod > kMaxQuadTreeDepth)
         return kMaxQuadTreeDepth;
     else
