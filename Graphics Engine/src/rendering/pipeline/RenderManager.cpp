@@ -86,7 +86,8 @@ class RenderManagerImpl {
 
     // TODO: This should be thread safe.
     DrawBlockKey addDrawBlock(const DrawBlock& block);
-    void updateInstanceData(const DrawBlockKey key, InstanceData instanceData);
+    void updateInstanceData(const DrawBlockKey key, InstanceData instanceData,
+                            int numInstances);
     void removeDrawBlock(const DrawBlockKey);
 
     void setMainView(const RenderView& view);
@@ -107,8 +108,9 @@ DrawBlockKey RenderManager::addDrawBlock(const DrawBlock& block) {
 }
 
 void RenderManager::updateInstanceData(const DrawBlockKey key,
-                                       InstanceData instanceData) {
-    return mImpl->updateInstanceData(key, instanceData);
+                                       InstanceData instanceData,
+                                       int numInstances) {
+    return mImpl->updateInstanceData(key, instanceData, numInstances);
 }
 
 void RenderManager::removeDrawBlock(const DrawBlockKey key) {
@@ -139,6 +141,11 @@ RenderManagerImpl::RenderManagerImpl(VisualSystem* _visualSystem,
         context->QueryInterface(IID_PPV_ARGS(&mDebugAnnotations[pass]));
     }
 
+    // Allocate index 0 of the InstanceData pool for the identity Instance
+    InstanceData* identity = instanceDataPool.allocate();
+    assert(instanceDataPool.getIndex(identity) == 0);
+    *identity = InstanceData();
+
     instanceDataDirty = false;
 
     counter = 0;
@@ -152,18 +159,28 @@ DrawBlockKey RenderManagerImpl::addDrawBlock(const DrawBlock& block) {
 }
 
 void RenderManagerImpl::updateInstanceData(const DrawBlockKey key,
-                                           InstanceData instanceData) {
+                                           InstanceData instanceData,
+                                           int numInstances) {
     assert(drawBlocks.contains(key));
     auto& drawBlock = drawBlocks[key];
-
-    instanceDataDirty = true;
 
     if (drawBlock.instanceData) {
         instanceDataPool.free(drawBlock.instanceData);
     }
 
-    drawBlock.instanceData = instanceDataPool.allocate();
-    *drawBlock.instanceData = instanceData;
+    static const InstanceData kIdentityInstanceData = InstanceData();
+    const bool isIdentityInstance =
+        memcmp(&instanceData, &kIdentityInstanceData, sizeof(InstanceData)) ==
+        0;
+    if (!isIdentityInstance) {
+        instanceDataDirty = true;
+        drawBlock.instanceData = instanceDataPool.allocate();
+        *drawBlock.instanceData = instanceData;
+    } else {
+        drawBlock.instanceData == nullptr;
+    }
+
+    drawBlock.numInstances = numInstances;
 }
 
 void RenderManagerImpl::removeDrawBlock(const DrawBlockKey key) {
@@ -231,6 +248,7 @@ void RenderManagerImpl::perform() {
     // Vertex Constant Buffer 1:
     // Stores the camera view and projection matrices
     {
+        pipeline->markVertexCBUsage(1, true);
         IConstantBuffer vCB1 = pipeline->loadVertexCB(1);
 
         const Matrix4 viewMatrix = mainView.mWorldToLocal;
@@ -284,6 +302,7 @@ void RenderManagerImpl::perform() {
     }
 
     pipeline->markVertexCBUsage(0, false);
+    pipeline->markVertexCBUsage(1, false);
     pipeline->markVertexCBUsage(3, false);
     pipeline->markPixelCBUsage(0, false);
 }
@@ -320,6 +339,7 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
                 DrawCall call;
                 call.mesh = drawBlock.mesh;
                 call.technique = technique;
+                call.numInstances = drawBlock.numInstances;
                 if (drawBlock.instanceData) {
                     call.instanceDataIndex =
                         instanceDataPool.getIndex(drawBlock.instanceData);
@@ -358,40 +378,62 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
     // (i.e. pipeline->draw(VertexTechnique, PixelTechnique).
     // TODO ResourceManager needs to enforce lifetime of the pointer
     // resources
+    std::vector<InstanceDataKey> instanceDataIndices;
+    int numInstances = 0;
+
     size_t tail = 0;
 
     bool stop = false;
     while (tail < drawCallsEx.size()) {
+        // TODO add to instance data handle vector to upload.
+        // Support multiple numInstances :)
+        // Hook into terrain so we can render multiple chunks in one instanced
+        // draw
+        instanceDataIndices.clear();
+        numInstances = 0;
+
         size_t head = tail;
         const DrawCall& baseDrawCall = drawCallsEx[head];
 
         // Check if we can batch.
         // We can only batch if everything is equal except for the instance
-        // data handle (and the instance data handle is provided)
-        bool canBatch = false;
-        if (baseDrawCall.instanceDataIndex != kInvalidDrawBlockKey) {
-            canBatch = true;
+        // data handle.
+        // If the handle is invalid we map it to 0, the identity instance
+        auto commitDrawCallToBatch =
+            [&numInstances, &instanceDataIndices](const DrawCall& draw) {
+                const InstanceDataKey instanceDataHandle =
+                    draw.instanceDataIndex != kInvalidDrawBlockKey
+                        ? draw.instanceDataIndex
+                        : 0;
 
-            bool stop = false;
-            while (!stop && tail + 1 < drawCallsEx.size()) {
-                const DrawCall& nextDrawCall = drawCallsEx[tail + 1];
+                numInstances += draw.numInstances;
+                for (int i = 0; i < draw.numInstances; i++) {
+                    instanceDataIndices.push_back(instanceDataHandle);
+                }
+            };
 
-                bool batchNext = true;
-                batchNext = batchNext && nextDrawCall.instanceDataIndex !=
-                                             kInvalidInstanceDataKey;
-                batchNext =
-                    batchNext && (baseDrawCall.depth == nextDrawCall.depth);
-                batchNext = batchNext &&
-                            (baseDrawCall.technique == nextDrawCall.technique);
-                batchNext = batchNext && (baseDrawCall.mesh->buffer_pool ==
-                                          nextDrawCall.mesh->buffer_pool);
-                batchNext =
-                    batchNext && (baseDrawCall.mesh == nextDrawCall.mesh);
+        // Move to lambda
+        commitDrawCallToBatch(baseDrawCall);
 
-                if (batchNext)
-                    tail++;
-                else
-                    stop = true;
+        bool stop = false;
+        while (!stop && tail + 1 < drawCallsEx.size()) {
+            const DrawCall& nextDrawCall = drawCallsEx[tail + 1];
+
+            bool batchNext = true;
+            batchNext = batchNext && nextDrawCall.instanceDataIndex !=
+                                         kInvalidInstanceDataKey;
+            batchNext = batchNext && (baseDrawCall.depth == nextDrawCall.depth);
+            batchNext =
+                batchNext && (baseDrawCall.technique == nextDrawCall.technique);
+            batchNext = batchNext && (baseDrawCall.mesh->buffer_pool ==
+                                      nextDrawCall.mesh->buffer_pool);
+            batchNext = batchNext && (baseDrawCall.mesh == nextDrawCall.mesh);
+
+            if (batchNext) {
+                commitDrawCallToBatch(nextDrawCall);
+                tail++;
+            } else {
+                stop = true;
             }
         }
 
@@ -414,6 +456,15 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
             }
         }
 
+        for (int slot = 0; slot < kVertexResourceMax; slot++) {
+            if (technique->hasVertexResource(slot)) {
+                const Technique::BoundTexture& boundTex =
+                    technique->getVertexResource(slot);
+                pipeline->bindVertexTexture(*boundTex.texture, slot);
+                pipeline->bindVertexSampler(slot, boundTex.sampleState);
+            }
+        }
+
         pipeline->bindPixelShader(technique->pixelShader);
         for (int slot = 0; slot < kVertexConstantBufferMax; slot++) {
             const auto& buffer = technique->pixelCbuffers[slot];
@@ -431,15 +482,15 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
         // - Instanced Draw Call. We upload the instance handles into Cb4.
         // - Non-Instanced Draw Call. We still do the instanced draw call
         // API, but do not touch CB4.
-        int numInstances = (tail - head) + 1;
-        if (canBatch) {
-            IConstantBuffer cbHandle = pipeline->loadVertexCB(4);
 
-            for (; head <= tail; head++) {
-                assert(sizeof(InstanceDataKey) == sizeof(uint32_t));
-                cbHandle.loadData(&(drawCallsEx[head].instanceDataIndex),
-                                  sizeof(InstanceDataKey));
-            }
+        {
+            pipeline->markVertexCBUsage(4, true);
+            assert(sizeof(InstanceDataKey) == sizeof(uint32_t));
+            IConstantBuffer cbHandle = pipeline->loadVertexCB(4);
+            cbHandle.loadData(instanceDataIndices.data(),
+                              sizeof(InstanceDataKey) *
+                                  instanceDataIndices.size());
+            pipeline->markVertexCBUsage(4, false);
         }
 
         pipeline->drawMesh(mesh, numInstances);

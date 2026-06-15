@@ -39,6 +39,7 @@ struct DrawCall {
     // Index of the Draw Call's instance data in the global
     // instance data cbuffer.
     uint32_t instanceDataIndex = kInvalidInstanceDataKey;
+    uint16_t numInstances = 1;
 
     DrawCall() = default;
 };

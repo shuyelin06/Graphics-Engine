@@ -9,6 +9,8 @@
 
 #include "rendering/core/Material.h"
 
+#include "ResourceManager.h"
+
 namespace Engine {
 using namespace Math;
 
@@ -28,7 +30,8 @@ class MaterialManager {
     };
     struct TerrainMaterialParams {};
 
-    static std::unique_ptr<MaterialManager> create();
+    static std::unique_ptr<MaterialManager>
+    create(ResourceManager* resourceManager);
     ~MaterialManager();
 
     std::shared_ptr<Material>

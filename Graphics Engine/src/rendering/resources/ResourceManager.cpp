@@ -43,6 +43,15 @@ class ResourceManagerImpl {
 
         std::shared_ptr<Mesh> mesh = nullptr;
     };
+    struct TextureBuildingJob {
+        std::vector<uint8_t> data;
+        unsigned int width;
+        unsigned int height;
+        TextureLayout layout;
+
+        bool newTexture = true;
+        std::shared_ptr<Texture> texture = nullptr;
+    };
 
   private:
     ID3D11Device* device;
@@ -56,6 +65,8 @@ class ResourceManagerImpl {
 
     std::vector<MeshBuildingJob> mesh_jobs;
     std::mutex mesh_job_mutex;
+    std::vector<TextureBuildingJob> texture_jobs;
+    std::mutex texture_job_mutex;
 
   public:
     ResourceManagerImpl(ID3D11Device* device, ID3D11DeviceContext* context);
@@ -79,16 +90,17 @@ class ResourceManagerImpl {
     LoadTextureFromFile(const std::string& relative_path);
     std::shared_ptr<Mesh> LoadMeshFromFile(const std::string& relative_path);
 
-    std::shared_ptr<TextureBuilder> createTextureBuilder();
-
     std::shared_ptr<Mesh> requestMesh(const MeshBuilder& mesh_builder);
-    std::shared_ptr<Texture> requestTexture(const TextureBuilder& tex_builder);
+    std::shared_ptr<Texture>
+    requestTexture(const TextureBuilder& tex_builder, bool editable,
+                   const std::shared_ptr<Texture>& target);
 
     // Debug Display
     void imGui();
 
   private:
     void processMeshJob(const MeshBuildingJob& job);
+    void processTextureJob(const TextureBuildingJob& job);
 
     // System Asset Generation
     void LoadCubeMesh();
@@ -132,13 +144,15 @@ ResourceManager::LoadMeshFromFile(const std::string& relative_path) {
     return mImpl->LoadMeshFromFile(relative_path);
 }
 
-std::shared_ptr<TextureBuilder> ResourceManager::createTextureBuilder() {
-    return mImpl->createTextureBuilder();
-}
-
 std::shared_ptr<Mesh>
 ResourceManager::requestMesh(const MeshBuilder& mesh_builder) {
     return mImpl->requestMesh(mesh_builder);
+}
+std::shared_ptr<Texture>
+ResourceManager::requestTexture(const TextureBuilder& texture_builder,
+                                bool editable,
+                                const std::shared_ptr<Texture>& target) {
+    return mImpl->requestTexture(texture_builder, editable, target);
 }
 
 // Debug Display
@@ -177,12 +191,20 @@ void ResourceManagerImpl::initializeSystemResources() {
 }
 
 void ResourceManagerImpl::updatePerform() {
-    std::scoped_lock<std::mutex> job_lock(mesh_job_mutex);
+    {
+        std::scoped_lock<std::mutex> mesh_job_lock(mesh_job_mutex);
+        while (!mesh_jobs.empty()) {
+            processMeshJob(mesh_jobs.back());
+            mesh_jobs.pop_back();
+        }
+    }
 
-    while (!mesh_jobs.empty()) {
-        const auto& job = mesh_jobs.back();
-        processMeshJob(job);
-        mesh_jobs.pop_back();
+    {
+        std::scoped_lock<std::mutex> texture_job_lock(texture_job_mutex);
+        while (!texture_jobs.empty()) {
+            processTextureJob(texture_jobs.back());
+            texture_jobs.pop_back();
+        }
     }
 
     // TODO: Might want to throttle this
@@ -277,10 +299,6 @@ ResourceManagerImpl::LoadMeshFromFile(const std::string& relative_path) {
         return nullptr;
 }
 
-std::shared_ptr<TextureBuilder> ResourceManagerImpl::createTextureBuilder() {
-    return std::make_shared<TextureBuilder>(1, 1);
-}
-
 std::shared_ptr<Mesh>
 ResourceManagerImpl::requestMesh(const MeshBuilder& mesh_builder) {
     if (mesh_builder.index_buffer.empty() || mesh_builder.vertex_buffer.empty())
@@ -318,6 +336,39 @@ ResourceManagerImpl::requestMesh(const MeshBuilder& mesh_builder) {
     mesh_map[hash] = mesh_job.mesh;
 
     return mesh_job.mesh;
+}
+
+std::shared_ptr<Texture>
+ResourceManagerImpl::requestTexture(const TextureBuilder& tex_builder,
+                                    bool editable,
+                                    const std::shared_ptr<Texture>& target) {
+    std::scoped_lock<std::mutex> lock(texture_job_mutex);
+
+    TextureBuildingJob& job = texture_jobs.emplace_back();
+    job.data = tex_builder.data;
+    job.width = tex_builder.width;
+    job.height = tex_builder.height;
+    job.layout = tex_builder.layout;
+
+    // Create a new texture if target == nullptr
+    if (target == nullptr) {
+        job.newTexture = true;
+        job.texture = std::make_shared<Texture>();
+
+        job.texture->width = job.width;
+        job.texture->height = job.width;
+        job.texture->editable = editable;
+
+        job.texture->ready = false;
+    }
+    // Update an existing texture if target == nullptr
+    else {
+        job.newTexture = false;
+        job.texture = target;
+        job.texture->ready = false;
+    }
+
+    return job.texture;
 }
 
 // Debug Display
@@ -398,8 +449,13 @@ void ResourceManagerImpl::processMeshJob(const MeshBuildingJob& job) {
         constexpr int DEFAULT_POOL_TRIANGLES = 100000;
         constexpr int DEFAULT_POOL_VERTICES = 100000;
 
+        const int poolTriangles =
+            max(DEFAULT_POOL_TRIANGLES, job.index_data.size());
+        const int poolVertices =
+            max(DEFAULT_POOL_VERTICES, job.vertex_data.size());
+
         mesh_pools.emplace_back(std::make_unique<MeshPool>(
-            job.layout, DEFAULT_POOL_TRIANGLES, DEFAULT_POOL_VERTICES));
+            job.layout, poolTriangles, poolVertices));
         pool = mesh_pools.back().get();
     }
 
@@ -465,6 +521,85 @@ void ResourceManagerImpl::processMeshJob(const MeshBuildingJob& job) {
     mesh->ready = true;
 }
 
+static DXGI_FORMAT TextureLayoutToDXGI(TextureLayout layout) {
+    switch (layout) {
+    case TextureLayout::R8G8B8A8_UNORM:
+        return DXGI_FORMAT_R8G8B8A8_UNORM;
+    case TextureLayout::R32_FLOAT:
+        return DXGI_FORMAT_R32_FLOAT;
+    }
+}
+
+void ResourceManagerImpl::processTextureJob(const TextureBuildingJob& job) {
+    auto& texture = job.texture;
+
+    if (job.newTexture) {
+        HRESULT result;
+
+        // Generate my GPU texture resource
+        D3D11_TEXTURE2D_DESC tex_desc = {};
+        tex_desc.Width = job.width;
+        tex_desc.Height = job.height;
+        tex_desc.MipLevels = tex_desc.ArraySize = 1;
+        tex_desc.Format = TextureLayoutToDXGI(job.layout);
+        tex_desc.SampleDesc.Count = 1;
+        tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+        if (job.texture->editable) {
+            tex_desc.Usage = D3D11_USAGE_DYNAMIC;
+            tex_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+        } else {
+            tex_desc.Usage = D3D11_USAGE_DEFAULT;
+            tex_desc.CPUAccessFlags = 0;
+        }
+
+        const size_t byteSize = TextureLayoutByteSize(job.layout);
+        D3D11_SUBRESOURCE_DATA sr_data = {};
+        sr_data.pSysMem = job.data.data();
+        sr_data.SysMemPitch = job.width * byteSize; // Bytes per row
+        sr_data.SysMemSlicePitch =
+            job.width * job.height * byteSize; // Total byte size
+
+        result =
+            device->CreateTexture2D(&tex_desc, &sr_data, &texture->texture);
+        assert(SUCCEEDED(result));
+
+        // Generate a shader view for my texture
+        D3D11_SHADER_RESOURCE_VIEW_DESC tex_view;
+        tex_view.Format = TextureLayoutToDXGI(job.layout);
+        tex_view.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+        tex_view.Texture2D.MostDetailedMip = 0;
+        tex_view.Texture2D.MipLevels = 1;
+        result = device->CreateShaderResourceView(
+            job.texture->texture, &tex_view, &(job.texture->shader_view));
+        assert(SUCCEEDED(result));
+    } else {
+        assert(texture->editable);
+        assert(job.width == texture->width);
+        assert(job.height == texture->height);
+        assert(job.layout == texture->layout);
+
+        // Write to my texture using Map / Unmap.
+        D3D11_MAPPED_SUBRESOURCE sr;
+        context->Map(texture->texture, 0, D3D11_MAP_WRITE_DISCARD, 0, &sr);
+
+        const size_t byteSize = TextureLayoutByteSize(job.layout);
+        uint8_t* dest = reinterpret_cast<uint8_t*>(sr.pData);
+        const uint8_t* src = reinterpret_cast<const uint8_t*>(job.data.data());
+
+        // We need to copy row-by-row, because while rows are aligned, there may
+        // be padding after each row that we're not aware about.
+        for (UINT y = 0; y < job.height; ++y) {
+            memcpy(dest + y * sr.RowPitch, src + y * job.width * byteSize,
+                   job.width * byteSize);
+        }
+
+        context->Unmap(texture->texture, 0);
+    }
+
+    texture->ready = true;
+}
+
 // System Resources
 void ResourceManagerImpl::LoadCubeMesh() {
     MeshBuilder builder = MeshBuilder();
@@ -478,7 +613,7 @@ void ResourceManagerImpl::LoadCubeMesh() {
 
 void ResourceManagerImpl::LoadFallbackColormap() {
     TextureBuilder builder = TextureBuilder(10, 10);
-    builder.clear({90, 34, 139, 255});
+    builder.clear();
     Texture* fallback_tex = builder.generate(device);
     assert(textures.size() == SystemTexture_FallbackColormap);
     textures.push_back(std::shared_ptr<Texture>(fallback_tex));

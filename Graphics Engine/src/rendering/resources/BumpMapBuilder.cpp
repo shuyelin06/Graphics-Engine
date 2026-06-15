@@ -76,9 +76,10 @@ void BumpMapBuilder::computeNormals() {
 
             // Convert to the color space
             TextureColor color;
-            color.r = (uint8_t)((normal.x * 0.5f + 0.5f) * 255.f);
-            color.g = (uint8_t)((normal.y * 0.5f + 0.5f) * 255.f);
-            color.b = (uint8_t)((normal.z * 0.5f + 0.5f) * 255.f);
+            auto& rgba = color.asType<TextureColor::UNormR8G8B8A8>();
+            rgba.r = (uint8_t)((normal.x * 0.5f + 0.5f) * 255.f);
+            rgba.g = (uint8_t)((normal.y * 0.5f + 0.5f) * 255.f);
+            rgba.b = (uint8_t)((normal.z * 0.5f + 0.5f) * 255.f);
 
             setColor(i - 1, j - 1, color);
         }

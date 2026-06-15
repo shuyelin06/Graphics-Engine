@@ -1,5 +1,8 @@
 #pragma once
 
+#include <atomic>
+#include <cstdint>
+
 #include "rendering/Direct3D11.h"
 
 #include "math/Color.h"
@@ -11,6 +14,27 @@ using namespace Math;
 
 namespace Graphics {
 
+enum class TextureSampler : uint8_t {
+    Point = 0
+};
+
+enum class TextureLayout : uint8_t {
+    R8G8B8A8_UNORM = 0,
+    R32_FLOAT = 1, // 32-Bit Float from R Channel
+};
+
+inline static size_t TextureLayoutByteSize(TextureLayout layout) {
+    switch (layout) {
+    case TextureLayout::R8G8B8A8_UNORM:
+        [[fallthrough]];
+    case TextureLayout::R32_FLOAT:
+        return 4;
+
+    default:
+        return 0;
+    }
+}
+
 // Texture Struct:
 // Represents a texture that can be uploaded to the GPU.
 struct Texture {
@@ -19,6 +43,7 @@ struct Texture {
 
     // Texture descriptions
     UINT width, height; // Pixel width, height
+    TextureLayout layout;
     bool editable;      // Can the texture be edited?
 
     // Different views for the texture. NULL if uninitialized.
@@ -26,7 +51,10 @@ struct Texture {
     ID3D11DepthStencilView* depth_view;
     ID3D11RenderTargetView* target_view;
 
+    std::atomic<bool> ready;
+
   public:
+    Texture();
     Texture(ID3D11Texture2D* tex, UINT width, UINT height);
     Texture(ID3D11Device* device, const D3D11_TEXTURE2D_DESC& desc);
     ~Texture();

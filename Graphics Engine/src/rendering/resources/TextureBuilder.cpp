@@ -4,20 +4,22 @@
 
 namespace Engine {
 namespace Graphics {
-TextureColor::TextureColor() = default;
+TextureColor::TextureColor() : data{0} {}
 TextureColor::TextureColor(uint8_t _r, uint8_t _g, uint8_t _b, uint8_t _a) {
-    r = _r;
-    g = _g;
-    b = _b;
-    a = _a;
+    auto& rgba = asType<TextureColor::UNormR8G8B8A8>();
+    rgba.r = _r;
+    rgba.g = _g;
+    rgba.b = _b;
+    rgba.a = _a;
+}
+TextureColor::TextureColor(float r) {
+    auto& f = asType<TextureColor::FloatR32>();
+    f.r = r;
 }
 
-TextureBuilder::TextureBuilder(UINT _width, UINT _height) {
-    width = _width;
-    height = _height;
-
-    data.resize(width * height);
-    clear({90, 34, 139, 255});
+TextureBuilder::TextureBuilder(UINT width, UINT height, TextureLayout layout)
+    : width(width), height(height), layout(layout) {
+    reset(width, height, layout);
 }
 
 TextureBuilder::~TextureBuilder() = default;
@@ -88,8 +90,8 @@ void TextureBuilder::update(Texture* texture, ID3D11DeviceContext* context) {
 
     uint8_t* dest = reinterpret_cast<uint8_t*>(sr.pData);
     uint8_t* src = reinterpret_cast<uint8_t*>(data.data());
-    // We need to copy row-by-row, because while rows are aligned, there may be
-    // padding after each row that we're not aware about.
+    // We need to copy row-by-row, because while rows are aligned, there may
+    // be padding after each row that we're not aware about.
     for (UINT y = 0; y < height; ++y)
         memcpy(dest + y * sr.RowPitch, src + y * width * 4, width * 4);
 
@@ -99,31 +101,27 @@ void TextureBuilder::update(Texture* texture, ID3D11DeviceContext* context) {
 // SetColor:
 // Sets a pixel of the texture to some color value
 void TextureBuilder::setColor(UINT x, UINT y, const TextureColor& rgba) {
-    assert(0 <= x && x < width);
-    assert(0 <= y && y < height);
+    assert(0 <= x && x < width && 0 <= y && y < height);
 
-    data[y * width + x] = rgba;
+    const size_t byteSize = TextureLayoutByteSize(layout);
+    void* addr = &data[byteSize * (y * width + x)];
+    memcpy(addr, &rgba.data, byteSize);
 }
 
 // Clear:
 // Clears the texture, setting all of the RGBA pixels to a particular color.
-void TextureBuilder::clear(const TextureColor& rgba) {
-    const UINT pixel_width = width;
-    const UINT pixel_height = height;
-
-    for (int i = 0; i < pixel_width * pixel_height; i++)
-        data[i] = rgba;
-}
+void TextureBuilder::clear() { memset(data.data(), 0, data.size()); }
 
 // Reset:
 // Resets the builder
-void TextureBuilder::reset(unsigned int _width, unsigned int _height) {
-    data.resize(_width * _height);
-    
+void TextureBuilder::reset(unsigned int _width, unsigned int _height,
+                           TextureLayout _layout) {
     width = _width;
     height = _height;
+    layout = _layout;
 
-    clear({90, 34, 139, 255});
+    data.resize(TextureLayoutByteSize(layout) * _width * _height);
+    clear();
 }
 
 // --- Atlas Builder ---

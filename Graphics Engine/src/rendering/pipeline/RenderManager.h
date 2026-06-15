@@ -62,6 +62,7 @@ struct DrawBlock {
     Material* material = nullptr;
 
     InstanceData* instanceData = nullptr;
+    int numInstances = 1;
 
     DrawBlock();
 
@@ -81,7 +82,7 @@ class RenderManager {
     ~RenderManager();
 
     DrawBlockKey addDrawBlock(const DrawBlock& block);
-    void updateInstanceData(const DrawBlockKey key, InstanceData instanceData);
+    void updateInstanceData(const DrawBlockKey key, InstanceData instanceData, int numInstances = 1);
     void removeDrawBlock(const DrawBlockKey key);
 
     void setMainView(const RenderView& view);

@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "rendering/core/RenderSettings.h"
+#include "rendering/core/Texture.h"
 
 #include "ConstantBuffer.h"
 #include "Shader.h"
@@ -161,6 +162,7 @@ class Pipeline {
         context->VSSetShaderResources(slot, 1, &sb.srv);
     }
     void bindVertexTexture(const Texture& texture, unsigned int slot);
+    void bindVertexSampler(unsigned int slot, TextureSampler sampler);
     IConstantBuffer loadVertexCB(int slot);
 
     // Pixel Technique API

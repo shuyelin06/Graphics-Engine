@@ -8,7 +8,7 @@
 
 namespace Engine {
 namespace Graphics {
-
+Texture::Texture() = default;
 Texture::Texture(ID3D11Texture2D* tex, UINT _width, UINT _height) {
     texture = tex;
     width = _width;
@@ -61,11 +61,11 @@ void Texture::createRenderTargetView(ID3D11Device* device) {
 }
 
 void Texture::VSBindResource(ID3D11DeviceContext* context,
-                               unsigned int slot) const {
+                             unsigned int slot) const {
     context->VSSetShaderResources(slot, 1, &shader_view);
 }
 void Texture::PSBindResource(ID3D11DeviceContext* context,
-                               unsigned int slot) const {
+                             unsigned int slot) const {
     context->PSSetShaderResources(slot, 1, &shader_view);
 }
 

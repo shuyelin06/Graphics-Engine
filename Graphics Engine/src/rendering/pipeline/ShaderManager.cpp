@@ -77,7 +77,7 @@ void ShaderManager::initializeShaders() {
          "Terrain",
          "V_Terrain.hlsl",
          "vsterrain_main",
-         {POSITION, NORMAL},
+         {POSITION, INSTANCE_ID},
          {}},
         {Pixel, "Terrain", "P_Terrain.hlsl", "psterrain_main", {}, {}},
         // Shadow:

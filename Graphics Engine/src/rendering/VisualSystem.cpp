@@ -162,7 +162,7 @@ VisualSystem::VisualSystem(HWND window) {
     scene_manager = SceneManager::create(this);
     resource_manager = ResourceManager::create(device, context);
     resource_manager->initializeSystemResources();
-    material_manager = MaterialManager::create();
+    material_manager = MaterialManager::create(resource_manager.get());
     render_manager = RenderManager::create(this, context, device);
 
     light_manager = new LightManager(device, 4096);
@@ -174,10 +174,6 @@ VisualSystem::VisualSystem(HWND window) {
 // Render:
 // Renders the entire scene to the screen.
 void VisualSystem::render() {
-#if defined(IMGUI_ENABLED)
-    imGui();
-#endif
-
     // Update Perform
 
     pipeline->beginFrame(frame++);
@@ -230,6 +226,10 @@ void VisualSystem::render() {
 void VisualSystem::renderPrepare() {
 #if defined(_DEBUG)
     ICPUTimer cpu_timer = CPUTimer::TrackCPUTime("Render Prepare");
+#endif
+
+#if defined(IMGUI_ENABLED)
+    imGui();
 #endif
 
     // Parse all datamodel update packets since the last frame and update my

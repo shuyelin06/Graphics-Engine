@@ -59,9 +59,10 @@ class ResourceManager {
     LoadTextureFromFile(const std::string& relative_path);
     std::shared_ptr<Mesh> LoadMeshFromFile(const std::string& relative_path);
 
-    std::shared_ptr<TextureBuilder> createTextureBuilder();
-
     std::shared_ptr<Mesh> requestMesh(const MeshBuilder& mesh_builder);
+    std::shared_ptr<Texture>
+    requestTexture(const TextureBuilder& texture_builder, bool editable = false,
+                   const std::shared_ptr<Texture>& target = nullptr);
 
     // Debug Display
     void imGui();

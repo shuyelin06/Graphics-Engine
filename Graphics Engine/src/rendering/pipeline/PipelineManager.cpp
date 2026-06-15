@@ -480,6 +480,24 @@ void Pipeline::bindVertexTexture(const Texture& texture, unsigned int slot) {
     context->VSSetShaderResources(slot, 1, &texture.shader_view);
 }
 
+void Pipeline::bindVertexSampler(unsigned int slot, TextureSampler sampler) {
+    ID3D11SamplerState* state = nullptr;
+
+    switch (sampler) {
+    case TextureSampler::Point:
+        state = samplers[Point];
+        break;
+
+    default:
+        return;
+    }
+
+    if (state != nullptr)
+    {
+        context->VSSetSamplers(slot, 1, &state);
+    }
+}
+
 void Pipeline::bindPixelTexture(const Texture& texture, unsigned int slot) {
     context->PSSetShaderResources(slot, 1, &texture.shader_view);
 }

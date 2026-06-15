@@ -5,29 +5,64 @@
 
 namespace Engine {
 namespace Graphics {
+void Technique::clearVertexCB(uint8_t slot) {
+    assert(slot <= kVertexConstantBufferMax);
+    auto& cb = vertexCBuffers[slot];
+    cb.clear();
+}
 void Technique::uploadVertexCBData(uint8_t slot, const void* src,
                                    size_t byteSize) {
     assert(slot <= kVertexConstantBufferMax);
     auto& cb = vertexCBuffers[slot];
-    cb.resize(byteSize);
-    memcpy(cb.data(), src, byteSize);
+    const size_t end = cb.size();
+    cb.resize(end + byteSize);
+    memcpy(cb.data() + end, src, byteSize);
 }
 void Technique::uploadPixelCBData(uint8_t slot, const void* src,
                                   size_t byteSize) {
     assert(slot <= kPixelConstantBufferMax);
-    auto& cb = pixelCbuffers[slot];
-    cb.resize(byteSize);
-    memcpy(cb.data(), src, byteSize);
+    auto& cb = vertexCBuffers[slot];
+    const size_t end = cb.size();
+    cb.resize(end + byteSize);
+    memcpy(cb.data() + end, src, byteSize);
+}
+void Technique::bindVertexShaderResource(uint8_t slot,
+                                         std::shared_ptr<Texture> texture,
+                                         TextureSampler sampleState) {
+    assert(slot <= kVertexResourceMax);
+    vResources[slot].texture = texture;
+    vResources[slot].sampleState = sampleState;
+    vResourcesFlag.set(slot);
+}
+bool Technique::hasVertexResource(uint8_t slot) const {
+    assert(slot <= kVertexResourceMax);
+    return vResourcesFlag.test(slot);
+}
+const Technique::BoundTexture&
+Technique::getVertexResource(uint8_t slot) const {
+    assert(slot <= kVertexResourceMax && vResourcesFlag.test(slot));
+    return vResources[slot];
 }
 
+bool Technique::ready() const {
+    bool ready = true;
+    for (int slot = 0; slot < kVertexResourceMax; slot++) {
+        if (hasVertexResource(slot)) {
+            ready = ready && vResources[slot].texture->ready;
+        }
+    }
+    return ready;
+}
 using DefaultMaterialParams = MaterialManager::DefaultMaterialParams;
 using TerrainMaterialParams = MaterialManager::TerrainMaterialParams;
 class MaterialManagerImpl {
   private:
+    ResourceManager* resourceManager;
+
     std::unordered_map<uint32_t, std::weak_ptr<Material>> materialMap;
 
   public:
-    MaterialManagerImpl();
+    MaterialManagerImpl(ResourceManager* resourceManager);
     ~MaterialManagerImpl();
 
     std::shared_ptr<Material>
@@ -53,14 +88,14 @@ Technique* Material::setTechnique(const RenderPass pass) {
 bool Material::hasTechnique(const RenderPass pass) const {
     return techniques[pass] != nullptr;
 }
-const Technique* Material::getTechnique(const RenderPass pass) const {
+Technique* Material::getTechnique(const RenderPass pass) const {
     return techniques[pass];
 }
 bool Material::ready() const {
     bool ready = true;
     for (const Technique* technique : techniques) {
         if (technique)
-            ready = ready && technique->ready;
+            ready = ready && technique->ready();
     }
     return ready;
 }
@@ -69,10 +104,11 @@ MD5Hash MaterialManager::DefaultMaterialParams::generateHash() const {
     return hashMD5(colormap.data(), colormap.size());
 }
 
-std::unique_ptr<MaterialManager> MaterialManager::create() {
+std::unique_ptr<MaterialManager>
+MaterialManager::create(ResourceManager* resourceManager) {
     std::unique_ptr<MaterialManager> ptr =
         std::unique_ptr<MaterialManager>(new MaterialManager());
-    ptr->mImpl = std::make_unique<MaterialManagerImpl>();
+    ptr->mImpl = std::make_unique<MaterialManagerImpl>(resourceManager);
     return ptr;
 }
 
@@ -88,7 +124,8 @@ MaterialManager::createMaterial(const TerrainMaterialParams& params) {
     return mImpl->createMaterial(params);
 }
 
-MaterialManagerImpl::MaterialManagerImpl() = default;
+MaterialManagerImpl::MaterialManagerImpl(ResourceManager* resourceManager)
+    : resourceManager(resourceManager) {}
 MaterialManagerImpl::~MaterialManagerImpl() = default;
 
 std::shared_ptr<Material>
@@ -114,8 +151,6 @@ MaterialManagerImpl::createMaterial(const DefaultMaterialParams& params) {
     technique->vertexShader = "TexturedMesh";
     technique->pixelShader = "TexturedMesh";
 
-    technique->ready = true;
-
     materialMap[hash] = material;
 
     return material;
@@ -128,8 +163,6 @@ MaterialManagerImpl::createMaterial(const TerrainMaterialParams& params) {
     Technique* technique = material->setTechnique(RenderPass::kOpaque);
     technique->vertexShader = "Terrain";
     technique->pixelShader = "Terrain";
-
-    technique->ready = true;
 
     return material;
 }

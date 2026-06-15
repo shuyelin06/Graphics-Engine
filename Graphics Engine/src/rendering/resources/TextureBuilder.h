@@ -8,14 +8,26 @@
 
 namespace Engine {
 namespace Graphics {
+class ResourceManagerImpl;
+
 struct TextureColor {
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
-    uint8_t a;
+    uint8_t data[4];
+
+    struct UNormR8G8B8A8 {
+        uint8_t r;
+        uint8_t g;
+        uint8_t b;
+        uint8_t a;
+    };
+    struct FloatR32 {
+        float r;
+    };
 
     TextureColor();
     TextureColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+    TextureColor(float r);
+
+    template <typename T> T& asType() { return *reinterpret_cast<T*>(data); }
 };
 
 // TextureBuilder Class:
@@ -23,12 +35,16 @@ struct TextureColor {
 // Pixels should be loaded in the range [0,255].
 // The texture builder only supports the building of 8-bit RGBA channels.
 class TextureBuilder {
+    friend class ResourceManagerImpl;
+
   protected:
-    std::vector<TextureColor> data;
+    std::vector<uint8_t> data;
     UINT width, height;
+    TextureLayout layout;
 
   public:
-    TextureBuilder(UINT _width, UINT _height);
+    TextureBuilder(UINT width, UINT height,
+                   TextureLayout layout = TextureLayout::R8G8B8A8_UNORM);
     ~TextureBuilder();
 
     // Generates the renderable texture
@@ -39,12 +55,11 @@ class TextureBuilder {
 
     // Sets the color for a particular pixel
     void setColor(UINT x, UINT y, const TextureColor& rgba);
-
-    // Clears the texture with an rgba color
-    void clear(const TextureColor& rgba);
+    void clear();
 
     // Resets the builder
-    void reset(unsigned int width, unsigned int height);
+    void reset(unsigned int width, unsigned int height,
+               TextureLayout layout = TextureLayout::R8G8B8A8_UNORM);
 };
 
 // AtlasBuilder Class:
