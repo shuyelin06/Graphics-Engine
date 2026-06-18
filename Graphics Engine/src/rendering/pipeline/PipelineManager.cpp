@@ -72,6 +72,9 @@ Pipeline::Pipeline(HWND window) {
     imGuiInitialize(window);
     imGuiPrepare();
 #endif
+
+    ImGuiHelper::registerImGuiCallback("Render/Pipeline",
+                                       [this]() { imGui(); });
 }
 
 Pipeline::~Pipeline() {
@@ -86,7 +89,7 @@ Pipeline::~Pipeline() {
         delete pcb_handles[i];
     }
 
-    for (int i = 0; i < SamplerSlot::SamplerCount; i++) {
+    for (int i = 0; i < (int)SamplerType::SamplerCount; i++) {
         if (samplers[i] != nullptr)
             samplers[i]->Release();
     }
@@ -289,7 +292,7 @@ void Pipeline::initializeSamplers() {
     D3D11_SAMPLER_DESC sampler_desc = {};
     ID3D11SamplerState* sampler = NULL;
 
-    for (int i = 0; i < SamplerCount; i++)
+    for (int i = 0; i < (int)SamplerType::SamplerCount; i++)
         samplers[i] = NULL;
 
     // Point Sampler: Index 0
@@ -301,7 +304,7 @@ void Pipeline::initializeSamplers() {
     device->CreateSamplerState(&sampler_desc, &sampler);
     assert(sampler != NULL);
 
-    samplers[Point] = sampler;
+    samplers[SamplerType::Sampler_Point] = sampler;
 
     // Shadow Sampler: Index 1
     sampler_desc.Filter =
@@ -320,7 +323,7 @@ void Pipeline::initializeSamplers() {
     device->CreateSamplerState(&sampler_desc, &sampler);
     assert(sampler != NULL);
 
-    samplers[Shadow] = sampler;
+    samplers[Sampler_Shadow] = sampler;
 }
 
 ID3D11Device* Pipeline::getDevice() const { return device; }
@@ -485,15 +488,14 @@ void Pipeline::bindVertexSampler(unsigned int slot, TextureSampler sampler) {
 
     switch (sampler) {
     case TextureSampler::Point:
-        state = samplers[Point];
+        state = samplers[Sampler_Point];
         break;
 
     default:
         return;
     }
 
-    if (state != nullptr)
-    {
+    if (state != nullptr) {
         context->VSSetSamplers(slot, 1, &state);
     }
 }
@@ -682,6 +684,12 @@ void Pipeline::imGuiShutdown() {
     ImGui::DestroyContext();
 }
 #endif
+
+void Pipeline::imGui() {
+#if defined(IMGUI_ENABLED)
+    ImGui::Text("Draw Call Count: %zu", stats.numDraws);
+#endif
+}
 
 } // namespace Graphics
 } // namespace Engine

@@ -12,8 +12,8 @@ struct PS_INPUT
     float3x3 m_tbn : TEXCOORD1;
 };
 
-Texture2D depth_map : register(t2);
-Texture2D bump_map : register(t3);
+DefineTex2D(depth_map, 2);
+DefineTex2D(bump_map, 3);
 
 cbuffer CB2_LIGHTING_INFO : register(b2)
 {    
@@ -28,7 +28,7 @@ float4 ps_main(PS_INPUT input) : SV_TARGET
 {
     float2 uv = float2(input.position_clip.x / resolution_x, input.position_clip.y / resolution_y);
     
-    input.normal = bump_to_normal(bump_map.Sample(s_point, input.world_position.xz / 300.f).rgb, input.m_tbn);
+    input.normal = bump_to_normal(SampleTex2D(bump_map, input.world_position.xz / 300.f).rgb, input.m_tbn);
     
     float3 ambient_color = float3(0.3f, 0.27f, 0.75f);
     float3 color = float3(0.03f, 0.07f, 0.75f);
@@ -56,7 +56,7 @@ float4 ps_main(PS_INPUT input) : SV_TARGET
     
     // My alpha will depend on the sampled depth
     
-    float depth = depth_map.Sample(s_point, uv);
+    float depth = SampleTex2D(depth_map, uv);
     float alpha = 1.f;
     
     if (depth < 1.f - 0.001f && input.position_clip.z < depth)

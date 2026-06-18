@@ -6,8 +6,8 @@ struct PS_IN
     float4 position_clip : SV_POSITION;
 };
 
-Texture2D render_target : register(t2);
-Texture2D depth_map : register(t3);
+DefineTex2D(render_target, 2);
+DefineTex2D(depth_map, 3);
 
 cbuffer CB2_PARAMS : register(b2)
 {
@@ -67,9 +67,9 @@ float4 ps_main(PS_IN input) : SV_TARGET
     float2 uv = float2(input.position_clip.x / resolution_x, input.position_clip.y / resolution_y);
     // Sample my textures at this UV coordinate, and determine the XYZ world position
     // of this point.
-    float depth = depth_map.Sample(s_point, uv);
+    float depth = SampleTex2D(depth_map, uv);
     float world_depth = depth * (view_zfar - view_znear) + view_znear;
-    float3 color = render_target.Sample(s_point, uv);
+    float3 color = SampleTex2D(render_target, uv);
     output_color = color * exp(-world_depth * scattering_coefficients);
     
     // Convert this to a viewing direction 

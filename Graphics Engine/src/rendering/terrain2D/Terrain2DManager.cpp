@@ -38,13 +38,13 @@ struct QuadTreeNode {
 class Terrain2DManagerImpl {
   private:
     struct Config {
-        float lodAttenuation = 3000.f;
+        float lodAttenuation = 1000.f;
 
-        int terrainMeshSampleCount = 10;
+        int terrainMeshSampleCount = 15;
 
         Vector2 heightMapOrigin = Vector2(0, 0);
-        Vector2 heightMapExtents = Vector2(200, 200);
-        int heightmapNumSamples = 500;
+        Vector2 heightMapExtents = Vector2(1000, 1000);
+        int heightmapNumSamples = 350;
     } config;
 
     // Settings

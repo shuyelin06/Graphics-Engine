@@ -57,6 +57,9 @@ LightManager::LightManager(ID3D11Device* device, unsigned int atlas_size)
 
     // Create sun light
     createSunLight(QUALITY_5);
+
+    ImGuiHelper::registerImGuiCallback("Render/Lighting",
+                                       [this]() { imGui(); });
 }
 
 // SceneGraph:

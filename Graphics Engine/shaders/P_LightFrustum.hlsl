@@ -1,3 +1,4 @@
+#include "Common.hlsli"
 #include "P_Common.hlsli"
 #include "Lighting.hlsli"
 #include "Utility.hlsli"
@@ -10,8 +11,8 @@ struct PS_INPUT
     uint instance : SV_InstanceID;
 };
 
-Texture2D depth_map : register(t3);
-Texture2D depth_map_forward : register(t4);
+DefineTex2D(depth_map, 3);
+DefineTex2D(depth_map_forward, 4);
 
 cbuffer CB1_PARAMS : register(b2)
 {
@@ -74,11 +75,11 @@ float4 ps_main(PS_INPUT input) : SV_TARGET
     // We will raymarch through the light volume, and attenuate the light color.
     // This will give us a volumetric lighting effect.
     // First, determine my ray viewing vector, and how far it goes.
-    float volume_start = depth_map_forward.Sample(s_point, uv);
+    float volume_start = SampleTex2D(depth_map_forward, uv);
     if (volume_start == 1.f)
         volume_start = 0.f;
     float volume_end = input.position_clip.z;
-    float depth = depth_map.Sample(s_point, uv);
+    float depth = SampleTex2D(depth_map, uv);
     
     float4 world_pos = float4(uv.x * 2.f - 1, 1.f - 2.f * uv.y, volume_start, 1.f);
     world_pos = mul(m_screen_to_world, world_pos);

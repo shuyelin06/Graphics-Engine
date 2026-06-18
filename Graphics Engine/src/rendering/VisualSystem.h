@@ -54,18 +54,17 @@ class VisualSystem {
     ID3D11DeviceContext* context;
 
     // Managers
-    std::unique_ptr<SceneListener> scene_listener;
-
-    std::unique_ptr<SceneManager> scene_manager;
-    std::unique_ptr<Terrain2DManager> terrain2D;
-    LightManager* light_manager;
-
+    std::unique_ptr<Pipeline> pipeline;
     std::unique_ptr<ResourceManager> resource_manager;
     std::unique_ptr<MaterialManager> material_manager;
     std::unique_ptr<RenderManager> render_manager;
+
+    std::unique_ptr<SceneListener> scene_listener;
+    std::unique_ptr<SceneManager> scene_manager;
+    std::unique_ptr<Terrain2DManager> terrain2D;
+    LightManager* light_manager;
     // This should be moved somewhere else.. maybe terrain?
     std::unique_ptr<WaterSurface> water_surface;
-    Pipeline* pipeline;
 
     // Temp for now; should be moved later.
     ID3D11RasterizerState* og_rast_state;
@@ -104,17 +103,6 @@ class VisualSystem {
     void performWaterSurfacePass(); // Water Surface Pass
     void processSky();
     void processUnderwater(); // Underwater Effect
-
-  private:
-    void imGui();
-
-#if defined(ENABLE_DEBUG_DRAWING)
-    // Debug via VisualDebug
-    ID3D11Buffer* line_vbuffer;
-
-    void renderDebugPoints(); // DEBUG
-    void renderDebugLines();  // DEBUG
-#endif
 };
 } // namespace Graphics
 } // namespace Engine

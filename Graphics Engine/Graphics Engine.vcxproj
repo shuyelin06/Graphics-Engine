@@ -284,6 +284,7 @@
     <ClInclude Include="src\rendering\core\RenderSettings.h" />
     <ClInclude Include="src\rendering\pipeline\DrawCall.h" />
     <ClInclude Include="src\rendering\core\RenderPass.h" />
+    <ClInclude Include="src\rendering\pipeline\EnumTypes.h" />
     <ClInclude Include="src\rendering\resources\MaterialManager.h" />
     <ClInclude Include="src\rendering\scene\SceneListener.h" />
     <ClInclude Include="src\rendering\scene\SceneManager.h" />

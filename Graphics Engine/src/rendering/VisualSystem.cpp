@@ -70,36 +70,6 @@ struct VisualParameters {
 #endif
 };
 
-// ImGuiConfig:
-// Sets configuration parameters
-void VisualSystem::imGui() {
-#if defined(IMGUI_ENABLED)
-    ImGuiHelper::renderImGui();
-
-    config->imGuiConfig();
-
-    static bool imgui_light_manager = false;
-
-    if (ImGui::BeginMenu("Rendering")) {
-        const Pipeline::Stats& stats = pipeline->getStats();
-        ImGui::Text("Draw Call Count: %zu", stats.numDraws);
-
-        if (ImGui::Button("Light Manager"))
-            imgui_light_manager = true;
-        ImGui::EndMenu();
-    }
-
-    // Property Panel
-    if (imgui_light_manager) {
-        if (ImGui::Begin("Light Manager", &imgui_light_manager,
-                         ImGuiWindowFlags_NoCollapse)) {
-            light_manager->imGui();
-        }
-        ImGui::End();
-    }
-#endif
-}
-
 // Constructor
 // Initializes the VisualSystem
 VisualSystem::VisualSystem(HWND window) {
@@ -114,8 +84,7 @@ VisualSystem::VisualSystem(HWND window) {
 
     // Initialize my pipeline
     HRESULT result;
-    pipeline = new Pipeline(window);
-
+    pipeline = std::make_unique<Pipeline>(window);
     device = pipeline->getDevice();
     context = pipeline->getContext();
 
@@ -128,13 +97,16 @@ VisualSystem::VisualSystem(HWND window) {
         assert(SUCCEEDED(result));
     }
 
-    // Initialize each of my managers with the resources they need
-    scene_listener = SceneListener::create(this);
-    scene_manager = SceneManager::create(this);
     resource_manager = ResourceManager::create(device, context);
     resource_manager->initializeSystemResources();
     material_manager = MaterialManager::create(resource_manager.get());
     render_manager = RenderManager::create(this, context, device);
+
+    // Initialize each of my managers with the resources they need
+    scene_listener = SceneListener::create(this);
+    scene_manager = SceneManager::create(this);
+   
+    
 
     water_surface = std::make_unique<WaterSurface>();
     water_surface->generateSurfaceMesh(this->getResourceManager(), 15);
@@ -183,13 +155,6 @@ void VisualSystem::render() {
             processSky();
         }
 
-#if defined(ENABLE_DEBUG_DRAWING)
-        // Debug Functionality
-        renderDebugPoints();
-        renderDebugLines();
-        VisualDebug::Clear();
-#endif
-
 #if defined(_DEBUG)
     }
 #endif
@@ -204,7 +169,8 @@ void VisualSystem::renderPrepare() {
 #endif
 
 #if defined(IMGUI_ENABLED)
-    imGui();
+    ImGuiHelper::renderImGui();
+    config->imGuiConfig();
 #endif
 
     // Parse all datamodel update packets since the last frame and update my
@@ -281,7 +247,7 @@ RenderManager* VisualSystem::getRenderManager() const {
 }
 LightManager* VisualSystem::getLightManager() const { return light_manager; }
 
-Pipeline* VisualSystem::getPipeline() const { return pipeline; }
+Pipeline* VisualSystem::getPipeline() const { return pipeline.get(); }
 
 // PerformShadowPass:
 // Render the scene from each light's point of view, to populate
@@ -466,8 +432,7 @@ void VisualSystem::performWaterSurfacePass() {
     }
 
     // VCB1: Wave Information
-    const std::vector<WaveConfig>& wave_config =
-        water_surface->getWaveConfig();
+    const std::vector<WaveConfig>& wave_config = water_surface->getWaveConfig();
     const int num_waves = water_surface->getNumWaves();
     {
         IConstantBuffer vcb1 = pipeline->loadVertexCB(1);
@@ -647,64 +612,6 @@ void VisualSystem::processUnderwater() {
     // Bind and draw full screen quad
     pipeline->drawPostProcessQuad();
 }
-
-#if defined(ENABLE_DEBUG_DRAWING)
-void VisualSystem::renderDebugPoints() {
-    /*
-    std::vector<PointData>& points = VisualDebug::points;
-
-    if (points.size() == 0)
-        return;
-
-    vsDebugPoint.setVertexData(
-        resource_manager->getMesh(SystemMesh_Cube).get(),
-        resource_manager->getMesh(SystemMesh_Cube).get()->num_triangles * 3,
-        points.size());
-    vsDebugPoint.setConstantBufferData(0, points.data(),
-                                       points.size() * sizeof(PointData));
-
-    points.clear();
-
-    if (debugPointBlockKey == kInvalidDrawBlockKey) {
-        // TODO: Hook up to material generator
-        RenderPassSet passes{};
-        passes.addPass(RenderPass::kDebug);
-
-        DrawBlock drawBlock;
-        drawBlock.initialize(AABB(), passes,
-                             {(VertexTechnique*)&vsDebugPoint,
-                              (PixelTechnique*)&psDebugDefault});
-        debugPointBlockKey = render_manager->addDrawBlock(drawBlock);
-    }
-    */
-}
-
-void VisualSystem::renderDebugLines() {
-    /*
-    std::vector<LinePoint>& lines = VisualDebug::lines;
-
-    if (lines.size() == 0)
-        return;
-
-    sbLines.uploadData(context, lines.data(), lines.size());
-    vsDebugLine.setVertexData(nullptr, 2, lines.size());
-    vsDebugLine.setStructuredBuffer(0, &sbLines);
-    vsDebugLine.setVertexTopology(VertexTopology::LineList);
-
-    if (debugLineBlockKey == kInvalidDrawBlockKey) {
-        // TODO: Hook up to material generator
-        RenderPassSet passes{};
-        passes.addPass(RenderPass::kDebug);
-
-        DrawBlock drawBlock;
-        drawBlock.initialize(
-            AABB(), passes,
-            {(VertexTechnique*)&vsDebugLine, (PixelTechnique*)&psDebugDefault});
-        debugLineBlockKey = render_manager->addDrawBlock(drawBlock);
-    }
-    */
-}
-#endif
 
 } // namespace Graphics
 } // namespace Engine

@@ -7,8 +7,8 @@ struct PS_IN
     float4 position_clip : SV_POSITION;
 };
 
-Texture2D render_target : register(t2);
-Texture2D depth_map : register(t3);
+DefineTex2D(render_target, 2);
+DefineTex2D(depth_map, 3);
 
 cbuffer CB1_PARAMS : register(b2)
 {
@@ -70,8 +70,8 @@ float4 ps_main(PS_IN input) : SV_TARGET
     // 1) The current color + depth at this pixel. This represents the light 
     //    directly reflected towards the camera at this angle
     // 2) My viewing directional vector
-    float3 color = render_target.Sample(s_point, uv);
-    float depth = depth_map.Sample(s_point, uv).x;
+    float3 color = SampleTex2D(render_target, uv);
+    float depth = SampleTex2D(depth_map, uv).x;
     color = lerp(color, float3(0, 0, 0), pow(depth, fog_multiplier));
     
     float4 world_pos = float4(uv.x * 2.f - 1, 1.f - 2.f * uv.y, depth, 1.f);

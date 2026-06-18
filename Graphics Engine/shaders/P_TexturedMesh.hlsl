@@ -25,7 +25,7 @@ float4 ps_main(VS_OUT input) : SV_TARGET
     // FORCE USAGE OF MESH TEXTURE?
     // float2 uv = float2(input.tex_coord.x * tex_width + tex_x, input.tex_coord.y * tex_height + tex_y);
     float2 uv = input.tex_coord;
-    float3 mesh_color = color_atlas.Sample(s_point, uv);
+    float3 mesh_color = SampleTex2D(color_atlas, uv);
     
     // Ambient Lighting
     color.rgb += mesh_color * 0.1f;

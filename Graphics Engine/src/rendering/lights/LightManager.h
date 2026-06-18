@@ -101,10 +101,10 @@ class LightManager {
     // Bind data to pipeline
     void bindLightData(IConstantBuffer& cb);
 
+  private:
     // ImGui
     void imGui();
 
-  private:
     void createSunLight(ShadowMapQuality quality);
 };
 

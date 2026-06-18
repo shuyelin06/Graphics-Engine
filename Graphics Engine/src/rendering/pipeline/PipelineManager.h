@@ -10,7 +10,7 @@
 #include "ShaderManager.h"
 #include "StructuredBuffer.h"
 
-inline constexpr int SAMPLER_COUNT = 4;
+#include "EnumTypes.h"
 
 #define INDEX_LIST_START 0
 #define INDEX_LIST_END -1
@@ -23,19 +23,6 @@ enum class VertexTopology : uint8_t {
     TriangleList = 0,
     LineList = 1,
     _Count_,
-};
-
-// SamplerSlot Enum:
-// References the sampler slots in the pipeline.
-// Most of the samplers are not to be rebound, as they are
-// commonly used.
-enum SamplerSlot {
-    Point = 0,
-    Shadow = 1,
-    // Linear = 2,
-    // Anisotrophic = 3,
-    // Note: Additional samplers can be added here
-    SamplerCount
 };
 
 // Render Target Bind Flags:
@@ -109,7 +96,7 @@ class Pipeline {
     ID3D11BlendState* blend_states[BlendFlagCount];
 
     // Samplers
-    ID3D11SamplerState* samplers[SAMPLER_COUNT];
+    ID3D11SamplerState* samplers[SamplerType::SamplerCount];
 
     // Bound Vertex / Index Buffer
     const void* active_pool_addr;
@@ -137,12 +124,6 @@ class Pipeline {
   public:
     Pipeline(HWND window);
     ~Pipeline();
-
-    struct Stats {
-        uint32_t numDraws = 0;
-    };
-    Stats stats;
-    const Stats& getStats() const { return stats; }
 
     ID3D11Device* getDevice() const;
     ID3D11DeviceContext* getContext() const;
@@ -206,7 +187,14 @@ class Pipeline {
     // Render to Screen
     void endFrame();
 
+
   private:
+    struct Stats {
+        uint32_t numDraws = 0;
+    };
+    Stats stats;
+    void imGui();
+
     void swapActiveTarget();
 
 #if defined(_DEBUG)

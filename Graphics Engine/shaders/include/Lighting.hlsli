@@ -84,7 +84,7 @@ float shadowValue(float3 world_position, LightData light, float bias)
             // Pull the depth of our point.
             float cur_depth = view_coords.z;
             // Sample the shadow map depth. 
-            float depth = shadow_atlas.Sample(s_shadow, shadowmap_coords).x;
+            float depth = SampleTex2D(shadow_atlas, shadowmap_coords).x;
             
             // Perform a shadow test by seeing if the point's depth exceeds the depth. 
             // If sampled_depth is < depth, the light cannot see the point, so it provides
