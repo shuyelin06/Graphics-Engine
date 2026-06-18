@@ -14,10 +14,6 @@ using namespace Math;
 
 namespace Graphics {
 
-enum class TextureSampler : uint8_t {
-    Point = 0
-};
-
 enum class TextureLayout : uint8_t {
     R8G8B8A8_UNORM = 0,
     R32_FLOAT = 1, // 32-Bit Float from R Channel
@@ -44,7 +40,7 @@ struct Texture {
     // Texture descriptions
     UINT width, height; // Pixel width, height
     TextureLayout layout;
-    bool editable;      // Can the texture be edited?
+    bool editable; // Can the texture be edited?
 
     // Different views for the texture. NULL if uninitialized.
     ID3D11ShaderResourceView* shader_view;
@@ -66,26 +62,11 @@ struct Texture {
                                 D3D11_DEPTH_STENCIL_VIEW_DESC& desc);
     void createRenderTargetView(ID3D11Device* device);
 
-    // Texture Operations
-    void VSBindResource(ID3D11DeviceContext* context, unsigned int slot) const;
-    void PSBindResource(ID3D11DeviceContext* context, unsigned int slot) const;
-    void clearAsRenderTarget(ID3D11DeviceContext* context,
-                             const Color& color) const;
-    void clearAsDepthStencil(ID3D11DeviceContext* context) const;
-
 #if defined(_DEBUG)
     void displayImGui() const;
     void displayImGui(float width) const;
 #endif
 };
-
-// RenderTargetTexture:
-// Represents a texture that can also be used as a render target.
-struct RenderTargetTexture : public Texture {};
-
-// Depth Stencil Texture:
-// Represents a texture that can also be used as a depth stencil
-struct DepthStencilTexture : public Texture {};
 
 } // namespace Graphics
 } // namespace Engine

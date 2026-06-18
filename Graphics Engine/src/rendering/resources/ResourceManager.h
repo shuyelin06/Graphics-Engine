@@ -59,10 +59,15 @@ class ResourceManager {
     LoadTextureFromFile(const std::string& relative_path);
     std::shared_ptr<Mesh> LoadMeshFromFile(const std::string& relative_path);
 
+    // Thread Safe Creation of Resources
     std::shared_ptr<Mesh> requestMesh(const MeshBuilder& mesh_builder);
     std::shared_ptr<Texture>
     requestTexture(const TextureBuilder& texture_builder, bool editable = false,
                    const std::shared_ptr<Texture>& target = nullptr);
+
+    // Not-Thread Safe Creation / Modification of Resources.
+    // Must be done on main thread if called.
+    void clearDepthStencil(const Texture& texture);
 
     // Debug Display
     void imGui();

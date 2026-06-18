@@ -142,8 +142,8 @@ class Pipeline {
     void bindVertexSB(const StructuredBuffer& sb, unsigned int slot) {
         context->VSSetShaderResources(slot, 1, &sb.srv);
     }
-    void bindVertexTexture(const Texture& texture, unsigned int slot);
-    void bindVertexSampler(unsigned int slot, TextureSampler sampler);
+    void bindVertexTexture(uint8_t slot, const Texture& texture,
+                           SamplerType samplerType);
     IConstantBuffer loadVertexCB(int slot);
 
     // Pixel Technique API
@@ -158,21 +158,13 @@ class Pipeline {
     void bindPixelSB(const StructuredBuffer& sb, unsigned int slot) {
         context->PSSetShaderResources(slot, 1, &sb.srv);
     }
-    void bindPixelTexture(const Texture& texture, unsigned int slot);
+    void bindPixelTexture(uint8_t slot, const Texture& texture,
+                          SamplerType samplerType);
     IConstantBuffer loadPixelCB(int slot);
 
     // Debug (Pipeline Enforcement)
     void markVertexCBUsage(int slot, bool usage);
     void markPixelCBUsage(int slot, bool usage);
-
-    // Misc
-    void bindInactiveTarget(int slot);
-    void bindDepthStencil(int slot);
-
-    // Shader Resource Management
-    void bindSamplers();
-
-    void clearDepthStencil(const Texture& texture);
 
     // Draw Calls. Set tri_end to -1 if you want it to draw all triangles
     // after tri_start.
@@ -181,12 +173,8 @@ class Pipeline {
                   int tri_end = INDEX_LIST_END);
     void drawPostProcessQuad();
 
-    void drawInstanced(unsigned int verticesPerInstance,
-                       unsigned int instanceCount);
-
     // Render to Screen
     void endFrame();
-
 
   private:
     struct Stats {

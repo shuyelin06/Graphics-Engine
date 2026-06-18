@@ -206,16 +206,19 @@ void RenderManagerImpl::setMainView(const RenderView& view) { mainView = view; }
 // Other constant buffers are unallocated and can be used for whatever.
 void RenderManagerImpl::perform() {
     Pipeline* pipeline = visualSystem->getPipeline();
+    ResourceManager* resourceManager = visualSystem->getResourceManager();
+
     Texture* renderTarget = pipeline->getRenderTargetDest();
     Texture* depthStencil = pipeline->getDepthStencil();
 
     // Bind my atlases
-    visualSystem->getResourceManager()
-        ->getTexture(SystemTexture_FallbackColormap)
-        ->PSBindResource(context, 0);
-    visualSystem->getLightManager()->getAtlasTexture()->PSBindResource(context,
-                                                                       1);
-    pipeline->getDepthStencil()->clearAsDepthStencil(context);
+    const Texture* colormap =
+        resourceManager->getTexture(SystemTexture_FallbackColormap).get();
+    const Texture* shadowAtlas =
+        visualSystem->getLightManager()->getAtlasTexture();
+    pipeline->bindPixelTexture(0, *colormap, SamplerType::Sampler_Point);
+    pipeline->bindPixelTexture(1, *shadowAtlas, SamplerType::Sampler_Shadow);
+    resourceManager->clearDepthStencil(*pipeline->getDepthStencil());
 
     // Bind my global constant buffers (CB0)
     // Vertex Constant Buffer 0:
@@ -460,8 +463,8 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
             if (technique->hasVertexResource(slot)) {
                 const Technique::BoundTexture& boundTex =
                     technique->getVertexResource(slot);
-                pipeline->bindVertexTexture(*boundTex.texture, slot);
-                pipeline->bindVertexSampler(slot, boundTex.sampleState);
+                pipeline->bindVertexTexture(slot, *boundTex.texture,
+                                            boundTex.sampleState);
             }
         }
 

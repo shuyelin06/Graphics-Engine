@@ -53,7 +53,7 @@ struct RenderView {
 // We cull and filter passes on draw blocks. Draw blocks then can be used
 // to generate draw calls that the pipeline can read.
 using DrawBlockKey = uint32_t;
-constexpr DrawBlockKey kInvalidDrawBlockKey = 0xFFFF;
+inline constexpr DrawBlockKey kInvalidDrawBlockKey = 0xFFFF;
 
 struct DrawBlock {
     AABB extents{};

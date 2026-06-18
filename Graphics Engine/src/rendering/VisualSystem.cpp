@@ -105,8 +105,6 @@ VisualSystem::VisualSystem(HWND window) {
     // Initialize each of my managers with the resources they need
     scene_listener = SceneListener::create(this);
     scene_manager = SceneManager::create(this);
-   
-    
 
     water_surface = std::make_unique<WaterSurface>();
     water_surface->generateSurfaceMesh(this->getResourceManager(), 15);
@@ -257,7 +255,7 @@ void VisualSystem::performPrepass() {
     pipeline->bindPixelShader("ShadowMap");
 
     const Texture* shadow_texture = light_manager->getAtlasTexture();
-    shadow_texture->clearAsDepthStencil(context);
+    resource_manager->clearDepthStencil(*shadow_texture);
 
     const std::vector<ShadowLight*>& lights = light_manager->getShadowLights();
     const std::vector<ShadowCluster>& clusters =
@@ -374,7 +372,7 @@ void VisualSystem::performLightFrustumPass() {
                                Blend_Default);
 
     const Texture* depth_copy = pipeline->getDepthStencilCopy();
-    depth_copy->clearAsDepthStencil(context);
+    resource_manager->clearDepthStencil(*depth_copy);
     ID3D11RenderTargetView* render_view =
         pipeline->getRenderTargetDest()->target_view;
     ID3D11DepthStencilView* depth_view = depth_copy->depth_view;
@@ -392,8 +390,9 @@ void VisualSystem::performLightFrustumPass() {
                                Blend_UseSrcAndDest);
     context->RSSetState(rast_state);
 
-    pipeline->bindDepthStencil(3);
-    context->PSSetShaderResources(4, 1, &depth_copy->shader_view);
+    pipeline->bindPixelTexture(3, *pipeline->getDepthStencil(),
+                               SamplerType::Sampler_Point);
+    pipeline->bindPixelTexture(4, *depth_copy, SamplerType::Sampler_Point);
 
     pipeline->drawMesh(cube_mesh.get(), num_lights);
 
@@ -458,8 +457,9 @@ void VisualSystem::performWaterSurfacePass() {
         pcb2.loadData(nullptr, FLOAT);
     }
 
-    context->PSSetShaderResources(2, 1, &depth_stencil_copy->shader_view);
-    context->PSSetShaderResources(3, 1, &bump_tex->shader_view);
+    pipeline->bindPixelTexture(2, *depth_stencil_copy,
+                               SamplerType::Sampler_Point);
+    pipeline->bindPixelTexture(3, *bump_tex, SamplerType::Sampler_Point);
 
     const float STARTING_SCALE = 5.f;
     constexpr int NUM_LODS = 3;
@@ -522,8 +522,10 @@ void VisualSystem::processSky() {
                                Blend_Default);
 
     // Set samplers and texture
-    pipeline->bindInactiveTarget(2);
-    pipeline->bindDepthStencil(3);
+    pipeline->bindPixelTexture(2, *pipeline->getRenderTargetSrc(),
+                               SamplerType::Sampler_Point);
+    pipeline->bindPixelTexture(3, *pipeline->getDepthStencil(),
+                               SamplerType::Sampler_Point);
 
     {
         IConstantBuffer pcb2 = pipeline->loadPixelCB(2);
@@ -587,8 +589,10 @@ void VisualSystem::processUnderwater() {
                                Blend_Default);
 
     // Set samplers and texture resources
-    pipeline->bindInactiveTarget(2);
-    pipeline->bindDepthStencil(3);
+    pipeline->bindPixelTexture(2, *pipeline->getRenderTargetSrc(),
+                               SamplerType::Sampler_Point);
+    pipeline->bindPixelTexture(3, *pipeline->getDepthStencil(),
+                               SamplerType::Sampler_Point);
 
     // Set parameters
     {

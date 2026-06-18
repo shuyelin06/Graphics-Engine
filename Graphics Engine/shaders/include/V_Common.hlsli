@@ -1,3 +1,5 @@
+#include "Common.hlsli"
+
 #ifndef __V_COMMON_HEADER__
 #define __V_COMMON_HEADER__
 // V_Common.hlsli

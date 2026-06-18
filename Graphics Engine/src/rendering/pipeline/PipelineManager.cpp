@@ -66,7 +66,6 @@ Pipeline::Pipeline(HWND window) {
     }
 
     initializeSamplers();
-    bindSamplers();
 
 #if defined(_DEBUG)
     imGuiInitialize(window);
@@ -338,7 +337,9 @@ void Pipeline::beginFrame(const uint64_t frame) {
     // Clear the the target destination color
     GPUTimer::BeginFrame(frame);
     stats = Pipeline::Stats();
-    render_target_dest->clearAsRenderTarget(context, Color(0.f, 0.f, 0.f));
+
+    const float baseColor[4] = {0.f, 0.f, 0.f, 1.f};
+    context->ClearRenderTargetView(render_target_dest->target_view, baseColor);
 }
 
 void Pipeline::setVertexTopology(VertexTopology topology) {
@@ -467,41 +468,20 @@ void Pipeline::swapActiveTarget() {
     render_target_src = temp;
 }
 
-void Pipeline::bindInactiveTarget(int slot) {
-    context->PSSetShaderResources(slot, 1, &render_target_src->shader_view);
-}
-void Pipeline::bindDepthStencil(int slot) {
-    assert(flag_depth == Depth_Disabled || flag_depth == Depth_TestNoWrite);
-    context->PSSetShaderResources(slot, 1, &depth_stencil->shader_view);
-}
-
-void Pipeline::bindSamplers() {
-    context->PSSetSamplers(0, SamplerCount, samplers);
-}
-
-void Pipeline::bindVertexTexture(const Texture& texture, unsigned int slot) {
+void Pipeline::bindVertexTexture(uint8_t slot, const Texture& texture,
+                                 SamplerType samplerType) {
     context->VSSetShaderResources(slot, 1, &texture.shader_view);
+
+    ID3D11SamplerState* state = samplers[samplerType];
+    context->VSSetSamplers(slot, 1, &state);
 }
 
-void Pipeline::bindVertexSampler(unsigned int slot, TextureSampler sampler) {
-    ID3D11SamplerState* state = nullptr;
-
-    switch (sampler) {
-    case TextureSampler::Point:
-        state = samplers[Sampler_Point];
-        break;
-
-    default:
-        return;
-    }
-
-    if (state != nullptr) {
-        context->VSSetSamplers(slot, 1, &state);
-    }
-}
-
-void Pipeline::bindPixelTexture(const Texture& texture, unsigned int slot) {
+void Pipeline::bindPixelTexture(uint8_t slot, const Texture& texture,
+                                SamplerType samplerType) {
     context->PSSetShaderResources(slot, 1, &texture.shader_view);
+
+    ID3D11SamplerState* sampler = samplers[samplerType];
+    context->PSSetSamplers(slot, 1, &sampler);
 }
 
 // Constant Buffer Loading
@@ -520,12 +500,6 @@ void Pipeline::markVertexCBUsage(int slot, bool usage) {
 void Pipeline::markPixelCBUsage(int slot, bool usage) {
     assert(debug_pcb_usages[slot] == !usage);
     debug_pcb_usages[slot] = usage;
-}
-
-void Pipeline::clearDepthStencil(const Texture& texture) {
-    assert(texture.depth_view != nullptr);
-    context->ClearDepthStencilView(texture.depth_view, D3D11_CLEAR_DEPTH, 1.0f,
-                                   0);
 }
 
 void Pipeline::drawMesh(const Mesh* mesh, UINT instance_count, int tri_start,
@@ -582,11 +556,6 @@ void Pipeline::drawPostProcessQuad() {
                                 &vertexOffset);
 
     context->Draw(6, 0);
-}
-
-void Pipeline::drawInstanced(unsigned int verticesPerInstance,
-                             unsigned int instanceCount) {
-    context->DrawInstanced(verticesPerInstance, instanceCount, 0, 0);
 }
 
 // Present:

@@ -13,8 +13,7 @@ cbuffer CB5_TERRAIN_DATA : register(b5)
     ChunkData chunkData[2000];
 }
 
-Texture2D g_heightmap : register(t0);
-SamplerState g_heightmapSampler : register(s0);
+DefineTex2D(heightmap, 0);
 
 struct VS_IN
 {
@@ -41,7 +40,7 @@ VS_OUT vsterrain_main(VS_IN input)
     // Convert world position to UV coordinates in the heightmap
     float u = (x - heightMapWorldPosition.x) / heightMapWorldExtents.x;
     float v = (z - heightMapWorldPosition.y) / heightMapWorldExtents.y;
-    float height = g_heightmap.SampleLevel(g_heightmapSampler, float2(u, v), 0).r;
+    float height = SampleTex2DLevel(heightmap, float2(u, v), 0, float2(0,0)).r;
     
     // Generate my (x,y,z) world position
     float3 position = float3(x, height, z);
@@ -50,10 +49,10 @@ VS_OUT vsterrain_main(VS_IN input)
     pos = mul(m_world_to_screen, pos);
     
     // Generate my normal
-    float normX1 = g_heightmap.SampleLevel(g_heightmapSampler, float2(u, v), 0, float2(-1, 0)).r;
-    float normX2 = g_heightmap.SampleLevel(g_heightmapSampler, float2(u, v), 0, float2(1, 0)).r;
-    float normZ1 = g_heightmap.SampleLevel(g_heightmapSampler, float2(u, v), 0, float2(0, -1)).r;
-    float normZ2 = g_heightmap.SampleLevel(g_heightmapSampler, float2(u, v), 0, float2(0, 1)).r;
+    float normX1 = SampleTex2DLevel(heightmap, float2(u, v), 0, float2(-1, 0)).r;
+    float normX2 = SampleTex2DLevel(heightmap, float2(u, v), 0, float2(1, 0)).r;
+    float normZ1 = SampleTex2DLevel(heightmap, float2(u, v), 0, float2(0, -1)).r;
+    float normZ2 = SampleTex2DLevel(heightmap, float2(u, v), 0, float2(0, 1)).r;
     float3 tangentX = float3(0, (normX2 - normX1) * 0.5f, 1);
     float3 tangentZ = float3(1, (normZ2 - normZ1) * 0.5f, 1);
     

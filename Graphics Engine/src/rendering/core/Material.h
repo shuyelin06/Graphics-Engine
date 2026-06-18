@@ -9,6 +9,8 @@
 #include "RenderPass.h"
 #include "RenderSettings.h"
 
+#include "rendering/pipeline/EnumTypes.h"
+
 namespace Engine {
 namespace Graphics {
 // A technique determines all shader bindings, including:
@@ -19,7 +21,7 @@ struct Technique {
     struct BoundTexture
     {
         std::shared_ptr<Texture> texture = nullptr;
-        TextureSampler sampleState;
+        SamplerType sampleState;
     };
 
     std::string vertexShader;
@@ -37,7 +39,9 @@ struct Technique {
     void uploadVertexCBData(uint8_t slot, const void* src, size_t byteSize);
     void uploadPixelCBData(uint8_t slot, const void* src, size_t byteSize);
 
-    void bindVertexShaderResource(uint8_t slot, std::shared_ptr<Texture> texture, TextureSampler sampleState);
+    void bindVertexShaderResource(uint8_t slot,
+                                  std::shared_ptr<Texture> texture,
+                                  SamplerType sampleState);
     
     bool hasVertexResource(uint8_t slot) const;
     const BoundTexture& getVertexResource(uint8_t slot) const;

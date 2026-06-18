@@ -28,7 +28,7 @@ void Technique::uploadPixelCBData(uint8_t slot, const void* src,
 }
 void Technique::bindVertexShaderResource(uint8_t slot,
                                          std::shared_ptr<Texture> texture,
-                                         TextureSampler sampleState) {
+                                         SamplerType sampleState) {
     assert(slot <= kVertexResourceMax);
     vResources[slot].texture = texture;
     vResources[slot].sampleState = sampleState;

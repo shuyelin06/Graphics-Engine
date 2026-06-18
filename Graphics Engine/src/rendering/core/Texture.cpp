@@ -60,28 +60,6 @@ void Texture::createRenderTargetView(ID3D11Device* device) {
     assert(SUCCEEDED(result));
 }
 
-void Texture::VSBindResource(ID3D11DeviceContext* context,
-                             unsigned int slot) const {
-    context->VSSetShaderResources(slot, 1, &shader_view);
-}
-void Texture::PSBindResource(ID3D11DeviceContext* context,
-                             unsigned int slot) const {
-    context->PSSetShaderResources(slot, 1, &shader_view);
-}
-
-void Texture::clearAsRenderTarget(ID3D11DeviceContext* context,
-                                  const Color& color) const {
-    assert(target_view != nullptr);
-
-    const float color_arr[4] = {color.r, color.g, color.b, 1.f};
-    context->ClearRenderTargetView(target_view, color_arr);
-}
-
-void Texture::clearAsDepthStencil(ID3D11DeviceContext* context) const {
-    assert(depth_view != nullptr);
-    context->ClearDepthStencilView(depth_view, D3D11_CLEAR_DEPTH, 1.0f, 0);
-}
-
 #if defined(_DEBUG)
 void Texture::displayImGui() const { displayImGui(256); }
 void Texture::displayImGui(float display_width) const {

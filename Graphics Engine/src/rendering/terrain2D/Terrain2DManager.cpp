@@ -286,8 +286,7 @@ void Terrain2DManagerImpl::regenerateHeightmapTexture() {
     std::shared_ptr<Texture> texture =
         mVisualSystem->getResourceManager()->requestTexture(builder, true);
     mTerrainTechnique = mTerrainMaterial->getTechnique(RenderPass::kOpaque);
-    mTerrainTechnique->bindVertexShaderResource(0, texture,
-                                                TextureSampler::Point);
+    mTerrainTechnique->bindVertexShaderResource(0, texture, SamplerType::Sampler_Point);
 }
 
 uint8_t Terrain2DManagerImpl::computeIdealLOD(QuadTreeNode* node,

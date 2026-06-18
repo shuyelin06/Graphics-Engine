@@ -95,6 +95,8 @@ class ResourceManagerImpl {
     requestTexture(const TextureBuilder& tex_builder, bool editable,
                    const std::shared_ptr<Texture>& target);
 
+    void clearDepthStencil(const Texture& texture);
+
     // Debug Display
     void imGui();
 
@@ -153,6 +155,10 @@ ResourceManager::requestTexture(const TextureBuilder& texture_builder,
                                 bool editable,
                                 const std::shared_ptr<Texture>& target) {
     return mImpl->requestTexture(texture_builder, editable, target);
+}
+
+void ResourceManager::clearDepthStencil(const Texture& texture) {
+    mImpl->clearDepthStencil(texture);
 }
 
 // Debug Display
@@ -372,6 +378,12 @@ ResourceManagerImpl::requestTexture(const TextureBuilder& tex_builder,
     }
 
     return job.texture;
+}
+
+void ResourceManagerImpl::clearDepthStencil(const Texture& texture) {
+    assert(texture.depth_view != nullptr);
+    context->ClearDepthStencilView(texture.depth_view, D3D11_CLEAR_DEPTH, 1.0f,
+                                   0);
 }
 
 // Debug Display
