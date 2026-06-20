@@ -43,7 +43,9 @@ VS_OUT vsterrain_main(VS_IN input)
     float height = SampleTex2DLevel(heightmap, float2(u, v), 0, float2(0,0)).r;
     
     // Generate my (x,y,z) world position
-    float3 position = float3(x, height, z);
+    // Add to the input position. The mesh may have skirts that have negative y coordinates
+    // which we need to factor in (to hide LOD transitions)
+    float3 position = float3(x, input.position_local.y + height, z);
     
     float4 pos = float4(position, 1);
     pos = mul(m_world_to_screen, pos);

@@ -86,7 +86,6 @@ class Pipeline {
     Texture* render_target_dest;
     Texture* render_target_src;
     Texture* depth_stencil;
-    Texture* depth_stencil_copy;
 
     TargetFlags flag_target;
     DepthStencilFlags flag_depth;
@@ -130,7 +129,6 @@ class Pipeline {
     Texture* getRenderTargetDest() const;
     Texture* getRenderTargetSrc() const;
     Texture* getDepthStencil() const;
-    Texture* getDepthStencilCopy() const;
 
     // Prepare
     void beginFrame(const uint64_t frame);

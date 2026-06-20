@@ -1,14 +1,9 @@
 #include "Terrain2DManager.h"
 
-#include <array>
 #include <assert.h>
-#include <atomic>
-#include <bitset>
 #include <vector>
 
 #include "core/PoolAllocator.h"
-#include "core/ThreadPool.h"
-#include "math/Triangle.h"
 #include "math/Vector2.h"
 
 #include "rendering/VisualSystem.h"
@@ -40,11 +35,15 @@ class Terrain2DManagerImpl {
     struct Config {
         float lodAttenuation = 1000.f;
 
+        // Mesh Generation Settings
         int terrainMeshSampleCount = 15;
+        bool generateSkirt = true;
+        float skirtDepth = 25.f;
 
+        // Heightmap Generation Settings
         Vector2 heightMapOrigin = Vector2(0, 0);
-        Vector2 heightMapExtents = Vector2(1000, 1000);
-        int heightmapNumSamples = 350;
+        Vector2 heightMapExtents = Vector2(2500, 2500);
+        int heightmapNumSamples = 450;
     } config;
 
     // Settings
@@ -178,6 +177,12 @@ void Terrain2DManagerImpl::imGui() {
     if (ImGui::CollapsingHeader("Terrain Mesh")) {
         ImGui::SliderInt("# Terrain Mesh Samples: %i",
                          &config.terrainMeshSampleCount, 2, 25);
+        ImGui::Checkbox("Generate Skirt", &config.generateSkirt);
+        if (config.generateSkirt) {
+            ImGui::SliderFloat("Terrain Skirt Depth:", &config.skirtDepth, 0.f,
+                               50.f);
+        }
+
         if (ImGui::Button("Reset Terrain Mesh")) {
             regenerateMesh();
         }
@@ -187,9 +192,9 @@ void Terrain2DManagerImpl::imGui() {
         ImGui::SliderFloat2("Heightmap Origin:", &config.heightMapOrigin.x,
                             -500, 500);
         ImGui::SliderFloat2("Heightmap Extents:", &config.heightMapExtents.x,
-                            10, 1000);
+                            10, 5000);
         ImGui::SliderInt("Heightmap Samples:", &config.heightmapNumSamples, 10,
-                         1000);
+                         2500);
 
         if (ImGui::Button("Reset Heightmap")) {
             regenerateHeightmapTexture();
@@ -232,6 +237,11 @@ void Terrain2DManagerImpl::regenerateMesh() {
     builder.reset();
     builder.addLayout(POSITION);
 
+    // Generate a grid of points in the order of
+    // 6 7 8...
+    // 3 4 5
+    // 0 1 2
+    // Bottom left corner is (x,z) = (0,0). Right is +x, Up is +z.
     const float sampleDistanceInv = 1 / float(numSamples - 1);
     for (int sampleX = 0; sampleX < numSamples; sampleX++) {
         for (int sampleZ = 0; sampleZ < numSamples; sampleZ++) {
@@ -242,10 +252,12 @@ void Terrain2DManagerImpl::regenerateMesh() {
         }
     }
 
+    // Connect my points together. For a given quad in the grid, a,b,c,d
+    // reference indices as so
+    // d c
+    // a b
     for (int indexX = 0; indexX < numSamples - 1; indexX++) {
         for (int indexZ = 0; indexZ < numSamples - 1; indexZ++) {
-            // d c
-            // a b
             const unsigned int a = indexZ + indexX * numSamples;
             const unsigned int b = indexZ + (indexX + 1) * numSamples;
             const unsigned int c = (indexZ + 1) + (indexX + 1) * numSamples;
@@ -253,6 +265,51 @@ void Terrain2DManagerImpl::regenerateMesh() {
             builder.addTriangle(a, d, b);
             builder.addTriangle(c, b, d);
         }
+    }
+
+    // Generate a skirt. This is a set of vertices that protrude downwards from
+    // the edges of the terrain mesh. Skirts are a cheap and simple way to hide
+    // the LOD transitions.
+    if (config.generateSkirt) {
+        const unsigned int skirtIndexStart = builder.getVertices().size();
+
+        std::vector<unsigned int> borderIndices;
+        auto generateSkirtVertices = [&builder, &borderIndices, &numSamples,
+                                      this](unsigned int startX,
+                                            unsigned int startZ, int offsetX,
+                                            int offsetZ) {
+            for (int i = 0; i < numSamples; i++) {
+                const unsigned int indexX = startX + offsetX * i;
+                const unsigned int indexZ = startZ + offsetZ * i;
+
+                const unsigned int vertexIndex = indexZ + indexX * numSamples;
+                borderIndices.push_back(vertexIndex);
+
+                const Vector3 skirtVertex =
+                    builder.getVertex(vertexIndex).position +
+                    Vector3(0, -config.skirtDepth, 0);
+                builder.addVertex(skirtVertex);
+            }
+        };
+
+        // Walk the grid border counter-clockwise and generate the skirt
+        // vertices
+        generateSkirtVertices(0, 0, 1, 0);
+        generateSkirtVertices(numSamples - 1, 0, 0, 1);
+        generateSkirtVertices(numSamples - 1, numSamples - 1, -1, 0);
+        generateSkirtVertices(0, numSamples - 1, 0, -1);
+
+        assert(builder.getVertices().size() - skirtIndexStart ==
+               borderIndices.size());
+        for (int i = 0; i < borderIndices.size() - 1; i++) {
+            unsigned int a = borderIndices[i];
+            unsigned int b = borderIndices[i + 1];
+            unsigned int c = skirtIndexStart + i + 1;
+            unsigned int d = skirtIndexStart + i;
+
+            builder.addTriangle(a, b, d);
+            builder.addTriangle(c, d, b);
+        };
     }
 
     mTerrainMesh = mVisualSystem->getResourceManager()->requestMesh(builder);
@@ -286,7 +343,8 @@ void Terrain2DManagerImpl::regenerateHeightmapTexture() {
     std::shared_ptr<Texture> texture =
         mVisualSystem->getResourceManager()->requestTexture(builder, true);
     mTerrainTechnique = mTerrainMaterial->getTechnique(RenderPass::kOpaque);
-    mTerrainTechnique->bindVertexShaderResource(0, texture, SamplerType::Sampler_Point);
+    mTerrainTechnique->bindVertexShaderResource(0, texture,
+                                                SamplerType::Sampler_Point);
 }
 
 uint8_t Terrain2DManagerImpl::computeIdealLOD(QuadTreeNode* node,

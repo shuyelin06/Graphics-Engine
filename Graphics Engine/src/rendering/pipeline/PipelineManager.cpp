@@ -212,11 +212,6 @@ void Pipeline::initializeTargets(HWND _window) {
         depth_stencil = new Texture(device, tex_desc);
         depth_stencil->createDepthStencilView(device, desc_stencil);
         depth_stencil->createShaderResourceView(device, srv_desc);
-
-        depth_stencil_copy = new Texture(device, tex_desc);
-        // TEMP
-        depth_stencil_copy->createDepthStencilView(device, desc_stencil);
-        depth_stencil_copy->createShaderResourceView(device, srv_desc);
     }
 
     // Create my depth states
@@ -330,7 +325,6 @@ ID3D11DeviceContext* Pipeline::getContext() const { return context; }
 Texture* Pipeline::getRenderTargetDest() const { return render_target_dest; }
 Texture* Pipeline::getRenderTargetSrc() const { return render_target_src; }
 Texture* Pipeline::getDepthStencil() const { return depth_stencil; }
-Texture* Pipeline::getDepthStencilCopy() const { return depth_stencil_copy; }
 
 // Prepare
 void Pipeline::beginFrame(const uint64_t frame) {
