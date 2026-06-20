@@ -1,28 +1,16 @@
 #pragma once
 
 #include <cstdint>
-#include <map>
-#include <string>
-#include <utility>
-#include <vector>
-
-#include "ImGui.h"
 
 #include "lights/LightManager.h"
 #include "pipeline/PipelineManager.h"
 #include "pipeline/RenderManager.h"
+#include "postfx/PostFXManager.h"
 #include "resources/MaterialManager.h"
 #include "resources/ResourceManager.h"
+#include "scene/SceneListener.h"
 #include "scene/SceneManager.h"
 #include "terrain2D/Terrain2DManager.h"
-#include "terrain2D/WaterSurface.h"
-
-#if defined(_DEBUG)
-#include "util/CPUTimer.h"
-#include "util/GPUTimer.h"
-#endif
-
-#include "VisualDebug.h"
 
 namespace Engine {
 using namespace Datamodel;
@@ -32,10 +20,7 @@ class SceneListener;
 class SceneManager;
 class ResourceManager;
 class MaterialManager;
-
-// VisualParameters Struct:
-// Stores configuration parameters toggleable by the user
-struct VisualParameters;
+class PostFXManager;
 
 // VisualSystem Class:
 // Provides an interface for the application's graphics.
@@ -46,32 +31,17 @@ class VisualSystem {
     // Frame
     uint64_t frame;
 
-    // Configuration + Cache
-    VisualParameters* config;
-
-    // Direct 3D 11 Interfaces
-    ID3D11Device* device;
-    ID3D11DeviceContext* context;
-
     // Managers
     std::unique_ptr<Pipeline> pipeline;
     std::unique_ptr<ResourceManager> resource_manager;
     std::unique_ptr<MaterialManager> material_manager;
     std::unique_ptr<RenderManager> render_manager;
+    std::unique_ptr<PostFXManager> postfx_manager;
 
     std::unique_ptr<SceneListener> scene_listener;
     std::unique_ptr<SceneManager> scene_manager;
     std::unique_ptr<Terrain2DManager> terrain2D;
     LightManager* light_manager;
-    // This should be moved somewhere else.. maybe terrain?
-    std::unique_ptr<WaterSurface> water_surface;
-
-    // Temp for now; should be moved later.
-    ID3D11RasterizerState* og_rast_state;
-    ID3D11RasterizerState* rast_state;
-    Texture* bump_tex;
-
-    float time;
 
   public:
     VisualSystem(HWND window);
@@ -80,29 +50,13 @@ class VisualSystem {
     void renderPrepare();
     void render();
 
-    ID3D11Device* getDevice() { return device; }
-    ID3D11DeviceContext* getContext() { return context; };
-
     ResourceManager* getResourceManager() const;
-    MaterialManager* getMaterialManager() const {
-        return material_manager.get();
-    }
+    MaterialManager* getMaterialManager() const;
     SceneListener* getSceneListener() const;
     SceneManager* getSceneManager() const;
     RenderManager* getRenderManager() const;
     LightManager* getLightManager() const;
-
     Pipeline* getPipeline() const;
-
-  private:                 // Rendering Stages
-    void performPrepass(); // Prepass (Shadowmaps)
-
-    void performLightFrustumPass(); // Light Frustum Pass
-
-    // Above Water Processing
-    void performWaterSurfacePass(); // Water Surface Pass
-    void processSky();
-    void processUnderwater(); // Underwater Effect
 };
 } // namespace Graphics
 } // namespace Engine

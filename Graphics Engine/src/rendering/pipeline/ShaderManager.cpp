@@ -104,29 +104,6 @@ void ShaderManager::initializeShaders() {
          {POSITION, TEXTURE, NORMAL, JOINTS, WEIGHTS, INSTANCE_ID},
          {"SKINNED_MESH"}},
         {Pixel, "TexturedMesh", "P_TexturedMesh.hlsl", "ps_main", {}, {}},
-        // Light Frustum:
-        // Responsible for rendering light frustums
-        {Vertex,
-         "LightFrustum",
-         "V_LightFrustum.hlsl",
-         "vs_main",
-         {POSITION, INSTANCE_ID},
-         {}},
-        {Pixel,
-         "PreLightFrustum",
-         "P_LightFrustum.hlsl",
-         "forward_pass",
-         {},
-         {}},
-        {Pixel, "LightFrustum", "P_LightFrustum.hlsl", "ps_main", {}, {}},
-        // Water Surface
-        {Vertex,
-         "WaterSurface",
-         "V_WaterSurface.hlsl",
-         "vs_main",
-         {POSITION, INSTANCE_ID},
-         {}},
-        {Pixel, "WaterSurface", "P_WaterSurface.hlsl", "ps_main", {}, {}},
         // --- Post Processing Effects ---
         // Generic vertex shader for post process effects
         {Vertex,

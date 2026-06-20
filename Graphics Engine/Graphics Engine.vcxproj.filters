@@ -222,9 +222,6 @@
     <ClCompile Include="src\physics\PhysicsTerrain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\terrain2D\WaterSurface.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\rendering\resources\BumpMapBuilder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -292,6 +289,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\ImGuiHelper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rendering\postfx\PostFXManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -518,9 +518,6 @@
     <ClInclude Include="src\physics\PhysicsTerrain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\terrain2D\WaterSurface.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\rendering\resources\BumpMapBuilder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -618,6 +615,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\pipeline\EnumTypes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rendering\postfx\PostFXManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

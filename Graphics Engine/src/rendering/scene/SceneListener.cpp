@@ -1,5 +1,7 @@
 #include "SceneListener.h"
 
+#include <mutex>
+
 #include "../VisualSystem.h"
 
 namespace Engine {
