@@ -12,7 +12,7 @@
 namespace Engine {
 namespace Graphics {
 struct SkyConfig {
-    bool renderSky = true;
+    bool renderSky = false;
 
     float density_falloff = 8.f;
     float atmosphere_height = 500.f;

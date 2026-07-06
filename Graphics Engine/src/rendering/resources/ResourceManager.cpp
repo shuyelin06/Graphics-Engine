@@ -34,35 +34,75 @@ using namespace Math;
 namespace Graphics {
 static const std::string RESOURCE_FOLDER = "data/";
 
+TextureRequestParams::TextureRequestParams(const std::string& debugName)
+    : debugName(debugName) {}
+
+void TextureRequestParams::initCreateFromFile(const std::string& path,
+                                              bool editable) {
+    requestType = TextureRequestType::CreateFromFile;
+    this->path = path;
+    this->editable = editable;
+}
+void TextureRequestParams::initCreateFromBuilder(const TextureBuilder& builder,
+                                                 bool editable) {
+    requestType = TextureRequestType::CreateFromBuilder;
+    this->builder = &builder;
+    this->editable = editable;
+}
+void TextureRequestParams::initUpdateFromBuilder(
+    const TextureBuilder& builder, const std::shared_ptr<Texture>& target) {
+    requestType = TextureRequestType::UpdateFromBuilder;
+    this->builder = &builder;
+    this->target = target;
+}
+
+enum class BuildJobStatus : uint8_t {
+    Failed = -2,
+    Invalid = -1,
+    PendingResourceData = 0,
+    PendingGPUUpload = 1,
+    Ready = 2,
+};
+struct MeshBuildingJob {
+    std::vector<MeshVertex> vertex_data;
+    std::vector<MeshTriangle> index_data;
+    VertexLayout layout;
+
+    std::shared_ptr<Mesh> mesh = nullptr;
+};
+struct TextureBuildingJob {
+    BuildJobStatus status = BuildJobStatus::Invalid;
+
+    // Status: PendingResourceData.
+    // Reads data from this path into the resource folder.
+    std::string resourceFilePath{};
+
+    // Status: PendingGPUUpload
+    // Uploads this data to the GPU and marks texture as ready
+    std::vector<uint8_t> data{};
+    TextureLayout layout{};
+
+    std::shared_ptr<Texture> texture = nullptr;
+
+    TextureBuildingJob() = default;
+};
+
 class ResourceManagerImpl {
-  private:
-    struct MeshBuildingJob {
-        std::vector<MeshVertex> vertex_data;
-        std::vector<MeshTriangle> index_data;
-        VertexLayout layout;
-
-        std::shared_ptr<Mesh> mesh = nullptr;
-    };
-    struct TextureBuildingJob {
-        std::vector<uint8_t> data;
-        unsigned int width;
-        unsigned int height;
-        TextureLayout layout;
-
-        bool newTexture = true;
-        std::shared_ptr<Texture> texture = nullptr;
-    };
-
   private:
     ID3D11Device* device;
     ID3D11DeviceContext* context;
 
+    // Resources owned by ResourceManager
     std::vector<std::unique_ptr<MeshPool>> mesh_pools;
-    std::vector<std::shared_ptr<Mesh>> meshes;
+    std::shared_ptr<Texture> fallbackColormap;
+    std::shared_ptr<Mesh> cubeMesh;
+
+    // Weak tracking of resources for reuse and debugging
+    std::vector<std::weak_ptr<Texture>> textures;
     std::unordered_map<uint32_t, std::weak_ptr<Mesh>> mesh_map;
 
-    std::vector<std::shared_ptr<Texture>> textures;
-
+    // Job Management
+    // Tracks the state of resource generation
     std::vector<MeshBuildingJob> mesh_jobs;
     std::mutex mesh_job_mutex;
     std::vector<TextureBuildingJob> texture_jobs;
@@ -82,18 +122,13 @@ class ResourceManagerImpl {
     void updatePerform();
 
     // Get Resources
-    std::shared_ptr<Mesh> getMesh(int index) const;
-    std::shared_ptr<Texture> getTexture(int index) const;
+    std::shared_ptr<Texture> getFallbackColormap() const;
 
     // Create Resources
-    std::shared_ptr<Texture>
-    LoadTextureFromFile(const std::string& relative_path);
     std::shared_ptr<Mesh> LoadMeshFromFile(const std::string& relative_path);
 
     std::shared_ptr<Mesh> requestMesh(const MeshBuilder& mesh_builder);
-    std::shared_ptr<Texture>
-    requestTexture(const TextureBuilder& tex_builder, bool editable,
-                   const std::shared_ptr<Texture>& target);
+    std::shared_ptr<Texture> requestTexture(const TextureRequestParams& params);
 
     void clearDepthStencil(const Texture& texture);
 
@@ -102,7 +137,10 @@ class ResourceManagerImpl {
 
   private:
     void processMeshJob(const MeshBuildingJob& job);
-    void processTextureJob(const TextureBuildingJob& job);
+    bool processTextureJob(TextureBuildingJob& job);
+
+    void textureJobPendingResources(TextureBuildingJob& job);
+    void textureJobPendingGPUUpload(TextureBuildingJob& job);
 
     // System Asset Generation
     void LoadCubeMesh();
@@ -129,18 +167,10 @@ void ResourceManager::initializeSystemResources() {
 
 void ResourceManager::updatePerform() { mImpl->updatePerform(); }
 
-// Get Resources
-std::shared_ptr<Mesh> ResourceManager::getMesh(int index) const {
-    return mImpl->getMesh(index);
-}
-std::shared_ptr<Texture> ResourceManager::getTexture(int index) const {
-    return mImpl->getTexture(index);
+std::shared_ptr<Texture> ResourceManager::getFallbackColormap() const {
+    return mImpl->getFallbackColormap();
 }
 
-std::shared_ptr<Texture>
-ResourceManager::LoadTextureFromFile(const std::string& relative_path) {
-    return mImpl->LoadTextureFromFile(relative_path);
-}
 std::shared_ptr<Mesh>
 ResourceManager::LoadMeshFromFile(const std::string& relative_path) {
     return mImpl->LoadMeshFromFile(relative_path);
@@ -151,10 +181,8 @@ ResourceManager::requestMesh(const MeshBuilder& mesh_builder) {
     return mImpl->requestMesh(mesh_builder);
 }
 std::shared_ptr<Texture>
-ResourceManager::requestTexture(const TextureBuilder& texture_builder,
-                                bool editable,
-                                const std::shared_ptr<Texture>& target) {
-    return mImpl->requestTexture(texture_builder, editable, target);
+ResourceManager::requestTexture(const TextureRequestParams& params) {
+    return mImpl->requestTexture(params);
 }
 
 void ResourceManager::clearDepthStencil(const Texture& texture) {
@@ -210,9 +238,14 @@ void ResourceManagerImpl::updatePerform() {
 
     {
         std::scoped_lock<std::mutex> texture_job_lock(texture_job_mutex);
-        while (!texture_jobs.empty()) {
-            processTextureJob(texture_jobs.back());
-            texture_jobs.pop_back();
+
+        auto iter = texture_jobs.begin();
+        while (iter != texture_jobs.end()) {
+            const bool remove = processTextureJob(*iter);
+            if (remove)
+                iter = texture_jobs.erase(iter);
+            else
+                ++iter;
         }
     }
 
@@ -224,55 +257,8 @@ void ResourceManagerImpl::updatePerform() {
 }
 
 // Get Resources
-std::shared_ptr<Mesh> ResourceManagerImpl::getMesh(int index) const {
-    assert(0 <= index && index < meshes.size());
-    return meshes[index];
-}
-std::shared_ptr<Texture> ResourceManagerImpl::getTexture(int index) const {
-    assert(0 <= index && index < textures.size());
-    return textures[index];
-}
-
-// LoadTexture:
-// Code path for loading all textures.
-std::shared_ptr<Texture>
-ResourceManagerImpl::LoadTextureFromFile(const std::string& relative_path) {
-    if (relative_path.empty())
-        return nullptr;
-
-    const std::string full_path = RESOURCE_FOLDER + relative_path;
-
-    // Matches to find the file name and extension separately.
-    // (?:.+/)* matches the path but does not put it in a capture group.
-    std::regex name_pattern("(?:.+/)*([a-zA-Z0-9]+)\\.([a-zA-Z]+)");
-    smatch match;
-    regex_search(relative_path, match, name_pattern);
-
-    Texture* output = nullptr;
-
-    if (match.size() == 3) {
-        // If name is ever needed:
-        // const std::string name = match[1];
-        const std::string extension = match[2];
-
-        FileReader reader = FileReader(full_path);
-        if (reader.readFileData()) {
-            TextureBuilder builder = TextureBuilder(0, 0);
-
-            if (extension == "png") {
-                PNGFile::ReadPNGData(reader.getData(), builder);
-                output = builder.generate(device);
-            } else
-                assert(false); // Unsupported Format
-        }
-    }
-
-    if (output != nullptr) {
-        textures.emplace_back(std::shared_ptr<Texture>(output));
-        return textures.back();
-    } else {
-        return nullptr;
-    }
+std::shared_ptr<Texture> ResourceManagerImpl::getFallbackColormap() const {
+    return fallbackColormap;
 }
 
 std::shared_ptr<Mesh>
@@ -301,11 +287,7 @@ ResourceManagerImpl::LoadMeshFromFile(const std::string& relative_path) {
     } else
         assert(false); // Unsupported Format
 
-    if (output != nullptr) {
-        meshes.emplace_back(output);
-        return output;
-    } else
-        return nullptr;
+    return output;
 }
 
 std::shared_ptr<Mesh>
@@ -348,33 +330,43 @@ ResourceManagerImpl::requestMesh(const MeshBuilder& mesh_builder) {
 }
 
 std::shared_ptr<Texture>
-ResourceManagerImpl::requestTexture(const TextureBuilder& tex_builder,
-                                    bool editable,
-                                    const std::shared_ptr<Texture>& target) {
+ResourceManagerImpl::requestTexture(const TextureRequestParams& params) {
     std::scoped_lock<std::mutex> lock(texture_job_mutex);
 
+    const bool createNewTexture =
+        (params.requestType == TextureRequestType::CreateFromBuilder ||
+         params.requestType == TextureRequestType::CreateFromFile);
+
     TextureBuildingJob& job = texture_jobs.emplace_back();
-    job.data = tex_builder.data;
-    job.width = tex_builder.width;
-    job.height = tex_builder.height;
-    job.layout = tex_builder.layout;
 
-    // Create a new texture if target == nullptr
-    if (target == nullptr) {
-        job.newTexture = true;
+    if (createNewTexture) {
         job.texture = std::make_shared<Texture>();
-
-        job.texture->width = job.width;
-        job.texture->height = job.width;
-        job.texture->editable = editable;
-
-        job.texture->ready = false;
+        job.texture->debugName = params.debugName;
+        job.texture->editable = params.editable;
+        // Track in textures vector
+        textures.push_back(job.texture);
+    } else {
+        assert(params.target);
+        job.texture = params.target;
     }
-    // Update an existing texture if target == nullptr
-    else {
-        job.newTexture = false;
-        job.texture = target;
-        job.texture->ready = false;
+
+    switch (params.requestType) {
+    case TextureRequestType::CreateFromFile: {
+        job.status = BuildJobStatus::PendingResourceData;
+        job.resourceFilePath = params.path;
+    } break;
+
+    case TextureRequestType::CreateFromBuilder:
+        [[fallthrough]];
+    case TextureRequestType::UpdateFromBuilder: {
+        job.status = BuildJobStatus::PendingGPUUpload;
+
+        const auto& builder = *params.builder;
+        job.data = builder.getData();
+        job.layout = builder.getLayout();
+        job.texture->width = builder.getWidth();
+        job.texture->height = builder.getHeight();
+    } break;
     }
 
     return job.texture;
@@ -389,45 +381,103 @@ void ResourceManagerImpl::clearDepthStencil(const Texture& texture) {
 // Debug Display
 void ResourceManagerImpl::imGui() {
 #if defined(IMGUI_ENABLED)
-    for (const auto& mesh_pool : mesh_pools) {
-        ImGui::SeparatorText("Mesh Pool");
+    if (ImGui::CollapsingHeader("Mesh View")) {
+        for (const auto& mesh_pool : mesh_pools) {
+            ImGui::SeparatorText("Mesh Pool");
+            ImGui::Indent();
+            {
+                ImGui::Text("Allocations: %zu", mesh_pool->meshes.size());
+                ImGui::Text("Vertex Count: %u", mesh_pool->vertex_size);
+                ImGui::Text("Triangle Count: %u", mesh_pool->triangle_size);
+            }
+            ImGui::Unindent();
+        }
+
+        ImGui::Text("Mesh Count: %zu", mesh_map.size());
+        if (ImGui::BeginTable("Mesh Information", 3)) {
+            ImGui::TableSetupColumn("Index");
+            ImGui::TableSetupColumn("Vertex Count");
+            ImGui::TableSetupColumn("Index Count");
+            ImGui::TableHeadersRow();
+
+            int mesh_index = 0;
+            for (const auto& pair : mesh_map) {
+                const std::shared_ptr<Mesh> mesh_ptr = pair.second.lock();
+
+                if (!mesh_ptr)
+                    continue;
+
+                ImGui::TableNextRow();
+
+                ImGui::TableSetColumnIndex(0);
+                ImGui::Text("%i", mesh_index++);
+                ImGui::TableSetColumnIndex(1);
+                ImGui::Text("%zu", mesh_ptr->num_triangles * 3);
+                ImGui::TableSetColumnIndex(2);
+                ImGui::Text("%zu", mesh_ptr->num_vertices);
+            }
+
+            ImGui::EndTable();
+        }
+    }
+
+    std::shared_ptr<const Texture> selectedTexture = nullptr;
+    if (ImGui::CollapsingHeader("Texture View")) {
+        ImGui::Text("Texture Count: %zu", textures.size());
         ImGui::Indent();
-        {
-            ImGui::Text("Allocations: %zu", mesh_pool->meshes.size());
-            ImGui::Text("Vertex Count: %u", mesh_pool->vertex_size);
-            ImGui::Text("Triangle Count: %u", mesh_pool->triangle_size);
-        }
+        ImGui::Text("Note: Hover over a row to see the texture");
         ImGui::Unindent();
-    }
 
-    ImGui::Text("Mesh Count: %zu", meshes.size());
-    if (ImGui::BeginTable("Mesh Information", 3)) {
-        ImGui::TableSetupColumn("Index");
-        ImGui::TableSetupColumn("Vertex Count");
-        ImGui::TableSetupColumn("Index Count");
-        ImGui::TableHeadersRow();
+        if (ImGui::BeginTable("Texture Information", 4)) {
+            ImGui::TableSetupColumn("Name");
+            ImGui::TableSetupColumn("Width");
+            ImGui::TableSetupColumn("Height");
+            ImGui::TableSetupColumn("Editable");
+            ImGui::TableHeadersRow();
 
-        int mesh_index = 0;
-        for (const auto& mesh : meshes) {
-            const std::shared_ptr<Mesh> mesh_ptr = mesh;
+            auto iter = textures.begin();
+            while (iter != textures.end()) {
+                const std::shared_ptr<Texture> texture = (*iter).lock();
+                bool selected = false;
 
-            if (!mesh_ptr)
-                continue;
+                if (texture != nullptr) {
 
-            ImGui::TableNextRow();
+                    ImGui::TableNextRow();
 
-            ImGui::TableSetColumnIndex(0);
-            ImGui::Text("%i", mesh_index++);
-            ImGui::TableSetColumnIndex(1);
-            ImGui::Text("%zu", mesh_ptr->num_triangles * 3);
-            ImGui::TableSetColumnIndex(2);
-            ImGui::Text("%zu", mesh_ptr->num_vertices);
+                    // Note: We configure row as selectable
+                    ImGui::TableSetColumnIndex(0);
+                    const std::string name =
+                        texture->debugName.empty() ? "?" : texture->debugName;
+                    ImGui::Selectable(name.c_str(), false,
+                                      ImGuiSelectableFlags_SpanAllColumns |
+                                          ImGuiSelectableFlags_AllowOverlap);
+                    selected = ImGui::IsItemHovered();
+
+                    ImGui::TableSetColumnIndex(1);
+                    ImGui::Text("%zu", texture->width);
+                    ImGui::TableSetColumnIndex(2);
+                    ImGui::Text("%zu", texture->height);
+                    ImGui::TableSetColumnIndex(3);
+                    ImGui::Text(texture->editable ? "T" : "F");
+
+                    ++iter;
+                } else {
+                    iter = textures.erase(iter);
+                }
+
+                if (selected) {
+                    selectedTexture = texture;
+                }
+            }
+
+            ImGui::EndTable();
         }
 
-        ImGui::EndTable();
+        if (selectedTexture) {
+            selectedTexture->displayImGui(256);
+        }
     }
 
-    ImGui::Text("Texture Count: %zu", textures.size());
 #endif
 }
 
@@ -545,35 +595,109 @@ static DXGI_FORMAT TextureLayoutToDXGI(TextureLayout layout) {
     }
 }
 
-void ResourceManagerImpl::processTextureJob(const TextureBuildingJob& job) {
+bool ResourceManagerImpl::processTextureJob(TextureBuildingJob& job) {
+    bool jobFinished = false;
+
+    switch (job.status) {
+    case BuildJobStatus::PendingResourceData: {
+        textureJobPendingResources(job);
+        assert(job.status == BuildJobStatus::Failed ||
+               job.status == BuildJobStatus::PendingGPUUpload);
+    } break;
+
+    case BuildJobStatus::PendingGPUUpload: {
+        textureJobPendingGPUUpload(job);
+        assert(job.status == BuildJobStatus::Failed ||
+               job.status == BuildJobStatus::Ready);
+    } break;
+
+    case BuildJobStatus::Failed:
+        jobFinished = true;
+        break;
+
+    case BuildJobStatus::Ready:
+        job.texture->ready = true;
+        jobFinished = true;
+        break;
+    }
+
+    return jobFinished;
+}
+
+void ResourceManagerImpl::textureJobPendingResources(TextureBuildingJob& job) {
+    const std::string full_path = RESOURCE_FOLDER + job.resourceFilePath;
+
+    // Matches to find the file name and extension separately.
+    // (?:.+/)* matches the path but does not put it in a capture group.
+    std::regex name_pattern("(?:.+/)*([a-zA-Z0-9]+)\\.([a-zA-Z]+)");
+    smatch match;
+    regex_search(job.resourceFilePath, match, name_pattern);
+
+    bool success = false;
+    if (match.size() == 3) {
+        // If name is ever needed:
+        // const std::string name = match[1];
+        const std::string extension = match[2];
+
+        FileReader reader = FileReader(full_path);
+        if (reader.readFileData()) {
+            TextureBuilder builder = TextureBuilder(0, 0);
+
+            if (extension == "png") {
+                PNGFile::ReadPNGData(reader.getData(), builder);
+
+                job.status = BuildJobStatus::PendingGPUUpload;
+                job.data = builder.getData();
+                job.layout = builder.getLayout();
+                job.texture->width = builder.getWidth();
+                job.texture->height = builder.getHeight();
+
+                success = true;
+            } else
+                assert(false); // Unsupported Format
+        }
+    }
+
+    if (success) {
+        job.status = BuildJobStatus::PendingGPUUpload;
+    } else {
+        job.status = BuildJobStatus::Failed;
+    }
+}
+
+void ResourceManagerImpl::textureJobPendingGPUUpload(TextureBuildingJob& job) {
+    assert(job.texture);
+
     auto& texture = job.texture;
 
-    if (job.newTexture) {
+    // Creation settings
+    const bool createNewTexture = (texture->texture == nullptr);
+    const bool isEditableTexture = texture->editable;
+
+    // GPU Resource does not exist yet. Create it.
+    if (createNewTexture) {
         HRESULT result;
 
         // Generate my GPU texture resource
         D3D11_TEXTURE2D_DESC tex_desc = {};
-        tex_desc.Width = job.width;
-        tex_desc.Height = job.height;
-        tex_desc.MipLevels = tex_desc.ArraySize = 1;
+        tex_desc.Width = texture->width;
+        tex_desc.Height = texture->height;
+        tex_desc.MipLevels = 1;
+        tex_desc.ArraySize = 1;
         tex_desc.Format = TextureLayoutToDXGI(job.layout);
         tex_desc.SampleDesc.Count = 1;
+        tex_desc.Usage =
+            isEditableTexture ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
+        tex_desc.CPUAccessFlags =
+            isEditableTexture ? D3D11_CPU_ACCESS_WRITE : 0;
         tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-
-        if (job.texture->editable) {
-            tex_desc.Usage = D3D11_USAGE_DYNAMIC;
-            tex_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-        } else {
-            tex_desc.Usage = D3D11_USAGE_DEFAULT;
-            tex_desc.CPUAccessFlags = 0;
-        }
 
         const size_t byteSize = TextureLayoutByteSize(job.layout);
         D3D11_SUBRESOURCE_DATA sr_data = {};
         sr_data.pSysMem = job.data.data();
-        sr_data.SysMemPitch = job.width * byteSize; // Bytes per row
+        sr_data.SysMemPitch = texture->width * byteSize; // Bytes per row
         sr_data.SysMemSlicePitch =
-            job.width * job.height * byteSize; // Total byte size
+            texture->width * texture->height * byteSize; // Total byte size
 
         result =
             device->CreateTexture2D(&tex_desc, &sr_data, &texture->texture);
@@ -588,31 +712,41 @@ void ResourceManagerImpl::processTextureJob(const TextureBuildingJob& job) {
         result = device->CreateShaderResourceView(
             job.texture->texture, &tex_view, &(job.texture->shader_view));
         assert(SUCCEEDED(result));
-    } else {
-        assert(texture->editable);
-        assert(job.width == texture->width);
-        assert(job.height == texture->height);
+    }
+    // GPU Resource Exists.
+    // 2 Options:
+    // - Editable Texture. We can map / unmap.
+    // - Non-Editable Texture. We have to UpdateSubresource (TODO)
+    // Ideally textures that are edited a lot should be marked as editable so we
+    // can do mapping / unmapping which will have less stalling.
+    else {
         assert(job.layout == texture->layout);
+        if (isEditableTexture) {
+            // Write to my texture using Map / Unmap.
+            D3D11_MAPPED_SUBRESOURCE sr;
+            context->Map(texture->texture, 0, D3D11_MAP_WRITE_DISCARD, 0, &sr);
 
-        // Write to my texture using Map / Unmap.
-        D3D11_MAPPED_SUBRESOURCE sr;
-        context->Map(texture->texture, 0, D3D11_MAP_WRITE_DISCARD, 0, &sr);
+            const size_t byteSize = TextureLayoutByteSize(job.layout);
+            uint8_t* dest = reinterpret_cast<uint8_t*>(sr.pData);
+            const uint8_t* src =
+                reinterpret_cast<const uint8_t*>(job.data.data());
 
-        const size_t byteSize = TextureLayoutByteSize(job.layout);
-        uint8_t* dest = reinterpret_cast<uint8_t*>(sr.pData);
-        const uint8_t* src = reinterpret_cast<const uint8_t*>(job.data.data());
+            // We need to copy row-by-row, because while rows are aligned, there
+            // may be padding after each row that we're not aware about.
+            for (UINT y = 0; y < texture->height; ++y) {
+                memcpy(dest + y * sr.RowPitch,
+                       src + y * texture->width * byteSize,
+                       texture->width * byteSize);
+            }
 
-        // We need to copy row-by-row, because while rows are aligned, there may
-        // be padding after each row that we're not aware about.
-        for (UINT y = 0; y < job.height; ++y) {
-            memcpy(dest + y * sr.RowPitch, src + y * job.width * byteSize,
-                   job.width * byteSize);
+            context->Unmap(texture->texture, 0);
+        } else {
+            // TODO; Unimplemented
+            assert(false);
         }
-
-        context->Unmap(texture->texture, 0);
     }
 
-    texture->ready = true;
+    job.status = BuildJobStatus::Ready;
 }
 
 // System Resources
@@ -620,18 +754,15 @@ void ResourceManagerImpl::LoadCubeMesh() {
     MeshBuilder builder = MeshBuilder();
     builder.addLayout(POSITION);
     builder.addCube(Vector3(0, 0, 0), Quaternion(), 1.f);
-
-    std::shared_ptr<Mesh> mesh = requestMesh(builder);
-    assert(meshes.size() == SystemMesh_Cube);
-    meshes.emplace_back(mesh);
+    cubeMesh = requestMesh(builder);
 }
 
 void ResourceManagerImpl::LoadFallbackColormap() {
-    TextureBuilder builder = TextureBuilder(10, 10);
+    TextureBuilder builder = TextureBuilder(1, 1);
     builder.clear();
-    Texture* fallback_tex = builder.generate(device);
-    assert(textures.size() == SystemTexture_FallbackColormap);
-    textures.push_back(std::shared_ptr<Texture>(fallback_tex));
+    TextureRequestParams texParams("Fallback Colormap");
+    texParams.initCreateFromBuilder(builder, false);
+    fallbackColormap = requestTexture(texParams);
 }
 
 } // namespace Graphics

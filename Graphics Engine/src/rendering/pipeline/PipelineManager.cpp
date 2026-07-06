@@ -290,6 +290,7 @@ void Pipeline::initializeSamplers() {
         samplers[i] = NULL;
 
     // Point Sampler: Index 0
+    sampler_desc = {};
     sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
     sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
     sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -301,6 +302,7 @@ void Pipeline::initializeSamplers() {
     samplers[SamplerType::Sampler_Point] = sampler;
 
     // Shadow Sampler: Index 1
+    sampler_desc = {};
     sampler_desc.Filter =
         D3D11_FILTER_MIN_MAG_MIP_LINEAR; // Linear Filtering for PCF
     sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
@@ -318,6 +320,18 @@ void Pipeline::initializeSamplers() {
     assert(sampler != NULL);
 
     samplers[Sampler_Shadow] = sampler;
+
+    // Bilinear Sampler: Index 2
+    sampler_desc = {};
+    sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+    sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+    sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+    sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+
+    device->CreateSamplerState(&sampler_desc, &sampler);
+    assert(sampler != NULL);
+
+    samplers[Sampler_Linear] = sampler;
 }
 
 ID3D11Device* Pipeline::getDevice() const { return device; }

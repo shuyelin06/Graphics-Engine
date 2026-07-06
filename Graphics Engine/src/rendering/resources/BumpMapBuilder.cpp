@@ -17,20 +17,6 @@ BumpMapBuilder::BumpMapBuilder(UINT width, UINT height)
 }
 BumpMapBuilder::~BumpMapBuilder() = default;
 
-// Generate:
-// Iterates over the texture, generating the normals
-// from the heightmap.
-Texture* BumpMapBuilder::generate(ID3D11Device* device, bool editable) {
-    computeNormals();
-    return TextureBuilder::generate(device, editable);
-}
-// Update:
-// Generates the normals, and updates an existing texture
-void BumpMapBuilder::update(Texture* texture, ID3D11DeviceContext* context) {
-    computeNormals();
-    TextureBuilder::update(texture, context);
-}
-
 // SetHeight:
 // Sets the height at a specified x,y coordinate.
 void BumpMapBuilder::setHeight(int x, int y, float val) {

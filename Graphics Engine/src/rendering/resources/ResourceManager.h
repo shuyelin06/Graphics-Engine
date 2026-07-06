@@ -24,13 +24,26 @@ enum MeshPoolType {
     MeshPoolType_Count,
 };
 
-// - SystemMesh Cube: Unit cube from (-0.5, -0.5, -0.5) to (0.5, 0.5, 0.5)
-enum SystemMesh { SystemMesh_Cube = 0 };
-enum SystemTexture { SystemTexture_FallbackColormap = 0 };
+enum class TextureRequestType {
+    CreateFromFile = 0,
+    CreateFromBuilder = 1,
+    UpdateFromBuilder = 2,
+};
+struct TextureRequestParams {
+    TextureRequestType requestType;
+    std::string debugName;
 
-// TODO: Make constant buffer owned by resourceManager
-// Resource Manager processes cbuffer invalidations (really, all
-// resource uploads to GPU) before RenderManager kicks off.
+    std::string path;              // CreateFromFile
+    bool editable;                 // CreateFromFile, CreateFromBuilder
+    const TextureBuilder* builder; // CreateFromBuilder, UpdateFromBuilder
+    std::shared_ptr<Texture> target; // UpdateFromBuilder
+
+    TextureRequestParams(const std::string& debugName = "");
+    void initCreateFromFile(const std::string& path, bool editable);
+    void initCreateFromBuilder(const TextureBuilder& builder, bool editable);
+    void initUpdateFromBuilder(const TextureBuilder& builder,
+                               const std::shared_ptr<Texture>& target);
+};
 
 // ResourceManager Class:
 // Manages assets for the engine. Provides methods
@@ -50,20 +63,15 @@ class ResourceManager {
     // Serve the various requests received by the resource manager.
     void updatePerform();
 
-    // Get Resources
-    std::shared_ptr<Mesh> getMesh(int index) const;
-    std::shared_ptr<Texture> getTexture(int index) const;
+    // System Resources
+    std::shared_ptr<Texture> getFallbackColormap() const;
 
     // Create Resources
-    std::shared_ptr<Texture>
-    LoadTextureFromFile(const std::string& relative_path);
     std::shared_ptr<Mesh> LoadMeshFromFile(const std::string& relative_path);
 
     // Thread Safe Creation of Resources
     std::shared_ptr<Mesh> requestMesh(const MeshBuilder& mesh_builder);
-    std::shared_ptr<Texture>
-    requestTexture(const TextureBuilder& texture_builder, bool editable = false,
-                   const std::shared_ptr<Texture>& target = nullptr);
+    std::shared_ptr<Texture> requestTexture(const TextureRequestParams& params);
 
     // Not-Thread Safe Creation / Modification of Resources.
     // Must be done on main thread if called.

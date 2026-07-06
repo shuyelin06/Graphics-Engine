@@ -212,8 +212,7 @@ void RenderManagerImpl::perform() {
     Texture* depthStencil = pipeline->getDepthStencil();
 
     // Bind my atlases
-    const Texture* colormap =
-        resourceManager->getTexture(SystemTexture_FallbackColormap).get();
+    const Texture* colormap = resourceManager->getFallbackColormap().get();
     const Texture* shadowAtlas =
         visualSystem->getLightManager()->getAtlasTexture();
     pipeline->bindPixelTexture(0, *colormap, SamplerType::Sampler_Point);
@@ -460,11 +459,11 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
         }
 
         for (int slot = 0; slot < kVertexResourceMax; slot++) {
-            if (technique->hasVertexResource(slot)) {
-                const Technique::BoundTexture& boundTex =
-                    technique->getVertexResource(slot);
-                pipeline->bindVertexTexture(slot, *boundTex.texture,
-                                            boundTex.sampleState);
+            const auto& vertexResource = technique->getVertexResource(slot);
+            if (vertexResource.bound) {
+                pipeline->bindVertexTexture(
+                    slot, *vertexResource.textureData.texture,
+                    vertexResource.textureData.sampleState);
             }
         }
 
@@ -478,6 +477,15 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
                 cbHandle.loadData(buffer.data(), buffer.size());
 
                 pipeline->markPixelCBUsage(slot, false);
+            }
+        }
+
+        for (int slot = 0; slot < kPixelResourceMax; slot++) {
+            const auto& pixelResource = technique->getPixelResource(slot);
+            if (pixelResource.bound) {
+                pipeline->bindPixelTexture(
+                    slot, *pixelResource.textureData.texture,
+                    pixelResource.textureData.sampleState);
             }
         }
 

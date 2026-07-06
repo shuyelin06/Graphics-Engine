@@ -24,81 +24,12 @@ TextureBuilder::TextureBuilder(UINT width, UINT height, TextureLayout layout)
 
 TextureBuilder::~TextureBuilder() = default;
 
-// GenerateTexture:
-// Generates a texture resource (for use in the rendering pipeline)
-// given the data stored within the builder.
-Texture* TextureBuilder::generate(ID3D11Device* device) {
-    return generate(device, false);
-}
-Texture* TextureBuilder::generate(ID3D11Device* device, bool editable) {
-    ID3D11Texture2D* tex = nullptr;
+const std::vector<uint8_t>& TextureBuilder::getData() const { return data; }
+unsigned int TextureBuilder::getWidth() const { return width; }
+unsigned int TextureBuilder::getHeight() const { return height; }
+TextureLayout TextureBuilder::getLayout() const { return layout; }
 
-    // Generate my GPU texture resource
-    D3D11_TEXTURE2D_DESC tex_desc = {};
-    tex_desc.Width = width;
-    tex_desc.Height = height;
-    tex_desc.MipLevels = tex_desc.ArraySize = 1;
-    tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    tex_desc.SampleDesc.Count = 1;
-    tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-
-    if (editable) {
-        tex_desc.Usage = D3D11_USAGE_DYNAMIC;
-        tex_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-    } else {
-        tex_desc.Usage = D3D11_USAGE_DEFAULT;
-        tex_desc.CPUAccessFlags = 0;
-    }
-
-    D3D11_SUBRESOURCE_DATA sr_data = {};
-    sr_data.pSysMem = data.data();
-    sr_data.SysMemPitch = width * 4;               // Bytes per row
-    sr_data.SysMemSlicePitch = width * height * 4; // Total byte size
-
-    HRESULT result = device->CreateTexture2D(&tex_desc, &sr_data, &tex);
-    assert(SUCCEEDED(result));
-
-    Texture* texture_resource = new Texture(tex, width, height);
-    if (editable)
-        texture_resource->editable = true;
-
-    // Generate a shader view for my texture
-    D3D11_SHADER_RESOURCE_VIEW_DESC tex_view;
-    tex_view.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    tex_view.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-    tex_view.Texture2D.MostDetailedMip = 0;
-    tex_view.Texture2D.MipLevels = 1;
-
-    device->CreateShaderResourceView(texture_resource->texture, &tex_view,
-                                     &(texture_resource->shader_view));
-
-    return texture_resource;
-}
-
-// Update:
-// Given an editable texture (editable field must be true),
-// uploads the builder's data to the texture.
-// The dimensions MUST match.
-void TextureBuilder::update(Texture* texture, ID3D11DeviceContext* context) {
-    assert(texture->editable);
-    assert(width == texture->width);
-    assert(height == texture->height);
-
-    // Write to my texture using Map / Unmap.
-    D3D11_MAPPED_SUBRESOURCE sr;
-    context->Map(texture->texture, 0, D3D11_MAP_WRITE_DISCARD, 0, &sr);
-
-    uint8_t* dest = reinterpret_cast<uint8_t*>(sr.pData);
-    uint8_t* src = reinterpret_cast<uint8_t*>(data.data());
-    // We need to copy row-by-row, because while rows are aligned, there may
-    // be padding after each row that we're not aware about.
-    for (UINT y = 0; y < height; ++y)
-        memcpy(dest + y * sr.RowPitch, src + y * width * 4, width * 4);
-
-    context->Unmap(texture->texture, 0);
-}
-
-// SetColor:
+// SetColor:S
 // Sets a pixel of the texture to some color value
 void TextureBuilder::setColor(UINT x, UINT y, const TextureColor& rgba) {
     assert(0 <= x && x < width && 0 <= y && y < height);
@@ -144,17 +75,6 @@ const AtlasAllocation& AtlasBuilder::allocateRegion(UINT tex_width,
     cur_region = &allocation;
 
     return allocation;
-}
-
-// Generates the texture for the atlas and returns the atlas.
-TextureAtlas* AtlasBuilder::generate(ID3D11Device* device) {
-    Texture* tex = TextureBuilder::generate(device);
-    atlas->setTexture(tex);
-
-    TextureAtlas* output = atlas;
-    atlas = nullptr;
-
-    return output;
 }
 
 // Accessors:

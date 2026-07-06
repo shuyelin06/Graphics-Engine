@@ -1,6 +1,6 @@
 #pragma once
 
-#include <type_traits>
+#include <cstdint>
 
 namespace Engine {
 namespace Graphics {
@@ -10,7 +10,7 @@ namespace Graphics {
 enum SamplerType : uint8_t {
     Sampler_Point = 0,
     Sampler_Shadow = 1,
-    // Linear = 2,
+    Sampler_Linear = 2,
     // Anisotrophic = 3,
     // Note: Additional samplers can be added here
     SamplerCount

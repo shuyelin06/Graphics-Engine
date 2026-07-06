@@ -1,6 +1,8 @@
 #include "P_Common.hlsli"
 #include "ToneMap.hlsli"
 
+#include "Noise.hlsli"
+
 // Lighting:
 // Illumination (Global + Local)
 #include "Lighting.hlsli"
@@ -13,44 +15,68 @@ struct PS_IN
     float3 normal : NORMAL;
 };
 
+DefineTex2D(TerrainColormap, 4);
+
+cbuffer TerrainData : register(b4)
+{
+    float triplanarTextureScale;
+    float triplanarTextureSharpness;
+    float noiseScaling;
+    float padding;
+}
+
+// Simple hash function to get random values based on position
+float2 Hash2D(float2 p)
+{
+    return frac(sin(float2(dot(p, float2(127.1, 311.7)), dot(p, float2(269.5, 183.3)))) * 43758.5453);
+}
+
+float2 fuzzed(float2 uv)
+{
+    float2 hash = Hash2D(uv);
+    return uv + float2(triplanarTextureSharpness * hash.x * cos(hash.y), triplanarTextureSharpness
+     * hash.x * sin(hash.y));
+}
+
+float3 triplanarSampleColormap(float3 position, float3 normal)
+{
+    float uvScaling = CB(triplanarTextureScale);
+    float uvScaling2 = uvScaling * CB(triplanarTextureSharpness);
+    float sharpness = CB(triplanarTextureSharpness);
+
+    
+    
+    float3 xSample = SampleTex2D(TerrainColormap, uvScaling * position.zy);
+    float3 ySample = SampleTex2D(TerrainColormap, uvScaling * position.xz);
+    float3 zSample = SampleTex2D(TerrainColormap, uvScaling * position.xy);
+    
+    /*
+    float3 xSample2 = SampleTex2D(TerrainColormap, uvScaling2 * position.zy);
+    float3 ySample2 = SampleTex2D(TerrainColormap, uvScaling2 * position.xz);
+    float3 zSample2 = SampleTex2D(TerrainColormap, uvScaling2 * position.xy);
+    float3 grad;
+    float noise = noise3D(noiseScaling * position, float3(0, 0, 0), grad);
+    xSample = lerp(xSample, xSample2, noise);
+    ySample = lerp(ySample, ySample2, noise);
+    zSample = lerp(zSample, zSample2, noise);
+    */
+    
+    float3 weights = abs(normal);
+    weights = pow(weights, 1);
+    weights = weights / (weights.x + weights.y + weights.z);
+    float3 blended = xSample * weights.x + ySample * weights.y + zSample * weights.z;
+
+    return blended;
+}
+
 // Pixel Shader Entry Point
 // Takes clipping coordinates, and returns a color
 float4 psterrain_main(PS_IN input) : SV_TARGET
 {
-    float4 color = float4(0, 0, 0, 1);
-    float3 mesh_color = float3(0.823f, 0.705f, 0.549f);
-    
-    // Ambient Lighting
-    float ambient = 0.35f;
-    color.rgb += mesh_color * ambient;
-    
-    // Compute vectors for lighting that can be reused
     float3 normal = normalize(input.normal);
-    
-    // --- Sun Light Contribution ---
-    // Select the cascade that our point is in.
-    LightData sun_light = sun_cascades[selectCascade(input.world_position)];
-    // Then, select the shadow value of the point
-    // float shadow_factor = shadowValue(input.world_position, sun_light, 0.01f);
-    float shadow_factor = 1.f;
-    
-    // Diffuse lighting (flip the sun direction since it points from 
-    // the light -> surface).
-    float diffuse_factor = max(0, dot(-sun_direction, normal));
-    color.rgb += (shadow_factor * diffuse_factor) * (mesh_color * sun_light.color);
-    
-    // --- Light Contributions ---
-    for (int i = 0; i < light_count - 3; i++)
-    {
-        LightData light = light_instances[i];
-        
-        shadow_factor = shadowValue(input.world_position, light, 0.01f);
-        
-        float3 light_direc = normalize(light.position - input.world_position);
-        diffuse_factor = max(0, dot(light_direc, normal));
-        
-        color.rgb += (shadow_factor * diffuse_factor) * (mesh_color * light.color);
-    }
+    float3 direction = normalize(float3(0.5f, -0.5f, 0.5f));
 
-    return color;
+    float3 color = triplanarSampleColormap(input.world_position, normal);
+    
+    return float4(color, 1.f);
 }

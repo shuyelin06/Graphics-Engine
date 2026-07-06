@@ -5,6 +5,14 @@
 
 namespace Engine {
 namespace Graphics {
+void ShaderResource::initializeTextureResource(std::shared_ptr<Texture> texture,
+                                               SamplerType sampleState) {
+    bound = true;
+    resourceType = Type::Texture;
+    textureData.texture = texture;
+    textureData.sampleState = sampleState;
+}
+
 void Technique::clearVertexCB(uint8_t slot) {
     assert(slot <= kVertexConstantBufferMax);
     auto& cb = vertexCBuffers[slot];
@@ -18,39 +26,59 @@ void Technique::uploadVertexCBData(uint8_t slot, const void* src,
     cb.resize(end + byteSize);
     memcpy(cb.data() + end, src, byteSize);
 }
+void Technique::clearPixelCB(uint8_t slot) {
+    assert(slot <= kPixelConstantBufferMax);
+    auto& cb = pixelCbuffers[slot];
+    cb.clear();
+}
 void Technique::uploadPixelCBData(uint8_t slot, const void* src,
                                   size_t byteSize) {
     assert(slot <= kPixelConstantBufferMax);
-    auto& cb = vertexCBuffers[slot];
+    auto& cb = pixelCbuffers[slot];
     const size_t end = cb.size();
     cb.resize(end + byteSize);
     memcpy(cb.data() + end, src, byteSize);
 }
-void Technique::bindVertexShaderResource(uint8_t slot,
-                                         std::shared_ptr<Texture> texture,
-                                         SamplerType sampleState) {
+void Technique::bindVertexResource(uint8_t slot,
+                                   const ShaderResource& resource) {
     assert(slot <= kVertexResourceMax);
-    vResources[slot].texture = texture;
-    vResources[slot].sampleState = sampleState;
-    vResourcesFlag.set(slot);
+    vResources[slot] = resource;
 }
-bool Technique::hasVertexResource(uint8_t slot) const {
+void Technique::bindPixelResource(uint8_t slot,
+                                  const ShaderResource& resource) {
+    assert(slot <= kPixelResourceMax);
+    pResources[slot] = resource;
+}
+const ShaderResource& Technique::getVertexResource(uint8_t slot) const {
     assert(slot <= kVertexResourceMax);
-    return vResourcesFlag.test(slot);
-}
-const Technique::BoundTexture&
-Technique::getVertexResource(uint8_t slot) const {
-    assert(slot <= kVertexResourceMax && vResourcesFlag.test(slot));
     return vResources[slot];
+}
+const ShaderResource& Technique::getPixelResource(uint8_t slot) const {
+    assert(slot <= kPixelResourceMax);
+    return pResources[slot];
 }
 
 bool Technique::ready() const {
     bool ready = true;
+
     for (int slot = 0; slot < kVertexResourceMax; slot++) {
-        if (hasVertexResource(slot)) {
-            ready = ready && vResources[slot].texture->ready;
+        auto& resource = vResources[slot];
+        if (resource.bound) {
+            if (resource.resourceType == ShaderResource::Type::Texture) {
+                ready = ready && resource.textureData.texture->ready;
+            }
         }
     }
+
+    for (int slot = 0; slot < kPixelResourceMax; slot++) {
+        auto& resource = pResources[slot];
+        if (resource.bound) {
+            if (resource.resourceType == ShaderResource::Type::Texture) {
+                ready = ready && resource.textureData.texture->ready;
+            }
+        }
+    }
+
     return ready;
 }
 using DefaultMaterialParams = MaterialManager::DefaultMaterialParams;
@@ -163,6 +191,15 @@ MaterialManagerImpl::createMaterial(const TerrainMaterialParams& params) {
     Technique* technique = material->setTechnique(RenderPass::kOpaque);
     technique->vertexShader = "Terrain";
     technique->pixelShader = "Terrain";
+
+    TextureRequestParams texRequest("Terrain Colormap");
+    texRequest.initCreateFromFile(params.colormap, false);
+
+    ShaderResource colormap{};
+    colormap.initializeTextureResource(
+        resourceManager->requestTexture(texRequest),
+        SamplerType::Sampler_Point);
+    technique->bindPixelResource(4, colormap);
 
     return material;
 }

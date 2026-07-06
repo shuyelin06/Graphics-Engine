@@ -3,7 +3,6 @@
 
 #include <vector>
 
-#include "../core/Texture.h"
 #include "../core/TextureAtlas.h"
 
 namespace Engine {
@@ -47,11 +46,10 @@ class TextureBuilder {
                    TextureLayout layout = TextureLayout::R8G8B8A8_UNORM);
     ~TextureBuilder();
 
-    // Generates the renderable texture
-    Texture* generate(ID3D11Device* device);
-    Texture* generate(ID3D11Device* device, bool editable);
-    // Updates the renderable texture with the builder's information
-    void update(Texture* texture, ID3D11DeviceContext* context);
+    const std::vector<uint8_t>& getData() const;
+    unsigned int getWidth() const;
+    unsigned int getHeight() const;
+    TextureLayout getLayout() const;
 
     // Sets the color for a particular pixel
     void setColor(UINT x, UINT y, const TextureColor& rgba);
@@ -79,9 +77,6 @@ class AtlasBuilder : private TextureBuilder {
     // after initialization
     AtlasBuilder(UINT atlas_width, UINT atlas_height);
     ~AtlasBuilder();
-
-    // Generates the texture for the atlas and returns the atlas.
-    TextureAtlas* generate(ID3D11Device* device);
 
     // Get the atlas size
     UINT getAtlasWidth() const;

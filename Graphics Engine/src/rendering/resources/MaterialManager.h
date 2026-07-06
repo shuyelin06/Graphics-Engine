@@ -29,7 +29,9 @@ class MaterialManager {
 
         MD5Hash generateHash() const;
     };
-    struct TerrainMaterialParams {};
+    struct TerrainMaterialParams {
+        std::string colormap;
+    };
 
     static std::unique_ptr<MaterialManager>
     create(ResourceManager* resourceManager);

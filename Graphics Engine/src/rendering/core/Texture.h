@@ -3,6 +3,7 @@
 #include <atomic>
 #include <cstdint>
 
+#include "rendering/ImGui.h"
 #include "rendering/Direct3D11.h"
 
 #include "math/Color.h"
@@ -35,7 +36,12 @@ inline static size_t TextureLayoutByteSize(TextureLayout layout) {
 // Represents a texture that can be uploaded to the GPU.
 struct Texture {
     // GPU handle to the texture
-    ID3D11Texture2D* texture;
+    ID3D11Texture2D* texture = nullptr;
+
+    // Debug Name
+#if defined(IMGUI_ENABLED)
+    std::string debugName{};
+#endif
 
     // Texture descriptions
     UINT width, height; // Pixel width, height
@@ -47,7 +53,7 @@ struct Texture {
     ID3D11DepthStencilView* depth_view;
     ID3D11RenderTargetView* target_view;
 
-    std::atomic<bool> ready;
+    std::atomic<bool> ready = false;
 
   public:
     Texture();

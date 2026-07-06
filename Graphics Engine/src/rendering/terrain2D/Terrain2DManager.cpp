@@ -41,10 +41,18 @@ class Terrain2DManagerImpl {
         float skirtDepth = 25.f;
 
         // Heightmap Generation Settings
+        bool viewHeightmap = false;
+        bool useLinearSampling = true;
         Vector2 heightMapOrigin = Vector2(0, 0);
         Vector2 heightMapExtents = Vector2(2500, 2500);
         int heightmapNumSamples = 450;
     } config;
+    struct ShaderSettings {
+        float triplanarTextureScale = 0.1f;
+        float triplanarTextureSharpness = 1.f;
+        float noiseScaling = 1.f;
+        float pad1;
+    } shaderSettings;
 
     // Settings
     static constexpr int kMaximumNodes = 5000;
@@ -59,6 +67,7 @@ class Terrain2DManagerImpl {
     std::shared_ptr<Mesh> mTerrainMesh;
     std::shared_ptr<Material> mTerrainMaterial;
     Technique* mTerrainTechnique;
+    std::shared_ptr<Texture> mHeightmapTexture;
 
     // QuadTree
     QuadTreeNode* root = nullptr;
@@ -116,8 +125,10 @@ Terrain2DManagerImpl::Terrain2DManagerImpl(VisualSystem* visualSystem)
     // Because our terrain is heightmap based, we can use a single mesh and
     // instance draw it for each chunk, reading from heightmap texture for the
     // height.
-    mTerrainMaterial = visualSystem->getMaterialManager()->createMaterial(
-        MaterialManager::TerrainMaterialParams());
+    MaterialManager::TerrainMaterialParams materialParams{};
+    materialParams.colormap = "terrain/Grass.png";
+    mTerrainMaterial =
+        visualSystem->getMaterialManager()->createMaterial(materialParams);
     regenerateMesh();
     regenerateHeightmapTexture();
 
@@ -131,6 +142,10 @@ Terrain2DManagerImpl::~Terrain2DManagerImpl() = default;
 void Terrain2DManagerImpl::update(const Vector3& cameraPosition) {
     chunksToRender.clear();
     updateQuadTreeRecursive(root, cameraPosition, 0);
+
+    mTerrainTechnique->clearPixelCB(4);
+    mTerrainTechnique->uploadPixelCBData(4, &shaderSettings,
+                                         sizeof(ShaderSettings));
 
     const bool render = !chunksToRender.empty() && mTerrainMesh->ready &&
                         mTerrainMaterial->ready();
@@ -174,6 +189,13 @@ void Terrain2DManagerImpl::imGui() {
 
     ImGui::SliderFloat("LOD Attenuation", &config.lodAttenuation, 0.0, 10000.f);
 
+    ImGui::SliderFloat("Triplanar Texture Scaling: ",
+                       &shaderSettings.triplanarTextureScale, 0.0001f, 0.1f);
+    ImGui::SliderFloat("Triplanar Texture Sharpness: ",
+                       &shaderSettings.triplanarTextureSharpness, 0.01f, 10.f);
+    ImGui::SliderFloat(
+        "Triplanar Noise Scaling: ", &shaderSettings.noiseScaling, 0.01f, 1.f);
+
     if (ImGui::CollapsingHeader("Terrain Mesh")) {
         ImGui::SliderInt("# Terrain Mesh Samples: %i",
                          &config.terrainMeshSampleCount, 2, 25);
@@ -189,6 +211,12 @@ void Terrain2DManagerImpl::imGui() {
     }
 
     if (ImGui::CollapsingHeader("Height Map Settings")) {
+        ImGui::Checkbox("View Heightmap", &config.viewHeightmap);
+        if (config.viewHeightmap) {
+            mHeightmapTexture->displayImGui();
+        }
+
+        ImGui::Checkbox("Use Linear Sampling", &config.useLinearSampling);
         ImGui::SliderFloat2("Heightmap Origin:", &config.heightMapOrigin.x,
                             -500, 500);
         ImGui::SliderFloat2("Heightmap Extents:", &config.heightMapExtents.x,
@@ -340,11 +368,17 @@ void Terrain2DManagerImpl::regenerateHeightmapTexture() {
         }
     }
 
-    std::shared_ptr<Texture> texture =
-        mVisualSystem->getResourceManager()->requestTexture(builder, true);
+    TextureRequestParams texParams;
+    texParams.initCreateFromBuilder(builder, true);
+
+    ShaderResource resource;
+    mHeightmapTexture =
+        mVisualSystem->getResourceManager()->requestTexture(texParams);
     mTerrainTechnique = mTerrainMaterial->getTechnique(RenderPass::kOpaque);
-    mTerrainTechnique->bindVertexShaderResource(0, texture,
-                                                SamplerType::Sampler_Point);
+    SamplerType sampler = config.useLinearSampling ? SamplerType::Sampler_Linear
+                                                   : SamplerType::Sampler_Point;
+    resource.initializeTextureResource(mHeightmapTexture, sampler);
+    mTerrainTechnique->bindVertexResource(0, resource);
 }
 
 uint8_t Terrain2DManagerImpl::computeIdealLOD(QuadTreeNode* node,

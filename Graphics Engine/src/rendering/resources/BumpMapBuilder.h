@@ -22,11 +22,6 @@ class BumpMapBuilder : private TextureBuilder {
     BumpMapBuilder(unsigned int width, unsigned int height);
     ~BumpMapBuilder();
 
-    // Generates the bumpmap texture.
-    Texture* generate(ID3D11Device* device, bool editable);
-    // Update an existing bumpmap texture. The dimensions MUST be the same.
-    void update(Texture* texture, ID3D11DeviceContext* context);
-
     // Encode a height value in the heightmap
     void setHeight(int x, int y, float height);
     // Create bump map with Perlin Noise
