@@ -57,6 +57,8 @@ class VisualSystem {
     RenderManager* getRenderManager() const;
     LightManager* getLightManager() const;
     Pipeline* getPipeline() const;
+
+    void doRenderDocUI();
 };
 } // namespace Graphics
 } // namespace Engine

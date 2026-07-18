@@ -22,8 +22,7 @@ class PNGFile {
     bool writePNGData(ID3D11Device* device, ID3D11DeviceContext* context,
                       ID3D11Texture2D* texture);
 
-    static void ReadPNGData(const std::vector<uint8_t>& data,
-                            TextureBuilder& builder);
+    static TextureBuilder ReadPNGData(const std::vector<uint8_t>& data);
 };
 
 } // namespace Graphics

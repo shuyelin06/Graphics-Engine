@@ -44,6 +44,8 @@
 #include "rendering/VisualDebug.h"
 #include "utility/Stopwatch.h"
 
+#include "rendering/util/RenderDoc.h"
+
 // --- TEST
 
 // ---
@@ -64,6 +66,9 @@ static InputSystem* input_system_handle;
 // Main Function
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                     PWSTR pCmdLine, int nCmdShow) {
+    // Initialize RenderDoc (if enabled)
+    Engine::Graphics::RenderDoc::InitializeRenderDoc();
+
     // Create a Window Class with the OS
     const wchar_t CLASS_NAME[] = L"Main";
 
@@ -141,8 +146,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     createMesh(Vector3(0, 200.f, 0), 250.f);
     createMesh(Vector3(0, -200.f, 0), 250.f);
 
-
-
     for (int i = 0; i < 5; i++) {
     }
 
@@ -207,10 +210,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             ImGui::Separator();
             ImGui::Text("FPS: %i", prev_fps_count);
             ImGui::Separator();
-            ImGui::Text("Pending Jobs: %i",
-                        ThreadPool::GetThreadPool()->countPendingJobs());
+            ImGui::Text("Pending Jobs: %i", ThreadPool::GetNumberPendingJobs());
             ImGui::Text("Active Workers: %i",
-                        ThreadPool::GetThreadPool()->countActiveWorkers());
+                        ThreadPool::GetNumberActiveWorkers());
             ImGui::EndMenu();
         }
 #endif

@@ -77,8 +77,7 @@ bool PNGFile::writePNGData(ID3D11Device* device, ID3D11DeviceContext* context,
         return true;
 }
 
-void PNGFile::ReadPNGData(const std::vector<uint8_t>& data,
-                          TextureBuilder& builder) {
+TextureBuilder PNGFile::ReadPNGData(const std::vector<uint8_t>& data) {
     std::vector<uint8_t> image;
     unsigned int width, height;
 
@@ -88,8 +87,9 @@ void PNGFile::ReadPNGData(const std::vector<uint8_t>& data,
 
     // Parse content of image into a format the engine can use. lodepng
     // automatically converts the PNG into RGBA values.
-    builder.reset(width, height);
-    
+    TextureBuilder builder =
+        TextureBuilder(width, height, TextureLayout::R8G8B8A8_UNORM); // TODO should be automatic to 1 pixel
+
     TextureColor color;
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
@@ -98,6 +98,10 @@ void PNGFile::ReadPNGData(const std::vector<uint8_t>& data,
             builder.setColor(x, y, color);
         }
     }
+
+    builder.generateMips();
+
+    return std::move(builder);
 }
 
 } // namespace Graphics

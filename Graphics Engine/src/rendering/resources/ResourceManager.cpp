@@ -60,8 +60,9 @@ enum class BuildJobStatus : uint8_t {
     Failed = -2,
     Invalid = -1,
     PendingResourceData = 0,
-    PendingGPUUpload = 1,
-    Ready = 2,
+    PendingGPUCreation = 1,
+    PendingGPUUpload = 2,
+    Ready = 3,
 };
 struct MeshBuildingJob {
     std::vector<MeshVertex> vertex_data;
@@ -80,17 +81,26 @@ struct TextureBuildingJob {
     // Status: PendingGPUUpload
     // Uploads this data to the GPU and marks texture as ready
     std::vector<uint8_t> data{};
-    TextureLayout layout{};
 
     std::shared_ptr<Texture> texture = nullptr;
 
     TextureBuildingJob() = default;
 };
 
+struct DebugState {
+    struct SelectedTexture {
+        std::weak_ptr<Texture> textureWeak;
+        bool close = false;
+    };
+    std::vector<SelectedTexture> selectedTextures;
+};
+
 class ResourceManagerImpl {
   private:
     ID3D11Device* device;
     ID3D11DeviceContext* context;
+
+    std::unique_ptr<DebugState> debugState = nullptr;
 
     // Resources owned by ResourceManager
     std::vector<std::unique_ptr<MeshPool>> mesh_pools;
@@ -140,6 +150,7 @@ class ResourceManagerImpl {
     bool processTextureJob(TextureBuildingJob& job);
 
     void textureJobPendingResources(TextureBuildingJob& job);
+    void textureJobPendingGPUCreation(TextureBuildingJob& job);
     void textureJobPendingGPUUpload(TextureBuildingJob& job);
 
     // System Asset Generation
@@ -199,6 +210,8 @@ ResourceManagerImpl::ResourceManagerImpl(ID3D11Device* device,
 
     ImGuiHelper::registerImGuiCallback("Render/Resources",
                                        [this]() { imGui(); });
+
+    debugState = std::make_unique<DebugState>();
 }
 ResourceManagerImpl::~ResourceManagerImpl() = default;
 
@@ -359,13 +372,15 @@ ResourceManagerImpl::requestTexture(const TextureRequestParams& params) {
     case TextureRequestType::CreateFromBuilder:
         [[fallthrough]];
     case TextureRequestType::UpdateFromBuilder: {
-        job.status = BuildJobStatus::PendingGPUUpload;
+        job.status = createNewTexture ? BuildJobStatus::PendingGPUCreation
+                                      : BuildJobStatus::PendingGPUUpload;
 
         const auto& builder = *params.builder;
         job.data = builder.getData();
-        job.layout = builder.getLayout();
+        job.texture->layout = builder.getLayout();
         job.texture->width = builder.getWidth();
         job.texture->height = builder.getHeight();
+        job.texture->mips = builder.getNumMips();
     } break;
     }
 
@@ -421,17 +436,17 @@ void ResourceManagerImpl::imGui() {
         }
     }
 
-    std::shared_ptr<const Texture> selectedTexture = nullptr;
     if (ImGui::CollapsingHeader("Texture View")) {
         ImGui::Text("Texture Count: %zu", textures.size());
         ImGui::Indent();
         ImGui::Text("Note: Hover over a row to see the texture");
         ImGui::Unindent();
 
-        if (ImGui::BeginTable("Texture Information", 4)) {
+        if (ImGui::BeginTable("Texture Information", 5)) {
             ImGui::TableSetupColumn("Name");
             ImGui::TableSetupColumn("Width");
             ImGui::TableSetupColumn("Height");
+            ImGui::TableSetupColumn("Mips");
             ImGui::TableSetupColumn("Editable");
             ImGui::TableHeadersRow();
 
@@ -448,36 +463,50 @@ void ResourceManagerImpl::imGui() {
                     ImGui::TableSetColumnIndex(0);
                     const std::string name =
                         texture->debugName.empty() ? "?" : texture->debugName;
-                    ImGui::Selectable(name.c_str(), false,
-                                      ImGuiSelectableFlags_SpanAllColumns |
-                                          ImGuiSelectableFlags_AllowOverlap);
-                    selected = ImGui::IsItemHovered();
+                    if (ImGui::Selectable(
+                            name.c_str(), false,
+                            ImGuiSelectableFlags_SpanAllColumns |
+                                ImGuiSelectableFlags_AllowOverlap)) {
+                        debugState->selectedTextures.push_back(
+                            {texture, false});
+                    }
 
                     ImGui::TableSetColumnIndex(1);
                     ImGui::Text("%zu", texture->width);
                     ImGui::TableSetColumnIndex(2);
                     ImGui::Text("%zu", texture->height);
                     ImGui::TableSetColumnIndex(3);
+                    ImGui::Text("%zu", texture->mips);
+                    ImGui::TableSetColumnIndex(4);
                     ImGui::Text(texture->editable ? "T" : "F");
 
                     ++iter;
                 } else {
                     iter = textures.erase(iter);
                 }
-
-                if (selected) {
-                    selectedTexture = texture;
-                }
             }
 
             ImGui::EndTable();
         }
-
-        if (selectedTexture) {
-            selectedTexture->displayImGui(256);
-        }
     }
 
+    auto iter = debugState->selectedTextures.begin();
+    while (iter != debugState->selectedTextures.end()) {
+        auto selectedTexture = *iter;
+        std::shared_ptr<Texture> texture = selectedTexture.textureWeak.lock();
+
+        if (ImGui::Begin(("Texture" + texture->debugName).c_str(),
+                         &selectedTexture.close)) {
+            texture->displayImGui(256);
+            ImGui::End();
+        }
+
+        if (texture == nullptr || selectedTexture.close) {
+            iter = debugState->selectedTextures.erase(iter);
+        } else {
+            ++iter;
+        }
+    }
 #endif
 }
 
@@ -593,6 +622,7 @@ static DXGI_FORMAT TextureLayoutToDXGI(TextureLayout layout) {
     case TextureLayout::R32_FLOAT:
         return DXGI_FORMAT_R32_FLOAT;
     }
+    return DXGI_FORMAT_UNKNOWN;
 }
 
 bool ResourceManagerImpl::processTextureJob(TextureBuildingJob& job) {
@@ -601,6 +631,12 @@ bool ResourceManagerImpl::processTextureJob(TextureBuildingJob& job) {
     switch (job.status) {
     case BuildJobStatus::PendingResourceData: {
         textureJobPendingResources(job);
+        assert(job.status == BuildJobStatus::Failed ||
+               job.status == BuildJobStatus::PendingGPUCreation);
+    } break;
+
+    case BuildJobStatus::PendingGPUCreation: {
+        textureJobPendingGPUCreation(job);
         assert(job.status == BuildJobStatus::Failed ||
                job.status == BuildJobStatus::PendingGPUUpload);
     } break;
@@ -641,16 +677,16 @@ void ResourceManagerImpl::textureJobPendingResources(TextureBuildingJob& job) {
 
         FileReader reader = FileReader(full_path);
         if (reader.readFileData()) {
-            TextureBuilder builder = TextureBuilder(0, 0);
-
             if (extension == "png") {
-                PNGFile::ReadPNGData(reader.getData(), builder);
+                TextureBuilder builder = PNGFile::ReadPNGData(reader.getData());
 
-                job.status = BuildJobStatus::PendingGPUUpload;
-                job.data = builder.getData();
-                job.layout = builder.getLayout();
+                job.texture->layout = builder.getLayout();
                 job.texture->width = builder.getWidth();
                 job.texture->height = builder.getHeight();
+                job.texture->mips = builder.getNumMips();
+
+                job.status = BuildJobStatus::PendingGPUCreation;
+                job.data = builder.getData();
 
                 success = true;
             } else
@@ -659,90 +695,103 @@ void ResourceManagerImpl::textureJobPendingResources(TextureBuildingJob& job) {
     }
 
     if (success) {
-        job.status = BuildJobStatus::PendingGPUUpload;
+        job.status = BuildJobStatus::PendingGPUCreation;
     } else {
         job.status = BuildJobStatus::Failed;
     }
 }
 
-void ResourceManagerImpl::textureJobPendingGPUUpload(TextureBuildingJob& job) {
-    assert(job.texture);
+void ResourceManagerImpl::textureJobPendingGPUCreation(
+    TextureBuildingJob& job) {
+    assert(job.texture && !job.texture->texture);
 
     auto& texture = job.texture;
 
     // Creation settings
-    const bool createNewTexture = (texture->texture == nullptr);
+    const bool isEditableTexture = job.texture->editable;
+    const unsigned int numMips = job.texture->mips;
+
+    HRESULT result;
+
+    // Generate my GPU texture resource
+    D3D11_TEXTURE2D_DESC tex_desc = {};
+    tex_desc.Width = texture->width;
+    tex_desc.Height = texture->height;
+    tex_desc.MipLevels = numMips;
+    tex_desc.ArraySize = 1;
+    tex_desc.Format = TextureLayoutToDXGI(texture->layout);
+    tex_desc.SampleDesc.Count = 1;
+    tex_desc.Usage =
+        isEditableTexture ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
+    tex_desc.CPUAccessFlags = isEditableTexture ? D3D11_CPU_ACCESS_WRITE : 0;
+    tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+    // Note: We do not pass initial data here. We will set the data in the
+    // upload stage for easier reasoning about (yes, more inefficient but that
+    // is not the primary focus right now)
+    result = device->CreateTexture2D(&tex_desc, nullptr, &texture->texture);
+    assert(SUCCEEDED(result));
+
+    // Generate a shader view for my texture
+    D3D11_SHADER_RESOURCE_VIEW_DESC tex_view = {};
+    tex_view.Format = TextureLayoutToDXGI(texture->layout);
+    tex_view.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    tex_view.Texture2D.MostDetailedMip = 0;
+    tex_view.Texture2D.MipLevels = numMips;
+    result = device->CreateShaderResourceView(job.texture->texture, &tex_view,
+                                              &(job.texture->shader_view));
+    assert(SUCCEEDED(result));
+
+    job.status = BuildJobStatus::PendingGPUUpload;
+}
+
+void ResourceManagerImpl::textureJobPendingGPUUpload(TextureBuildingJob& job) {
+    assert(job.texture && job.texture->texture);
+
+    auto& texture = job.texture;
+
+    // Creation settings
     const bool isEditableTexture = texture->editable;
+    const unsigned int numMips = job.texture->mips;
 
-    // GPU Resource does not exist yet. Create it.
-    if (createNewTexture) {
-        HRESULT result;
+    const size_t byteSize = TextureLayoutByteSize(texture->layout);
 
-        // Generate my GPU texture resource
-        D3D11_TEXTURE2D_DESC tex_desc = {};
-        tex_desc.Width = texture->width;
-        tex_desc.Height = texture->height;
-        tex_desc.MipLevels = 1;
-        tex_desc.ArraySize = 1;
-        tex_desc.Format = TextureLayoutToDXGI(job.layout);
-        tex_desc.SampleDesc.Count = 1;
-        tex_desc.Usage =
-            isEditableTexture ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
-        tex_desc.CPUAccessFlags =
-            isEditableTexture ? D3D11_CPU_ACCESS_WRITE : 0;
-        tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-
-        const size_t byteSize = TextureLayoutByteSize(job.layout);
-        D3D11_SUBRESOURCE_DATA sr_data = {};
-        sr_data.pSysMem = job.data.data();
-        sr_data.SysMemPitch = texture->width * byteSize; // Bytes per row
-        sr_data.SysMemSlicePitch =
-            texture->width * texture->height * byteSize; // Total byte size
-
-        result =
-            device->CreateTexture2D(&tex_desc, &sr_data, &texture->texture);
-        assert(SUCCEEDED(result));
-
-        // Generate a shader view for my texture
-        D3D11_SHADER_RESOURCE_VIEW_DESC tex_view;
-        tex_view.Format = TextureLayoutToDXGI(job.layout);
-        tex_view.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-        tex_view.Texture2D.MostDetailedMip = 0;
-        tex_view.Texture2D.MipLevels = 1;
-        result = device->CreateShaderResourceView(
-            job.texture->texture, &tex_view, &(job.texture->shader_view));
-        assert(SUCCEEDED(result));
-    }
-    // GPU Resource Exists.
     // 2 Options:
     // - Editable Texture. We can map / unmap.
     // - Non-Editable Texture. We have to UpdateSubresource (TODO)
     // Ideally textures that are edited a lot should be marked as editable so we
     // can do mapping / unmapping which will have less stalling.
-    else {
-        assert(job.layout == texture->layout);
-        if (isEditableTexture) {
-            // Write to my texture using Map / Unmap.
-            D3D11_MAPPED_SUBRESOURCE sr;
-            context->Map(texture->texture, 0, D3D11_MAP_WRITE_DISCARD, 0, &sr);
+    if (isEditableTexture) {
+        assert(numMips == 1); // TODO: Unimplemented for multiple mips
 
-            const size_t byteSize = TextureLayoutByteSize(job.layout);
-            uint8_t* dest = reinterpret_cast<uint8_t*>(sr.pData);
-            const uint8_t* src =
-                reinterpret_cast<const uint8_t*>(job.data.data());
+        // Write to my texture using Map / Unmap.
+        D3D11_MAPPED_SUBRESOURCE sr;
+        context->Map(texture->texture, 0, D3D11_MAP_WRITE_DISCARD, 0, &sr);
 
-            // We need to copy row-by-row, because while rows are aligned, there
-            // may be padding after each row that we're not aware about.
-            for (UINT y = 0; y < texture->height; ++y) {
-                memcpy(dest + y * sr.RowPitch,
-                       src + y * texture->width * byteSize,
-                       texture->width * byteSize);
-            }
+        uint8_t* dest = reinterpret_cast<uint8_t*>(sr.pData);
+        const uint8_t* src = reinterpret_cast<const uint8_t*>(job.data.data());
 
-            context->Unmap(texture->texture, 0);
-        } else {
-            // TODO; Unimplemented
-            assert(false);
+        // We need to copy row-by-row, because while rows are aligned, there
+        // may be padding after each row that we're not aware about.
+        for (UINT y = 0; y < texture->height; ++y) {
+            memcpy(dest + y * sr.RowPitch, src + y * texture->width * byteSize,
+                   texture->width * byteSize);
+        }
+
+        context->Unmap(texture->texture, 0);
+    } else {
+        uint8_t* dataSrc = job.data.data();
+        unsigned int mipWidth = texture->width;
+        unsigned int mipHeight = texture->height;
+
+        for (int i = 0; i < numMips; i++) {
+            const unsigned int mipLevel = i;
+            context->UpdateSubresource(texture->texture, mipLevel, nullptr,
+                                       dataSrc, mipWidth * byteSize, 0);
+
+            dataSrc += mipWidth * mipHeight * byteSize;
+            mipWidth = max(1, mipWidth / 2);
+            mipHeight = max(1, mipHeight / 2);
         }
     }
 
@@ -758,7 +807,8 @@ void ResourceManagerImpl::LoadCubeMesh() {
 }
 
 void ResourceManagerImpl::LoadFallbackColormap() {
-    TextureBuilder builder = TextureBuilder(1, 1);
+    TextureBuilder builder =
+        TextureBuilder(1, 1, TextureLayout::R8G8B8A8_UNORM);
     builder.clear();
     TextureRequestParams texParams("Fallback Colormap");
     texParams.initCreateFromBuilder(builder, false);

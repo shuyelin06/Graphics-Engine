@@ -48,7 +48,7 @@ class Terrain2DManagerImpl {
         int heightmapNumSamples = 450;
     } config;
     struct ShaderSettings {
-        float triplanarTextureScale = 0.1f;
+        float triplanarTextureScale = 0.005f;
         float triplanarTextureSharpness = 1.f;
         float noiseScaling = 1.f;
         float pad1;
@@ -369,7 +369,7 @@ void Terrain2DManagerImpl::regenerateHeightmapTexture() {
     }
 
     TextureRequestParams texParams;
-    texParams.initCreateFromBuilder(builder, true);
+    texParams.initCreateFromBuilder(builder, false);
 
     ShaderResource resource;
     mHeightmapTexture =

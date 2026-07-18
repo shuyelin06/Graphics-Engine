@@ -327,6 +327,8 @@ void Pipeline::initializeSamplers() {
     sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
     sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
     sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+    sampler_desc.MinLOD = 0.0f;// holy moly!!!! this was clamping it wtf
+    sampler_desc.MaxLOD = D3D11_FLOAT32_MAX;
 
     device->CreateSamplerState(&sampler_desc, &sampler);
     assert(sampler != NULL);

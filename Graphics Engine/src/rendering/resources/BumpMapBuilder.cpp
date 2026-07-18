@@ -10,7 +10,7 @@ using namespace Math;
 
 namespace Graphics {
 BumpMapBuilder::BumpMapBuilder(UINT width, UINT height)
-    : TextureBuilder(width - 2, height - 2) {
+    : TextureBuilder(width - 2, height - 2, TextureLayout::R8G8B8A8_UNORM) {
     heightmap_width = width;
     heightmap_height = height;
     heightmap.resize(heightmap_width * heightmap_height, 0);

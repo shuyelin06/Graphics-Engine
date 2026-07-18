@@ -25,47 +25,39 @@ cbuffer TerrainData : register(b4)
     float padding;
 }
 
-// Simple hash function to get random values based on position
-float2 Hash2D(float2 p)
-{
-    return frac(sin(float2(dot(p, float2(127.1, 311.7)), dot(p, float2(269.5, 183.3)))) * 43758.5453);
-}
-
-float2 fuzzed(float2 uv)
-{
-    float2 hash = Hash2D(uv);
-    return uv + float2(triplanarTextureSharpness * hash.x * cos(hash.y), triplanarTextureSharpness
-     * hash.x * sin(hash.y));
-}
-
 float3 triplanarSampleColormap(float3 position, float3 normal)
 {
     float uvScaling = CB(triplanarTextureScale);
     float uvScaling2 = uvScaling * CB(triplanarTextureSharpness);
     float sharpness = CB(triplanarTextureSharpness);
 
+    float3 positionDX = ddx(position);
+    float3 positionDY = ddy(position);
     
+    float2 xUVdx = uvScaling * positionDX.zy;
+    float2 xUVdy = uvScaling * positionDY.zy;
+
+    float2 yUVdx = uvScaling * positionDX.xz;
+    float2 yUVdy = uvScaling * positionDY.xz;
+
+    float2 zUVdx = uvScaling * positionDX.xy;
+    float2 zUVdy = uvScaling * positionDY.xy;
+
     
-    float3 xSample = SampleTex2D(TerrainColormap, uvScaling * position.zy);
-    float3 ySample = SampleTex2D(TerrainColormap, uvScaling * position.xz);
-    float3 zSample = SampleTex2D(TerrainColormap, uvScaling * position.xy);
-    
-    /*
-    float3 xSample2 = SampleTex2D(TerrainColormap, uvScaling2 * position.zy);
-    float3 ySample2 = SampleTex2D(TerrainColormap, uvScaling2 * position.xz);
-    float3 zSample2 = SampleTex2D(TerrainColormap, uvScaling2 * position.xy);
-    float3 grad;
-    float noise = noise3D(noiseScaling * position, float3(0, 0, 0), grad);
-    xSample = lerp(xSample, xSample2, noise);
-    ySample = lerp(ySample, ySample2, noise);
-    zSample = lerp(zSample, zSample2, noise);
-    */
+    // TODO: Manual computation of UV derivatives for correct mips
+    float2 xUV = uvScaling * position.zy;
+    float2 yUV = uvScaling * position.xz;
+    float2 zUV = uvScaling * position.xy;
+
+    float3 xSample = SampleTex2DLevel(TerrainColormap, xUV, computeMipFromDerivatives(TerrainColormap, xUVdx, xUVdy), float2(0,0));
+    float3 ySample = SampleTex2DLevel(TerrainColormap, yUV, computeMipFromDerivatives(TerrainColormap, yUVdx, yUVdy), float2(0,0));
+    float3 zSample = SampleTex2DLevel(TerrainColormap, zUV, computeMipFromDerivatives(TerrainColormap, zUVdx, zUVdy), float2(0,0));
     
     float3 weights = abs(normal);
     weights = pow(weights, 1);
     weights = weights / (weights.x + weights.y + weights.z);
     float3 blended = xSample * weights.x + ySample * weights.y + zSample * weights.z;
-
+    
     return blended;
 }
 

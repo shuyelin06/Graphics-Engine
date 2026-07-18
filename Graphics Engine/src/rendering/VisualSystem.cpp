@@ -2,6 +2,8 @@
 
 #include "Direct3D11.h"
 
+#include "util/RenderDoc.h"
+
 #if defined(_DEBUG)
 #include "util/CPUTimer.h"
 #include "util/GPUTimer.h"
@@ -32,6 +34,9 @@ VisualSystem::VisualSystem(HWND window) {
 
     light_manager = new LightManager(device, 4096);
     terrain2D = Terrain2DManager::create(this);
+
+    ImGuiHelper::registerImGuiCallback("Render/Renderdoc",
+                                       [this]() { doRenderDocUI(); });
 }
 
 // Render:
@@ -54,6 +59,9 @@ void VisualSystem::render() {
 
     // Finish rendering and present
     pipeline->endFrame();
+
+    // Finish RenderDoc Capture (if initialized and we are taking one)
+    RenderDoc::EndRenderDocCaptureIfCapturing();
 }
 
 void VisualSystem::renderPrepare() {
@@ -117,6 +125,19 @@ RenderManager* VisualSystem::getRenderManager() const {
 LightManager* VisualSystem::getLightManager() const { return light_manager; }
 
 Pipeline* VisualSystem::getPipeline() const { return pipeline.get(); }
+
+void VisualSystem::doRenderDocUI() {
+#if defined(IMGUI_ENABLED)
+    if (!RenderDoc::IsRenderDocInitialized()) {
+        ImGui::Text("RenderDoc failed to initialize.");
+        return;
+    }
+
+    if (ImGui::Button("Take RenderDoc Capture")) {
+        RenderDoc::StartRenderDocCapture();
+    }
+#endif
+}
 
 } // namespace Graphics
 } // namespace Engine

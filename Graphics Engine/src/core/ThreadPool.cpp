@@ -4,18 +4,17 @@ namespace Engine {
 ThreadPool* ThreadPool::threadpool = nullptr;
 
 void ThreadPool::InitializeThreadPool() { threadpool = new ThreadPool(); }
-ThreadPool* ThreadPool::GetThreadPool() { return threadpool; }
-void ThreadPool::DestroyThreadPool() { delete threadpool; }
+void ThreadPool::DestroyThreadPool() {
+    delete threadpool;
+    threadpool = nullptr;
+}
 
 ThreadPool::ThreadPool() {
     finished = false;
 
     // Create my thread workers. These will execute the
     // executeWorker function.
-    for (int i = 0; i < NUM_THREADS; i++) {
-        active[i].store(false);
-    }
-
+    numActive.store(0, std::memory_order_relaxed);
     for (int i = 0; i < NUM_THREADS; i++) {
         workers[i] = std::thread(&ThreadPool::executeWorker, this, i);
     }
@@ -36,28 +35,30 @@ ThreadPool::~ThreadPool() {
         workers[i].join();
 }
 
-// JobCount:
-// Returns the number of jobs the thread pool currently has
-int ThreadPool::countPendingJobs() {
+uint8_t ThreadPool::GetNumberActiveWorkers() {
+    return threadpool->numActive.load(std::memory_order_acquire);
+}
+
+int ThreadPool::GetNumberPendingJobs() {
     int result;
     {
-        std::unique_lock<std::mutex> lock(job_mutex);
-        result = job_queue.size();
+        std::unique_lock<std::mutex> lock(threadpool->job_mutex);
+        result = threadpool->job_queue.size();
     }
     return result;
 }
 
-// ActiveThreads:
-// Returns the # active threads
-int ThreadPool::countActiveWorkers() {
-    int count = 0;
+void ThreadPool::ScheduleJob(UniqueFunction function) {
+    auto& instance = *threadpool;
 
-    for (auto& flag : active) {
-        if (flag.load())
-            count++;
+    // Add to our queue, locking temporarily to avoid race conditions
+    {
+        std::unique_lock<std::mutex> lock(instance.job_mutex);
+        instance.job_queue.push_back(std::move(function));
     }
 
-    return count;
+    // Notify one of our workers
+    instance.condition.notify_one();
 }
 
 // ExecuteWorker:
@@ -69,7 +70,7 @@ void ThreadPool::executeWorker(int index) {
         // Grab the first job in the queue.
         // We use mutexes to synchronize our threads
         // so that we have no race conditions.
-        std::function<void()> cur_job;
+        UniqueFunction curJob;
         {
             // Lock the job queue so other threads block
             std::unique_lock<std::mutex> lock(job_mutex);
@@ -83,18 +84,20 @@ void ThreadPool::executeWorker(int index) {
             // Case 1) ThreadPool is done. Stop execution.
             if (finished)
                 break;
+
             // Case 2) Job queue is empty. Keep waiting.
             if (job_queue.empty())
                 continue;
+
             // Case 3) Job queue has a job. Take this job.
-            cur_job = job_queue.front();
-            job_queue.pop();
+            curJob = std::move(job_queue.front());
+            job_queue.pop_front();
         }
 
         // Execute this job. Mark as active while executing.
-        active[index].store(true);
-        cur_job();
-        active[index].store(false);
+        numActive.fetch_add(1, std::memory_order_relaxed);
+        curJob();
+        numActive.fetch_sub(1, std::memory_order_relaxed);
     }
 }
 

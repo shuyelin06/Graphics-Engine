@@ -254,6 +254,7 @@
     <ClCompile Include="src\rendering\util\GPUTimer.cpp" />
     <ClCompile Include="src\rendering\core\TextureAtlas.cpp" />
     <ClCompile Include="src\physics\PhysicsSystem.cpp" />
+    <ClCompile Include="src\rendering\util\RenderDoc.cpp" />
     <ClCompile Include="src\rendering\VisualDebug.cpp" />
     <ClCompile Include="src\rendering\VisualSystem.cpp" />
     <ClCompile Include="src\core\DataFilePath.cpp" />
@@ -261,12 +262,15 @@
     <ClCompile Include="src\rendering\core\VertexStreamIDs.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\..\Program Files\RenderDoc\renderdoc_app.h" />
     <ClInclude Include="include\cgltf\cgltf.h" />
     <ClInclude Include="include\lodepng\lodepng.h" />
     <ClInclude Include="include\md5\md5.h" />
+    <ClInclude Include="include\renderdoc\renderdoc_app.h" />
     <ClInclude Include="include\stb\stb_image.h" />
     <ClInclude Include="src\core\PoolAllocator.h" />
     <ClInclude Include="src\core\StackString.h" />
+    <ClInclude Include="src\core\UniqueFunction.h" />
     <ClInclude Include="src\datamodel\Bindable.h" />
     <ClInclude Include="src\datamodel\bvh\BVH.h" />
     <ClInclude Include="src\datamodel\bvh\TLAS.h" />
@@ -365,6 +369,7 @@
     <ClInclude Include="src\rendering\core\TextureAtlas.h" />
     <ClInclude Include="src\physics\PhysicsSystem.h" />
     <ClInclude Include="src\rendering\Direct3D11.h" />
+    <ClInclude Include="src\rendering\util\RenderDoc.h" />
     <ClInclude Include="src\rendering\VisualDebug.h" />
     <ClInclude Include="src\rendering\VisualSystem.h" />
     <ClInclude Include="src\core\DataFilePath.h" />

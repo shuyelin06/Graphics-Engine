@@ -3,8 +3,8 @@
 #include <atomic>
 #include <cstdint>
 
-#include "rendering/ImGui.h"
 #include "rendering/Direct3D11.h"
+#include "rendering/ImGui.h"
 
 #include "math/Color.h"
 
@@ -44,7 +44,8 @@ struct Texture {
 #endif
 
     // Texture descriptions
-    UINT width, height; // Pixel width, height
+    unsigned int width, height; // Pixel width, height
+    unsigned int mips = 1;      // # Mips
     TextureLayout layout;
     bool editable; // Can the texture be edited?
 
