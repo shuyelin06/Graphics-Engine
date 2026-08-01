@@ -2,8 +2,10 @@
 
 #include <vector>
 
-namespace Engine {
-namespace Datamodel {
+namespace Engine
+{
+namespace Datamodel
+{
 class Object;
 
 // DMBinding Template Class:
@@ -13,7 +15,8 @@ class Object;
 // datamodel object being pulled from.
 // The system to which this binding belongs to is in charge of
 // cleaning up this. It should be destroyed if dm_object == null
-class DMBinding {
+class DMBinding
+{
   private:
     Object* dm_object;
 
@@ -36,17 +39,21 @@ class DMBinding {
 // CleanAndPullDatamodelData
 // Helper template method that will pull datamodel data, and clean the vector
 // of invalid bindings.
-template <typename T>
-void cleanAndPullDatamodelData(std::vector<T*>& bindings) {
+template <typename T> void cleanAndPullDatamodelData(std::vector<T*>& bindings)
+{
     static_assert(std::is_base_of<DMBinding, T>::value,
                   "T must inherit from DMBinding");
 
     typename std::vector<T*>::iterator iter = bindings.begin();
-    while (iter != bindings.end()) {
-        if ((*iter)->shouldDestroy()) {
+    while (iter != bindings.end())
+    {
+        if ((*iter)->shouldDestroy())
+        {
             delete *iter;
             iter = bindings.erase(iter);
-        } else {
+        }
+        else
+        {
             (*iter)->pullDatamodelData();
             iter++;
         }

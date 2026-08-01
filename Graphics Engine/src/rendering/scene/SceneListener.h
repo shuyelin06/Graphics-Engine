@@ -5,8 +5,10 @@
 
 #include "datamodel/core/DMTracking.h"
 
-namespace Engine {
-namespace Graphics {
+namespace Engine
+{
+namespace Graphics
+{
 class VisualSystem;
 class SceneListenerImpl;
 
@@ -15,7 +17,8 @@ using namespace Datamodel;
 // Class SceneListener:
 // Interfaces with the datamodel. Processes datamodel
 // events and interfaces with the appropriate system for each event received.
-class SceneListener : public Datamodel::DMListener {
+class SceneListener : public Datamodel::DMListener
+{
   public:
     static std::unique_ptr<SceneListener> create(VisualSystem* visual_system);
     ~SceneListener();

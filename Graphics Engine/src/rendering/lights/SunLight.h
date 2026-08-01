@@ -4,8 +4,10 @@
 
 constexpr int SUN_NUM_CASCADES = 3;
 
-namespace Engine {
-namespace Graphics {
+namespace Engine
+{
+namespace Graphics
+{
 class Frustum;
 
 // SunLight Class:
@@ -14,7 +16,8 @@ class Frustum;
 // of far-away points.
 // To create a sun light, pass in an array of length SUN_NUM_CASCADES
 // with allocated viewports in the shadow atlas.
-class SunLight {
+class SunLight
+{
   private:
     ShadowLight* light_cascades[SUN_NUM_CASCADES];
 
@@ -24,10 +27,10 @@ class SunLight {
   public:
     SunLight(ShadowLight** light_arr, int resolution);
     ~SunLight();
-    
+
     // Get the cascades
     const ShadowLight* getSunCascade(int index) const;
-    
+
     Vector3 getDirection() const;
 
     // Set the sun direction
@@ -37,7 +40,9 @@ class SunLight {
     void updateSunCascades(const Frustum& cam_frustum);
 
   private:
-    void updateCascade(int index, float min_z, float max_z,
+    void updateCascade(int index,
+                       float min_z,
+                       float max_z,
                        const Frustum& cam_frustum);
 };
 

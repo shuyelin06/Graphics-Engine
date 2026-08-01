@@ -11,21 +11,26 @@
 
 #include "rendering/pipeline/EnumTypes.h"
 
-namespace Engine {
-namespace Graphics {
+namespace Engine
+{
+namespace Graphics
+{
 // A technique determines all shader bindings, including:
 // - Vertex Shader + Resources
 // - Pixel Shader + Resources
 // A material is a collection of techniques by render pass.
-struct ShaderResource {
-    enum class Type : uint8_t {
+struct ShaderResource
+{
+    enum class Type : uint8_t
+    {
         Texture = 0,
         Unknown = 0xFF,
     };
     bool bound = false;
     Type resourceType = Type::Unknown;
 
-    struct {
+    struct
+    {
         std::shared_ptr<Texture> texture = nullptr;
         SamplerType sampleState{};
     } textureData;
@@ -34,7 +39,8 @@ struct ShaderResource {
                                    SamplerType sampleState);
 };
 
-struct Technique {
+struct Technique
+{
     std::string vertexShader;
     std::array<ShaderResource, kVertexResourceMax> vResources;
     std::array<std::vector<uint8_t>, kVertexConstantBufferMax> vertexCBuffers;
@@ -57,7 +63,8 @@ struct Technique {
     bool ready() const;
 };
 
-class Material {
+class Material
+{
   private:
     std::array<Technique*, RenderPass::_Count_> techniques;
 

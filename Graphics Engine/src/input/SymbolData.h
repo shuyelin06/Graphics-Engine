@@ -1,10 +1,13 @@
 #pragma once
 
-namespace Engine {
-namespace Input {
+namespace Engine
+{
+namespace Input
+{
 
 // Input Symbols
-enum InputSymbol {
+enum InputSymbol
+{
     // Numbers: Indices 0 - 9
     NUM_0,
     NUM_1,
@@ -46,7 +49,7 @@ enum InputSymbol {
     // Misc Keys
     KEY_CONTROL,
     KEY_SHIFT,
-    // Device: 
+    // Device:
     DEVICE_INTERACT,
     DEVICE_ALT_INTERACT,
     SymbolCount,

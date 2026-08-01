@@ -11,11 +11,14 @@
 #include "../util/GPUTimer.h"
 #endif
 
-namespace Engine {
+namespace Engine
+{
 using namespace Math;
 
-namespace Graphics {
-Pipeline::Pipeline(HWND window) {
+namespace Graphics
+{
+Pipeline::Pipeline(HWND window)
+{
     // Initialize my device, context, and render targets
     initializeTargets(window);
 
@@ -37,11 +40,13 @@ Pipeline::Pipeline(HWND window) {
     vb_strides[WEIGHTS] = sizeof(float) * 4;
 
     // Initialize my constant buffer handles
-    for (int i = 0; i < kVertexConstantBufferMax; i++) {
+    for (int i = 0; i < kVertexConstantBufferMax; i++)
+    {
         vcb_handles[i] = new ConstantBuffer();
         debug_vcb_usages[i] = false;
     }
-    for (int i = 0; i < kPixelConstantBufferMax; i++) {
+    for (int i = 0; i < kPixelConstantBufferMax; i++)
+    {
         pcb_handles[i] = new ConstantBuffer();
         debug_pcb_usages[i] = false;
     }
@@ -76,19 +81,23 @@ Pipeline::Pipeline(HWND window) {
                                        [this]() { imGui(); });
 }
 
-Pipeline::~Pipeline() {
+Pipeline::~Pipeline()
+{
 #if defined(_DEBUG)
     imGuiShutdown();
 #endif
 
-    for (int i = 0; i < kVertexConstantBufferMax; i++) {
+    for (int i = 0; i < kVertexConstantBufferMax; i++)
+    {
         delete vcb_handles[i];
     }
-    for (int i = 0; i < kPixelConstantBufferMax; i++) {
+    for (int i = 0; i < kPixelConstantBufferMax; i++)
+    {
         delete pcb_handles[i];
     }
 
-    for (int i = 0; i < (int)SamplerType::SamplerCount; i++) {
+    for (int i = 0; i < (int)SamplerType::SamplerCount; i++)
+    {
         if (samplers[i] != nullptr)
             samplers[i]->Release();
     }
@@ -96,7 +105,8 @@ Pipeline::~Pipeline() {
     delete shader_manager;
 }
 
-void Pipeline::initializeTargets(HWND _window) {
+void Pipeline::initializeTargets(HWND _window)
+{
     HRESULT result;
 
     // Get my window width and height
@@ -282,7 +292,8 @@ void Pipeline::initializeTargets(HWND _window) {
 // InitializeSamplers:
 // Initializes the most commonly used samplers in the pipeline.
 // These samplers will not be rebound over the entire program.
-void Pipeline::initializeSamplers() {
+void Pipeline::initializeSamplers()
+{
     D3D11_SAMPLER_DESC sampler_desc = {};
     ID3D11SamplerState* sampler = NULL;
 
@@ -327,7 +338,7 @@ void Pipeline::initializeSamplers() {
     sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
     sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
     sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-    sampler_desc.MinLOD = 0.0f;// holy moly!!!! this was clamping it wtf
+    sampler_desc.MinLOD = 0.0f; // holy moly!!!! this was clamping it wtf
     sampler_desc.MaxLOD = D3D11_FLOAT32_MAX;
 
     device->CreateSamplerState(&sampler_desc, &sampler);
@@ -336,14 +347,30 @@ void Pipeline::initializeSamplers() {
     samplers[Sampler_Linear] = sampler;
 }
 
-ID3D11Device* Pipeline::getDevice() const { return device; }
-ID3D11DeviceContext* Pipeline::getContext() const { return context; }
-Texture* Pipeline::getRenderTargetDest() const { return render_target_dest; }
-Texture* Pipeline::getRenderTargetSrc() const { return render_target_src; }
-Texture* Pipeline::getDepthStencil() const { return depth_stencil; }
+ID3D11Device* Pipeline::getDevice() const
+{
+    return device;
+}
+ID3D11DeviceContext* Pipeline::getContext() const
+{
+    return context;
+}
+Texture* Pipeline::getRenderTargetDest() const
+{
+    return render_target_dest;
+}
+Texture* Pipeline::getRenderTargetSrc() const
+{
+    return render_target_src;
+}
+Texture* Pipeline::getDepthStencil() const
+{
+    return depth_stencil;
+}
 
 // Prepare
-void Pipeline::beginFrame(const uint64_t frame) {
+void Pipeline::beginFrame(const uint64_t frame)
+{
     // Clear the the target destination color
     GPUTimer::BeginFrame(frame);
     stats = Pipeline::Stats();
@@ -352,8 +379,10 @@ void Pipeline::beginFrame(const uint64_t frame) {
     context->ClearRenderTargetView(render_target_dest->target_view, baseColor);
 }
 
-void Pipeline::setVertexTopology(VertexTopology topology) {
-    switch (topology) {
+void Pipeline::setVertexTopology(VertexTopology topology)
+{
+    switch (topology)
+    {
     case VertexTopology::TriangleList:
         context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         break;
@@ -368,11 +397,13 @@ void Pipeline::setVertexTopology(VertexTopology topology) {
 }
 
 // Shader Management
-void Pipeline::bindVertexShader(const std::string& vs_name) {
+void Pipeline::bindVertexShader(const std::string& vs_name)
+{
     VertexShader* newVS = shader_manager->getVertexShader(vs_name);
     assert(newVS);
 
-    if (newVS != vs_active) {
+    if (newVS != vs_active)
+    {
         vs_active = newVS;
 
         // Bind shader and input layout
@@ -381,19 +412,23 @@ void Pipeline::bindVertexShader(const std::string& vs_name) {
     }
 }
 
-void Pipeline::bindPixelShader(const std::string& ps_name) {
+void Pipeline::bindPixelShader(const std::string& ps_name)
+{
     PixelShader* newPS = shader_manager->getPixelShader(ps_name);
     assert(newPS);
 
-    if (newPS != ps_active) {
+    if (newPS != ps_active)
+    {
         ps_active = newPS;
         context->PSSetShader(ps_active->shader, NULL, 0);
     }
 }
 
 // Render Target Binding
-void Pipeline::bindRenderTarget(Texture* renderTarget, Texture* depthStencil,
-                                DepthStencilFlags depthFlags) {
+void Pipeline::bindRenderTarget(Texture* renderTarget,
+                                Texture* depthStencil,
+                                DepthStencilFlags depthFlags)
+{
     assert(renderTarget || depthStencil);
 
     ID3D11RenderTargetView** targetViewPtr = nullptr;
@@ -401,7 +436,8 @@ void Pipeline::bindRenderTarget(Texture* renderTarget, Texture* depthStencil,
 
     D3D11_VIEWPORT viewport = {0.f, 0.f, -1.f, -1.f, 0.f, 1.f};
 
-    if (renderTarget) {
+    if (renderTarget)
+    {
         assert(renderTarget->target_view);
         targetViewPtr = &renderTarget->target_view;
 
@@ -409,7 +445,8 @@ void Pipeline::bindRenderTarget(Texture* renderTarget, Texture* depthStencil,
         viewport.Height = renderTarget->height;
     }
 
-    if (depthStencil) {
+    if (depthStencil)
+    {
         assert(depthStencil->depth_view);
         ID3D11DepthStencilState* state = depth_states[depthFlags];
         context->OMSetDepthStencilState(state, 0);
@@ -418,10 +455,12 @@ void Pipeline::bindRenderTarget(Texture* renderTarget, Texture* depthStencil,
         assert(viewport.Width == -1.f || viewport.Width == depthStencil->width);
         assert(viewport.Height == -1.f ||
                viewport.Height == depthStencil->height);
-        if (viewport.Width == -1) {
+        if (viewport.Width == -1)
+        {
             viewport.Width = depthStencil->width;
         }
-        if (viewport.Height == -1) {
+        if (viewport.Height == -1)
+        {
             viewport.Height = depthStencil->height;
         }
     }
@@ -431,12 +470,15 @@ void Pipeline::bindRenderTarget(Texture* renderTarget, Texture* depthStencil,
     context->RSSetViewports(1, &viewport);
 }
 
-void Pipeline::bindBlendSettings(BlendFlags blendFlag) {
+void Pipeline::bindBlendSettings(BlendFlags blendFlag)
+{
     context->OMSetBlendState(blend_states[blendFlag], nullptr, 0xFFFFFFFF);
 }
 
-void Pipeline::bindRenderTarget(TargetFlags f_target, DepthStencilFlags f_depth,
-                                BlendFlags f_blend) {
+void Pipeline::bindRenderTarget(TargetFlags f_target,
+                                DepthStencilFlags f_depth,
+                                BlendFlags f_blend)
+{
     flag_target = f_target;
     flag_depth = f_depth;
     flag_blend = f_blend;
@@ -444,7 +486,8 @@ void Pipeline::bindRenderTarget(TargetFlags f_target, DepthStencilFlags f_depth,
     // Handle render target flags
     ID3D11RenderTargetView* target_view = nullptr;
 
-    switch (f_target) {
+    switch (f_target)
+    {
     case Target_SwapTarget:
         swapActiveTarget();
         [[fallthrough]];
@@ -459,7 +502,8 @@ void Pipeline::bindRenderTarget(TargetFlags f_target, DepthStencilFlags f_depth,
     // Handle depth stencil flags
     ID3D11DepthStencilView* depth_view = nullptr;
 
-    if (f_depth != Depth_Disabled) {
+    if (f_depth != Depth_Disabled)
+    {
         depth_view = depth_stencil->depth_view;
         ID3D11DepthStencilState* state = depth_states[f_depth];
         context->OMSetDepthStencilState(state, 0);
@@ -472,22 +516,27 @@ void Pipeline::bindRenderTarget(TargetFlags f_target, DepthStencilFlags f_depth,
     context->OMSetBlendState(blend_states[f_blend], nullptr, 0xFFFFFFFF);
 }
 
-void Pipeline::swapActiveTarget() {
+void Pipeline::swapActiveTarget()
+{
     Texture* temp = render_target_dest;
     render_target_dest = render_target_src;
     render_target_src = temp;
 }
 
-void Pipeline::bindVertexTexture(uint8_t slot, const Texture& texture,
-                                 SamplerType samplerType) {
+void Pipeline::bindVertexTexture(uint8_t slot,
+                                 const Texture& texture,
+                                 SamplerType samplerType)
+{
     context->VSSetShaderResources(slot, 1, &texture.shader_view);
 
     ID3D11SamplerState* state = samplers[samplerType];
     context->VSSetSamplers(slot, 1, &state);
 }
 
-void Pipeline::bindPixelTexture(uint8_t slot, const Texture& texture,
-                                SamplerType samplerType) {
+void Pipeline::bindPixelTexture(uint8_t slot,
+                                const Texture& texture,
+                                SamplerType samplerType)
+{
     context->PSSetShaderResources(slot, 1, &texture.shader_view);
 
     ID3D11SamplerState* sampler = samplers[samplerType];
@@ -495,25 +544,32 @@ void Pipeline::bindPixelTexture(uint8_t slot, const Texture& texture,
 }
 
 // Constant Buffer Loading
-IConstantBuffer Pipeline::loadVertexCB(int slot) {
+IConstantBuffer Pipeline::loadVertexCB(int slot)
+{
     assert(0 <= slot && slot < kVertexConstantBufferMax);
     return IConstantBuffer(vcb_handles[slot], slot, CBVertex, device, context);
 }
-IConstantBuffer Pipeline::loadPixelCB(int slot) {
+IConstantBuffer Pipeline::loadPixelCB(int slot)
+{
     assert(0 <= slot && slot < kPixelConstantBufferMax);
     return IConstantBuffer(pcb_handles[slot], slot, CBPixel, device, context);
 }
-void Pipeline::markVertexCBUsage(int slot, bool usage) {
+void Pipeline::markVertexCBUsage(int slot, bool usage)
+{
     assert(debug_vcb_usages[slot] == !usage);
     debug_vcb_usages[slot] = usage;
 }
-void Pipeline::markPixelCBUsage(int slot, bool usage) {
+void Pipeline::markPixelCBUsage(int slot, bool usage)
+{
     assert(debug_pcb_usages[slot] == !usage);
     debug_pcb_usages[slot] = usage;
 }
 
-void Pipeline::drawMesh(const Mesh* mesh, UINT instance_count, int tri_start,
-                        int tri_end) {
+void Pipeline::drawMesh(const Mesh* mesh,
+                        UINT instance_count,
+                        int tri_start,
+                        int tri_end)
+{
     assert(mesh);
     assert(mesh->buffer_pool);
 
@@ -525,7 +581,8 @@ void Pipeline::drawMesh(const Mesh* mesh, UINT instance_count, int tri_start,
     // for simplicity.
     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    if (pool != active_pool_addr) {
+    if (pool != active_pool_addr)
+    {
         active_pool_addr = pool;
 
         // Bind my index buffer. All meshes are assumed to have one index
@@ -534,8 +591,10 @@ void Pipeline::drawMesh(const Mesh* mesh, UINT instance_count, int tri_start,
 
         // Iterate through the layout of my pool and bind all vertex buffers.
         memset(vb_buffers, 0, sizeof(ID3D11Buffer*) * BINDABLE_STREAM_COUNT);
-        for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
-            if (pool->layout.hasVertexStream((VertexDataStream)i)) {
+        for (int i = 0; i < BINDABLE_STREAM_COUNT; i++)
+        {
+            if (pool->layout.hasVertexStream((VertexDataStream)i))
+            {
                 vb_buffers[i] = pool->vbuffers[i];
             }
         }
@@ -557,7 +616,8 @@ void Pipeline::drawMesh(const Mesh* mesh, UINT instance_count, int tri_start,
     stats.numDraws++;
 }
 
-void Pipeline::drawPostProcessQuad() {
+void Pipeline::drawPostProcessQuad()
+{
     const UINT vertexStride = sizeof(float) * 4;
     const UINT vertexOffset = 0;
 
@@ -570,7 +630,8 @@ void Pipeline::drawPostProcessQuad() {
 
 // Present:
 // Display everything we've rendered onto the screen
-void Pipeline::endFrame() {
+void Pipeline::endFrame()
+{
     // Execute a shader to transfer the pixel data from our
     // current dest render target to the screen target.
     {
@@ -606,7 +667,8 @@ void Pipeline::endFrame() {
 #if defined(_DEBUG) // ImGui
 // ImGui Initialize:
 // Initializes the ImGui menu and associated data.
-void Pipeline::imGuiInitialize(HWND window) {
+void Pipeline::imGuiInitialize(HWND window)
+{
     // Initialize ImGui
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -627,7 +689,8 @@ void Pipeline::imGuiInitialize(HWND window) {
 // ImGuiPrepare:
 // Creates a new frame for the ImGui system and begin tracking GPU time
 // for the current frame
-void Pipeline::imGuiPrepare() {
+void Pipeline::imGuiPrepare()
+{
     // Start the Dear ImGui frame
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
@@ -637,8 +700,10 @@ void Pipeline::imGuiPrepare() {
 
 // ImGuiFinish:
 // Finish and present the ImGui window
-void Pipeline::imGuiFinish() {
-    if (ImGui::BeginMenu("CPU / GPU Runtime")) {
+void Pipeline::imGuiFinish()
+{
+    if (ImGui::BeginMenu("CPU / GPU Runtime"))
+    {
         ImGui::SeparatorText("CPU Times:");
         CPUTimer::DisplayCPUTimes();
 
@@ -657,14 +722,16 @@ void Pipeline::imGuiFinish() {
 
 // ImGuiShutDown:
 // Shut down the ImGui system
-void Pipeline::imGuiShutdown() {
+void Pipeline::imGuiShutdown()
+{
     ImGui_ImplDX11_Shutdown();
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
 }
 #endif
 
-void Pipeline::imGui() {
+void Pipeline::imGui()
+{
 #if defined(IMGUI_ENABLED)
     ImGui::Text("Draw Call Count: %zu", stats.numDraws);
 #endif

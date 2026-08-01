@@ -3,13 +3,18 @@
 #include "collisions/GJK.h"
 #include "rendering/VisualDebug.h"
 
-namespace Engine {
+namespace Engine
+{
 using namespace Utility;
 
-namespace Physics {
+namespace Physics
+{
 // Constructor:
 // Initializes relevant fields
-PhysicsSystem::PhysicsSystem() : broadphase_tree(0.2f), stopwatch() {
+PhysicsSystem::PhysicsSystem()
+    : broadphase_tree(0.2f)
+    , stopwatch()
+{
     stopwatch.Reset();
 
     DMPhysics::ConnectToCreation([this](Object* obj) { onObjectCreate(obj); });
@@ -20,7 +25,8 @@ PhysicsSystem::PhysicsSystem() : broadphase_tree(0.2f), stopwatch() {
 // AddCollisionHull:
 // Adds a collision hull to the physics engine with a name
 void PhysicsSystem::addCollisionHull(const std::string& name,
-                                     const std::vector<Vector3>& points) {
+                                     const std::vector<Vector3>& points)
+{
     CollisionHull* new_hull = new CollisionHull(points);
 
     if (collision_hulls.contains(name))
@@ -30,8 +36,10 @@ void PhysicsSystem::addCollisionHull(const std::string& name,
 }
 
 // Datamodel Handling
-void PhysicsSystem::onObjectCreate(Object* object) {
-    if (object->getClassID() == DMPhysics::ClassID()) {
+void PhysicsSystem::onObjectCreate(Object* object)
+{
+    if (object->getClassID() == DMPhysics::ClassID())
+    {
 
         PhysicsObject* phys_obj = new PhysicsObject(object);
         objects.push_back(phys_obj);
@@ -74,7 +82,8 @@ PhysicsTerrain* PhysicsSystem::bindTerrain(Terrain* _terrain) {
 // PullDatamodelData:
 // Pulls a copy of data from the datamodel, for the physics
 // system to operate on.
-void PhysicsSystem::pullDatamodelData() {
+void PhysicsSystem::pullDatamodelData()
+{
     // Remove all PhysicsObjects marked for destruction, and free their memory.
     // objects.cleanAndUpdate();
 
@@ -83,7 +92,7 @@ void PhysicsSystem::pullDatamodelData() {
         obj->pullDatamodelData();
 
     // if (terrain != nullptr)
-      //  terrain->pullTerrainBVHs();
+    //  terrain->pullTerrainBVHs();
 
     // Determine the amount of time that has elapsed since the last
     // update() call.
@@ -93,14 +102,17 @@ void PhysicsSystem::pullDatamodelData() {
 
 // Update:
 // Updates the physics for a scene.
-void PhysicsSystem::update() {
+void PhysicsSystem::update()
+{
     // Poll Input
     for (PhysicsObject* obj : objects)
         obj->pollInput();
 
     // Update all AABBs
-    for (PhysicsObject* obj : objects) {
-        if (obj->collider != nullptr) {
+    for (PhysicsObject* obj : objects)
+    {
+        if (obj->collider != nullptr)
+        {
             obj->collider->updateBroadphaseAABB();
 #if defined(_DEBUG)
             obj->collider->debugDrawCollider();
@@ -122,13 +134,15 @@ void PhysicsSystem::update() {
     // Collision Test:
     // For each pair, check that their colliders are actually intersecting.
     // If they are, then resolve the collision.
-    for (const ColliderPair& pair : collision_pairs) {
+    for (const ColliderPair& pair : collision_pairs)
+    {
         CollisionObject* c1 = pair.aabb_1->collider;
         CollisionObject* c2 = pair.aabb_1->collider;
 
         GJKSolver gjk_solver = GJKSolver(c1, c2);
 
-        if (gjk_solver.checkIntersection()) {
+        if (gjk_solver.checkIntersection())
+        {
             const Vector3 penetration = gjk_solver.penetrationVector();
             c1->phys_object->velocity += -penetration;
             c2->phys_object->velocity += penetration;
@@ -137,7 +151,8 @@ void PhysicsSystem::update() {
 
     // Iterate through and clear
     // Apply acceleration and velocity to all objects
-    for (PhysicsObject* object : objects) {
+    for (PhysicsObject* object : objects)
+    {
         object->applyAcceleration(delta_time);
         object->applyVelocity(delta_time);
     }
@@ -145,7 +160,8 @@ void PhysicsSystem::update() {
 
 // PushDatamodelData:
 // Pushes data to the datamodel.
-void PhysicsSystem::pushDatamodelData() {
+void PhysicsSystem::pushDatamodelData()
+{
     for (PhysicsObject* obj : objects)
         obj->push();
 }

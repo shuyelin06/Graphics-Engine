@@ -8,9 +8,12 @@
 struct ID3D11Device;
 struct ID3D11DeviceContext;
 
-namespace Engine {
-namespace Graphics {
-class Device {
+namespace Engine
+{
+namespace Graphics
+{
+class Device
+{
   private:
     ID3D11Device* device;
 
@@ -25,7 +28,8 @@ class Device {
                                            bool dynamic = false);
 };
 
-class DeviceContext {
+class DeviceContext
+{
   private:
     ID3D11DeviceContext* context;
 

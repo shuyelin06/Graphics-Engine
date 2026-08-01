@@ -13,10 +13,12 @@
 #include "scene/SceneManager.h"
 #include "terrain2D/Terrain2DManager.h"
 
-namespace Engine {
+namespace Engine
+{
 using namespace Datamodel;
 
-namespace Graphics {
+namespace Graphics
+{
 class SceneListener;
 class SceneManager;
 class ResourceManager;
@@ -27,7 +29,8 @@ class PostFXManager;
 // Provides an interface for the application's graphics.
 // VisualSystem is in charge of the different rendering passes;
 // pipeline provides a convenient interface for some functionality.
-class VisualSystem {
+class VisualSystem
+{
   private:
     // Frame
     uint64_t frame;

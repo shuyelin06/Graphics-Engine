@@ -2,12 +2,15 @@
 
 #include <cstdint>
 
-namespace Engine {
-namespace Graphics {
+namespace Engine
+{
+namespace Graphics
+{
 
 // SamplerSlot Enum:
 // Different samplers the pipeline supports.
-enum SamplerType : uint8_t {
+enum SamplerType : uint8_t
+{
     Sampler_Point = 0,
     Sampler_Shadow = 1,
     Sampler_Linear = 2,

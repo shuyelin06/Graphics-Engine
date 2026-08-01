@@ -3,13 +3,16 @@
 #include "Vector3.h"
 #include "Vector4.h"
 
-namespace Engine {
-namespace Math {
+namespace Engine
+{
+namespace Math
+{
 
 // Matrix4
 // Contains methods and data for a 4x4 matrix
 // in column major order.
-class Matrix4 {
+class Matrix4
+{
   private:
     // Values are stored by column for more predictable
     // memory access patterns.
@@ -18,11 +21,27 @@ class Matrix4 {
   public:
     Matrix4();
     // Initialization by Column
-    Matrix4(const Vector4& col1, const Vector4& col2, const Vector4& col3,
+    Matrix4(const Vector4& col1,
+            const Vector4& col2,
+            const Vector4& col3,
             const Vector4& col4);
     // Initialization by Row
-    Matrix4(float, float, float, float, float, float, float, float, float,
-            float, float, float, float, float, float, float);
+    Matrix4(float,
+            float,
+            float,
+            float,
+            float,
+            float,
+            float,
+            float,
+            float,
+            float,
+            float,
+            float,
+            float,
+            float,
+            float,
+            float);
 
     float (*getRawData(void))[4];
 

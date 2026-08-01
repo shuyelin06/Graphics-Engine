@@ -3,9 +3,12 @@
 #include "BVH.h"
 #include "math/Matrix4.h"
 
-namespace Engine {
-namespace Datamodel {
-struct TLASNode {
+namespace Engine
+{
+namespace Datamodel
+{
+struct TLASNode
+{
     AABB bounds;
 
     // Left / Right Children (0 if leaf)
@@ -22,7 +25,8 @@ struct TLASNode {
 // efficient in raycasting, but easier to build on the fly.
 // Generally, an engine will have many BVHs, which are combined
 // (smartly) under TLASes.
-class TLAS {
+class TLAS
+{
   private:
     std::vector<TLASNode> node_pool;
     std::vector<TransformedBVH> bvh_pool;

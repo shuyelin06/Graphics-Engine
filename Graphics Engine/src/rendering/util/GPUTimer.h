@@ -7,8 +7,10 @@
 
 #include "rendering/Direct3D11.h"
 
-namespace Engine {
-namespace Graphics {
+namespace Engine
+{
+namespace Graphics
+{
 
 struct GPUTimerBatch;
 
@@ -18,7 +20,8 @@ constexpr int NUM_QUERY_GROUPS = 3;
 // GPUTimer interface that begins and ends queries with the constructor and
 // destructor (respectively). Easier to use than manually calling begin and end
 // frame.
-class IGPUTimer {
+class IGPUTimer
+{
   private:
     GPUTimerBatch* timer_batch;
     uint64_t frame;
@@ -26,14 +29,16 @@ class IGPUTimer {
     ID3D11DeviceContext* context;
 
   public:
-    IGPUTimer(GPUTimerBatch* batch, uint64_t frame,
+    IGPUTimer(GPUTimerBatch* batch,
+              uint64_t frame,
               ID3D11DeviceContext* context);
     ~IGPUTimer();
 };
 
 // Class GPUTimer:
 // Can be used to track the amount of time batches of GPU commands take.
-class GPUTimer {
+class GPUTimer
+{
   private:
     static ID3D11Device* device;
     static ID3D11DeviceContext* context;

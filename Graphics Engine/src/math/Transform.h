@@ -4,12 +4,15 @@
 #include "math/Quaternion.h"
 #include "math/Vector3.h"
 
-namespace Engine {
-namespace Math {
+namespace Engine
+{
+namespace Math
+{
 // Class Transform:
 // Contains the data and methods regarding
 // an object's transform
-class Transform {
+class Transform
+{
   private:
     Vector3 position_local; // X,Y,Z Local Position
     Quaternion rotation;    // Quaternion Rotation
@@ -18,7 +21,7 @@ class Transform {
   public:
     // Constructor
     Transform();
-    
+
     // Get and set the transform properties
     const Vector3& getPosition() const;
 

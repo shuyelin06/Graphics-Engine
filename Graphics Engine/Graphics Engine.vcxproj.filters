@@ -632,9 +632,6 @@
     <ClInclude Include="src\rendering\util\RenderDoc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\..\Program Files\RenderDoc\renderdoc_app.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\renderdoc\renderdoc_app.h">
       <Filter>Header Files</Filter>
     </ClInclude>

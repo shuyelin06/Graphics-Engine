@@ -15,24 +15,33 @@
 
 #include "HeightMapGenerator.h"
 
-namespace Engine {
-namespace Graphics {
+namespace Engine
+{
+namespace Graphics
+{
 static constexpr uint8_t kTerrainChunkSlot = 5;
-struct TerrainChunk {
+struct TerrainChunk
+{
     Vector2 position; // Bottom-Left (x,z) Coordinates
     Vector2 extents;
 };
 
-struct QuadTreeNode {
+struct QuadTreeNode
+{
     TerrainChunk data;
     QuadTreeNode* children[4] = {nullptr};
 
-    bool isLeaf() const { return children[0] == nullptr; }
+    bool isLeaf() const
+    {
+        return children[0] == nullptr;
+    }
 };
 
-class Terrain2DManagerImpl {
+class Terrain2DManagerImpl
+{
   private:
-    struct Config {
+    struct Config
+    {
         float lodAttenuation = 1000.f;
 
         // Mesh Generation Settings
@@ -47,7 +56,8 @@ class Terrain2DManagerImpl {
         Vector2 heightMapExtents = Vector2(2500, 2500);
         int heightmapNumSamples = 450;
     } config;
-    struct ShaderSettings {
+    struct ShaderSettings
+    {
         float triplanarTextureScale = 0.005f;
         float triplanarTextureSharpness = 1.f;
         float noiseScaling = 1.f;
@@ -89,7 +99,8 @@ class Terrain2DManagerImpl {
     void regenerateHeightmapTexture();
 
     void updateQuadTreeRecursive(QuadTreeNode* node,
-                                 const Vector3& cameraPosition, int depth);
+                                 const Vector3& cameraPosition,
+                                 int depth);
 
     uint8_t computeIdealLOD(QuadTreeNode* node, const Vector3& cameraPosition);
 
@@ -101,7 +112,8 @@ class Terrain2DManagerImpl {
 };
 
 std::unique_ptr<Terrain2DManager>
-Terrain2DManager::create(VisualSystem* visualSystem) {
+Terrain2DManager::create(VisualSystem* visualSystem)
+{
     std::unique_ptr<Terrain2DManager> ptr =
         std::unique_ptr<Terrain2DManager>(new Terrain2DManager());
     ptr->mImpl = std::make_unique<Terrain2DManagerImpl>(visualSystem);
@@ -111,14 +123,19 @@ Terrain2DManager::create(VisualSystem* visualSystem) {
 Terrain2DManager::Terrain2DManager() = default;
 Terrain2DManager::~Terrain2DManager() = default;
 
-void Terrain2DManager::update(const Vector3& cameraPosition) {
+void Terrain2DManager::update(const Vector3& cameraPosition)
+{
     mImpl->update(cameraPosition);
 }
 
-void Terrain2DManager::imGui() { mImpl->imGui(); }
+void Terrain2DManager::imGui()
+{
+    mImpl->imGui();
+}
 
 Terrain2DManagerImpl::Terrain2DManagerImpl(VisualSystem* visualSystem)
-    : mVisualSystem(visualSystem) {
+    : mVisualSystem(visualSystem)
+{
     mRenderManager = mVisualSystem->getRenderManager();
     mHeightMap = std::make_unique<HeightMapGenerator>();
 
@@ -139,7 +156,8 @@ Terrain2DManagerImpl::Terrain2DManagerImpl(VisualSystem* visualSystem)
 }
 Terrain2DManagerImpl::~Terrain2DManagerImpl() = default;
 
-void Terrain2DManagerImpl::update(const Vector3& cameraPosition) {
+void Terrain2DManagerImpl::update(const Vector3& cameraPosition)
+{
     chunksToRender.clear();
     updateQuadTreeRecursive(root, cameraPosition, 0);
 
@@ -149,14 +167,18 @@ void Terrain2DManagerImpl::update(const Vector3& cameraPosition) {
 
     const bool render = !chunksToRender.empty() && mTerrainMesh->ready &&
                         mTerrainMaterial->ready();
-    if (render) {
-        if (terrainDrawKey == kInvalidDrawBlockKey) {
+    if (render)
+    {
+        if (terrainDrawKey == kInvalidDrawBlockKey)
+        {
             DrawBlock block;
             block.initialize(AABB(), mTerrainMesh.get(),
                              mTerrainMaterial.get());
             block.numInstances = chunksToRender.size();
             terrainDrawKey = mRenderManager->addDrawBlock(block);
-        } else {
+        }
+        else
+        {
             mRenderManager->updateInstanceData(terrainDrawKey, InstanceData(),
                                                chunksToRender.size());
         }
@@ -174,15 +196,19 @@ void Terrain2DManagerImpl::update(const Vector3& cameraPosition) {
             kTerrainChunkSlot, chunksToRender.data(),
             chunksToRender.size() * sizeof(TerrainChunk));
         static_assert(sizeof(TerrainChunk) == sizeof(float) * 4);
-    } else {
-        if (terrainDrawKey != kInvalidDrawBlockKey) {
+    }
+    else
+    {
+        if (terrainDrawKey != kInvalidDrawBlockKey)
+        {
             mRenderManager->removeDrawBlock(terrainDrawKey);
             terrainDrawKey = kInvalidDrawBlockKey;
         }
     }
 }
 
-void Terrain2DManagerImpl::imGui() {
+void Terrain2DManagerImpl::imGui()
+{
 #if defined(IMGUI_ENABLED)
     ImGui::Text("# Chunks: %zu", mQuadTreeAllocator.getNumAllocations());
     ImGui::Text("# Leaves: %i", chunksToRender.size());
@@ -196,23 +222,28 @@ void Terrain2DManagerImpl::imGui() {
     ImGui::SliderFloat(
         "Triplanar Noise Scaling: ", &shaderSettings.noiseScaling, 0.01f, 1.f);
 
-    if (ImGui::CollapsingHeader("Terrain Mesh")) {
+    if (ImGui::CollapsingHeader("Terrain Mesh"))
+    {
         ImGui::SliderInt("# Terrain Mesh Samples: %i",
                          &config.terrainMeshSampleCount, 2, 25);
         ImGui::Checkbox("Generate Skirt", &config.generateSkirt);
-        if (config.generateSkirt) {
+        if (config.generateSkirt)
+        {
             ImGui::SliderFloat("Terrain Skirt Depth:", &config.skirtDepth, 0.f,
                                50.f);
         }
 
-        if (ImGui::Button("Reset Terrain Mesh")) {
+        if (ImGui::Button("Reset Terrain Mesh"))
+        {
             regenerateMesh();
         }
     }
 
-    if (ImGui::CollapsingHeader("Height Map Settings")) {
+    if (ImGui::CollapsingHeader("Height Map Settings"))
+    {
         ImGui::Checkbox("View Heightmap", &config.viewHeightmap);
-        if (config.viewHeightmap) {
+        if (config.viewHeightmap)
+        {
             mHeightmapTexture->displayImGui();
         }
 
@@ -224,23 +255,28 @@ void Terrain2DManagerImpl::imGui() {
         ImGui::SliderInt("Heightmap Samples:", &config.heightmapNumSamples, 10,
                          2500);
 
-        if (ImGui::Button("Reset Heightmap")) {
+        if (ImGui::Button("Reset Heightmap"))
+        {
             regenerateHeightmapTexture();
         }
     }
 
-    if (ImGui::CollapsingHeader("Noise Settings")) {
+    if (ImGui::CollapsingHeader("Noise Settings"))
+    {
         mHeightMap->imGui();
 
-        if (ImGui::Button("Reset")) {
+        if (ImGui::Button("Reset"))
+        {
             reset();
         }
     }
 #endif
 }
 
-void Terrain2DManagerImpl::reset() {
-    if (root) {
+void Terrain2DManagerImpl::reset()
+{
+    if (root)
+    {
         destroyNode(root);
         root = nullptr;
     }
@@ -250,7 +286,8 @@ void Terrain2DManagerImpl::reset() {
                         Vector2(rootSize, rootSize));
 }
 
-void Terrain2DManagerImpl::regenerateMesh() {
+void Terrain2DManagerImpl::regenerateMesh()
+{
     const int numSamples = config.terrainMeshSampleCount;
 
     // Must be at least 2 so we can create a flat square.
@@ -271,8 +308,10 @@ void Terrain2DManagerImpl::regenerateMesh() {
     // 0 1 2
     // Bottom left corner is (x,z) = (0,0). Right is +x, Up is +z.
     const float sampleDistanceInv = 1 / float(numSamples - 1);
-    for (int sampleX = 0; sampleX < numSamples; sampleX++) {
-        for (int sampleZ = 0; sampleZ < numSamples; sampleZ++) {
+    for (int sampleX = 0; sampleX < numSamples; sampleX++)
+    {
+        for (int sampleZ = 0; sampleZ < numSamples; sampleZ++)
+        {
             const float x = sampleX * sampleDistanceInv;
             const float y = 0.f;
             const float z = sampleZ * sampleDistanceInv;
@@ -284,8 +323,10 @@ void Terrain2DManagerImpl::regenerateMesh() {
     // reference indices as so
     // d c
     // a b
-    for (int indexX = 0; indexX < numSamples - 1; indexX++) {
-        for (int indexZ = 0; indexZ < numSamples - 1; indexZ++) {
+    for (int indexX = 0; indexX < numSamples - 1; indexX++)
+    {
+        for (int indexZ = 0; indexZ < numSamples - 1; indexZ++)
+        {
             const unsigned int a = indexZ + indexX * numSamples;
             const unsigned int b = indexZ + (indexX + 1) * numSamples;
             const unsigned int c = (indexZ + 1) + (indexX + 1) * numSamples;
@@ -298,7 +339,8 @@ void Terrain2DManagerImpl::regenerateMesh() {
     // Generate a skirt. This is a set of vertices that protrude downwards from
     // the edges of the terrain mesh. Skirts are a cheap and simple way to hide
     // the LOD transitions.
-    if (config.generateSkirt) {
+    if (config.generateSkirt)
+    {
         const unsigned int skirtIndexStart = builder.getVertices().size();
 
         std::vector<unsigned int> borderIndices;
@@ -306,7 +348,8 @@ void Terrain2DManagerImpl::regenerateMesh() {
                                       this](unsigned int startX,
                                             unsigned int startZ, int offsetX,
                                             int offsetZ) {
-            for (int i = 0; i < numSamples; i++) {
+            for (int i = 0; i < numSamples; i++)
+            {
                 const unsigned int indexX = startX + offsetX * i;
                 const unsigned int indexZ = startZ + offsetZ * i;
 
@@ -329,7 +372,8 @@ void Terrain2DManagerImpl::regenerateMesh() {
 
         assert(builder.getVertices().size() - skirtIndexStart ==
                borderIndices.size());
-        for (int i = 0; i < borderIndices.size() - 1; i++) {
+        for (int i = 0; i < borderIndices.size() - 1; i++)
+        {
             unsigned int a = borderIndices[i];
             unsigned int b = borderIndices[i + 1];
             unsigned int c = skirtIndexStart + i + 1;
@@ -343,7 +387,8 @@ void Terrain2DManagerImpl::regenerateMesh() {
     mTerrainMesh = mVisualSystem->getResourceManager()->requestMesh(builder);
 }
 
-void Terrain2DManagerImpl::regenerateHeightmapTexture() {
+void Terrain2DManagerImpl::regenerateHeightmapTexture()
+{
     const int numSamples = config.heightmapNumSamples;
 
     TextureBuilder builder(numSamples, numSamples, TextureLayout::R32_FLOAT);
@@ -354,8 +399,10 @@ void Terrain2DManagerImpl::regenerateHeightmapTexture() {
     const Vector2 heightMapPosition =
         config.heightMapOrigin - config.heightMapExtents / 2;
     const float distBetweenSamplesInv = 1 / float(numSamples - 1);
-    for (int x = 0; x < numSamples; x++) {
-        for (int z = 0; z < numSamples; z++) {
+    for (int x = 0; x < numSamples; x++)
+    {
+        for (int z = 0; z < numSamples; z++)
+        {
             const float worldX =
                 heightMapPosition.x +
                 x * distBetweenSamplesInv * config.heightMapExtents.x;
@@ -387,7 +434,8 @@ void Terrain2DManagerImpl::regenerateHeightmapTexture() {
 }
 
 uint8_t Terrain2DManagerImpl::computeIdealLOD(QuadTreeNode* node,
-                                              const Vector3& cameraPosition) {
+                                              const Vector3& cameraPosition)
+{
     // Find distance from node to camera. If node is in the camera, distance is
     // 0.
     const Vector2 halfExtents = node->data.extents / 2;
@@ -411,53 +459,69 @@ uint8_t Terrain2DManagerImpl::computeIdealLOD(QuadTreeNode* node,
 }
 
 void Terrain2DManagerImpl::updateQuadTreeRecursive(
-    QuadTreeNode* node, const Vector3& cameraPosition, int depth) {
+    QuadTreeNode* node, const Vector3& cameraPosition, int depth)
+{
     const uint8_t idealLOD = computeIdealLOD(node, cameraPosition);
-    if (node->isLeaf()) {
-        if (idealLOD > depth) {
+    if (node->isLeaf())
+    {
+        if (idealLOD > depth)
+        {
             divideNode(*node);
 
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < 4; i++)
+            {
                 updateQuadTreeRecursive(node->children[i], cameraPosition,
                                         depth + 1);
             }
         }
-    } else {
-        if (idealLOD < depth) {
+    }
+    else
+    {
+        if (idealLOD < depth)
+        {
             mergeNode(*node);
-        } else {
-            for (int i = 0; i < 4; i++) {
+        }
+        else
+        {
+            for (int i = 0; i < 4; i++)
+            {
                 updateQuadTreeRecursive(node->children[i], cameraPosition,
                                         depth + 1);
             }
         }
     }
 
-    if (node->isLeaf()) {
+    if (node->isLeaf())
+    {
         chunksToRender.push_back(node->data);
     }
 }
 
 QuadTreeNode* Terrain2DManagerImpl::allocateNode(const Vector2& position,
-                                                 const Vector2& extents) {
+                                                 const Vector2& extents)
+{
     QuadTreeNode* node = mQuadTreeAllocator.allocate();
     node->data.position = position;
     node->data.extents = extents;
 
     return node;
 }
-void Terrain2DManagerImpl::destroyNode(QuadTreeNode* node) {
+void Terrain2DManagerImpl::destroyNode(QuadTreeNode* node)
+{
     const size_t index = mQuadTreeAllocator.getIndex(node);
 
-    if (!node->isLeaf()) {
-        for (int i = 0; i < 4; i++) {
+    if (!node->isLeaf())
+    {
+        for (int i = 0; i < 4; i++)
+        {
             destroyNode(node->children[i]);
         }
     }
     mQuadTreeAllocator.free(node);
 }
 
-void Terrain2DManagerImpl::divideNode(QuadTreeNode& node) {
+void Terrain2DManagerImpl::divideNode(QuadTreeNode& node)
+{
     assert(node.isLeaf());
     const auto& data = node.data;
     const Vector2 halfExtents = data.extents / 2;
@@ -473,10 +537,12 @@ void Terrain2DManagerImpl::divideNode(QuadTreeNode& node) {
     node.children[3] = allocateNode(data.position + halfExtents, halfExtents);
 }
 
-void Terrain2DManagerImpl::mergeNode(QuadTreeNode& node) {
+void Terrain2DManagerImpl::mergeNode(QuadTreeNode& node)
+{
     assert(!node.isLeaf());
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++)
+    {
         QuadTreeNode* child = node.children[i];
         destroyNode(child);
         node.children[i] = nullptr;

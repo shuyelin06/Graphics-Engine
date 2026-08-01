@@ -4,14 +4,17 @@
 #include <assert.h>
 #include <vector>
 
-namespace Engine {
-namespace Graphics {
+namespace Engine
+{
+namespace Graphics
+{
 // Constant Buffers:
 // Constant buffers are arrays of data which can be bound to a shader,
 // and cannot be changed for that invocation of the program.
 // Handling of any given constant buffer for a shader will be done by
 // a corresponding CBHandle object.
-enum CBDataFormat {
+enum CBDataFormat
+{
     INT = 4,
     FLOAT = 4,
     FLOAT2 = 8,
@@ -20,7 +23,8 @@ enum CBDataFormat {
     FLOAT4X4 = 64
 };
 
-class ConstantBuffer {
+class ConstantBuffer
+{
     friend class IConstantBuffer;
 
   private:
@@ -50,8 +54,13 @@ class ConstantBuffer {
 // IConstantBuffer Class:
 // Provides automatic clearing and binding of constant
 // buffer data on construction and destruction.
-enum IBufferType { CBVertex, CBPixel };
-class IConstantBuffer {
+enum IBufferType
+{
+    CBVertex,
+    CBPixel
+};
+class IConstantBuffer
+{
   private:
     ID3D11Device* device;
     ID3D11DeviceContext* context;
@@ -61,8 +70,11 @@ class IConstantBuffer {
     IBufferType type;
 
   public:
-    IConstantBuffer(ConstantBuffer* cb, int slot, IBufferType type,
-                    ID3D11Device* device, ID3D11DeviceContext*);
+    IConstantBuffer(ConstantBuffer* cb,
+                    int slot,
+                    IBufferType type,
+                    ID3D11Device* device,
+                    ID3D11DeviceContext*);
     ~IConstantBuffer();
 
     void loadData(const void* dataPtr, size_t byteSize);

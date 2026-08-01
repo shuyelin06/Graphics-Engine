@@ -2,23 +2,29 @@
 
 #include "../Direct3D11.h"
 
-namespace Engine {
-namespace Graphics {
-StructuredBuffer::StructuredBuffer() {
+namespace Engine
+{
+namespace Graphics
+{
+StructuredBuffer::StructuredBuffer()
+{
     elementSize = 0;
     numElements = 0;
     buffer = NULL;
     srv = NULL;
 };
-StructuredBuffer::~StructuredBuffer() {
+StructuredBuffer::~StructuredBuffer()
+{
     if (buffer)
         buffer->Release();
     if (srv)
         srv->Release();
 }
 
-void StructuredBuffer::initialize(ID3D11Device* device, size_t elementSize,
-                                  size_t numElements) {
+void StructuredBuffer::initialize(ID3D11Device* device,
+                                  size_t elementSize,
+                                  size_t numElements)
+{
     this->elementSize = elementSize;
     this->numElements = numElements;
 
@@ -49,7 +55,9 @@ void StructuredBuffer::initialize(ID3D11Device* device, size_t elementSize,
 // Given a vector of data elements, uploads the data to the structured
 // buffer. Takes the minimum of the two sizes to upload.
 void StructuredBuffer::uploadData(ID3D11DeviceContext* context,
-                                  const void* addr, unsigned int array_size) {
+                                  const void* addr,
+                                  unsigned int array_size)
+{
     const unsigned int num_elements = min(numElements, array_size);
 
     D3D11_MAPPED_SUBRESOURCE sr = {};

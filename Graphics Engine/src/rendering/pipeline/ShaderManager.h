@@ -7,17 +7,24 @@
 #include "../core/VertexStreamIDs.h"
 #include "Shader.h"
 
-namespace Engine {
-namespace Graphics {
+namespace Engine
+{
+namespace Graphics
+{
 
 struct ShaderConfig;
 
 // ShaderManager Class:
 // Manages shaders for the engine. Provides methods to create shaders,
 // bind shaders, and validate shader inputs.
-enum ShaderType { Vertex, Pixel };
+enum ShaderType
+{
+    Vertex,
+    Pixel
+};
 
-class ShaderManager {
+class ShaderManager
+{
   private:
     ID3D11Device* device;
 

@@ -8,11 +8,14 @@
 
 #include "TerrainConfig.h"
 
-namespace Engine {
-namespace Datamodel {
+namespace Engine
+{
+namespace Datamodel
+{
 // Terrain Class:
 // Datamodel representation of the terrain in a scene.
-class Terrain : public Object {
+class Terrain : public Object
+{
   private:
     DMTrackedProperty<uint32_t> seed;
 

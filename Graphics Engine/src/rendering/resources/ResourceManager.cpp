@@ -32,31 +32,46 @@
 
 using namespace std;
 
-namespace Engine {
+namespace Engine
+{
 using namespace Math;
 
-namespace Graphics {
+namespace Graphics
+{
 static const std::string RESOURCE_FOLDER = "data/";
 
 static const char* kIOPathToken = "IOFilePath";
 static const char* kTextureTargetToken = "TextureTarget";
 static const char* kTextureDataToken = "TextureData";
 
-struct IOPathParam {
+struct IOPathParam
+{
     std::string path;
-    IOPathParam(const std::string& path) : path(path) {}
+    IOPathParam(const std::string& path)
+        : path(path)
+    {
+    }
 };
-struct TextureTargetParam {
+struct TextureTargetParam
+{
     std::shared_ptr<Texture> texture;
-    TextureTargetParam(std::shared_ptr<Texture>& texture) : texture(texture) {}
+    TextureTargetParam(std::shared_ptr<Texture>& texture)
+        : texture(texture)
+    {
+    }
 };
-struct TextureDataParam {
+struct TextureDataParam
+{
     std::vector<uint8_t> data;
     TextureDataParam() = default;
-    TextureDataParam(const std::vector<uint8_t>& data) : data(data) {}
+    TextureDataParam(const std::vector<uint8_t>& data)
+        : data(data)
+    {
+    }
 };
 
-enum class BuildJobStatus : uint8_t {
+enum class BuildJobStatus : uint8_t
+{
     Failed = -2,
     Invalid = -1,
     PendingResourceData = 0,
@@ -64,14 +79,16 @@ enum class BuildJobStatus : uint8_t {
     PendingGPUUpload = 2,
     Ready = 3,
 };
-struct MeshBuildingJob {
+struct MeshBuildingJob
+{
     std::vector<MeshVertex> vertex_data;
     std::vector<MeshTriangle> index_data;
     VertexLayout layout;
 
     std::shared_ptr<Mesh> mesh = nullptr;
 };
-struct TextureBuildingJob {
+struct TextureBuildingJob
+{
     BuildJobStatus status = BuildJobStatus::Invalid;
 
     // Status: PendingResourceData.
@@ -87,15 +104,18 @@ struct TextureBuildingJob {
     TextureBuildingJob() = default;
 };
 
-struct DebugState {
-    struct SelectedTexture {
+struct DebugState
+{
+    struct SelectedTexture
+    {
         std::weak_ptr<Texture> textureWeak;
         bool close = false;
     };
     std::vector<SelectedTexture> selectedTextures;
 };
 
-class ResourceManagerImpl {
+class ResourceManagerImpl
+{
   private:
     ID3D11Device* device;
     ID3D11DeviceContext* context;
@@ -160,12 +180,14 @@ class ResourceManagerImpl {
 
     void LoadFallbackColormap();
 
-    bool WriteTextureToPNG(ID3D11Texture2D* texture, std::string path,
+    bool WriteTextureToPNG(ID3D11Texture2D* texture,
+                           std::string path,
                            std::string file);
 };
 
 std::unique_ptr<ResourceManager>
-ResourceManager::create(ID3D11Device* device, ID3D11DeviceContext* context) {
+ResourceManager::create(ID3D11Device* device, ID3D11DeviceContext* context)
+{
     std::unique_ptr<ResourceManager> ptr =
         std::unique_ptr<ResourceManager>(new ResourceManager());
     ptr->mImpl = std::make_unique<ResourceManagerImpl>(device, context);
@@ -174,40 +196,54 @@ ResourceManager::create(ID3D11Device* device, ID3D11DeviceContext* context) {
 ResourceManager::ResourceManager() = default;
 ResourceManager::~ResourceManager() = default;
 
-void ResourceManager::initializeSystemResources() {
+void ResourceManager::initializeSystemResources()
+{
     mImpl->initializeSystemResources();
 }
 
-void ResourceManager::updatePerform() { mImpl->updatePerform(); }
+void ResourceManager::updatePerform()
+{
+    mImpl->updatePerform();
+}
 
-std::shared_ptr<Texture> ResourceManager::getFallbackColormap() const {
+std::shared_ptr<Texture> ResourceManager::getFallbackColormap() const
+{
     return mImpl->getFallbackColormap();
 }
 
 std::shared_ptr<Mesh>
-ResourceManager::LoadMeshFromFile(const std::string& relative_path) {
+ResourceManager::LoadMeshFromFile(const std::string& relative_path)
+{
     return mImpl->LoadMeshFromFile(relative_path);
 }
 
 std::shared_ptr<Mesh>
-ResourceManager::requestMesh(const MeshBuilder& mesh_builder) {
+ResourceManager::requestMesh(const MeshBuilder& mesh_builder)
+{
     return mImpl->requestMesh(mesh_builder);
 }
 std::shared_ptr<Texture>
-ResourceManager::requestTexture(const TextureRequestParams& params) {
+ResourceManager::requestTexture(const TextureRequestParams& params)
+{
     return mImpl->requestTexture(params);
 }
 
-void ResourceManager::clearDepthStencil(const Texture& texture) {
+void ResourceManager::clearDepthStencil(const Texture& texture)
+{
     mImpl->clearDepthStencil(texture);
 }
 
 // Debug Display
-void ResourceManager::imGui() { mImpl->imGui(); }
+void ResourceManager::imGui()
+{
+    mImpl->imGui();
+}
 
 ResourceManagerImpl::ResourceManagerImpl(ID3D11Device* device,
                                          ID3D11DeviceContext* context)
-    : device(device), context(context) {
+    : device(device)
+    , context(context)
+{
     assert(device && context);
 
     ImGuiHelper::registerImGuiCallback("Render/Resources",
@@ -219,7 +255,8 @@ ResourceManagerImpl::~ResourceManagerImpl() = default;
 
 // Initialize:
 // Loads assets into the asset manager.
-void ResourceManagerImpl::initializeSystemResources() {
+void ResourceManagerImpl::initializeSystemResources()
+{
     // TODO: Be able to create mesh pools on demand
     VertexLayout terrainLayout;
     terrainLayout.addVertexStream(POSITION);
@@ -242,10 +279,12 @@ void ResourceManagerImpl::initializeSystemResources() {
     mesh_pools[MeshPoolType_Default]->updateGPUResources(context);
 }
 
-void ResourceManagerImpl::updatePerform() {
+void ResourceManagerImpl::updatePerform()
+{
     {
         std::scoped_lock<std::mutex> mesh_job_lock(mesh_job_mutex);
-        while (!mesh_jobs.empty()) {
+        while (!mesh_jobs.empty())
+        {
             processMeshJob(mesh_jobs.back());
             mesh_jobs.pop_back();
         }
@@ -253,32 +292,39 @@ void ResourceManagerImpl::updatePerform() {
 
     {
         auto iter = jobs.begin();
-        while (iter != jobs.end()) {
+        while (iter != jobs.end())
+        {
             JobGraph* job = (*iter).get();
             job->processSynchronousJobs();
 
-            if (job->isDone()) {
+            if (job->isDone())
+            {
                 iter = jobs.erase(iter);
-            } else {
+            }
+            else
+            {
                 ++iter;
             }
         }
     }
 
     // TODO: Might want to throttle this
-    for (std::unique_ptr<MeshPool>& pool : mesh_pools) {
+    for (std::unique_ptr<MeshPool>& pool : mesh_pools)
+    {
         pool->cleanAndCompact();
         pool->updateGPUResources(context);
     }
 }
 
 // Get Resources
-std::shared_ptr<Texture> ResourceManagerImpl::getFallbackColormap() const {
+std::shared_ptr<Texture> ResourceManagerImpl::getFallbackColormap() const
+{
     return fallbackColormap;
 }
 
 std::shared_ptr<Mesh>
-ResourceManagerImpl::LoadMeshFromFile(const std::string& relative_path) {
+ResourceManagerImpl::LoadMeshFromFile(const std::string& relative_path)
+{
     if (relative_path.empty())
         return nullptr;
 
@@ -296,18 +342,21 @@ ResourceManagerImpl::LoadMeshFromFile(const std::string& relative_path) {
     // const std::string name = match[1];
     const std::string extension = match[2];
 
-    if (extension == "glb" || extension == "gltf") {
+    if (extension == "glb" || extension == "gltf")
+    {
         MeshBuilder builder = MeshBuilder();
         GLTFFile::ReadGLTFMesh(full_path, builder);
         output = requestMesh(builder);
-    } else
+    }
+    else
         assert(false); // Unsupported Format
 
     return output;
 }
 
 std::shared_ptr<Mesh>
-ResourceManagerImpl::requestMesh(const MeshBuilder& mesh_builder) {
+ResourceManagerImpl::requestMesh(const MeshBuilder& mesh_builder)
+{
     if (mesh_builder.index_buffer.empty() || mesh_builder.vertex_buffer.empty())
         return nullptr;
 
@@ -319,13 +368,17 @@ ResourceManagerImpl::requestMesh(const MeshBuilder& mesh_builder) {
 
     // Attempt to pull mesh from existing map based on hash of the MeshBuilder.
     // This can save a lot of work for duplicate meshes.
-    if (auto iter = mesh_map.find(hash); iter != mesh_map.end()) {
+    if (auto iter = mesh_map.find(hash); iter != mesh_map.end())
+    {
         std::weak_ptr<Mesh> meshWeak = mesh_map[hash];
         std::shared_ptr<Mesh> mesh = meshWeak.lock();
 
-        if (mesh) {
+        if (mesh)
+        {
             return mesh;
-        } else {
+        }
+        else
+        {
             mesh_map.erase(iter);
         }
         // Fallthrough
@@ -346,7 +399,8 @@ ResourceManagerImpl::requestMesh(const MeshBuilder& mesh_builder) {
 }
 
 std::shared_ptr<Texture>
-ResourceManagerImpl::requestTexture(const TextureRequestParams& params) {
+ResourceManagerImpl::requestTexture(const TextureRequestParams& params)
+{
     // TODO Thread Safe Please
     jobs.emplace_back(std::make_unique<JobGraph>());
     JobGraph* graph = jobs.back().get();
@@ -356,10 +410,13 @@ ResourceManagerImpl::requestTexture(const TextureRequestParams& params) {
     JobGraph::JobID gpuCreationJob = JobGraph::kInvalidJobID;
 
     if (auto targetExisting = std::get_if<TextureRequestParams::TargetExisting>(
-            &params.targetSettings)) {
+            &params.targetSettings))
+    {
         texture = targetExisting->target;
-    } else if (auto targetNew = std::get_if<TextureRequestParams::TargetNew>(
-                   &params.targetSettings)) {
+    }
+    else if (auto targetNew = std::get_if<TextureRequestParams::TargetNew>(
+                 &params.targetSettings))
+    {
         texture = std::make_shared<Texture>();
         // Track in textures vector
         textures.push_back(texture);
@@ -374,7 +431,9 @@ ResourceManagerImpl::requestTexture(const TextureRequestParams& params) {
             JobGraphContext::kSynchronous, [this](JobGraphMemoryPool& pool) {
                 return textureJobPendingGPUCreation(pool);
             });
-    } else {
+    }
+    else
+    {
         throw std::runtime_error("Invalid target setting!");
     }
 
@@ -382,7 +441,8 @@ ResourceManagerImpl::requestTexture(const TextureRequestParams& params) {
     JobGraph::JobID dataJob = JobGraph::kInvalidJobID;
 
     if (auto dataFromFile = std::get_if<TextureRequestParams::DataFromFile>(
-            &params.dataSettings)) {
+            &params.dataSettings))
+    {
         std::unique_ptr<IOPathParam> pathParam =
             std::make_unique<IOPathParam>(RESOURCE_FOLDER + dataFromFile->path);
         graph->storeMemory(kIOPathToken, std::move(pathParam));
@@ -391,9 +451,11 @@ ResourceManagerImpl::requestTexture(const TextureRequestParams& params) {
                                    [this](JobGraphMemoryPool& pool) {
                                        return textureJobReadIOData(pool);
                                    });
-    } else if (auto dataFromBuilder =
-                   std::get_if<TextureRequestParams::DataFromBuilder>(
-                       &params.dataSettings)) {
+    }
+    else if (auto dataFromBuilder =
+                 std::get_if<TextureRequestParams::DataFromBuilder>(
+                     &params.dataSettings))
+    {
         const auto& builder = *dataFromBuilder->builder;
 
         std::unique_ptr<TextureDataParam> dataParam =
@@ -404,7 +466,9 @@ ResourceManagerImpl::requestTexture(const TextureRequestParams& params) {
         texture->mips = builder.getNumMips();
 
         graph->storeMemory(kTextureDataToken, std::move(dataParam));
-    } else {
+    }
+    else
+    {
         throw std::runtime_error("Invalid data setting!");
     }
 
@@ -417,17 +481,26 @@ ResourceManagerImpl::requestTexture(const TextureRequestParams& params) {
             return textureJobPendingGPUUpload(pool);
         });
 
-    if (dataJob != JobGraph::kInvalidJobID) {
-        if (gpuCreationJob != JobGraph::kInvalidJobID) {
+    if (dataJob != JobGraph::kInvalidJobID)
+    {
+        if (gpuCreationJob != JobGraph::kInvalidJobID)
+        {
             graph->registerDependency(dataJob, gpuCreationJob);
             graph->registerDependency(gpuCreationJob, gpuUploadJob);
-        } else {
+        }
+        else
+        {
             graph->registerDependency(dataJob, gpuUploadJob);
         }
-    } else {
-        if (gpuCreationJob != JobGraph::kInvalidJobID) {
+    }
+    else
+    {
+        if (gpuCreationJob != JobGraph::kInvalidJobID)
+        {
             graph->registerDependency(gpuCreationJob, gpuUploadJob);
-        } else {
+        }
+        else
+        {
             // Nothing
         }
     }
@@ -437,17 +510,21 @@ ResourceManagerImpl::requestTexture(const TextureRequestParams& params) {
     return texture;
 }
 
-void ResourceManagerImpl::clearDepthStencil(const Texture& texture) {
+void ResourceManagerImpl::clearDepthStencil(const Texture& texture)
+{
     assert(texture.depth_view != nullptr);
     context->ClearDepthStencilView(texture.depth_view, D3D11_CLEAR_DEPTH, 1.0f,
                                    0);
 }
 
 // Debug Display
-void ResourceManagerImpl::imGui() {
+void ResourceManagerImpl::imGui()
+{
 #if defined(IMGUI_ENABLED)
-    if (ImGui::CollapsingHeader("Mesh View")) {
-        for (const auto& mesh_pool : mesh_pools) {
+    if (ImGui::CollapsingHeader("Mesh View"))
+    {
+        for (const auto& mesh_pool : mesh_pools)
+        {
             ImGui::SeparatorText("Mesh Pool");
             ImGui::Indent();
             {
@@ -459,14 +536,16 @@ void ResourceManagerImpl::imGui() {
         }
 
         ImGui::Text("Mesh Count: %zu", mesh_map.size());
-        if (ImGui::BeginTable("Mesh Information", 3)) {
+        if (ImGui::BeginTable("Mesh Information", 3))
+        {
             ImGui::TableSetupColumn("Index");
             ImGui::TableSetupColumn("Vertex Count");
             ImGui::TableSetupColumn("Index Count");
             ImGui::TableHeadersRow();
 
             int mesh_index = 0;
-            for (const auto& pair : mesh_map) {
+            for (const auto& pair : mesh_map)
+            {
                 const std::shared_ptr<Mesh> mesh_ptr = pair.second.lock();
 
                 if (!mesh_ptr)
@@ -486,13 +565,15 @@ void ResourceManagerImpl::imGui() {
         }
     }
 
-    if (ImGui::CollapsingHeader("Texture View")) {
+    if (ImGui::CollapsingHeader("Texture View"))
+    {
         ImGui::Text("Texture Count: %zu", textures.size());
         ImGui::Indent();
         ImGui::Text("Note: Hover over a row to see the texture");
         ImGui::Unindent();
 
-        if (ImGui::BeginTable("Texture Information", 5)) {
+        if (ImGui::BeginTable("Texture Information", 5))
+        {
             ImGui::TableSetupColumn("Name");
             ImGui::TableSetupColumn("Width");
             ImGui::TableSetupColumn("Height");
@@ -501,11 +582,13 @@ void ResourceManagerImpl::imGui() {
             ImGui::TableHeadersRow();
 
             auto iter = textures.begin();
-            while (iter != textures.end()) {
+            while (iter != textures.end())
+            {
                 const std::shared_ptr<Texture> texture = (*iter).lock();
                 bool selected = false;
 
-                if (texture != nullptr) {
+                if (texture != nullptr)
+                {
 
                     ImGui::TableNextRow();
 
@@ -516,7 +599,8 @@ void ResourceManagerImpl::imGui() {
                     if (ImGui::Selectable(
                             name.c_str(), false,
                             ImGuiSelectableFlags_SpanAllColumns |
-                                ImGuiSelectableFlags_AllowOverlap)) {
+                                ImGuiSelectableFlags_AllowOverlap))
+                    {
                         debugState->selectedTextures.push_back(
                             {texture, false});
                     }
@@ -531,7 +615,9 @@ void ResourceManagerImpl::imGui() {
                     ImGui::Text(texture->editable ? "T" : "F");
 
                     ++iter;
-                } else {
+                }
+                else
+                {
                     iter = textures.erase(iter);
                 }
             }
@@ -541,19 +627,24 @@ void ResourceManagerImpl::imGui() {
     }
 
     auto iter = debugState->selectedTextures.begin();
-    while (iter != debugState->selectedTextures.end()) {
+    while (iter != debugState->selectedTextures.end())
+    {
         auto selectedTexture = *iter;
         std::shared_ptr<Texture> texture = selectedTexture.textureWeak.lock();
 
         if (ImGui::Begin(("Texture" + texture->debugName).c_str(),
-                         &selectedTexture.close)) {
+                         &selectedTexture.close))
+        {
             texture->displayImGui(256);
             ImGui::End();
         }
 
-        if (texture == nullptr || selectedTexture.close) {
+        if (texture == nullptr || selectedTexture.close)
+        {
             iter = debugState->selectedTextures.erase(iter);
-        } else {
+        }
+        else
+        {
             ++iter;
         }
     }
@@ -564,18 +655,21 @@ void ResourceManagerImpl::imGui() {
 // Uses the PNGFile interface to write a texture to a PNG file
 bool ResourceManagerImpl::WriteTextureToPNG(ID3D11Texture2D* texture,
                                             std::string path,
-                                            std::string file) {
+                                            std::string file)
+{
     PNGFile png_file = PNGFile(path + file);
     return png_file.writePNGData(device, context, texture);
 }
 
-void ResourceManagerImpl::processMeshJob(const MeshBuildingJob& job) {
+void ResourceManagerImpl::processMeshJob(const MeshBuildingJob& job)
+{
     // Iterate through my available mesh pools. Check for:
     // 1) Pools with the same layout
     // 2) Pools with space
     // If we do not find a pool, we create a new one.
     MeshPool* pool = nullptr;
-    for (const auto& mesh_pool : mesh_pools) {
+    for (const auto& mesh_pool : mesh_pools)
+    {
         const bool layout_match = (mesh_pool->layout == job.layout);
         const bool has_vertex_space =
             job.vertex_data.size() + mesh_pool->vertex_size <=
@@ -584,12 +678,14 @@ void ResourceManagerImpl::processMeshJob(const MeshBuildingJob& job) {
             job.index_data.size() + mesh_pool->triangle_size <=
             mesh_pool->triangle_capacity;
 
-        if (layout_match && has_vertex_space && has_index_space) {
+        if (layout_match && has_vertex_space && has_index_space)
+        {
             pool = mesh_pool.get();
         }
     }
 
-    if (!pool) {
+    if (!pool)
+    {
         constexpr int DEFAULT_POOL_TRIANGLES = 100000;
         constexpr int DEFAULT_POOL_VERTICES = 100000;
 
@@ -605,7 +701,8 @@ void ResourceManagerImpl::processMeshJob(const MeshBuildingJob& job) {
 
     assert(pool);
 
-    if (!pool->has_gpu_resources) {
+    if (!pool->has_gpu_resources)
+    {
         pool->createGPUResources(device);
     }
 
@@ -619,14 +716,17 @@ void ResourceManagerImpl::processMeshJob(const MeshBuildingJob& job) {
     // layout to keep the vertices aligned. This means that space could be
     // wasted if the pool supports streams that the builder does not have.
     // This array should match the vertex streams.
-    for (int i = 0; i < BINDABLE_STREAM_COUNT; i++) {
-        if (pool->layout.hasVertexStream((VertexDataStream)i)) {
+    for (int i = 0; i < BINDABLE_STREAM_COUNT; i++)
+    {
+        if (pool->layout.hasVertexStream((VertexDataStream)i))
+        {
             const UINT byte_size =
                 VertexLayout::VertexStreamStride((VertexDataStream)i);
 
             // Now, for each vertex, I will pull the data I want for my
             // stream and then copy it to the end of my buffer.
-            for (int j = 0; j < job.vertex_data.size(); j++) {
+            for (int j = 0; j < job.vertex_data.size(); j++)
+            {
                 const void* address =
                     job.vertex_data[j].GetAddressOf((VertexDataStream)i);
 
@@ -665,8 +765,10 @@ void ResourceManagerImpl::processMeshJob(const MeshBuildingJob& job) {
     mesh->ready = true;
 }
 
-static DXGI_FORMAT TextureLayoutToDXGI(TextureLayout layout) {
-    switch (layout) {
+static DXGI_FORMAT TextureLayoutToDXGI(TextureLayout layout)
+{
+    switch (layout)
+    {
     case TextureLayout::R8G8B8A8_UNORM:
         return DXGI_FORMAT_R8G8B8A8_UNORM;
     case TextureLayout::R32_FLOAT:
@@ -675,7 +777,8 @@ static DXGI_FORMAT TextureLayoutToDXGI(TextureLayout layout) {
     return DXGI_FORMAT_UNKNOWN;
 }
 
-bool ResourceManagerImpl::textureJobReadIOData(JobGraphMemoryPool& pool) {
+bool ResourceManagerImpl::textureJobReadIOData(JobGraphMemoryPool& pool)
+{
     std::unique_ptr<IOPathParam> pathParam =
         pool.load<IOPathParam>(kIOPathToken);
     std::unique_ptr<TextureTargetParam> targetParam =
@@ -695,14 +798,17 @@ bool ResourceManagerImpl::textureJobReadIOData(JobGraphMemoryPool& pool) {
     std::unique_ptr<TextureDataParam> dataParam = nullptr;
 
     bool success = false;
-    if (match.size() == 3) {
+    if (match.size() == 3)
+    {
         // If name is ever needed:
         // const std::string name = match[1];
         const std::string extension = match[2];
 
         FileReader reader = FileReader(path);
-        if (reader.readFileData()) {
-            if (extension == "png") {
+        if (reader.readFileData())
+        {
+            if (extension == "png")
+            {
                 TextureBuilder builder = PNGFile::ReadPNGData(reader.getData());
 
                 texture->layout = builder.getLayout();
@@ -718,7 +824,8 @@ bool ResourceManagerImpl::textureJobReadIOData(JobGraphMemoryPool& pool) {
         }
     }
 
-    if (success) {
+    if (success)
+    {
         pool.store(kTextureTargetToken, std::move(targetParam));
         pool.store(kTextureDataToken, std::move(dataParam));
     }
@@ -726,8 +833,8 @@ bool ResourceManagerImpl::textureJobReadIOData(JobGraphMemoryPool& pool) {
     return success;
 }
 
-bool ResourceManagerImpl::textureJobPendingGPUCreation(
-    JobGraphMemoryPool& pool) {
+bool ResourceManagerImpl::textureJobPendingGPUCreation(JobGraphMemoryPool& pool)
+{
     std::unique_ptr<TextureTargetParam> targetParam =
         pool.load<TextureTargetParam>(kTextureTargetToken);
 
@@ -772,7 +879,8 @@ bool ResourceManagerImpl::textureJobPendingGPUCreation(
     return true;
 }
 
-bool ResourceManagerImpl::textureJobPendingGPUUpload(JobGraphMemoryPool& pool) {
+bool ResourceManagerImpl::textureJobPendingGPUUpload(JobGraphMemoryPool& pool)
+{
     std::unique_ptr<TextureTargetParam> targetParam =
         pool.load<TextureTargetParam>(kTextureTargetToken);
     std::unique_ptr<TextureDataParam> dataParam =
@@ -792,7 +900,8 @@ bool ResourceManagerImpl::textureJobPendingGPUUpload(JobGraphMemoryPool& pool) {
     // - Non-Editable Texture. We have to UpdateSubresource (TODO)
     // Ideally textures that are edited a lot should be marked as editable so we
     // can do mapping / unmapping which will have less stalling.
-    if (isEditableTexture) {
+    if (isEditableTexture)
+    {
         assert(numMips == 1); // TODO: Unimplemented for multiple mips
 
         // Write to my texture using Map / Unmap.
@@ -804,18 +913,22 @@ bool ResourceManagerImpl::textureJobPendingGPUUpload(JobGraphMemoryPool& pool) {
 
         // We need to copy row-by-row, because while rows are aligned, there
         // may be padding after each row that we're not aware about.
-        for (UINT y = 0; y < texture->height; ++y) {
+        for (UINT y = 0; y < texture->height; ++y)
+        {
             memcpy(dest + y * sr.RowPitch, src + y * texture->width * byteSize,
                    texture->width * byteSize);
         }
 
         context->Unmap(texture->texture, 0);
-    } else {
+    }
+    else
+    {
         uint8_t* dataSrc = data.data();
         unsigned int mipWidth = texture->width;
         unsigned int mipHeight = texture->height;
 
-        for (int i = 0; i < numMips; i++) {
+        for (int i = 0; i < numMips; i++)
+        {
             const unsigned int mipLevel = i;
             context->UpdateSubresource(texture->texture, mipLevel, nullptr,
                                        dataSrc, mipWidth * byteSize, 0);
@@ -832,14 +945,16 @@ bool ResourceManagerImpl::textureJobPendingGPUUpload(JobGraphMemoryPool& pool) {
 }
 
 // System Resources
-void ResourceManagerImpl::LoadCubeMesh() {
+void ResourceManagerImpl::LoadCubeMesh()
+{
     MeshBuilder builder = MeshBuilder();
     builder.addLayout(POSITION);
     builder.addCube(Vector3(0, 0, 0), Quaternion(), 1.f);
     cubeMesh = requestMesh(builder);
 }
 
-void ResourceManagerImpl::LoadFallbackColormap() {
+void ResourceManagerImpl::LoadFallbackColormap()
+{
     TextureBuilder builder =
         TextureBuilder(1, 1, TextureLayout::R8G8B8A8_UNORM);
     builder.clear();

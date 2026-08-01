@@ -2,10 +2,12 @@
 
 #include "math/Vector3.h"
 
-namespace Engine {
+namespace Engine
+{
 using namespace Math;
 
-namespace Physics {
+namespace Physics
+{
 class GJKSupportFunc;
 struct GJKSimplex;
 
@@ -18,8 +20,14 @@ struct GJKSimplex;
 // 2) The underlying shape must be convex.
 // Based on
 // https://blog.hamaluik.ca/posts/building-a-collision-engine-part-3-3d-gjk-collision-detection/
-enum SolverStatus { IntersectionFalse, IntersectionTrue, Evolving };
-class GJKSolver {
+enum SolverStatus
+{
+    IntersectionFalse,
+    IntersectionTrue,
+    Evolving
+};
+class GJKSolver
+{
   private:
     GJKSupportFunc* shape_1;
     GJKSupportFunc* shape_2;
@@ -39,10 +47,10 @@ class GJKSolver {
 
   private:
     // Performs 1 iteration of the GJK algorithm
-    SolverStatus iterate(); 
+    SolverStatus iterate();
 
     const Vector3 querySupports(const Vector3& direction);
 };
 
-} // namespace Math
+} // namespace Physics
 } // namespace Engine

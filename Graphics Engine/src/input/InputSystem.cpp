@@ -12,12 +12,15 @@
 #define DISPLAY_SYMBOL_STATE
 #endif
 
-namespace Engine {
-namespace Input {
+namespace Engine
+{
+namespace Input
+{
 
 // Constructor
 // Initializes the input engine
-InputSystem::InputSystem(HWND hwnd) {
+InputSystem::InputSystem(HWND hwnd)
+{
     RECT rect;
     GetWindowRect(hwnd, &rect);
     window_width = rect.right - rect.left;
@@ -30,13 +33,16 @@ InputSystem::InputSystem(HWND hwnd) {
 // Evaluates all accumulated input data against the callback chain.
 // Any input data not accepted will remain in the callback chain (in FIFO
 // order) for the next dispatch call.
-void InputSystem::update() {
+void InputSystem::update()
+{
     // Evaluate Event Handles
-    for (const HandleData& data : EventHandler::handlesToAdd) {
+    for (const HandleData& data : EventHandler::handlesToAdd)
+    {
         callback_chains[data.event_type].push_back(data.handle);
     }
 
-    for (const HandleData& data : EventHandler::handlesToRemove) {
+    for (const HandleData& data : EventHandler::handlesToRemove)
+    {
         std::vector<EventHandle> chain = callback_chains[data.event_type];
 
         auto iter = std::find(chain.begin(), chain.end(), data.handle);
@@ -51,16 +57,19 @@ void InputSystem::update() {
     // --- Symbol Pressed Events
     EventData data;
 
-    for (int i = 0; i < SymbolCount; i++) {
+    for (int i = 0; i < SymbolCount; i++)
+    {
         const InputSymbol symbol = static_cast<InputSymbol>(i);
-        if (InputState::IsSymbolActive(symbol)) {
+        if (InputState::IsSymbolActive(symbol))
+        {
             data.symbol_pressed.symbol = symbol;
             dispatchEvent(SYMBOL_PRESSED, data);
         }
     }
 
     if (InputState::IsSymbolActive(DEVICE_INTERACT) ||
-        InputState::IsSymbolActive(DEVICE_ALT_INTERACT)) {
+        InputState::IsSymbolActive(DEVICE_ALT_INTERACT))
+    {
         data.device_interaction.device_x = InputState::DeviceXCoordinate();
         data.device_interaction.device_y = InputState::DeviceYCoordinate();
         dispatchEvent(DEVICE_INTERACTION, data);
@@ -74,13 +83,15 @@ void InputSystem::update() {
 // DispatchEvent:
 // Dispatch event information to a callback chain. Return true if a function
 // returned true (meaning it processed the event), false otherwise.
-bool InputSystem::dispatchEvent(InputEvent event, const EventData& data) {
+bool InputSystem::dispatchEvent(InputEvent event, const EventData& data)
+{
     std::vector<EventHandle> callback_chain = callback_chains[event];
 
     bool processed = false;
     int i = callback_chain.size() - 1;
 
-    while (!processed && i >= 0) {
+    while (!processed && i >= 0)
+    {
         EventHandle handle = callback_chain[i];
 
         if ((*handle)(data))
@@ -97,24 +108,30 @@ bool InputSystem::dispatchEvent(InputEvent event, const EventData& data) {
 // input format usable by the rest of the engine
 static InputSymbol ConvertWin32Keycode(WPARAM wParam);
 
-bool InputSystem::dispatchWin32Input(HWND hwnd, UINT uMsg, WPARAM wParam,
-                                     LPARAM lParam) {
+bool InputSystem::dispatchWin32Input(HWND hwnd,
+                                     UINT uMsg,
+                                     WPARAM wParam,
+                                     LPARAM lParam)
+{
     bool parsed = true;
 
     // Check the type of message being received
     // and attempt to parse it
-    switch (uMsg) {
+    switch (uMsg)
+    {
     case WM_KEYDOWN: {
         const InputSymbol key = ConvertWin32Keycode(wParam);
         if (key != SYMBOL_INVALID)
             InputState::SetInputSymbolActive(key);
-    } break;
+    }
+    break;
 
     case WM_KEYUP: {
         InputSymbol key = ConvertWin32Keycode(wParam);
         if (key != SYMBOL_INVALID)
             InputState::SetInputSymbolInactive(key);
-    } break;
+    }
+    break;
 
     case WM_LBUTTONDOWN:
         InputState::SetInputSymbolActive(DEVICE_INTERACT);
@@ -138,7 +155,8 @@ bool InputSystem::dispatchWin32Input(HWND hwnd, UINT uMsg, WPARAM wParam,
             float(window_height - y_pos) / float(window_height);
 
         InputState::SetDeviceCoordinates(screen_x, screen_y);
-    } break;
+    }
+    break;
 
     default:
         parsed = false;
@@ -152,22 +170,27 @@ bool InputSystem::dispatchWin32Input(HWND hwnd, UINT uMsg, WPARAM wParam,
 // character suitable for the engine. Returns 0 if unable to convert.
 // Converts based on
 // https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
-static InputSymbol ConvertWin32Keycode(WPARAM wParam) {
+static InputSymbol ConvertWin32Keycode(WPARAM wParam)
+{
     InputSymbol output = SYMBOL_INVALID;
 
     int keyCode = wParam;
 
     // 0 - 9 Key Range
-    if (0x30 <= keyCode && keyCode <= 0x39) {
+    if (0x30 <= keyCode && keyCode <= 0x39)
+    {
         output = static_cast<InputSymbol>(keyCode - 0x30 + NUM_0);
     }
     // A - Z Key Range
-    else if (0x41 <= keyCode && keyCode <= 0x5A) {
+    else if (0x41 <= keyCode && keyCode <= 0x5A)
+    {
         output = static_cast<InputSymbol>(keyCode - 0x41 + KEY_A);
     }
     // Extra Misc. Keys
-    else {
-        switch (keyCode) {
+    else
+    {
+        switch (keyCode)
+        {
         case VK_CONTROL:
             output = KEY_CONTROL;
             break;
@@ -205,8 +228,10 @@ static const std::string SymbolStrings[SymbolCount] = {
 
 // ImGui Display:
 // Display input state in the ImGui system
-void InputSystem::imGuiDisplay() {
-    if (ImGui::BeginMenu("Input")) {
+void InputSystem::imGuiDisplay()
+{
+    if (ImGui::BeginMenu("Input"))
+    {
 #if defined(DISPLAY_DEVICE_STATE)
         ImGui::SeparatorText("Device Info:");
         ImGui::Text("Device x: %f", InputState::device_x);
@@ -215,7 +240,8 @@ void InputSystem::imGuiDisplay() {
 
 #if defined(DISPLAY_SYMBOL_STATE)
         ImGui::SeparatorText("Symbol Info:");
-        for (int i = 0; i < SymbolCount; i++) {
+        for (int i = 0; i < SymbolCount; i++)
+        {
             InputSymbol symbol = static_cast<InputSymbol>(i);
             ImGui::Text("Symbol %s: %d", SymbolStrings[i].c_str(),
                         InputState::IsSymbolActive(symbol));

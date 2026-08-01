@@ -2,14 +2,17 @@
 
 #include "Vector3.h"
 
-namespace Engine {
-namespace Math {
+namespace Engine
+{
+namespace Math
+{
 class Matrix4;
 
 // Vector4
 // Contains methods and data for a 4-dimensional
 // vector.
-class Vector4 {
+class Vector4
+{
   public:
     float x, y, z, w;
 

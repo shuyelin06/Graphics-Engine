@@ -2,8 +2,10 @@
 
 #include <cstdint>
 
-namespace Engine {
-namespace Graphics {
+namespace Engine
+{
+namespace Graphics
+{
 
 // VertexDataStream:
 // Indices of vertex data that are available for the pipeline.
@@ -20,7 +22,8 @@ namespace Graphics {
 // If this is modified, the following must also be updated:
 // 1) The StreamStrides array in VertexStreamIDs.cpp
 // 2) The VertexAddressors array in MeshBuilder.cpp
-enum VertexDataStream : uint16_t {
+enum VertexDataStream : uint16_t
+{
     POSITION = 0, // 3D XYZ Position (3 Floats)
     TEXTURE = 1,  // 2D Texture Coordinates (2 Floats)
     NORMAL = 2,   // 3D Normal Direction (3 Floats)
@@ -43,7 +46,8 @@ enum VertexDataStream : uint16_t {
     DEBUG_LINE,
 };
 
-class VertexLayout {
+class VertexLayout
+{
   private:
     uint16_t layout_pin;
 

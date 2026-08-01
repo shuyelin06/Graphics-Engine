@@ -13,10 +13,12 @@
 #define TOGGLE_ALLOCATION_VIEW
 #endif
 
-namespace Engine {
+namespace Engine
+{
 using namespace Math;
 
-namespace Graphics {
+namespace Graphics
+{
 
 typedef unsigned int UINT;
 
@@ -24,7 +26,8 @@ typedef unsigned int UINT;
 // Stores the data regarding where an individual "texture" is
 // located in the atlas. Can be used, with texture coordinates (x,y),
 // x,y in [0,1], to reference the actual texel coordinate in the TextureAtlas.
-struct AtlasAllocation {
+struct AtlasAllocation
+{
     UINT x, y; // Top-left corner in atlas
     UINT width, height;
 
@@ -40,7 +43,8 @@ struct AtlasAllocation {
 // ultimately pass more individual "textures" to the graphics pipeline for use.
 // Atlas coordinates are given as (0,0) on the top-left, (1,1) on the
 // bottom-right (note that Y grows top-down).
-class TextureAtlas {
+class TextureAtlas
+{
   private:
     Texture* texture;
 

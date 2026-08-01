@@ -5,9 +5,12 @@
 
 #include "math/Compute.h"
 
-namespace Engine {
-namespace Graphics {
-MeshVertex::MeshVertex() {
+namespace Engine
+{
+namespace Graphics
+{
+MeshVertex::MeshVertex()
+{
     position = Vector3(0, 0, 0);
     tex = Vector2(0.5, 0.5f);
     normal = Vector3(0, 0, 0);
@@ -16,11 +19,13 @@ MeshVertex::MeshVertex() {
     joints = Vector4();
     weights = Vector4();
 }
-MeshVertex::MeshVertex(const Vector3& _position, const Color& _color) {
+MeshVertex::MeshVertex(const Vector3& _position, const Color& _color)
+{
     position = _position;
     color = _color;
 }
-MeshVertex::MeshVertex(const MeshVertex& vertex) {
+MeshVertex::MeshVertex(const MeshVertex& vertex)
+{
     position = vertex.position;
 
     tex = vertex.tex;
@@ -31,10 +36,12 @@ MeshVertex::MeshVertex(const MeshVertex& vertex) {
     weights = vertex.weights;
 }
 
-const void* MeshVertex::GetAddressOf(VertexDataStream bindable_stream) const {
+const void* MeshVertex::GetAddressOf(VertexDataStream bindable_stream) const
+{
     assert(bindable_stream < BINDABLE_STREAM_COUNT);
 
-    switch (bindable_stream) {
+    switch (bindable_stream)
+    {
     case POSITION:
         return &position;
     case TEXTURE:
@@ -54,22 +61,32 @@ const void* MeshVertex::GetAddressOf(VertexDataStream bindable_stream) const {
     return nullptr;
 }
 
-MeshTriangle::MeshTriangle() { vertex0 = vertex1 = vertex2 = 0; }
-MeshTriangle::MeshTriangle(UINT v0, UINT v1, UINT v2) {
+MeshTriangle::MeshTriangle()
+{
+    vertex0 = vertex1 = vertex2 = 0;
+}
+MeshTriangle::MeshTriangle(UINT v0, UINT v1, UINT v2)
+{
     vertex0 = v0;
     vertex1 = v1;
     vertex2 = v2;
 }
 
-MeshBuilder::MeshBuilder() : vertex_buffer(), index_buffer() {
+MeshBuilder::MeshBuilder()
+    : vertex_buffer()
+    , index_buffer()
+{
     layout = VertexLayout();
     layout.setAllStreams();
 }
 MeshBuilder::MeshBuilder(const VertexLayout& _layout)
-    : vertex_buffer(), index_buffer() {
+    : vertex_buffer()
+    , index_buffer()
+{
     layout = _layout;
 }
-MeshBuilder::MeshBuilder(const MeshBuilder& builder) {
+MeshBuilder::MeshBuilder(const MeshBuilder& builder)
+{
     vertex_buffer = builder.vertex_buffer;
     index_buffer = builder.index_buffer;
     layout = builder.layout;
@@ -77,16 +94,25 @@ MeshBuilder::MeshBuilder(const MeshBuilder& builder) {
 
 MeshBuilder::~MeshBuilder() = default;
 
-const std::vector<MeshVertex>& MeshBuilder::getVertices() const {
+const std::vector<MeshVertex>& MeshBuilder::getVertices() const
+{
     return vertex_buffer;
 }
-std::vector<MeshVertex>& MeshBuilder::getVertices() { return vertex_buffer; }
-const std::vector<MeshTriangle>& MeshBuilder::getIndices() const {
+std::vector<MeshVertex>& MeshBuilder::getVertices()
+{
+    return vertex_buffer;
+}
+const std::vector<MeshTriangle>& MeshBuilder::getIndices() const
+{
     return index_buffer;
 }
-std::vector<MeshTriangle>& MeshBuilder::getIndices() { return index_buffer; }
+std::vector<MeshTriangle>& MeshBuilder::getIndices()
+{
+    return index_buffer;
+}
 
-MD5Hash MeshBuilder::generateHash() const {
+MD5Hash MeshBuilder::generateHash() const
+{
     const void* dataArr[3];
     size_t byteSizeArr[3];
 
@@ -99,29 +125,36 @@ MD5Hash MeshBuilder::generateHash() const {
 
     return hashMD5(dataArr, byteSizeArr, 3);
 }
-bool MeshBuilder::isEmpty() const { return index_buffer.size() == 0; }
+bool MeshBuilder::isEmpty() const
+{
+    return index_buffer.size() == 0;
+}
 
 // AddLayout:
 // Add a layout vertex buffer for the builder to generate with
-void MeshBuilder::addLayout(VertexDataStream stream) {
+void MeshBuilder::addLayout(VertexDataStream stream)
+{
     layout.addVertexStream(stream);
 }
 
 // AddVertex:
 // Adds a vertex with position, texture, and norm to the MeshBuilder.
-UINT MeshBuilder::addVertex(const MeshVertex& vertex) {
+UINT MeshBuilder::addVertex(const MeshVertex& vertex)
+{
     UINT index = vertex_buffer.size();
     vertex_buffer.push_back(vertex);
     return index;
 }
 
-UINT MeshBuilder::addVertex(const Vector3& pos) {
+UINT MeshBuilder::addVertex(const Vector3& pos)
+{
     UINT index = vertex_buffer.size();
     vertex_buffer.push_back(MeshVertex(pos, Color::White()));
     return index;
 }
 
-UINT MeshBuilder::addVertices(const std::vector<MeshVertex>& vertices) {
+UINT MeshBuilder::addVertices(const std::vector<MeshVertex>& vertices)
+{
     UINT start_index = vertex_buffer.size();
     for (const MeshVertex& vertex : vertices)
         addVertex(vertex);
@@ -130,21 +163,26 @@ UINT MeshBuilder::addVertices(const std::vector<MeshVertex>& vertices) {
 
 // AddTriangle:
 // Adds a triangle to the MeshBuilder with indices specified by the parameters.
-void MeshBuilder::addTriangle(UINT v1, UINT v2, UINT v3) {
+void MeshBuilder::addTriangle(UINT v1, UINT v2, UINT v3)
+{
     index_buffer.push_back(MeshTriangle(v1, v2, v3));
 }
 
 void MeshBuilder::addTriangles(const std::vector<MeshTriangle>& indices,
-                               UINT start_index) {
-    for (const MeshTriangle& triangle : indices) {
+                               UINT start_index)
+{
+    for (const MeshTriangle& triangle : indices)
+    {
         addTriangle(triangle.vertex0 + start_index,
                     triangle.vertex1 + start_index,
                     triangle.vertex2 + start_index);
     }
 }
 
-void MeshBuilder::popTriangles(UINT num_triangles) {
-    for (int i = 0; i < num_triangles; i++) {
+void MeshBuilder::popTriangles(UINT num_triangles)
+{
+    for (int i = 0; i < num_triangles; i++)
+    {
         if (index_buffer.size() > 0)
             index_buffer.pop_back();
     }
@@ -152,8 +190,12 @@ void MeshBuilder::popTriangles(UINT num_triangles) {
 
 // GetVertex;
 // Return a MeshVertex from the builder (by index) for modification
-MeshVertex& MeshBuilder::getVertex(UINT index) { return vertex_buffer[index]; }
-Vector3& MeshBuilder::getPosition(UINT index) {
+MeshVertex& MeshBuilder::getVertex(UINT index)
+{
+    return vertex_buffer[index];
+}
+Vector3& MeshBuilder::getPosition(UINT index)
+{
     return vertex_buffer[index].position;
 }
 
@@ -161,8 +203,10 @@ Vector3& MeshBuilder::getPosition(UINT index) {
 // Generates various shapes (given parameters) and adds them to the mesh
 // builder.
 // Creates a plane with boundaries given as vertices a,b,c,d in CCW order.
-void MeshBuilder::addTriangle(const Vector3& a, const Vector3& b,
-                              const Vector3& c) {
+void MeshBuilder::addTriangle(const Vector3& a,
+                              const Vector3& b,
+                              const Vector3& c)
+{
     const int i0 = addVertex(a);
     const int i1 = addVertex(b);
     const int i2 = addVertex(c);
@@ -170,8 +214,10 @@ void MeshBuilder::addTriangle(const Vector3& a, const Vector3& b,
     addTriangle(i0, i1, i2);
 }
 
-void MeshBuilder::addCube(const Vector3& center, const Quaternion& rotation,
-                          float size) {
+void MeshBuilder::addCube(const Vector3& center,
+                          const Quaternion& rotation,
+                          float size)
+{
     // Cube vertices and indices
     Vector3 vertices[] = {
         Vector3(0.5f, -0.5f, 0.5f),   Vector3(0.5f, -0.5f, -0.5f),
@@ -195,13 +241,15 @@ void MeshBuilder::addCube(const Vector3& center, const Quaternion& rotation,
     // Transform my vertices.
     const Matrix3 m_rotation = rotation.rotationMatrix3();
 
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 8; i++)
+    {
         vertices[i] = center + m_rotation * (vertices[i] * size);
     }
 
     // Add the faces of the cube. We need to add repeat vertices so that the
     // normals for each face are sharp.
-    for (int i = 0; i < 24; i += 4) {
+    for (int i = 0; i < 24; i += 4)
+    {
         const int i0 = addVertex(vertices[indices[i]]);
         const int i1 = addVertex(vertices[indices[i + 1]]);
         const int i2 = addVertex(vertices[indices[i + 2]]);
@@ -214,8 +262,11 @@ void MeshBuilder::addCube(const Vector3& center, const Quaternion& rotation,
 
 // AddTube:
 // Creates a tube between start and end.
-void MeshBuilder::addTube(const Vector3& start, const Vector3& end,
-                          float radius, int num_vertices) {
+void MeshBuilder::addTube(const Vector3& start,
+                          const Vector3& end,
+                          float radius,
+                          int num_vertices)
+{
     assert(num_vertices >= 3);
 
     // Find the vector from the start to the end. Based on this, we'll create 2
@@ -228,7 +279,8 @@ void MeshBuilder::addTube(const Vector3& start, const Vector3& end,
 
     // Now, generate the points at each cap of this tube
     const int start_index = addVertex(start);
-    for (int i = 0; i < num_vertices; i++) { // Bottom of the tube
+    for (int i = 0; i < num_vertices; i++)
+    { // Bottom of the tube
         const float angle = 2 * PI / num_vertices * i;
 
         const float x = cosf(angle);
@@ -239,7 +291,8 @@ void MeshBuilder::addTube(const Vector3& start, const Vector3& end,
     }
 
     const int end_index = addVertex(end);
-    for (int i = 0; i < num_vertices; i++) { // Top of the tube
+    for (int i = 0; i < num_vertices; i++)
+    { // Top of the tube
         const float angle = 2 * PI / num_vertices * i;
 
         const float x = cosf(angle);
@@ -250,7 +303,8 @@ void MeshBuilder::addTube(const Vector3& start, const Vector3& end,
     }
 
     // Now, connect the points.
-    for (int i = 1; i <= num_vertices; i++) {
+    for (int i = 1; i <= num_vertices; i++)
+    {
         const int bottom_i1 = start_index + i;
         const int bottom_i2 =
             (i != num_vertices) ? bottom_i1 + 1 : start_index + 1;
@@ -269,7 +323,8 @@ void MeshBuilder::addTube(const Vector3& start, const Vector3& end,
 
 // RegenerateNormals:
 // Discard the current normals for the mesh and regenerate them
-void MeshBuilder::regenerateNormals() {
+void MeshBuilder::regenerateNormals()
+{
     // Only do this if the builder is to generate the normal stream
     assert(layout.hasVertexStream(NORMAL));
 
@@ -279,7 +334,8 @@ void MeshBuilder::regenerateNormals() {
     std::vector<Vector3> meshNormals;
     meshNormals.resize(vertex_buffer.size());
 
-    for (int i = 0; i < index_buffer.size(); i++) {
+    for (int i = 0; i < index_buffer.size(); i++)
+    {
         // Calculate vertex normal
         const MeshTriangle& triangle = index_buffer[i];
 
@@ -297,10 +353,12 @@ void MeshBuilder::regenerateNormals() {
 
     // Iterate through all vertices in the mesh. If their normal is degenerate
     // (0,0,0), replace it with the generated normal.
-    for (int i = 0; i < vertex_buffer.size(); i++) {
+    for (int i = 0; i < vertex_buffer.size(); i++)
+    {
         Vector3& normal = vertex_buffer[i].normal;
 
-        if (normal.magnitude() == 0) {
+        if (normal.magnitude() == 0)
+        {
             meshNormals[i].inplaceNormalize();
             vertex_buffer[i].normal = meshNormals[i];
         }
@@ -309,7 +367,8 @@ void MeshBuilder::regenerateNormals() {
 
 // Reset:
 // Clears the MeshBuilder so it can be used to generate another mesh
-void MeshBuilder::reset() {
+void MeshBuilder::reset()
+{
     vertex_buffer.clear();
     index_buffer.clear();
 

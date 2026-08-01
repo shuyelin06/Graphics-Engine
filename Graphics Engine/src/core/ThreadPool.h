@@ -9,14 +9,16 @@
 
 constexpr int NUM_THREADS = 7;
 
-namespace Engine {
+namespace Engine
+{
 // Class ThreadPool:
 // Implements a thread pool, which uses the same N threads
 // to execute a variety of jobs asynchronously.
 // Uses a custom UniqueFunction type to allow for lambdas that are move only
 // (e.g. lambdas that have ownership of unique ptrs)
 using ThreadPoolFunction = UniqueFunction<void()>;
-class ThreadPool {
+class ThreadPool
+{
   private:
     // Singleton Instance
     static ThreadPool* threadpool;

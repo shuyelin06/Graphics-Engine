@@ -7,10 +7,12 @@
 #include "math/Transform.h"
 #include "math/Vector3.h"
 
-namespace Engine {
+namespace Engine
+{
 using namespace Math;
 
-namespace Physics {
+namespace Physics
+{
 class PhysicsObject;
 
 // CollisionHull Struct:
@@ -23,7 +25,8 @@ typedef std::vector<Vector3> CollisionHull;
 // objects in the physics system.
 // Internally, stores a point-set representing a convex collision hull,
 // and an AABB of this collision hull.
-class CollisionObject : public GJKSupportFunc {
+class CollisionObject : public GJKSupportFunc
+{
     friend class PhysicsSystem;
 
     PhysicsObject* phys_object;
@@ -37,7 +40,8 @@ class CollisionObject : public GJKSupportFunc {
     CollisionAABB broadphase_aabb;
 
   private:
-    CollisionObject(PhysicsObject* phys_obj, const Transform* transform,
+    CollisionObject(PhysicsObject* phys_obj,
+                    const Transform* transform,
                     const CollisionHull* hull);
 
   public:

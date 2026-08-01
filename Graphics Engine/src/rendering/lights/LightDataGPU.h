@@ -3,13 +3,16 @@
 #include "math/Matrix4.h"
 #include "math/Vector3.h"
 
-namespace Engine {
+namespace Engine
+{
 using namespace Math;
-namespace Graphics {
+namespace Graphics
+{
 // LightDataGPU:
 // Struct that represents GPU Data for lights.
 // Sync with Lighting.hlsli : struct LightData
-struct LightDataGPU {
+struct LightDataGPU
+{
     Vector3 position;
     float pad0;
 

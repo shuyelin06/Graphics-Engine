@@ -4,12 +4,15 @@
 
 #include "../VisualSystem.h"
 
-namespace Engine {
-namespace Graphics {
+namespace Engine
+{
+namespace Graphics
+{
 using DMHandle = Datamodel::DMObjectHandle;
 using DMEvent = Datamodel::DMEvent;
 
-class SceneListenerImpl {
+class SceneListenerImpl
+{
   private:
     VisualSystem* mVisualSystem;
 
@@ -34,50 +37,62 @@ class SceneListenerImpl {
 SceneListener::SceneListener() = default;
 SceneListener::~SceneListener() = default;
 
-std::unique_ptr<SceneListener>
-SceneListener::create(VisualSystem* visualSystem) {
+std::unique_ptr<SceneListener> SceneListener::create(VisualSystem* visualSystem)
+{
     std::unique_ptr<SceneListener> sceneManager =
         std::unique_ptr<SceneListener>(new SceneListener());
     sceneManager->mImpl = std::make_unique<SceneListenerImpl>(visualSystem);
     return std::move(sceneManager);
 }
 
-void SceneListener::update() { mImpl->update(); }
+void SceneListener::update()
+{
+    mImpl->update();
+}
 
-void SceneListener::onDatamodelEvent(const Datamodel::DMEvent& event) {
+void SceneListener::onDatamodelEvent(const Datamodel::DMEvent& event)
+{
     mImpl->onDatamodelEvent(event);
 }
 
-SceneListenerImpl::SceneListenerImpl(VisualSystem* _visualSystem) {
+SceneListenerImpl::SceneListenerImpl(VisualSystem* _visualSystem)
+{
     mVisualSystem = _visualSystem;
 }
 SceneListenerImpl::~SceneListenerImpl() = default;
 
-void SceneListenerImpl::update() {
+void SceneListenerImpl::update()
+{
     {
         std::scoped_lock<std::mutex> eventsScratchLock(mEventsScratchLock);
         std::swap(mEvents, mEventsScratch);
         mEventsScratch.clear();
     }
 
-    while (!mEvents.empty()) {
+    while (!mEvents.empty())
+    {
         const DMEvent event = mEvents.back();
         mEvents.pop_back();
 
-        if (event.object_type == "Camera") {
+        if (event.object_type == "Camera")
+        {
             processCameraEvent(event);
-        } else if (event.object_type == "Mesh") {
+        }
+        else if (event.object_type == "Mesh")
+        {
             processMeshEvent(event);
         }
     }
 }
 
-void SceneListenerImpl::onDatamodelEvent(const Datamodel::DMEvent& event) {
+void SceneListenerImpl::onDatamodelEvent(const Datamodel::DMEvent& event)
+{
     std::scoped_lock<std::mutex> eventsScratchLock(mEventsScratchLock);
     mEventsScratch.emplace_back(event);
 }
 
-void SceneListenerImpl::processCameraEvent(const DMEvent& event) {
+void SceneListenerImpl::processCameraEvent(const DMEvent& event)
+{
     assert(event.object_type == "Camera");
     SceneManager* sceneManager = mVisualSystem->getSceneManager();
 
@@ -86,7 +101,8 @@ void SceneListenerImpl::processCameraEvent(const DMEvent& event) {
 
     packet.handle = event.object;
 
-    switch (event.event_type) {
+    switch (event.event_type)
+    {
     case DMEventType::kCreated:
         packet.operation = SceneManager::UpdatePacket::Create;
         break;
@@ -97,26 +113,35 @@ void SceneListenerImpl::processCameraEvent(const DMEvent& event) {
 
     case DMEventType::kPropertyUpdated: {
         packet.operation = SceneManager::UpdatePacket::Update;
-        if (event.property_tag == "FOV") {
+        if (event.property_tag == "FOV")
+        {
             data.type = Camera::UpdatePacket::Property::FOV;
             data.data = std::get<float>(event.property_data);
-        } else if (event.property_tag == "ZNear") {
+        }
+        else if (event.property_tag == "ZNear")
+        {
             data.type = Camera::UpdatePacket::Property::ZNear;
             data.data = std::get<float>(event.property_data);
-        } else if (event.property_tag == "ZFar") {
+        }
+        else if (event.property_tag == "ZFar")
+        {
             data.type = Camera::UpdatePacket::Property::ZFar;
             data.data = std::get<float>(event.property_data);
-        } else if (event.property_tag == "LocalMatrix") {
+        }
+        else if (event.property_tag == "LocalMatrix")
+        {
             data.type = Camera::UpdatePacket::Property::LocalMatrix;
             data.data = std::get<Matrix4>(event.property_data);
         }
-    } break;
+    }
+    break;
     }
 
     sceneManager->submitUpdatePacket(packet);
 }
 
-void SceneListenerImpl::processMeshEvent(const DMEvent& event) {
+void SceneListenerImpl::processMeshEvent(const DMEvent& event)
+{
     assert(event.object_type == "Mesh");
     SceneManager* sceneManager = mVisualSystem->getSceneManager();
 
@@ -126,7 +151,8 @@ void SceneListenerImpl::processMeshEvent(const DMEvent& event) {
 
     packet.handle = event.object;
 
-    switch (event.event_type) {
+    switch (event.event_type)
+    {
     case DMEventType::kCreated:
         packet.operation = SceneManager::UpdatePacket::Create;
         break;
@@ -138,17 +164,23 @@ void SceneListenerImpl::processMeshEvent(const DMEvent& event) {
     case DMEventType::kPropertyUpdated: {
         using Property = RenderableMeshUpdatePacket::Property;
         packet.operation = SceneManager::UpdatePacket::Update;
-        if (event.property_tag == "MeshName") {
+        if (event.property_tag == "MeshName")
+        {
             data.type = Property::MeshName;
             data.data = std::get<std::string>(event.property_data);
-        } else if (event.property_tag == "ColormapName") {
+        }
+        else if (event.property_tag == "ColormapName")
+        {
             data.type = Property::ColorMapName;
             data.data = std::get<std::string>(event.property_data);
-        } else if (event.property_tag == "LocalMatrix") {
+        }
+        else if (event.property_tag == "LocalMatrix")
+        {
             data.type = Property::LocalMatrix;
             data.data = std::get<Matrix4>(event.property_data);
         }
-    } break;
+    }
+    break;
     }
 
     sceneManager->submitUpdatePacket(packet);

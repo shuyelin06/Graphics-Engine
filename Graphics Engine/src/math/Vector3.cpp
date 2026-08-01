@@ -3,17 +3,23 @@
 #include <algorithm>
 #include <math.h>
 
-namespace Engine {
-namespace Math {
+namespace Engine
+{
+namespace Math
+{
 
 // Default Constructor:
 // Creates a vector whose x,y,z values are all 0
-Vector3::Vector3() { x = y = z = 0.f; }
+Vector3::Vector3()
+{
+    x = y = z = 0.f;
+}
 
 // Copy Constructor:
 // Creates a vector which is a copy of the
 // vector passed in
-Vector3::Vector3(const Vector3& copy) {
+Vector3::Vector3(const Vector3& copy)
+{
     x = copy.x;
     y = copy.y;
     z = copy.z;
@@ -21,13 +27,15 @@ Vector3::Vector3(const Vector3& copy) {
 
 // Constructor:
 // Creates a vector given input x,y,z values
-Vector3::Vector3(const Vector2& _xy, float _z) {
+Vector3::Vector3(const Vector2& _xy, float _z)
+{
     x = _xy.x;
     y = _xy.y;
     z = _z;
 }
 
-Vector3::Vector3(float _x, float _y, float _z) {
+Vector3::Vector3(float _x, float _y, float _z)
+{
     x = _x;
     y = _y;
     z = _z;
@@ -35,7 +43,8 @@ Vector3::Vector3(float _x, float _y, float _z) {
 
 // Set:
 // Updates the contents of the current vector
-void Vector3::set(const Vector3& vec) {
+void Vector3::set(const Vector3& vec)
+{
     x = vec.x;
     y = vec.y;
     z = vec.z;
@@ -43,23 +52,34 @@ void Vector3::set(const Vector3& vec) {
 
 // XZY:
 // Returns a new vector with the components rearranged
-Vector3 Vector3::xzy() const { return Vector3(x, z, y); }
-Vector2 Vector3::xz() const { return Vector2(x, z); }
+Vector3 Vector3::xzy() const
+{
+    return Vector3(x, z, y);
+}
+Vector2 Vector3::xz() const
+{
+    return Vector2(x, z);
+}
 
 // Magnitude:
 // Returns the vector's magnitude
-float Vector3::magnitude() const { return sqrtf(x * x + y * y + z * z); }
+float Vector3::magnitude() const
+{
+    return sqrtf(x * x + y * y + z * z);
+}
 
 // Unit:
 // Returns a unit vector. Does not modify this vector.
-Vector3 Vector3::unit() const {
+Vector3 Vector3::unit() const
+{
     const float length = magnitude();
     return Vector3(x / length, y / length, z / length);
 }
 
 // InplaceNormalize:
 // Normalizes the vector inplace
-void Vector3::inplaceNormalize() {
+void Vector3::inplaceNormalize()
+{
     const float length = magnitude();
     x /= length;
     y /= length;
@@ -68,32 +88,37 @@ void Vector3::inplaceNormalize() {
 
 // Dot:
 // Performs the dot product between two vectors.
-float Vector3::dot(const Vector3& vector) const {
+float Vector3::dot(const Vector3& vector) const
+{
     return x * vector.x + y * vector.y + z * vector.z;
 }
 
 // Cross:
 // Performs the cross product between two vectors.
-Vector3 Vector3::cross(const Vector3& vector) const {
+Vector3 Vector3::cross(const Vector3& vector) const
+{
     return Vector3(y * vector.z - z * vector.y, -(x * vector.z - z * vector.x),
                    x * vector.y - y * vector.x);
 }
 
 // ProjectOnto:
 // Projects this vector onto another vector.
-float Vector3::scalarProjection(const Vector3& vector) const {
+float Vector3::scalarProjection(const Vector3& vector) const
+{
     const float scalar_projection = dot(vector) / vector.dot(vector);
     return scalar_projection;
 }
 
-Vector3 Vector3::projectOnto(const Vector3& vector) const {
+Vector3 Vector3::projectOnto(const Vector3& vector) const
+{
     const float scalar_projection = scalarProjection(vector);
     return vector * scalar_projection;
 }
 
 // Min:
 // Returns the component-wise minimum.
-Vector3 Vector3::componentMin(const Vector3& vector) const {
+Vector3 Vector3::componentMin(const Vector3& vector) const
+{
     const Vector3 result(std::min(x, vector.x), std::min(y, vector.y),
                          std::min(z, vector.z));
     return result;
@@ -101,7 +126,8 @@ Vector3 Vector3::componentMin(const Vector3& vector) const {
 
 // Max:
 // Returns the component-wise maximum.
-Vector3 Vector3::componentMax(const Vector3& vector) const {
+Vector3 Vector3::componentMax(const Vector3& vector) const
+{
     const Vector3 result(std::max(x, vector.x), std::max(y, vector.y),
                          std::max(z, vector.z));
     return result;
@@ -109,20 +135,26 @@ Vector3 Vector3::componentMax(const Vector3& vector) const {
 
 // Orthogonal:
 // Returns a new vector that is orthogonal to this vector.
-Vector3 Vector3::orthogonal() const {
+Vector3 Vector3::orthogonal() const
+{
     constexpr float EPSILON = 0.01f;
 
     Vector3 perp = Vector3(0, 0, 0);
 
-    if (abs(z) > EPSILON) {
+    if (abs(z) > EPSILON)
+    {
         perp.x = 1.f;
         perp.y = 1.f;
         perp.z = -(x + y) / z;
-    } else if (abs(y) > EPSILON) {
+    }
+    else if (abs(y) > EPSILON)
+    {
         perp.x = 1.f;
         perp.y = -(x + z) / y;
         perp.z = 1.f;
-    } else if (abs(x) > EPSILON) {
+    }
+    else if (abs(x) > EPSILON)
+    {
         perp.x = -(y + z) / x;
         perp.y = 1.f;
         perp.z = 1.f;
@@ -133,7 +165,8 @@ Vector3 Vector3::orthogonal() const {
 
 // [] Operator:
 // Access a component of the vector by index
-float& Vector3::operator[](int axis) {
+float& Vector3::operator[](int axis)
+{
     if (axis == 0)
         return x;
     else if (axis == 1)
@@ -143,7 +176,8 @@ float& Vector3::operator[](int axis) {
     else
         return x; // UNDEFINED
 }
-float Vector3::operator[](int axis) const {
+float Vector3::operator[](int axis) const
+{
     if (axis == 0)
         return x;
     else if (axis == 1)
@@ -156,7 +190,8 @@ float Vector3::operator[](int axis) const {
 // + Operator:
 // Returns a new vector which is the summation of
 // this vector and another vector
-Vector3 Vector3::operator+(const Vector3& vec) const {
+Vector3 Vector3::operator+(const Vector3& vec) const
+{
     Vector3 vector;
     vector.x = x + vec.x;
     vector.y = y + vec.y;
@@ -167,7 +202,8 @@ Vector3 Vector3::operator+(const Vector3& vec) const {
 // += Operator
 // Adds a vector's x,y,z values to this vector
 // in-place
-Vector3& Vector3::operator+=(const Vector3& vec) {
+Vector3& Vector3::operator+=(const Vector3& vec)
+{
     x += vec.x;
     y += vec.y;
     z += vec.z;
@@ -177,14 +213,16 @@ Vector3& Vector3::operator+=(const Vector3& vec) {
 // - Operator
 // Returns a new vector which is the result of this vector
 // subtracted with another vector
-Vector3 Vector3::operator-(const Vector3& vec) const {
+Vector3 Vector3::operator-(const Vector3& vec) const
+{
     return Vector3(x - vec.x, y - vec.y, z - vec.z);
 }
 
 // -= Operator
 // Subtracts another vector's x,y,z values from this vector
 // in-place
-Vector3& Vector3::operator-=(const Vector3& vec) {
+Vector3& Vector3::operator-=(const Vector3& vec)
+{
     x -= vec.x;
     y -= vec.y;
     z -= vec.z;
@@ -194,12 +232,16 @@ Vector3& Vector3::operator-=(const Vector3& vec) {
 // - Operator (Negate)
 // Returns a new vector which is the negation of this vector's
 // x,y,z values
-Vector3 Vector3::operator-() const { return Vector3(-x, -y, -z); }
+Vector3 Vector3::operator-() const
+{
+    return Vector3(-x, -y, -z);
+}
 
 // * Operator
 // Returns a new vector which is the result of this vector
 // scalar multiplied by some value
-Vector3 Vector3::operator*(const float f) const {
+Vector3 Vector3::operator*(const float f) const
+{
     Vector3 vector;
     vector.x = x * f;
     vector.y = y * f;
@@ -210,7 +252,8 @@ Vector3 Vector3::operator*(const float f) const {
 // *= Operator
 // Multiplies this vector's values by a scalar
 // value in-place
-Vector3& Vector3::operator*=(const float f) {
+Vector3& Vector3::operator*=(const float f)
+{
     x *= f;
     y *= f;
     z *= f;
@@ -220,7 +263,8 @@ Vector3& Vector3::operator*=(const float f) {
 // / Operator
 // Returns a new vector which is the result of this vector
 // divided by a scalar value
-Vector3 Vector3::operator/(const float f) const {
+Vector3 Vector3::operator/(const float f) const
+{
     Vector3 vector;
     vector.x = x / f;
     vector.y = y / f;
@@ -231,7 +275,8 @@ Vector3 Vector3::operator/(const float f) const {
 // /= Operator
 // Divides this vector's values by a scalar value in-place
 // Assumes f is not 0.
-Vector3& Vector3::operator/=(const float f) {
+Vector3& Vector3::operator/=(const float f)
+{
     x /= f;
     y /= f;
     z /= f;
@@ -240,7 +285,8 @@ Vector3& Vector3::operator/=(const float f) {
 
 // * Operator (Hamming Product)
 // Takes the component wise product of the two vectors.
-Vector3 Vector3::operator*(const Vector3& v) const {
+Vector3 Vector3::operator*(const Vector3& v) const
+{
     Vector3 result;
     result.x = x * v.x;
     result.y = y * v.y;
@@ -250,7 +296,8 @@ Vector3 Vector3::operator*(const Vector3& v) const {
 
 // *= Operator (Hamming)
 // Takes the compound component wise product of the two vectors.
-Vector3& Vector3::operator*=(const Vector3& v) {
+Vector3& Vector3::operator*=(const Vector3& v)
+{
     x = x * v.x;
     y = y * v.y;
     z = z * v.z;
@@ -259,29 +306,55 @@ Vector3& Vector3::operator*=(const Vector3& v) {
 
 // Equality:
 // Checks if two vector3's are equal. Used in hashing.
-bool Vector3::operator==(const Vector3& vec) const {
+bool Vector3::operator==(const Vector3& vec) const
+{
     return x == vec.x && y == vec.y && z == vec.z;
 }
 
 // Static Vector Operations:
 // Statically create vectors
-Vector3 Vector3::PositiveX() { return Vector3(1, 0, 0); }
+Vector3 Vector3::PositiveX()
+{
+    return Vector3(1, 0, 0);
+}
 
-Vector3 Vector3::PositiveY() { return Vector3(0, 1, 0); }
+Vector3 Vector3::PositiveY()
+{
+    return Vector3(0, 1, 0);
+}
 
-Vector3 Vector3::PositiveZ() { return Vector3(0, 0, 1); }
+Vector3 Vector3::PositiveZ()
+{
+    return Vector3(0, 0, 1);
+}
 
-Vector3 Vector3::NegativeX() { return Vector3(-1, 0, 0); }
+Vector3 Vector3::NegativeX()
+{
+    return Vector3(-1, 0, 0);
+}
 
-Vector3 Vector3::NegativeY() { return Vector3(0, -1, 0); }
+Vector3 Vector3::NegativeY()
+{
+    return Vector3(0, -1, 0);
+}
 
-Vector3 Vector3::NegativeZ() { return Vector3(0, 0, -1); }
+Vector3 Vector3::NegativeZ()
+{
+    return Vector3(0, 0, -1);
+}
 
-Vector3 Vector3::VectorMax() { return Vector3(FLT_MAX, FLT_MAX, FLT_MAX); }
+Vector3 Vector3::VectorMax()
+{
+    return Vector3(FLT_MAX, FLT_MAX, FLT_MAX);
+}
 
-Vector3 Vector3::VectorMin() { return Vector3(-FLT_MAX, -FLT_MAX, -FLT_MAX); }
+Vector3 Vector3::VectorMin()
+{
+    return Vector3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+}
 
-Vector3 Vector3::Lerp(const Vector3& a, const Vector3& b, float time) {
+Vector3 Vector3::Lerp(const Vector3& a, const Vector3& b, float time)
+{
     const Vector3 offset = (b - a) * time;
     return a + offset;
 }

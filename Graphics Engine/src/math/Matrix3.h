@@ -2,13 +2,16 @@
 
 #include "Vector3.h"
 
-namespace Engine {
-namespace Math {
+namespace Engine
+{
+namespace Math
+{
 
 // Matrix3
 // Contains methods and data for a 3x3 matrix.
 // This is internally stored as a column-major matrix.
-class Matrix3 {
+class Matrix3
+{
   protected:
     float data[3][3];
 

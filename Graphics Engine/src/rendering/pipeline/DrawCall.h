@@ -9,9 +9,12 @@
 #include "rendering/core/Material.h"
 #include "rendering/core/Mesh.h"
 
-namespace Engine {
-namespace Graphics {
-struct InstanceData {
+namespace Engine
+{
+namespace Graphics
+{
+struct InstanceData
+{
     Matrix4 mLocalToWorld = Matrix4::Identity();
     Matrix4 mNormalTransform = Matrix4::Identity();
 
@@ -29,7 +32,8 @@ struct InstanceData {
 using InstanceDataKey = uint32_t;
 inline constexpr InstanceDataKey kInvalidInstanceDataKey = 0xFFFF;
 
-struct DrawCall {
+struct DrawCall
+{
     uint32_t depth = 0xFF;
 
     // Mesh, Technique Replaces both Vertex and Pixel Technique

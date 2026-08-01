@@ -5,10 +5,13 @@
 #include "math/PerlinNoise.h"
 #include "math/Vector2.h"
 
-namespace Engine {
+namespace Engine
+{
 using namespace Math;
-namespace Graphics {
-class HeightMapGenerator {
+namespace Graphics
+{
+class HeightMapGenerator
+{
   private:
     PerlinNoise mNoise;
 

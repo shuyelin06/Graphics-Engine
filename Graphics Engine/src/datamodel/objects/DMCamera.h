@@ -5,11 +5,14 @@
 #include "../Bindable.h"
 #include "../Object.h"
 
-namespace Engine {
-namespace Datamodel {
+namespace Engine
+{
+namespace Datamodel
+{
 // DMCamera Class:
 // Represents a camera in the scene.
-class DMCamera : public Object {
+class DMCamera : public Object
+{
   private:
     DMTrackedProperty<float> fov;
     DMTrackedProperty<float> zNear;

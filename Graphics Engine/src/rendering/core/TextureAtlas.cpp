@@ -8,10 +8,13 @@
 using namespace Engine::Math;
 #endif
 
-namespace Engine {
-namespace Graphics {
+namespace Engine
+{
+namespace Graphics
+{
 AtlasAllocation::AtlasAllocation() = default;
-AtlasAllocation::AtlasAllocation(UINT _x, UINT _y, UINT _w, UINT _h) {
+AtlasAllocation::AtlasAllocation(UINT _x, UINT _y, UINT _w, UINT _h)
+{
     x = _x;
     y = _y;
 
@@ -21,9 +24,15 @@ AtlasAllocation::AtlasAllocation(UINT _x, UINT _y, UINT _w, UINT _h) {
 
 // Area:
 // Returns the pixel area of the allocated region
-UINT AtlasAllocation::area() const { return width * height; }
+UINT AtlasAllocation::area() const
+{
+    return width * height;
+}
 
-TextureAtlas::TextureAtlas(Texture* _texture) : allocations(), open_regions() {
+TextureAtlas::TextureAtlas(Texture* _texture)
+    : allocations()
+    , open_regions()
+{
     texture = _texture;
 
     open_regions.push_back(
@@ -33,11 +42,15 @@ TextureAtlas::~TextureAtlas() = default;
 
 // GetTexture:
 // Returns the texture stored by the atlas
-const Texture* TextureAtlas::getTexture() const { return texture; }
+const Texture* TextureAtlas::getTexture() const
+{
+    return texture;
+}
 
 // SetTexture:
 // Modifies the texture stored by the atlas
-void TextureAtlas::setTexture(Texture* _texture) {
+void TextureAtlas::setTexture(Texture* _texture)
+{
     if (texture != nullptr)
         delete texture;
     texture = _texture;
@@ -45,14 +58,16 @@ void TextureAtlas::setTexture(Texture* _texture) {
 
 // GetAllocation:
 // Returns the allocation for a texture
-const AtlasAllocation& TextureAtlas::getAllocation(UINT index) const {
+const AtlasAllocation& TextureAtlas::getAllocation(UINT index) const
+{
     return allocations[index];
 }
 
 // GetAtlasCoordinates:
 // Transform the texture coordinates into atlas coordinates.
 // Ignores texture addressing: TODO
-Vector2 TextureAtlas::getAtlasCoordinates(UINT texture, Vector2 tex_coords) {
+Vector2 TextureAtlas::getAtlasCoordinates(UINT texture, Vector2 tex_coords)
+{
     const AtlasAllocation& allocation = allocations[texture];
 
     const float x = allocation.x + tex_coords.u * allocation.width;
@@ -71,7 +86,8 @@ Vector2 TextureAtlas::getAtlasCoordinates(UINT texture, Vector2 tex_coords) {
 // to be divided along the edge of each allocation. Each region can have a
 // texture allocated to it. Thus, all we do is search the available regions and
 // find the one that is the best fit for what we need.
-UINT TextureAtlas::allocateTexture(UINT tex_width, UINT tex_height) {
+UINT TextureAtlas::allocateTexture(UINT tex_width, UINT tex_height)
+{
     UINT index;
     bool allocated = false;
 
@@ -79,13 +95,15 @@ UINT TextureAtlas::allocateTexture(UINT tex_width, UINT tex_height) {
     // and choose the smallest one that can fit the allocation we need.
     AtlasAllocation* smallest_region = nullptr;
 
-    for (AtlasAllocation& open_region : open_regions) {
+    for (AtlasAllocation& open_region : open_regions)
+    {
         // If the texture can be contained within the region, choose
         // the smallest allocation region possible
-        if (tex_width <= open_region.width &&
-            tex_height <= open_region.height) {
+        if (tex_width <= open_region.width && tex_height <= open_region.height)
+        {
             if (smallest_region == nullptr ||
-                open_region.area() < smallest_region->area()) {
+                open_region.area() < smallest_region->area())
+            {
                 smallest_region = &open_region;
             }
         }
@@ -93,7 +111,8 @@ UINT TextureAtlas::allocateTexture(UINT tex_width, UINT tex_height) {
 
     // Now, make our allocation on this region on the top-left corner,
     // and split it into smaller open subregions.
-    if (smallest_region != nullptr) {
+    if (smallest_region != nullptr)
+    {
         allocated = true;
 
         // Generate my texture allocation
@@ -108,14 +127,16 @@ UINT TextureAtlas::allocateTexture(UINT tex_width, UINT tex_height) {
         // C | D
         // Case 1: Texture completely fills the entire region
         if (tex_width == smallest_region->width &&
-            tex_height == smallest_region->height) {
+            tex_height == smallest_region->height)
+        {
             // Remove the allocated region entirely
             smallest_region->width = 0;
             smallest_region->height = 0;
         }
         // Case 2: Texture width matches, not height
         else if (tex_width == smallest_region->width &&
-                 tex_height < smallest_region->height) {
+                 tex_height < smallest_region->height)
+        {
             // We have subregions C and D left. We modify smallest_region
             // to reflect the change in open space.
             smallest_region->y = allocation.y + allocation.height;
@@ -124,14 +145,16 @@ UINT TextureAtlas::allocateTexture(UINT tex_width, UINT tex_height) {
         }
         // Case 3: Texture height matches, not width
         else if (tex_width < smallest_region->width &&
-                 tex_height == smallest_region->height) {
+                 tex_height == smallest_region->height)
+        {
             // We have subregions B and D left. We modify smallest_region
             // to reflect the change in open space.
             smallest_region->x = allocation.x + allocation.width;
             smallest_region->width = smallest_region->width - allocation.width;
         }
         // Case 4: Texture width and height both do not match
-        else {
+        else
+        {
             const AtlasAllocation* access = smallest_region;
 
             // We have subregions B,C,D. To allow for larger allocations later,
@@ -155,7 +178,8 @@ UINT TextureAtlas::allocateTexture(UINT tex_width, UINT tex_height) {
 }
 
 #if defined(TOGGLE_ALLOCATION_VIEW)
-Texture* TextureAtlas::getAllocationView() {
+Texture* TextureAtlas::getAllocationView()
+{
     /* TextureBuilder builder = TextureBuilder(texture->width, texture->height);
 
      for (const AtlasAllocation& alloc : allocations) {

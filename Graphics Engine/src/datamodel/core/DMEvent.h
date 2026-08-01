@@ -9,9 +9,12 @@
 
 #include "core/StackString.h"
 
-namespace Engine {
-namespace Datamodel {
-enum class DMEventType {
+namespace Engine
+{
+namespace Datamodel
+{
+enum class DMEventType
+{
     kCreated = 0,
     kDestroyed = 1,
     kSelected = 2,
@@ -32,7 +35,8 @@ using DMPropertyData = std::variant
 >;
 // clang-format on
 
-struct DMEvent {
+struct DMEvent
+{
     DMEventType event_type;
 
     DMObjectHandle object;

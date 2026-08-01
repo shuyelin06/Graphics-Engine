@@ -2,11 +2,19 @@
 
 #include <string>
 
-namespace Engine {
-enum FileExtension { UNKNOWN, GLTF, GLB, PNG };
+namespace Engine
+{
+enum FileExtension
+{
+    UNKNOWN,
+    GLTF,
+    GLB,
+    PNG
+};
 
 // Container for resource files, located in "data/"
-class DataFilePath {
+class DataFilePath
+{
   private:
     std::string path;
     FileExtension extension;

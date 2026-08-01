@@ -5,14 +5,19 @@
 
 #include "rendering/ImGui.h"
 
-namespace Engine {
-namespace Datamodel {
-Scene::Scene() : objects() {
+namespace Engine
+{
+namespace Datamodel
+{
+Scene::Scene()
+    : objects()
+{
 #if defined(_DEBUG)
     selected_object = nullptr;
 #endif
 }
-Scene::~Scene() {
+Scene::~Scene()
+{
     for (Object* object : objects)
         delete object;
 }
@@ -21,7 +26,8 @@ Scene::~Scene() {
 // Displays the object hierarchy in the "Scene" menu
 // of the ImGui display
 #ifdef IMGUI_ENABLED
-int Scene::imGuiTraverseHierarchy(Object* object, int next_id) {
+int Scene::imGuiTraverseHierarchy(Object* object, int next_id)
+{
     const std::string& object_name = object->getName();
     const std::string node_id = "##" + std::to_string(next_id++);
 
@@ -52,9 +58,11 @@ int Scene::imGuiTraverseHierarchy(Object* object, int next_id) {
 }
 #endif
 
-void Scene::imGuiDisplay() {
+void Scene::imGuiDisplay()
+{
 #ifdef IMGUI_ENABLED
-    if (ImGui::BeginMenu("Scene")) {
+    if (ImGui::BeginMenu("Scene"))
+    {
         // Display the scene hierarchy
         int next_id = 0;
 
@@ -66,9 +74,11 @@ void Scene::imGuiDisplay() {
     }
 
     // Property Panel
-    if (show_property_window && selected_object != nullptr) {
+    if (show_property_window && selected_object != nullptr)
+    {
         if (ImGui::Begin("Property Window", &show_property_window,
-                         ImGuiWindowFlags_NoCollapse)) {
+                         ImGuiWindowFlags_NoCollapse))
+        {
             ImGui::SeparatorText(selected_object->getName().c_str());
             ImGui::Separator();
 
@@ -80,43 +90,57 @@ void Scene::imGuiDisplay() {
 }
 
 // --- Object Handling ---
-void Scene::addObject(Object* object) {
+void Scene::addObject(Object* object)
+{
     assert(object->getParent() == nullptr);
     objects.push_back(object);
 }
 
-const std::vector<Object*>& Scene::getObjects() const { return objects; }
+const std::vector<Object*>& Scene::getObjects() const
+{
+    return objects;
+}
 
 // UpdateAndRenderObjects:
 // Update and cache object transforms in the SceneGraph, and submit
 // render requests for each.
-static void updateObjectsHelper(Object* object, const Matrix4& m_parent) {
+static void updateObjectsHelper(Object* object, const Matrix4& m_parent)
+{
     assert(object != nullptr);
 
     const Matrix4 m_local = object->updateLocalMatrix(m_parent);
     std::vector<Object*> children = object->getChildren();
 
     std::vector<Object*>::iterator iter = children.begin();
-    while (iter != children.end()) {
-        if ((*iter)->shouldDestroy()) {
+    while (iter != children.end())
+    {
+        if ((*iter)->shouldDestroy())
+        {
             delete *iter;
             iter = children.erase(iter);
-        } else {
+        }
+        else
+        {
             updateObjectsHelper((*iter), m_local);
             iter++;
         }
     }
 }
 
-void Scene::updateAndCleanObjects() {
+void Scene::updateAndCleanObjects()
+{
     Matrix4 identity = Matrix4::Identity();
 
     std::vector<Object*>::iterator iter = objects.begin();
-    while (iter != objects.end()) {
-        if ((*iter)->shouldDestroy()) {
+    while (iter != objects.end())
+    {
+        if ((*iter)->shouldDestroy())
+        {
             delete *iter;
             iter = objects.erase(iter);
-        } else {
+        }
+        else
+        {
             updateObjectsHelper((*iter), identity);
             iter++;
         }

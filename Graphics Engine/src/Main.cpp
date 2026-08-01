@@ -66,8 +66,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 static InputSystem* input_system_handle;
 
 // Main Function
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
-                    PWSTR pCmdLine, int nCmdShow) {
+int WINAPI wWinMain(HINSTANCE hInstance,
+                    HINSTANCE hPrevInstance,
+                    PWSTR pCmdLine,
+                    int nCmdShow)
+{
     // Initialize RenderDoc (if enabled)
     Engine::Graphics::RenderDoc::InitializeRenderDoc();
 
@@ -148,7 +151,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     createMesh(Vector3(0, 200.f, 0), 250.f);
     createMesh(Vector3(0, -200.f, 0), 250.f);
 
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 5; i++)
+    {
     }
 
     DMLight* light = new DMLight();
@@ -193,9 +197,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 #endif
 
     // Main loop: runs once per frame
-    while (!close) {
+    while (!close)
+    {
         // Drain and process all queued input messages
-        while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+        while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+        {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
 
@@ -206,7 +212,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 #if defined(_DEBUG) // ImGui Display
         scene_graph.imGuiDisplay();
 
-        if (ImGui::BeginMenu("Core")) {
+        if (ImGui::BeginMenu("Core"))
+        {
             const Vector3& cam_pos = camera->getTransform().getPosition();
             ImGui::Text("Position: %f %f %f", cam_pos.x, cam_pos.y, cam_pos.z);
             ImGui::Separator();
@@ -243,7 +250,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         cur_time_in_seconds = time_point_cast<seconds>(system_clock::now());
         cur_fps_count++;
 
-        if (cur_time_in_seconds != prev_time_in_seconds) {
+        if (cur_time_in_seconds != prev_time_in_seconds)
+        {
             prev_fps_count = cur_fps_count;
             prev_time_in_seconds = cur_time_in_seconds;
             cur_fps_count = 0;
@@ -263,10 +271,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 }
 
 // Defines the behavior of the window (appearance, user interaction, etc)
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
-                            LPARAM lParam) {
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
     // Escape will always quit the application, just in case
-    if (uMsg == WM_DESTROY || (uMsg == WM_KEYDOWN && wParam == VK_ESCAPE)) {
+    if (uMsg == WM_DESTROY || (uMsg == WM_KEYDOWN && wParam == VK_ESCAPE))
+    {
         ClipCursor(NULL);
         PostQuitMessage(0);
         return 0;

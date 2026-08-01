@@ -8,8 +8,10 @@
 #define DRAW_AABB_TREE
 #endif
 
-namespace Engine {
-namespace Physics {
+namespace Engine
+{
+namespace Physics
+{
 // AABBTree Class:
 // Stores a hierarchy of AABB bounding volumes, which can speed up performance
 // of the collision system. It can not only be used in as a collision
@@ -22,14 +24,16 @@ struct AABBNode;
 // during its broadphase.
 // Can be used by the physics engine for a more precise collision
 // check and resolution.
-struct ColliderPair {
+struct ColliderPair
+{
     CollisionAABB* aabb_1;
     CollisionAABB* aabb_2;
 
     ColliderPair(CollisionAABB* aabb1, CollisionAABB* aabb2);
 };
 
-class AABBTree {
+class AABBTree
+{
   private:
     AABBNode* root;
 
@@ -65,7 +69,8 @@ class AABBTree {
     void removeAABB(AABBNode* node);
     void correctTreeAfterRemoval(AABBNode* node);
 
-    void findInvalidBeforeUpdate(AABBNode* node, std::vector<CollisionAABB*>& invalid);
+    void findInvalidBeforeUpdate(AABBNode* node,
+                                 std::vector<CollisionAABB*>& invalid);
 
     void findColliderPairs(AABBNode* n1, AABBNode* n2);
 

@@ -7,16 +7,19 @@
 
 #include "Frustum.h"
 
-namespace Engine {
+namespace Engine
+{
 using namespace Math;
 
-namespace Graphics {
+namespace Graphics
+{
 // Camera Class:
 // Represents the scene's camera, where everything
 // on the screen is rendered from the camera's point of view.
 // Unless otherwise rotated, the camera's default view
 // is in the +Z axis.
-class Camera {
+class Camera
+{
   protected:
     float fov;
     float z_near, z_far;
@@ -36,8 +39,10 @@ class Camera {
     ~Camera();
 
     // Updating
-    struct UpdatePacket {
-        enum class Property {
+    struct UpdatePacket
+    {
+        enum class Property
+        {
             LocalMatrix,
             FOV,
             ZNear,

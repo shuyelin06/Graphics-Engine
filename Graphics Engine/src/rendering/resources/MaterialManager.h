@@ -12,24 +12,29 @@
 
 #include "ResourceManager.h"
 
-namespace Engine {
+namespace Engine
+{
 using namespace Math;
 
-namespace Graphics {
+namespace Graphics
+{
 class MaterialManagerImpl;
 
 // MaterialManager Class:
 // Manages materials.
 // In this engine, a "material" is essentially a configurable PixelTechnique
 // that applies to a specific pass.
-class MaterialManager {
+class MaterialManager
+{
   public:
-    struct DefaultMaterialParams {
+    struct DefaultMaterialParams
+    {
         std::string colormap;
 
         MD5Hash generateHash() const;
     };
-    struct TerrainMaterialParams {
+    struct TerrainMaterialParams
+    {
         std::string colormap;
     };
 

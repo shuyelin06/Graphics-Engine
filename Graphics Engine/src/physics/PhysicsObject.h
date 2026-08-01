@@ -1,23 +1,25 @@
 #pragma once
 
-#include "datamodel/objects/DMPhysics.h"
 #include "datamodel/DMBinding.h"
+#include "datamodel/objects/DMPhysics.h"
 
-#include "collisions/CollisionObject.h"
 #include "collisions/CollisionObject.h"
 
 #include "collisions/GJKSupport.h"
 #include "math/Vector3.h"
 
-namespace Engine {
+namespace Engine
+{
 using namespace Datamodel;
 using namespace Math;
 
-namespace Physics {
+namespace Physics
+{
 // PhysicsObject Struct:
 // Data that represents the physics state of an object in the
 // datamodel.
-class PhysicsObject : public DMBinding {
+class PhysicsObject : public DMBinding
+{
     friend class PhysicsSystem;
 
   protected:

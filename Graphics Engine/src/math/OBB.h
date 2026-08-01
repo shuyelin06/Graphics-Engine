@@ -6,12 +6,15 @@
 #include "Quaternion.h"
 #include "Vector3.h"
 
-namespace Engine {
-namespace Math {
+namespace Engine
+{
+namespace Math
+{
 // Orientated Bounding-Box (OBB):
 // Represents an OBB in 3D space, which is an AABB centered around a point
 // and rotation.
-class OBB {
+class OBB
+{
   private:
     AABB aabb;
     Matrix4 m_local_to_world;
@@ -22,7 +25,7 @@ class OBB {
 
     // Get properties of the OBB
     const AABB& getAABB() const;
-    
+
     Vector3 getCenter() const;
     Vector3 axis1() const;
     Vector3 axis2() const;
@@ -36,7 +39,6 @@ class OBB {
     // Update the properties of the OBB
     void expandToContain(const Vector3* points, int num_points);
     void expandToContain(const Vector3& point);
-
 };
 
 } // namespace Math

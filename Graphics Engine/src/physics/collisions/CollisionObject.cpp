@@ -4,12 +4,16 @@
 #include "math/QuickHull.h"
 #endif
 
-namespace Engine {
-namespace Physics {
+namespace Engine
+{
+namespace Physics
+{
 CollisionObject::CollisionObject(PhysicsObject* phys_obj,
                                  const Transform* _transform,
                                  const CollisionHull* hull)
-    : collision_hull(hull), transform(_transform) {
+    : collision_hull(hull)
+    , transform(_transform)
+{
     phys_object = phys_obj;
 
     broadphase_aabb = CollisionAABB();
@@ -20,7 +24,8 @@ CollisionObject::~CollisionObject() = default;
 // GJKSupport Methods:
 // Lets us query the CollisionObject as a support function, so that it can be
 // used in the GJK algorithm for collision detection.
-const Vector3 CollisionObject::center(void) const {
+const Vector3 CollisionObject::center(void) const
+{
     Vector3 center = Vector3(0, 0, 0);
 
     for (const Vector3& point : *collision_hull)
@@ -32,8 +37,10 @@ const Vector3 CollisionObject::center(void) const {
     return center;
 }
 
-const Vector3 CollisionObject::furthestPoint(const Vector3& direction) const {
-    if (collision_hull->size() == 0) {
+const Vector3 CollisionObject::furthestPoint(const Vector3& direction) const
+{
+    if (collision_hull->size() == 0)
+    {
         return Vector3(0, 0, 0);
     }
 
@@ -43,9 +50,11 @@ const Vector3 CollisionObject::furthestPoint(const Vector3& direction) const {
     Vector3 furthest =
         (m_transform * Vector4((*collision_hull)[0], 1.0f)).xyz();
 
-    for (const Vector3& point : *collision_hull) {
+    for (const Vector3& point : *collision_hull)
+    {
         const Vector3 transformed = (m_transform * Vector4(point, 1.0f)).xyz();
-        if (transformed.dot(direc) >= furthest.dot(direc)) {
+        if (transformed.dot(direc) >= furthest.dot(direc))
+        {
             furthest = transformed;
         }
     }
@@ -56,19 +65,22 @@ const Vector3 CollisionObject::furthestPoint(const Vector3& direction) const {
 // UpdateBroadphaseAABB:
 // Updates the AABB extents to encompass the translated convex hull,
 // so that it can be used in the broadphase collision pass.
-void CollisionObject::updateBroadphaseAABB(void) {
+void CollisionObject::updateBroadphaseAABB(void)
+{
     broadphase_aabb = CollisionAABB();
 
     const Matrix4 m_transform = transform->transformMatrix();
 
-    for (const Vector3& point : *collision_hull) {
+    for (const Vector3& point : *collision_hull)
+    {
         const Vector3 transformed = (m_transform * Vector4(point, 1.0f)).xyz();
         broadphase_aabb.expandToContain(transformed);
     }
 }
 
 #if (_DEBUG)
-void CollisionObject::debugDrawCollider(void) {
+void CollisionObject::debugDrawCollider(void)
+{
     QuickHullSolver solver;
     solver.computeConvexHull(*collision_hull);
     ConvexHull* hull = solver.getHull();

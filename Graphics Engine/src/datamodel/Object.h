@@ -16,10 +16,12 @@
 
 #define CLASS_ID_NONE 0
 
-namespace Engine {
+namespace Engine
+{
 using namespace Math;
 
-namespace Datamodel {
+namespace Datamodel
+{
 class DMBinding;
 
 // Object Class
@@ -32,7 +34,8 @@ class DMBinding;
 // complicated for an engine of this size. All datamodel object types should be
 // prepended with "DM".
 // The SceneGraph is in charge of cleaning up objects.
-class Object {
+class Object
+{
   private:
     DMTrackedObject dm_handle;
 

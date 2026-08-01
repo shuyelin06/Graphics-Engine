@@ -2,17 +2,31 @@
 
 #include <assert.h>
 
-namespace Engine {
-namespace Graphics {
+namespace Engine
+{
+namespace Graphics
+{
 ConstantBuffer::ConstantBuffer()
-    : data(0), resource(nullptr), max_size(65536) {}
+    : data(0)
+    , resource(nullptr)
+    , max_size(65536)
+{
+}
 ConstantBuffer::ConstantBuffer(size_t max_size)
-    : data(0), resource(nullptr), max_size(max_size) {}
+    : data(0)
+    , resource(nullptr)
+    , max_size(max_size)
+{
+}
 ConstantBuffer::~ConstantBuffer() = default;
 
-unsigned int ConstantBuffer::byteSize() { return data.size(); }
+unsigned int ConstantBuffer::byteSize()
+{
+    return data.size();
+}
 
-void ConstantBuffer::loadData(const void* dataPtr, size_t byteSize) {
+void ConstantBuffer::loadData(const void* dataPtr, size_t byteSize)
+{
     assert(byteSize != 0);
 
     // Convert our data into a character array, and read the number of bytes
@@ -29,11 +43,17 @@ void ConstantBuffer::loadData(const void* dataPtr, size_t byteSize) {
         memset(vectorEnd, 0, byteSize);
 }
 
-void ConstantBuffer::clearData() { data.clear(); }
+void ConstantBuffer::clearData()
+{
+    data.clear();
+}
 
-IConstantBuffer::IConstantBuffer(ConstantBuffer* _cb, int _slot,
-                                 IBufferType _type, ID3D11Device* _device,
-                                 ID3D11DeviceContext* _context) {
+IConstantBuffer::IConstantBuffer(ConstantBuffer* _cb,
+                                 int _slot,
+                                 IBufferType _type,
+                                 ID3D11Device* _device,
+                                 ID3D11DeviceContext* _context)
+{
     device = _device;
     slot = _slot;
     context = _context;
@@ -44,20 +64,26 @@ IConstantBuffer::IConstantBuffer(ConstantBuffer* _cb, int _slot,
     cb->clearData();
 }
 
-IConstantBuffer::~IConstantBuffer() { bindCB(); }
+IConstantBuffer::~IConstantBuffer()
+{
+    bindCB();
+}
 
-void IConstantBuffer::loadData(const void* dataPtr, size_t byteSize) {
+void IConstantBuffer::loadData(const void* dataPtr, size_t byteSize)
+{
     cb->loadData(dataPtr, byteSize);
 }
 
-void IConstantBuffer::bindCB() {
+void IConstantBuffer::bindCB()
+{
     // Do nothing if CB has nothing
     if (cb->byteSize() == 0)
         return;
 
     // If the buffer resource has never been created before, or the current
     // resource is too small for mapping / unmapping, create a new one.
-    if (cb->resource == nullptr) {
+    if (cb->resource == nullptr)
+    {
         // Create buffer to allow dynamic usage, i.e. accessible by
         // GPU read and CPU write. We opt for this usage so that we can update
         // the resource on the fly when needed.

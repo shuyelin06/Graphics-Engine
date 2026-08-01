@@ -11,13 +11,16 @@
 
 #include <vector>
 
-namespace Engine {
+namespace Engine
+{
 using namespace Datamodel;
 
-namespace Graphics {
+namespace Graphics
+{
 // ShadowMapQuality:
 // Qualitites that are available for defining the lights with
-enum ShadowMapQuality {
+enum ShadowMapQuality
+{
     QUALITY_0 = 64,
     QUALITY_1 = 128,
     QUALITY_2 = 256,
@@ -30,14 +33,16 @@ enum ShadowMapQuality {
 // ShadowCluster Struct:
 // Represents a group of meshes that should be rendered in the light's shadow
 // pass
-struct ShadowCluster {
+struct ShadowCluster
+{
     UINT light_index;
 
     UINT caster_start;
     UINT caster_offset;
 };
 
-struct ShadowCaster {
+struct ShadowCaster
+{
     const Mesh* mesh;
     Matrix4 m_localToWorld;
 };
@@ -50,7 +55,8 @@ struct ShadowCaster {
 class CameraFrustum;
 class IConstantBuffer;
 
-class LightManager {
+class LightManager
+{
   private:
     TextureAtlas* shadow_atlas;
     std::vector<ShadowLight*> shadow_lights;

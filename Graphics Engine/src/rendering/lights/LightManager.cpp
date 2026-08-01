@@ -5,10 +5,13 @@
 #include "LightDataGPU.h"
 #include "rendering/VisualDebug.h"
 
-namespace Engine {
-namespace Graphics {
+namespace Engine
+{
+namespace Graphics
+{
 LightManager::LightManager(ID3D11Device* device, unsigned int atlas_size)
-    : shadow_lights() {
+    : shadow_lights()
+{
     DMLight::ConnectToCreation([this](Object* obj) { onObjectCreate(obj); });
 
     D3D11_TEXTURE2D_DESC tex_desc = {};
@@ -63,12 +66,15 @@ LightManager::LightManager(ID3D11Device* device, unsigned int atlas_size)
 }
 
 // SceneGraph:
-void LightManager::pullDatamodelData() {
+void LightManager::pullDatamodelData()
+{
     cleanAndPullDatamodelData(shadow_lights);
 }
 
-void LightManager::onObjectCreate(Object* object) {
-    if (object->getClassID() == DMLight::ClassID()) {
+void LightManager::onObjectCreate(Object* object)
+{
+    if (object->getClassID() == DMLight::ClassID())
+    {
         shadow_lights.push_back(createShadowLight(object, QUALITY_5));
     }
 }
@@ -76,7 +82,8 @@ void LightManager::onObjectCreate(Object* object) {
 // --- Update ---
 // UpdateTimeOfDay:
 // Sets the sun's direction based on the time of day, in hours [0,24].
-void LightManager::updateTimeOfDay(float hours_in_day) {
+void LightManager::updateTimeOfDay(float hours_in_day)
+{
     constexpr float ANGLE_CONVERSION = 2 * 3.14159f / 24.f;
     const float radians = (hours_in_day - 6.f) * ANGLE_CONVERSION;
 
@@ -88,31 +95,38 @@ void LightManager::updateTimeOfDay(float hours_in_day) {
 
 // UpdateSunDirection:
 // Sets the sun direction.
-void LightManager::updateSunDirection(const Vector3& direction) {
+void LightManager::updateSunDirection(const Vector3& direction)
+{
     sun_light->setSunDirection(direction);
 }
 
 // UpdateSunCascades:
 // Uses the camera frustum to set the sun's shadow lights
 // so that they properly shadow what the camera sees.
-void LightManager::updateSunCascades(const Frustum& camera_frustum) {
+void LightManager::updateSunCascades(const Frustum& camera_frustum)
+{
     sun_light->updateSunCascades(camera_frustum);
 }
 
 // ResetShadowCasters:
 // Clears the shadow caster vector
-void LightManager::resetShadowCasters() { shadow_casters.clear(); }
+void LightManager::resetShadowCasters()
+{
+    shadow_casters.clear();
+}
 
 // AddShadowCaster:
 // Adds a shadow caster to the light manager
-void LightManager::addShadowCaster(const ShadowCaster& caster) {
+void LightManager::addShadowCaster(const ShadowCaster& caster)
+{
     shadow_casters.push_back(caster);
 }
 
 // ClusterShadowCasters:
 // Clusters the shadow casters so that assets outside of a light's view are
 // not rendered
-void LightManager::clusterShadowCasters() {
+void LightManager::clusterShadowCasters()
+{
     shadow_clusters.clear();
     shadow_cluster_indices.clear();
 
@@ -120,7 +134,8 @@ void LightManager::clusterShadowCasters() {
     // in the light's view. All assets outside the light's view do not need
     // to be ran through the shadow pass
     const std::vector<ShadowLight*>& lights = shadow_lights;
-    for (int i = 0; i < lights.size(); i++) {
+    for (int i = 0; i < lights.size(); i++)
+    {
         const ShadowLight* light = lights[i];
         const Frustum frustum = light->frustum();
 
@@ -129,7 +144,8 @@ void LightManager::clusterShadowCasters() {
         cluster.caster_start = shadow_cluster_indices.size();
         cluster.caster_offset = 0;
 
-        for (int j = 0; j < shadow_casters.size(); j++) {
+        for (int j = 0; j < shadow_casters.size(); j++)
+        {
             const ShadowCaster obj = shadow_casters[j];
 
             const AABB aabb = obj.mesh->aabb;
@@ -149,29 +165,38 @@ void LightManager::clusterShadowCasters() {
 // --- Getters ---
 // GetShadowAtlas:
 // Returns the shadow atlas.
-const Texture* LightManager::getAtlasTexture(void) const {
+const Texture* LightManager::getAtlasTexture(void) const
+{
     return shadow_atlas->getTexture();
 }
 
 // GetLights:
 // Returns the lights.
-const SunLight* LightManager::getSunLight() const { return sun_light; }
+const SunLight* LightManager::getSunLight() const
+{
+    return sun_light;
+}
 
-const ShadowLight* LightManager::getShadowLight(UINT index) const {
+const ShadowLight* LightManager::getShadowLight(UINT index) const
+{
     return shadow_lights[index];
 }
 
-const std::vector<ShadowLight*>& LightManager::getShadowLights() const {
+const std::vector<ShadowLight*>& LightManager::getShadowLights() const
+{
     return shadow_lights;
 }
 
-const std::vector<ShadowCluster>& LightManager::getShadowClusters() const {
+const std::vector<ShadowCluster>& LightManager::getShadowClusters() const
+{
     return shadow_clusters;
 }
-const std::vector<UINT>& LightManager::getShadowClusterIndices() const {
+const std::vector<UINT>& LightManager::getShadowClusterIndices() const
+{
     return shadow_cluster_indices;
 }
-const std::vector<ShadowCaster>& LightManager::getShadowCasters() const {
+const std::vector<ShadowCaster>& LightManager::getShadowCasters() const
+{
     return shadow_casters;
 }
 
@@ -179,7 +204,8 @@ const std::vector<ShadowCaster>& LightManager::getShadowCasters() const {
 // Creates and returns a shadowed light that can be used in the
 // rendering engine.
 ShadowLight* LightManager::createShadowLight(Object* object,
-                                             ShadowMapQuality quality) {
+                                             ShadowMapQuality quality)
+{
     // Allocate a spot in the ShadowAtlas for our light
     const UINT alloc_index = shadow_atlas->allocateTexture(quality, quality);
     const AtlasAllocation& allocation =
@@ -202,11 +228,13 @@ ShadowLight* LightManager::createShadowLight(Object* object,
 // Initializes a sun light object, which uses shadow map cascades.
 // Each cascade will have resolution given by the ShadowMapQuality
 // parameter.
-void LightManager::createSunLight(ShadowMapQuality quality) {
+void LightManager::createSunLight(ShadowMapQuality quality)
+{
     ShadowLight* lights[SUN_NUM_CASCADES];
     Object* sun_obj = new Object("Unknown");
 
-    for (int i = 0; i < SUN_NUM_CASCADES; i++) {
+    for (int i = 0; i < SUN_NUM_CASCADES; i++)
+    {
         ShadowLight* light = createShadowLight(sun_obj, quality);
         lights[i] = light;
     }
@@ -217,7 +245,8 @@ void LightManager::createSunLight(ShadowMapQuality quality) {
 // --- Binding ---
 // BindLightData:
 // Binds lighting data to a provided constant buffer handle.
-void LightManager::bindLightData(IConstantBuffer& cb) {
+void LightManager::bindLightData(IConstantBuffer& cb)
+{
     const std::vector<ShadowLight*>& lights = shadow_lights;
 
     LightDataGPU lightData;
@@ -236,7 +265,8 @@ void LightManager::bindLightData(IConstantBuffer& cb) {
     cb.loadData(&thresholds, FLOAT2);
     cb.loadData(nullptr, FLOAT2);
 
-    for (int i = 0; i < SUN_NUM_CASCADES; i++) {
+    for (int i = 0; i < SUN_NUM_CASCADES; i++)
+    {
         lights[i]->uploadGPUData(lightData);
         lightData.tex_x /= tex_width;
         lightData.tex_y /= tex_height;
@@ -246,7 +276,8 @@ void LightManager::bindLightData(IConstantBuffer& cb) {
     }
 
     // Local Lighting Data
-    for (int i = SUN_NUM_CASCADES; i < lights.size(); i++) {
+    for (int i = SUN_NUM_CASCADES; i < lights.size(); i++)
+    {
         lights[i]->uploadGPUData(lightData);
         lightData.tex_x /= tex_width;
         lightData.tex_y /= tex_height;
@@ -256,14 +287,17 @@ void LightManager::bindLightData(IConstantBuffer& cb) {
     }
 }
 
-void LightManager::imGui() {
+void LightManager::imGui()
+{
 #if defined(IMGUI_ENABLED)
     ImGui::Text("Number of Lights: %zu", shadow_lights.size());
 
     static bool show_light_frustums = false;
     ImGui::Checkbox("Show Light Frustums", &show_light_frustums);
-    if (show_light_frustums) {
-        for (auto& light : shadow_lights) {
+    if (show_light_frustums)
+    {
+        for (auto& light : shadow_lights)
+        {
             VisualDebug::DrawFrustum(
                 (light->getFrustumMatrix() * light->getWorldMatrix().inverse())
                     .inverse(),
@@ -273,7 +307,8 @@ void LightManager::imGui() {
 
     static bool show_atlas = false;
     ImGui::Checkbox("Show Shadow Atlas", &show_atlas);
-    if (show_atlas) {
+    if (show_atlas)
+    {
         shadow_atlas->getTexture()->displayImGui();
     }
 #endif

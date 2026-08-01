@@ -2,10 +2,14 @@
 
 #include "input/InputState.h"
 
-namespace Engine {
+namespace Engine
+{
 using namespace Input;
-namespace Physics {
-PhysicsObject::PhysicsObject(Object* _object) : DMBinding(_object) {
+namespace Physics
+{
+PhysicsObject::PhysicsObject(Object* _object)
+    : DMBinding(_object)
+{
     acceleration = Vector3(0, 0, 0);
     velocity = Vector3(0, 0, 0);
 
@@ -13,13 +17,18 @@ PhysicsObject::PhysicsObject(Object* _object) : DMBinding(_object) {
 }
 PhysicsObject::~PhysicsObject() = default;
 
-void PhysicsObject::pullDatamodelDataImpl(Object* _object) {
+void PhysicsObject::pullDatamodelDataImpl(Object* _object)
+{
     transform = _object->getTransform();
     object = _object;
 }
-void PhysicsObject::push() { object->getTransform() = transform; }
+void PhysicsObject::push()
+{
+    object->getTransform() = transform;
+}
 
-void PhysicsObject::pollInput() {
+void PhysicsObject::pollInput()
+{
     // Poll the input system for the status of the WASDQE keys.
     // Use this to form a movement vector indicating the direction
     // to move in.
@@ -42,9 +51,12 @@ void PhysicsObject::pollInput() {
     constexpr float ACCELERATION = 20.0f;
     constexpr float DECAY = 10.f;
 
-    if (movementVector.magnitude() != 0) {
+    if (movementVector.magnitude() != 0)
+    {
         acceleration = movementVector.unit() * ACCELERATION;
-    } else {
+    }
+    else
+    {
         if (velocity.magnitude() > 0)
             acceleration = -velocity.unit() * DECAY;
         else
@@ -55,7 +67,8 @@ void PhysicsObject::pollInput() {
     const float new_pos_x = InputState::DeviceXCoordinate();
     const float new_pos_y = InputState::DeviceYCoordinate();
 
-    if (InputState::IsSymbolActive(DEVICE_ALT_INTERACT)) {
+    if (InputState::IsSymbolActive(DEVICE_ALT_INTERACT))
+    {
         const float x_delta = new_pos_x - prev_x;
         const float y_delta = prev_y - new_pos_y;
 
@@ -74,16 +87,19 @@ void PhysicsObject::pollInput() {
     prev_y = new_pos_y;
 }
 
-void PhysicsObject::applyVelocity(float delta_time) {
+void PhysicsObject::applyVelocity(float delta_time)
+{
     transform.offsetPosition(velocity * delta_time);
 }
-void PhysicsObject::applyAcceleration(float delta_time) {
+void PhysicsObject::applyAcceleration(float delta_time)
+{
     velocity += acceleration * delta_time;
 
     // Cap velocity
     constexpr float TERMINAL_VELOCITY = 40.0f;
     const float length = velocity.magnitude();
-    if (length > TERMINAL_VELOCITY) {
+    if (length > TERMINAL_VELOCITY)
+    {
         velocity *= TERMINAL_VELOCITY / length;
     }
 }

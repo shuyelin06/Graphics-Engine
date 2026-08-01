@@ -4,9 +4,11 @@
 
 #include "Vector3.h"
 
-namespace Engine {
+namespace Engine
+{
 
-namespace Math {
+namespace Math
+{
 
 #define PI 3.141592653589
 
@@ -48,7 +50,8 @@ Vector3 EulerToSpherical(float x, float y, float z);
 using MD5Hash = std::array<uint32_t, 4>;
 static_assert(sizeof(MD5Hash) == 16);
 MD5Hash hashMD5(const void* data, size_t byteSize);
-MD5Hash hashMD5(const void** dataArr, const size_t* byteSizeArr, size_t numElements);
+MD5Hash
+hashMD5(const void** dataArr, const size_t* byteSizeArr, size_t numElements);
 
 } // namespace Math
 } // namespace Engine

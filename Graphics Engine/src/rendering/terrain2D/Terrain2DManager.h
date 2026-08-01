@@ -4,12 +4,15 @@
 
 #include "math/Vector3.h"
 
-namespace Engine {
+namespace Engine
+{
 using namespace Math;
-namespace Graphics {
+namespace Graphics
+{
 class VisualSystem;
 class Terrain2DManagerImpl;
-class Terrain2DManager {
+class Terrain2DManager
+{
   public:
     static std::unique_ptr<Terrain2DManager> create(VisualSystem* visualSystem);
     ~Terrain2DManager();

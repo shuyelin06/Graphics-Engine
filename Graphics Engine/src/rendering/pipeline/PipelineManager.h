@@ -15,11 +15,14 @@
 #define INDEX_LIST_START 0
 #define INDEX_LIST_END -1
 
-namespace Engine {
-namespace Graphics {
+namespace Engine
+{
+namespace Graphics
+{
 // VertexTopology Enum:
 // Specifies how the vertices are arranged.
-enum class VertexTopology : uint8_t {
+enum class VertexTopology : uint8_t
+{
     TriangleList = 0,
     LineList = 1,
     _Count_,
@@ -27,7 +30,8 @@ enum class VertexTopology : uint8_t {
 
 // Render Target Bind Flags:
 // Flags for setting the render target.
-enum TargetFlags {
+enum TargetFlags
+{
     // Disables writes to the render target. Commonly used in the depth pass
     Target_Disabled = 0,
     // Enable the render target, and use the existing one.
@@ -37,7 +41,8 @@ enum TargetFlags {
     Target_SwapTarget = 2,
 };
 
-enum DepthStencilFlags {
+enum DepthStencilFlags
+{
     // Prevents the depth stencil from being bound
     Depth_Disabled = 0,
     // Enables the depth stencil and z-testing, but does not update the depth
@@ -50,7 +55,8 @@ enum DepthStencilFlags {
     DepthFlagCount
 };
 
-enum BlendFlags {
+enum BlendFlags
+{
     // Blending is done only off of the source alpha. For example, if srcA =
     // 0.7,
     // 70% of the color will be from the shader, and 30% from the render target
@@ -71,7 +77,8 @@ enum BlendFlags {
 struct Mesh;
 struct Texture;
 
-class Pipeline {
+class Pipeline
+{
   private:
     // D3D Interfaces
     HWND window;
@@ -137,15 +144,18 @@ class Pipeline {
     void bindVertexShader(const std::string& vs_name);
     void setVertexTopology(VertexTopology topology);
 
-    void bindVertexSB(const StructuredBuffer& sb, unsigned int slot) {
+    void bindVertexSB(const StructuredBuffer& sb, unsigned int slot)
+    {
         context->VSSetShaderResources(slot, 1, &sb.srv);
     }
-    void bindVertexTexture(uint8_t slot, const Texture& texture,
+    void bindVertexTexture(uint8_t slot,
+                           const Texture& texture,
                            SamplerType samplerType);
     IConstantBuffer loadVertexCB(int slot);
 
     // Pixel Technique API
-    void bindRenderTarget(Texture* renderTarget, Texture* depthStencil,
+    void bindRenderTarget(Texture* renderTarget,
+                          Texture* depthStencil,
                           DepthStencilFlags depthFlags);
     void bindBlendSettings(BlendFlags);
 
@@ -153,10 +163,12 @@ class Pipeline {
     void bindPixelShader(const std::string& ps_name);
 
     template <typename T>
-    void bindPixelSB(const StructuredBuffer& sb, unsigned int slot) {
+    void bindPixelSB(const StructuredBuffer& sb, unsigned int slot)
+    {
         context->PSSetShaderResources(slot, 1, &sb.srv);
     }
-    void bindPixelTexture(uint8_t slot, const Texture& texture,
+    void bindPixelTexture(uint8_t slot,
+                          const Texture& texture,
                           SamplerType samplerType);
     IConstantBuffer loadPixelCB(int slot);
 
@@ -166,7 +178,8 @@ class Pipeline {
 
     // Draw Calls. Set tri_end to -1 if you want it to draw all triangles
     // after tri_start.
-    void drawMesh(const Mesh* mesh, UINT instance_count,
+    void drawMesh(const Mesh* mesh,
+                  UINT instance_count,
                   int tri_start = INDEX_LIST_START,
                   int tri_end = INDEX_LIST_END);
     void drawPostProcessQuad();
@@ -175,7 +188,8 @@ class Pipeline {
     void endFrame();
 
   private:
-    struct Stats {
+    struct Stats
+    {
         uint32_t numDraws = 0;
     };
     Stats stats;

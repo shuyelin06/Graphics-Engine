@@ -3,45 +3,78 @@
 
 #include "Quaternion.h"
 
-namespace Engine {
-namespace Math {
+namespace Engine
+{
+namespace Math
+{
 // Constructors:
 // Initialize a 4x4 matrix with only 0s as entries
-Matrix4::Matrix4() : data{{0}} {}
+Matrix4::Matrix4()
+    : data{{0}}
+{
+}
 
 // Initialize a matrix with given vectors as its column vectors.
-Matrix4::Matrix4(const Vector4& col1, const Vector4& col2, const Vector4& col3,
+Matrix4::Matrix4(const Vector4& col1,
+                 const Vector4& col2,
+                 const Vector4& col3,
                  const Vector4& col4)
     : data{{col1.x, col1.y, col1.z, col1.w},
            {col2.x, col2.y, col2.z, col2.w},
            {col3.x, col3.y, col3.z, col3.w},
-           {col4.x, col4.y, col4.z, col4.w}} {}
+           {col4.x, col4.y, col4.z, col4.w}}
+{
+}
 
 // Initialize a 4x4 matrix with any 16 values as entries.
-Matrix4::Matrix4(float c1, float c2, float c3, float c4, float c5, float c6,
-                 float c7, float c8, float c9, float c10, float c11, float c12,
-                 float c13, float c14, float c15, float c16)
+Matrix4::Matrix4(float c1,
+                 float c2,
+                 float c3,
+                 float c4,
+                 float c5,
+                 float c6,
+                 float c7,
+                 float c8,
+                 float c9,
+                 float c10,
+                 float c11,
+                 float c12,
+                 float c13,
+                 float c14,
+                 float c15,
+                 float c16)
     : data{{c1, c5, c9, c13},
            {c2, c6, c10, c14},
            {c3, c7, c11, c15},
-           {c4, c8, c12, c16}} {}
+           {c4, c8, c12, c16}}
+{
+}
 
 /* --- Matrix Operations --- */
-float (*Matrix4::getRawData(void))[4] { return data; }
+float (*Matrix4::getRawData(void))[4]
+{
+    return data;
+}
 
 // Entry:
 // Get and set entries of the matrix.
-float Matrix4::entry(int row, int col) const { return data[col][row]; }
-void Matrix4::setEntry(int row, int col, float value) {
+float Matrix4::entry(int row, int col) const
+{
+    return data[col][row];
+}
+void Matrix4::setEntry(int row, int col, float value)
+{
     data[col][row] = value;
 }
 
 // Column:
 // Get and set columns of the matrix
-Vector4 Matrix4::column(int col) const {
+Vector4 Matrix4::column(int col) const
+{
     return Vector4(data[col][0], data[col][1], data[col][2], data[col][3]);
 }
-void Matrix4::setColumn(int col, const Vector4& column) {
+void Matrix4::setColumn(int col, const Vector4& column)
+{
     data[col][0] = column.x;
     data[col][1] = column.y;
     data[col][2] = column.z;
@@ -50,7 +83,8 @@ void Matrix4::setColumn(int col, const Vector4& column) {
 
 // Tranpose:
 // Returns the transpose of the matrix
-Matrix4 Matrix4::transpose() const {
+Matrix4 Matrix4::transpose() const
+{
     Matrix4 matrix_transpose;
 
     for (int col = 0; col < 4; col++)
@@ -63,7 +97,8 @@ Matrix4 Matrix4::transpose() const {
 // Inverse:
 // Takes and returns the inverse of a matrix,
 // using the adjugate method
-Matrix4 Matrix4::inverse() const {
+Matrix4 Matrix4::inverse() const
+{
     Matrix4 matrix_inverse;
 
     // Find determinant
@@ -82,7 +117,8 @@ Matrix4 Matrix4::inverse() const {
 // Trace:
 // Takes the trace of the matrix, the sum of the
 // entries along the main diagonal
-float Matrix4::trace() const {
+float Matrix4::trace() const
+{
     const float trace = data[0][0] + data[1][1] + data[2][2] + data[3][3];
     return trace;
 }
@@ -90,7 +126,8 @@ float Matrix4::trace() const {
 // Determinant:
 // Takes and returns the determinant of the
 // matrix.
-float Matrix4::determinant() const {
+float Matrix4::determinant() const
+{
     float det = 0;
 
     // Sum the cofactors of the first column
@@ -103,7 +140,8 @@ float Matrix4::determinant() const {
 // Minor:
 // Returns the minor of the matrix for a
 // given row and col
-float Matrix4::minor(int col, int row) const {
+float Matrix4::minor(int col, int row) const
+{
     // Create a 3x3 matrix by deleting the row
     // and col of this matrix
     Matrix3 matrix3;
@@ -111,11 +149,14 @@ float Matrix4::minor(int col, int row) const {
     // Counter to iterate through our 3x3 matrix
     int index = 0;
 
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < 4; j++)
+        {
             // Only add entries to matrix whose row and
             // col don't match
-            if (i != col && j != row) {
+            if (i != col && j != row)
+            {
                 // Add to 3x3 matrix
                 matrix3[index / 3][index % 3] = data[i][j];
 
@@ -131,7 +172,8 @@ float Matrix4::minor(int col, int row) const {
 // Cofactor:
 // Returns the cofactor of the matrix for a
 // given row and col.
-float Matrix4::cofactor(int col, int row) const {
+float Matrix4::cofactor(int col, int row) const
+{
     const int sign = (row + col) % 2 == 0 ? 1 : -1;
     return sign * minor(col, row);
 }
@@ -140,20 +182,29 @@ float Matrix4::cofactor(int col, int row) const {
 // Index:
 // Access a given element of the matrix by row
 // and col indices
-float* const Matrix4::operator[](int col) { return data[col]; }
+float* const Matrix4::operator[](int col)
+{
+    return data[col];
+}
 
 // Index (Constant Version):
 // Access a given element of the matrix by row
 // and col indices
-const float* const Matrix4::operator[](int col) const { return data[col]; }
+const float* const Matrix4::operator[](int col) const
+{
+    return data[col];
+}
 
 // Multiply (Matrix):
 // Multiplies two Matrix4's together
-Matrix4 Matrix4::operator*(const Matrix4& matrix) const {
+Matrix4 Matrix4::operator*(const Matrix4& matrix) const
+{
     Matrix4 new_matrix = Matrix4();
 
-    for (int col = 0; col < 4; col++) {
-        for (int row = 0; row < 4; row++) {
+    for (int col = 0; col < 4; col++)
+    {
+        for (int row = 0; row < 4; row++)
+        {
             float value = 0;
 
             for (int i = 0; i < 4; i++)
@@ -169,7 +220,8 @@ Matrix4 Matrix4::operator*(const Matrix4& matrix) const {
 // Multiply (Vector):
 // Multiplies a Matrix4 with a Vector4
 // and returns the result
-Vector4 Matrix4::operator*(const Vector4& vec) const {
+Vector4 Matrix4::operator*(const Vector4& vec) const
+{
     const float x = data[0][0] * vec.x + data[1][0] * vec.y +
                     data[2][0] * vec.z + data[3][0] * vec.w;
     const float y = data[0][1] * vec.x + data[1][1] * vec.y +
@@ -185,7 +237,8 @@ Vector4 Matrix4::operator*(const Vector4& vec) const {
 // Multiply (Scalar):
 // Multiplies a Matrix4 with a float
 // and returns the result
-Matrix4 Matrix4::operator*(const float c) const {
+Matrix4 Matrix4::operator*(const float c) const
+{
     Matrix4 new_matrix;
 
     for (int col = 0; col < 4; col++)
@@ -198,7 +251,8 @@ Matrix4 Matrix4::operator*(const float c) const {
 // Divide (Scalar):
 // Divides a Matrix4 by a float
 // and returns the result
-Matrix4 Matrix4::operator/(const float c) const {
+Matrix4 Matrix4::operator/(const float c) const
+{
     Matrix4 new_matrix;
 
     for (int col = 0; col < 4; col++)
@@ -209,35 +263,41 @@ Matrix4 Matrix4::operator/(const float c) const {
 }
 
 // Equality
-bool Matrix4::operator==(const Matrix4& other) const {
+bool Matrix4::operator==(const Matrix4& other) const
+{
     return memcmp(data, other.data, 4 * 4 * sizeof(float)) == 0;
 }
 
 // Matrix Generation:
 // Static methods for generating matrices
-Matrix4 Matrix4::Identity() {
+Matrix4 Matrix4::Identity()
+{
     return Matrix4(1, 0, 0, 0,  // Row 1
                    0, 1, 0, 0,  // Row 2
                    0, 0, 1, 0,  // Row 3
                    0, 0, 0, 1); // Row 4
 }
 
-Matrix4 Matrix4::T_Scale(float x_scale, float y_scale, float z_scale) {
+Matrix4 Matrix4::T_Scale(float x_scale, float y_scale, float z_scale)
+{
     return Matrix4(x_scale, 0, 0, 0, // R1
                    0, y_scale, 0, 0, // R2
                    0, 0, z_scale, 0, // R3
                    0, 0, 0, 1);      // R4
 }
 
-Matrix4 Matrix4::T_Rotate(const Vector3& axis, float theta) {
+Matrix4 Matrix4::T_Rotate(const Vector3& axis, float theta)
+{
     const Quaternion rotation = Quaternion::RotationAroundAxis(axis, theta);
     return rotation.rotationMatrix4();
 }
 
-Matrix4 Matrix4::T_Translate(const Vector3& position) {
+Matrix4 Matrix4::T_Translate(const Vector3& position)
+{
     return T_Translate(position.x, position.y, position.z);
 }
-Matrix4 Matrix4::T_Translate(float x, float y, float z) {
+Matrix4 Matrix4::T_Translate(float x, float y, float z)
+{
     return Matrix4(1, 0, 0, x,  // Row 1
                    0, 1, 0, y,  // Row 2
                    0, 0, 1, z,  // Row 3

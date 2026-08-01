@@ -1,26 +1,34 @@
 #include "ThreadPool.h"
 
-namespace Engine {
+namespace Engine
+{
 ThreadPool* ThreadPool::threadpool = nullptr;
 
-void ThreadPool::InitializeThreadPool() { threadpool = new ThreadPool(); }
-void ThreadPool::DestroyThreadPool() {
+void ThreadPool::InitializeThreadPool()
+{
+    threadpool = new ThreadPool();
+}
+void ThreadPool::DestroyThreadPool()
+{
     delete threadpool;
     threadpool = nullptr;
 }
 
-ThreadPool::ThreadPool() {
+ThreadPool::ThreadPool()
+{
     finished = false;
 
     // Create my thread workers. These will execute the
     // executeWorker function.
     numActive.store(0);
-    for (int i = 0; i < NUM_THREADS; i++) {
+    for (int i = 0; i < NUM_THREADS; i++)
+    {
         workers[i] = std::thread(&ThreadPool::executeWorker, this, i);
     }
 }
 
-ThreadPool::~ThreadPool() {
+ThreadPool::~ThreadPool()
+{
     // Set finished for the thread pool so it stops
     {
         std::unique_lock<std::mutex> lock(job_mutex);
@@ -35,11 +43,13 @@ ThreadPool::~ThreadPool() {
         workers[i].join();
 }
 
-uint8_t ThreadPool::GetNumberActiveWorkers() {
+uint8_t ThreadPool::GetNumberActiveWorkers()
+{
     return threadpool->numActive.load(std::memory_order_relaxed);
 }
 
-int ThreadPool::GetNumberPendingJobs() {
+int ThreadPool::GetNumberPendingJobs()
+{
     int result;
     {
         std::unique_lock<std::mutex> lock(threadpool->job_mutex);
@@ -48,7 +58,8 @@ int ThreadPool::GetNumberPendingJobs() {
     return result;
 }
 
-void ThreadPool::ScheduleJob(ThreadPoolFunction&& function) {
+void ThreadPool::ScheduleJob(ThreadPoolFunction&& function)
+{
     auto& instance = *threadpool;
 
     // Add to our queue, locking temporarily to avoid race conditions
@@ -64,9 +75,11 @@ void ThreadPool::ScheduleJob(ThreadPoolFunction&& function) {
 // ExecuteWorker:
 // Worker function. Workers will work indefinitely until
 // the finish boolean is toggled.
-void ThreadPool::executeWorker(int index) {
+void ThreadPool::executeWorker(int index)
+{
 
-    while (true) {
+    while (true)
+    {
         // Grab the first job in the queue.
         // We use mutexes to synchronize our threads
         // so that we have no race conditions.

@@ -4,13 +4,16 @@
 
 #include "rendering/VisualSystem.h"
 
-namespace Engine {
-namespace Graphics {
+namespace Engine
+{
+namespace Graphics
+{
 class PostFXManagerImpl;
 
 // PostFXManager:
 // Manages post processing effects for the engine
-class PostFXManager {
+class PostFXManager
+{
   public:
     static std::unique_ptr<PostFXManager> create(VisualSystem* visualSystem);
     ~PostFXManager();

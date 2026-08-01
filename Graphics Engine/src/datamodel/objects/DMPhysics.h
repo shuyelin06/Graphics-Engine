@@ -3,11 +3,14 @@
 #include "../Bindable.h"
 #include "../Object.h"
 
-namespace Engine {
-namespace Datamodel {
+namespace Engine
+{
+namespace Datamodel
+{
 // Class DMPhysics:
 // Represents a light in the datamodel.
-class DMPhysics : public Object, public Bindable<DMPhysics> {
+class DMPhysics : public Object, public Bindable<DMPhysics>
+{
   public:
     DMPhysics();
     ~DMPhysics();

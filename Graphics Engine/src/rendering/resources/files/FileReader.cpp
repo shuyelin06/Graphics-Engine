@@ -3,17 +3,28 @@
 #include <filesystem>
 #include <fstream>
 
-namespace Engine {
-namespace Graphics {
-FileReader::FileReader(const std::string& _path) : path(_path), data(0) {}
+namespace Engine
+{
+namespace Graphics
+{
+FileReader::FileReader(const std::string& _path)
+    : path(_path)
+    , data(0)
+{
+}
 FileReader::~FileReader() = default;
 
-std::vector<uint8_t> FileReader::getData() const { return data; }
+std::vector<uint8_t> FileReader::getData() const
+{
+    return data;
+}
 
-bool FileReader::readFileData() {
+bool FileReader::readFileData()
+{
     std::ifstream file_in(path, std::ios::binary);
-    
-    if (file_in.fail()) {
+
+    if (file_in.fail())
+    {
         return false;
     }
 

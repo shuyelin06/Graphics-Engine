@@ -4,13 +4,16 @@
 
 #include "Vector2.h"
 
-namespace Engine {
-namespace Math {
+namespace Engine
+{
+namespace Math
+{
 
 // Vector3
 // Contains methods and data for a 3-dimensional
 // vector.
-class Vector3 {
+class Vector3
+{
   public:
     float x, y, z;
 
@@ -90,8 +93,10 @@ class Vector3 {
 } // Namespace Engine
 
 // Hash Function for Vector3
-template <> struct std::hash<Engine::Math::Vector3> {
-    std::size_t operator()(const Engine::Math::Vector3& k) const {
+template <> struct std::hash<Engine::Math::Vector3>
+{
+    std::size_t operator()(const Engine::Math::Vector3& k) const
+    {
         // https://stackoverflow.com/questions/5928725/hashing-2d-3d-and-nd-vectors
         uint32_t hash = std::_Bit_cast<uint32_t, float>(k.x) * 73856093 ^
                         std::_Bit_cast<uint32_t, float>(k.y) * 19349663 ^

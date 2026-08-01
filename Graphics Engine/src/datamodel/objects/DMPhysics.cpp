@@ -1,8 +1,13 @@
 #include "DMPhysics.h"
 
-namespace Engine {
-namespace Datamodel {
-DMPhysics::DMPhysics() : Object("Physics"), Bindable<DMPhysics>(this) {
+namespace Engine
+{
+namespace Datamodel
+{
+DMPhysics::DMPhysics()
+    : Object("Physics")
+    , Bindable<DMPhysics>(this)
+{
     DMPhysics::SignalObjectCreation(this);
 };
 DMPhysics::~DMPhysics() = default;

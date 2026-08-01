@@ -7,19 +7,31 @@
 #include "rendering/VisualDebug.h"
 #endif
 
-namespace Engine {
-namespace Datamodel {
-bool BVHNode::isLeaf() const { return tri_count > 0; }
+namespace Engine
+{
+namespace Datamodel
+{
+bool BVHNode::isLeaf() const
+{
+    return tri_count > 0;
+}
 
 BVH::BVH() = default;
 BVH::~BVH() = default;
 
-const BVHNode& BVH::getBVHRoot() { return node_pool[0]; }
-int BVH::size() const { return node_pool.size(); }
+const BVHNode& BVH::getBVHRoot()
+{
+    return node_pool[0];
+}
+int BVH::size() const
+{
+    return node_pool.size();
+}
 
 // Build:
 // Given an array of triangles, builds the BVH.
-void BVH::addBVHTriangle(const Triangle& tri_data, void* metadata) {
+void BVH::addBVHTriangle(const Triangle& tri_data, void* metadata)
+{
     BVHTriangle triangle;
     triangle.triangle = tri_data;
     triangle.center = tri_data.center();
@@ -29,8 +41,10 @@ void BVH::addBVHTriangle(const Triangle& tri_data, void* metadata) {
     triangle_pool.push_back(triangle);
 }
 
-void BVH::build() {
-    if (triangle_pool.size() > 0) {
+void BVH::build()
+{
+    if (triangle_pool.size() > 0)
+    {
 
         // Now, create a root node for our BVH. This node will contain all
         // of our triangles.
@@ -49,7 +63,8 @@ void BVH::build() {
 
 // Reset:
 // Resets a BVH completely
-void BVH::reset() {
+void BVH::reset()
+{
     // Reset all fields
     node_pool.clear();
     triangle_pool.clear();
@@ -58,7 +73,8 @@ void BVH::reset() {
 
 // Subdivide:
 // Recursively subdivides the BVH
-void BVH::subdivide(UINT index) {
+void BVH::subdivide(UINT index)
+{
     const BVHNode node = node_pool[index];
 
     // Determine my splitting plane. We do this by iterating through all
@@ -75,7 +91,8 @@ void BVH::subdivide(UINT index) {
     constexpr int NUM_SAMPLES = 3; // MODIFY TO INCREASE RESOLUTION
     constexpr int NUM_DIVISIONS = NUM_SAMPLES + 2;
 
-    for (int axis = 0; axis < 3; axis++) {
+    for (int axis = 0; axis < 3; axis++)
+    {
         left_cost.clear();
         right_cost.clear();
         positions.clear();
@@ -84,7 +101,8 @@ void BVH::subdivide(UINT index) {
         const float minimum = node.bounds.getMin()[axis];
         const float maximum = node.bounds.getMax()[axis];
 
-        for (int i = 1; i < NUM_DIVISIONS - 1; i++) {
+        for (int i = 1; i < NUM_DIVISIONS - 1; i++)
+        {
             const float pos =
                 i * (maximum - minimum) / (NUM_DIVISIONS - 1) + minimum;
             positions.push_back(pos);
@@ -112,12 +130,14 @@ void BVH::subdivide(UINT index) {
         int right = node.tri_first + node.tri_count - 1;
         int right_count = 0;
 
-        for (int i = 0; i < positions.size(); i++) {
+        for (int i = 0; i < positions.size(); i++)
+        {
             // Left side cost
             const float left_pos = positions[i];
 
             while (left <= last &&
-                   triangles[triangle_indices[left]].center[axis] < left_pos) {
+                   triangles[triangle_indices[left]].center[axis] < left_pos)
+            {
                 const Triangle& triangle =
                     triangles[triangle_indices[left]].triangle;
                 left_aabb.expandToContain(triangle.vertex(0));
@@ -136,8 +156,8 @@ void BVH::subdivide(UINT index) {
             const float right_pos = positions[positions.size() - 1 - i];
 
             while (right >= first &&
-                   triangles[triangle_indices[right]].center[axis] >=
-                       right_pos) {
+                   triangles[triangle_indices[right]].center[axis] >= right_pos)
+            {
                 const Triangle& triangle =
                     triangles[triangle_indices[right]].triangle;
                 right_aabb.expandToContain(triangle.vertex(0));
@@ -154,12 +174,14 @@ void BVH::subdivide(UINT index) {
         }
 
         // Iterate through and choose the minimum cost
-        for (int i = 0; i < positions.size(); i++) {
+        for (int i = 0; i < positions.size(); i++)
+        {
             const float pos = positions[i];
             const float cost =
                 left_cost[i] + right_cost[positions.size() - 1 - i];
 
-            if (cost < best_cost) {
+            if (cost < best_cost)
+            {
                 best_axis = axis;
                 best_pos = pos;
                 best_cost = cost;
@@ -181,14 +203,16 @@ void BVH::subdivide(UINT index) {
     int i = node.tri_first;
     int j = i + node.tri_count - 1;
 
-    while (i <= j) {
+    while (i <= j)
+    {
         // Case 1:
         // Triangle is under plane. It should be in the left side
         if (triangle_pool[triangle_indices[i]].center[best_axis] < best_pos)
             i++;
         // Case 2:
         // Triangle is on or above plane. It should be on the right side
-        else {
+        else
+        {
             const UINT temp = triangle_indices[i];
             triangle_indices[i] = triangle_indices[j];
             triangle_indices[j] = temp;
@@ -224,7 +248,8 @@ void BVH::subdivide(UINT index) {
 // AllocateNode:
 // Creates a new BVHNode in the node_pool and returns it
 // it to be used.
-UINT BVH::allocateNode() {
+UINT BVH::allocateNode()
+{
     const UINT index = node_pool.size();
     node_pool.push_back(BVHNode());
     return index;
@@ -233,14 +258,16 @@ UINT BVH::allocateNode() {
 // UpdateBVHNodeAABB:
 // Update the AABB of a node by iterating through it's triangles
 // and expanding the AABB.
-void BVH::updateBVHNodeAABB(UINT index) {
+void BVH::updateBVHNodeAABB(UINT index)
+{
     BVHNode& node = node_pool[index];
 
     // Reset AABB
     node.bounds = AABB();
 
     // Iterate through every triangle and expand the AABB
-    for (int i = 0; i < node.tri_count; i++) {
+    for (int i = 0; i < node.tri_count; i++)
+    {
         const BVHTriangle& triangle =
             triangle_pool[triangle_indices[node.tri_first + i]];
         node.bounds.expandToContain(triangle.triangle.vertex(0));
@@ -251,21 +278,26 @@ void BVH::updateBVHNodeAABB(UINT index) {
 
 // ComputeSAHCost:
 // Computes the SAH cost given some splitting axis
-float BVH::computeSAHCost(UINT node, int axis, float pos) {
+float BVH::computeSAHCost(UINT node, int axis, float pos)
+{
     AABB left = AABB(), right = AABB();
     int left_count = 0, right_count = 0;
 
     const BVHNode& bvh_node = node_pool[node];
-    for (int i = 0; i < bvh_node.tri_count; i++) {
+    for (int i = 0; i < bvh_node.tri_count; i++)
+    {
         const BVHTriangle& tri =
             triangle_pool[triangle_indices[bvh_node.tri_first + i]];
 
-        if (tri.center[axis] < pos) {
+        if (tri.center[axis] < pos)
+        {
             left.expandToContain(tri.triangle.vertex(0));
             left.expandToContain(tri.triangle.vertex(1));
             left.expandToContain(tri.triangle.vertex(2));
             left_count++;
-        } else {
+        }
+        else
+        {
             right.expandToContain(tri.triangle.vertex(0));
             right.expandToContain(tri.triangle.vertex(1));
             right.expandToContain(tri.triangle.vertex(2));
@@ -284,7 +316,8 @@ float BVH::computeSAHCost(UINT node, int axis, float pos) {
 // Raycast:
 // Raycast into the BVH to find the first BVHTriangle
 // hit
-BVHRayCast BVH::raycast(const Vector3& origin, const Vector3& direction) const {
+BVHRayCast BVH::raycast(const Vector3& origin, const Vector3& direction) const
+{
     BVHRay ray;
     ray.origin = origin;
     ray.direction = direction.unit();
@@ -295,7 +328,8 @@ BVHRayCast BVH::raycast(const Vector3& origin, const Vector3& direction) const {
     BVHRayCast ray_cast;
     if (i_hit_triangle == -1)
         ray_cast.hit = false;
-    else {
+    else
+    {
         ray_cast.hit = true;
         ray_cast.hit_triangle = &triangle_pool[i_hit_triangle];
         ray_cast.t = ray.t;
@@ -304,7 +338,8 @@ BVHRayCast BVH::raycast(const Vector3& origin, const Vector3& direction) const {
     return ray_cast;
 }
 
-int BVH::raycastHelper(BVHRay& ray, UINT node_index) const {
+int BVH::raycastHelper(BVHRay& ray, UINT node_index) const
+{
     const BVHNode& node = node_pool[node_index];
 
     // If the ray doesn't intersect the AABB, we can prune this node and
@@ -316,16 +351,21 @@ int BVH::raycastHelper(BVHRay& ray, UINT node_index) const {
     // If the node doesn't have children, raycast with its triangles.
     int result = -1;
 
-    if (node.isLeaf()) {
-        for (int i = 0; i < node.tri_count; i++) {
+    if (node.isLeaf())
+    {
+        for (int i = 0; i < node.tri_count; i++)
+        {
             const BVHTriangle& triangle =
                 triangle_pool[triangle_indices[node.tri_first + i]];
 
-            if (IntersectRayWithTriangle(ray, triangle)) {
+            if (IntersectRayWithTriangle(ray, triangle))
+            {
                 result = triangle_indices[node.tri_first + i];
             }
         }
-    } else {
+    }
+    else
+    {
         int result1 = raycastHelper(ray, node.left);
         int result2 = raycastHelper(ray, node.right);
 
@@ -343,7 +383,8 @@ int BVH::raycastHelper(BVHRay& ray, UINT node_index) const {
 // if the ray intersects the triangle, and updates the ray's
 // "t" parameter (storing the distance)
 // Implements the Möller–Trumbore Ray-Triangle Intersection Algorithm
-bool BVH::IntersectRayWithTriangle(BVHRay& ray, const BVHTriangle& triangle) {
+bool BVH::IntersectRayWithTriangle(BVHRay& ray, const BVHTriangle& triangle)
+{
     constexpr float EPSILON = 0.0001f;
 
     const Triangle& tri = triangle.triangle;
@@ -378,7 +419,8 @@ bool BVH::IntersectRayWithTriangle(BVHRay& ray, const BVHTriangle& triangle) {
         return false;
 
     const float t = f * edge2.dot(q);
-    if (t > EPSILON && t < ray.t) {
+    if (t > EPSILON && t < ray.t)
+    {
         // We found an intersection
         ray.t = t;
         return true;
@@ -391,7 +433,8 @@ bool BVH::IntersectRayWithTriangle(BVHRay& ray, const BVHTriangle& triangle) {
 // Intersects the ray with an AABB. Returns true on intersection, false
 // otherwise.
 // Performs this without branches.
-bool BVH::IntersectRayWithAABB(const BVHRay& ray, const AABB& aabb) {
+bool BVH::IntersectRayWithAABB(const BVHRay& ray, const AABB& aabb)
+{
     const Vector3& origin = ray.origin;
     const Vector3& direction = ray.direction;
 
@@ -417,11 +460,13 @@ bool BVH::IntersectRayWithAABB(const BVHRay& ray, const AABB& aabb) {
 }
 
 #if defined(DEBUG_BVH)
-void BVH::debugDrawBVH() const {
+void BVH::debugDrawBVH() const
+{
     const Color intersect_color = Color::Green();
 
     const Color triangle_color = Color::Blue();
-    for (const BVHTriangle& tri : triangle_pool) {
+    for (const BVHTriangle& tri : triangle_pool)
+    {
         const Color color = tri.intersected ? intersect_color : triangle_color;
 
         Graphics::VisualDebug::DrawLine(tri.triangle.vertex(0),
@@ -438,7 +483,8 @@ void BVH::debugDrawBVH() const {
 
     const Color node_color = Color::White();
     Vector3 corners[8];
-    for (const BVHNode& node : node_pool) {
+    for (const BVHNode& node : node_pool)
+    {
         if (!node.isLeaf())
             continue;
 
@@ -491,7 +537,8 @@ void BVH::debugDrawBVH() const {
 #endif
 
 // --- Transformed BVH ---
-TransformedBVH::TransformedBVH(BVH* _bvh, const Matrix4& m_transform) {
+TransformedBVH::TransformedBVH(BVH* _bvh, const Matrix4& m_transform)
+{
     bvh = _bvh;
     m_inverse = m_transform.inverse();
 
@@ -499,7 +546,8 @@ TransformedBVH::TransformedBVH(BVH* _bvh, const Matrix4& m_transform) {
     Vector3 aabb_bounds[8];
     bvh->getBVHRoot().bounds.fillArrWithPoints(aabb_bounds);
 
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 8; i++)
+    {
         // Transform my point into world space, and expand our TLAS node AABB
         // with it
         const Vector3 transformed =
@@ -508,9 +556,13 @@ TransformedBVH::TransformedBVH(BVH* _bvh, const Matrix4& m_transform) {
     }
 }
 
-const AABB& TransformedBVH::getBounds() const { return bounds; }
+const AABB& TransformedBVH::getBounds() const
+{
+    return bounds;
+}
 BVHRayCast TransformedBVH::raycast(const Vector3& origin,
-                                   const Vector3& direction) const {
+                                   const Vector3& direction) const
+{
     // Transform my origin and direction. For the origin, we apply
     // all transforms (scale, translate, rotate). For the direction,
     // we only apply rotate + scale.

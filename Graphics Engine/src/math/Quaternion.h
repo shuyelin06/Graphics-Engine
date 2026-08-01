@@ -4,8 +4,10 @@
 #include "Matrix4.h"
 #include "Vector3.h"
 
-namespace Engine {
-namespace Math {
+namespace Engine
+{
+namespace Math
+{
 // Quaternion Class:
 // Represents a quaternion, used to represent rotations in 3D space.
 // Quaternions are given in the form
@@ -14,7 +16,8 @@ namespace Math {
 // If we express quaternions in the form
 // (sin(theta) * axis, cos(theta)), we can use them
 // to represent a rotation around the axis in space.
-class Quaternion {
+class Quaternion
+{
   private:
     // Imaginary Component
     Vector3 im;
@@ -25,7 +28,7 @@ class Quaternion {
   public:
     // Work with raw quaternion data.
     // ONLY USE THIS IF YOU ARE SURE YOU KNOW
-    // WHAT YOU ARE DOING. 
+    // WHAT YOU ARE DOING.
     Quaternion(const Vector3& im, float real);
 
     const Vector3& getIm() const;
@@ -51,7 +54,8 @@ class Quaternion {
     static Quaternion Identity();
 
     // Spherical Interpolation
-    static Quaternion Slerp(const Quaternion& a, const Quaternion& b, float time);
+    static Quaternion
+    Slerp(const Quaternion& a, const Quaternion& b, float time);
 
     // Generate a unit quaternion representing a rotation around a given axis
     static Quaternion RotationAroundAxis(const Vector3& axis, float theta);

@@ -2,7 +2,8 @@
 
 #include <vector>
 
-namespace Engine {
+namespace Engine
+{
 // Arena Allocator:
 // Simple implementation of an arena allocator.
 // Can be used to allocate objects of any type into a contiguous memory

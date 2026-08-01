@@ -5,12 +5,15 @@
 
 #include <assert.h>
 
-namespace Engine {
+namespace Engine
+{
 using namespace Math;
 
-namespace Graphics {
+namespace Graphics
+{
 BumpMapBuilder::BumpMapBuilder(UINT width, UINT height)
-    : TextureBuilder(width - 2, height - 2, TextureLayout::R8G8B8A8_UNORM) {
+    : TextureBuilder(width - 2, height - 2, TextureLayout::R8G8B8A8_UNORM)
+{
     heightmap_width = width;
     heightmap_height = height;
     heightmap.resize(heightmap_width * heightmap_height, 0);
@@ -19,7 +22,8 @@ BumpMapBuilder::~BumpMapBuilder() = default;
 
 // SetHeight:
 // Sets the height at a specified x,y coordinate.
-void BumpMapBuilder::setHeight(int x, int y, float val) {
+void BumpMapBuilder::setHeight(int x, int y, float val)
+{
     assert(0 <= x && x < heightmap_width);
     assert(0 <= y && y < heightmap_height);
 
@@ -27,12 +31,16 @@ void BumpMapBuilder::setHeight(int x, int y, float val) {
 }
 // SamplePerlinNoise:
 // Sets the builder's height with the Perlin Noise function
-void BumpMapBuilder::samplePerlinNoise(unsigned int seed, float freq,
-                                       float amplitude) {
+void BumpMapBuilder::samplePerlinNoise(unsigned int seed,
+                                       float freq,
+                                       float amplitude)
+{
     PerlinNoise noise = PerlinNoise(seed);
 
-    for (int i = 0; i < heightmap_width; i++) {
-        for (int j = 0; j < heightmap_height; j++) {
+    for (int i = 0; i < heightmap_width; i++)
+    {
+        for (int j = 0; j < heightmap_height; j++)
+        {
             const float val = noise.octaveNoise2D(freq * i, freq * j, 5, 0.75f);
             setHeight(i, j, amplitude * val);
         }
@@ -42,12 +50,15 @@ void BumpMapBuilder::samplePerlinNoise(unsigned int seed, float freq,
 // ComputeNormals:
 // Computes the normals for the bump map and places them in the texture
 // builder's RGB properties.
-void BumpMapBuilder::computeNormals() {
+void BumpMapBuilder::computeNormals()
+{
     // Iterate through our height map and calculate our normals.
     // We do this by sampling the tangent vectors in the x and y
     // directions, and crossing the tangents.
-    for (int i = 1; i < heightmap_width - 1; i++) {
-        for (int j = 1; j < heightmap_height - 1; j++) {
+    for (int i = 1; i < heightmap_width - 1; i++)
+    {
+        for (int j = 1; j < heightmap_height - 1; j++)
+        {
             const float x_diff =
                 heightmap[index(i + 1, j)] - heightmap[index(i - 1, j)];
             const float y_diff =
@@ -74,7 +85,10 @@ void BumpMapBuilder::computeNormals() {
 
 // IndexOf:
 // Calculates the index of a (x,y) index
-int BumpMapBuilder::index(int x, int y) { return x * heightmap_height + y; }
+int BumpMapBuilder::index(int x, int y)
+{
+    return x * heightmap_height + y;
+}
 
 } // namespace Graphics
 } // namespace Engine

@@ -3,7 +3,8 @@
 #include <memory>
 #include <stdexcept>
 
-namespace Engine {
+namespace Engine
+{
 // UniqueFunction Implementation:
 // Lets us create lambdas that are move-only (does not support
 // copying), which will let us pass unique ptrs into these functions.
@@ -26,18 +27,25 @@ template <typename Signature> class UniqueFunction;
 // will use this specialization if it matches (basically any function
 // signature). Furthermore, this pattern lets us separate the return value and
 // argument list.
-template <typename Ret, typename... Args> class UniqueFunction<Ret(Args...)> {
+template <typename Ret, typename... Args> class UniqueFunction<Ret(Args...)>
+{
   private:
-    struct CallableFunction {
+    struct CallableFunction
+    {
         virtual ~CallableFunction() = default;
         virtual Ret call(Args... args) = 0;
     };
 
-    template <typename T> struct CallableWrapper : public CallableFunction {
+    template <typename T> struct CallableWrapper : public CallableFunction
+    {
         T callable;
 
-        CallableWrapper(T&& callable) : callable(std::move(callable)) {}
-        Ret call(Args... args) override {
+        CallableWrapper(T&& callable)
+            : callable(std::move(callable))
+        {
+        }
+        Ret call(Args... args) override
+        {
             return callable(std::forward<Args>(args)...);
         }
     };
@@ -46,7 +54,8 @@ template <typename Ret, typename... Args> class UniqueFunction<Ret(Args...)> {
 
   public:
     UniqueFunction() = default;
-    template <typename T> UniqueFunction(T&& function) {
+    template <typename T> UniqueFunction(T&& function)
+    {
         callable = std::unique_ptr<CallableFunction>(
             new CallableWrapper<T>(std::move(function)));
     }
@@ -60,7 +69,8 @@ template <typename Ret, typename... Args> class UniqueFunction<Ret(Args...)> {
     UniqueFunction& operator=(const UniqueFunction&) = delete;
 
     // Override the () operator to invoke the function
-    Ret operator()(Args... args) {
+    Ret operator()(Args... args)
+    {
         if (callable == nullptr)
             throw std::runtime_error("Function Invalid");
         return callable->call(std::forward<Args>(args)...);

@@ -4,27 +4,34 @@
 
 #include "Compute.h"
 
-namespace Engine {
-namespace Math {
+namespace Engine
+{
+namespace Math
+{
 
 // Fade Function:
 // 6t^5 - 15t^4 + 10t^3
 // Given a number from [0,1], smooths the input curve
 // so things look smoother and aren't as jagged.
-static float fade(float t) { return (t * t * t) * (10 + t * (6 * t - 15)); }
+static float fade(float t)
+{
+    return (t * t * t) * (10 + t * (6 * t - 15));
+}
 
 // Gradient Function:
 // Given a hash value, and a (x,y) coordinate, returns the result of the
 // gradient vector dotted with the direction vector (from (x,y) to the corner
 // where that gradient vector is).
-static float grad2D(int hash, float x, float y) {
+static float grad2D(int hash, float x, float y)
+{
     constexpr float sqrt2 = 1.41421356f;
 
     // The last 2 bits of the hash function determine what gradient vector to
     // use. Gradient vectors are the vectors from the center of the square, to
     // the edges. (1,0), (0,1), (-1,0), (0,-1) We automatically dot this with
     // the vector (x,y), which represents the vector from some corner to (x,y).
-    switch (hash & 0x7) {
+    switch (hash & 0x7)
+    {
     case 0x0: // (1,0)
         return x;
     case 0x1: // (0,1)
@@ -46,13 +53,15 @@ static float grad2D(int hash, float x, float y) {
     }
 }
 
-static float grad3D(int hash, float x, float y, float z) {
+static float grad3D(int hash, float x, float y, float z)
+{
     // The last 4 bits of the hash function determine what gradient vector to
     // use. This is pseudorandomly chosen from the following list:
     // (1,1,0), (-1,1,0), (1,-1,0), (-1,-1,0),
     // (1, 0, 1), (-1, 0, 1), (1, 0, -1), (-1, 0, -1), (0, 1, 1), (0, -1, 1),
     // (0, 1, -1), (0, -1, -1)
-    switch (hash & 0xF) {
+    switch (hash & 0xF)
+    {
     case 0x0:
         return x + y;
     case 0x1:
@@ -92,8 +101,11 @@ static float grad3D(int hash, float x, float y, float z) {
 
 // OctaveNoise2D;
 // Returns perlin noise, combined by amplitude to greate larger patterns.
-float PerlinNoise::octaveNoise2D(float x, float y, int octaves,
-                                 float persistence) const {
+float PerlinNoise::octaveNoise2D(float x,
+                                 float y,
+                                 int octaves,
+                                 float persistence) const
+{
     // We will sample perlin noise along multiple octaves, where along each
     // we will increas the frequency and amplitude by a factor given by the
     // persistence
@@ -104,7 +116,8 @@ float PerlinNoise::octaveNoise2D(float x, float y, int octaves,
     float frequency = 1;
     float amplitude = 1;
 
-    for (int i = 0; i < octaves; i++) {
+    for (int i = 0; i < octaves; i++)
+    {
         total += noise2D(x * frequency, y * frequency) * amplitude;
 
         maxValue += amplitude;
@@ -116,24 +129,33 @@ float PerlinNoise::octaveNoise2D(float x, float y, int octaves,
     return total / maxValue;
 }
 
-PerlinNoise::PerlinNoise() { seedGenerator(0); }
-PerlinNoise::PerlinNoise(unsigned int seed) { seedGenerator(seed); }
+PerlinNoise::PerlinNoise()
+{
+    seedGenerator(0);
+}
+PerlinNoise::PerlinNoise(unsigned int seed)
+{
+    seedGenerator(seed);
+}
 
 // SeedGenerator:
 // Generates the permutation table for the generator using the Fisher-Yates
 // algorithm for generating random permutations.
-void PerlinNoise::seedGenerator(unsigned int seed) {
+void PerlinNoise::seedGenerator(unsigned int seed)
+{
     // Seed my random number generator
     srand(seed);
 
     // Initialize my permutation table with entries 0, 1, ... 255.
-    for (int i = 0; i < 256; i++) {
+    for (int i = 0; i < 256; i++)
+    {
         permutation_table[i] = i;
     }
 
     // Randomly choose pairs (i,j), where i <= j <= n-1,
     // and swap the values.
-    for (int i = 0; i < 254; i++) {
+    for (int i = 0; i < 254; i++)
+    {
         const int j = i + Random(0, 255 - i);
 
         const unsigned int temp = permutation_table[i];
@@ -144,19 +166,24 @@ void PerlinNoise::seedGenerator(unsigned int seed) {
 
 // IndexTable:
 // Given an index, indexes the permutation table. Applies modulus if needed.
-unsigned char PerlinNoise::indexTable(int index) const {
+unsigned char PerlinNoise::indexTable(int index) const
+{
     return permutation_table[index % 256];
 }
 
 // Seed:
 // Seeds the generator.
-void PerlinNoise::seed(unsigned int seed) { seedGenerator(seed); }
+void PerlinNoise::seed(unsigned int seed)
+{
+    seedGenerator(seed);
+}
 
 // SampleNoise2D:
 // Samples the perlin noise given x,y coordinates.
 // Multiply x,y with a "frequency" in [0,1] to sample the noise at larger or
 // smaller intervals. Frequencies between [0, 0.3] yield good results.
-float PerlinNoise::noise2D(float x, float y) const {
+float PerlinNoise::noise2D(float x, float y) const
+{
     // If x or y is negative, wrap it to the positive numbers so our perlin
     // noise properly wraps and repeats.
     if (x < 0)
@@ -204,7 +231,8 @@ float PerlinNoise::noise2D(float x, float y) const {
 // SampleNoise3D:
 // Samples the perlin noise given x,y,z coordinates.
 // Generalizes the 2D case for 3D coordinates.
-float PerlinNoise::noise3D(float x, float y, float z) const {
+float PerlinNoise::noise3D(float x, float y, float z) const
+{
     // If x,y,z are negative, wrap it to the positive numbers so our perlin
     // noise properly wraps and repeats.
     if (x < 0)
@@ -270,8 +298,9 @@ float PerlinNoise::noise3D(float x, float y, float z) const {
     return (Lerp(y1, y2, zf) + 1) / 2;
 }
 
-float PerlinNoise::octaveNoise3D(float x, float y, float z, int octaves,
-                                 float persistence) const {
+float PerlinNoise::octaveNoise3D(
+    float x, float y, float z, int octaves, float persistence) const
+{
     // We will sample perlin noise along multiple octaves, where along each
     // we will increas the frequency and amplitude by a factor given by the
     // persistence
@@ -282,7 +311,8 @@ float PerlinNoise::octaveNoise3D(float x, float y, float z, int octaves,
     float frequency = 1;
     float amplitude = 1;
 
-    for (int i = 0; i < octaves; i++) {
+    for (int i = 0; i < octaves; i++)
+    {
         total +=
             noise3D(x * frequency, y * frequency, z * frequency) * amplitude;
 
@@ -295,7 +325,8 @@ float PerlinNoise::octaveNoise3D(float x, float y, float z, int octaves,
     return total / maxValue;
 }
 
-const unsigned char* PerlinNoise::getPermutationTable() {
+const unsigned char* PerlinNoise::getPermutationTable()
+{
     return permutation_table;
 }
 

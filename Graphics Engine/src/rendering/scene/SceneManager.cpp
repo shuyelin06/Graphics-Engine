@@ -7,11 +7,14 @@
 #include "rendering/resources/MaterialManager.h"
 #include "rendering/resources/ResourceManager.h"
 
-namespace Engine {
-namespace Graphics {
+namespace Engine
+{
+namespace Graphics
+{
 using UpdatePacket = SceneManager::UpdatePacket;
 
-struct DefaultMeshBlock {
+struct DefaultMeshBlock
+{
     std::shared_ptr<Mesh> mesh = nullptr;
     std::shared_ptr<Material> material = nullptr;
     InstanceData instanceData{};
@@ -19,7 +22,8 @@ struct DefaultMeshBlock {
     DrawBlockKey blockKey = kInvalidDrawBlockKey;
 };
 
-class SceneManagerImpl {
+class SceneManagerImpl
+{
   private:
     VisualSystem* mVisualSystem;
 
@@ -54,15 +58,23 @@ class SceneManagerImpl {
 SceneManager::SceneManager() {}
 SceneManager::~SceneManager() = default;
 
-void SceneManager::submitUpdatePacket(const UpdatePacket& packet) {
+void SceneManager::submitUpdatePacket(const UpdatePacket& packet)
+{
     mImpl->submitUpdatePacket(packet);
 }
 
-void SceneManager::update() { mImpl->update(); }
+void SceneManager::update()
+{
+    mImpl->update();
+}
 
-Camera* SceneManager::getMainCamera() { return mImpl->getMainCamera(); }
+Camera* SceneManager::getMainCamera()
+{
+    return mImpl->getMainCamera();
+}
 
-std::unique_ptr<SceneManager> SceneManager::create(VisualSystem* visualSystem) {
+std::unique_ptr<SceneManager> SceneManager::create(VisualSystem* visualSystem)
+{
     std::unique_ptr<SceneManager> ptr =
         std::unique_ptr<SceneManager>(new SceneManager());
     ptr->mImpl = std::make_unique<SceneManagerImpl>(visualSystem);
@@ -70,27 +82,33 @@ std::unique_ptr<SceneManager> SceneManager::create(VisualSystem* visualSystem) {
 }
 
 SceneManagerImpl::SceneManagerImpl(VisualSystem* _visualSystem)
-    : mVisualSystem(_visualSystem) {}
+    : mVisualSystem(_visualSystem)
+{
+}
 SceneManagerImpl::~SceneManagerImpl() = default;
 
-void SceneManagerImpl::submitUpdatePacket(const UpdatePacket& packet) {
+void SceneManagerImpl::submitUpdatePacket(const UpdatePacket& packet)
+{
     std::scoped_lock<std::mutex> updatePacketsLock(mUpdatePacketsLock);
     mUpdatePacketsScratch.emplace_back(packet);
 }
 
-void SceneManagerImpl::update() {
+void SceneManagerImpl::update()
+{
     processUpdatePackets();
     processDirtyMeshes();
 }
 
-void SceneManagerImpl::processUpdatePackets() {
+void SceneManagerImpl::processUpdatePackets()
+{
     {
         std::scoped_lock<std::mutex> updatePacketsLock(mUpdatePacketsLock);
         std::swap(mUpdatePackets, mUpdatePacketsScratch);
         mUpdatePacketsScratch.clear();
     }
 
-    while (!mUpdatePackets.empty()) {
+    while (!mUpdatePackets.empty())
+    {
         const UpdatePacket packet = mUpdatePackets.back();
         mUpdatePackets.pop_back();
 
@@ -104,16 +122,21 @@ void SceneManagerImpl::processUpdatePackets() {
     }
 }
 
-void SceneManagerImpl::processDirtyMeshes() {
+void SceneManagerImpl::processDirtyMeshes()
+{
     RenderManager* renderManager = mVisualSystem->getRenderManager();
 
     std::unordered_set<uint32_t>::iterator iter;
-    for (iter = dirtyMeshes.begin(); iter != dirtyMeshes.end();) {
+    for (iter = dirtyMeshes.begin(); iter != dirtyMeshes.end();)
+    {
         bool remove = false;
 
-        if (!meshes.contains(*iter)) {
+        if (!meshes.contains(*iter))
+        {
             remove = true;
-        } else {
+        }
+        else
+        {
             auto& mesh = meshes[*iter];
 
             bool resourcesReady = true;
@@ -122,8 +145,10 @@ void SceneManagerImpl::processDirtyMeshes() {
             if (mesh.material && !mesh.material->ready())
                 resourcesReady = false;
 
-            if (resourcesReady) {
-                if (mesh.mesh && mesh.material) {
+            if (resourcesReady)
+            {
+                if (mesh.mesh && mesh.material)
+                {
                     assert(mesh.mesh->ready && mesh.material->ready());
                     assert(mesh.blockKey == kInvalidDrawBlockKey);
 
@@ -138,53 +163,66 @@ void SceneManagerImpl::processDirtyMeshes() {
             }
         }
 
-        if (remove) {
+        if (remove)
+        {
             iter = dirtyMeshes.erase(iter);
-        } else {
+        }
+        else
+        {
             ++iter;
         }
     }
 }
 
-void SceneManagerImpl::processCameraPacket(const UpdatePacket& packet) {
-    switch (packet.operation) {
+void SceneManagerImpl::processCameraPacket(const UpdatePacket& packet)
+{
+    switch (packet.operation)
+    {
     case UpdatePacket::Operation::Create: {
         assert(!cameras.contains(packet.handle));
         cameras[packet.handle] = std::make_unique<Camera>();
         // HACK
         activeCamera = cameras[packet.handle].get();
-    } break;
+    }
+    break;
 
     case UpdatePacket::Operation::Destroy: {
         assert(cameras.contains(packet.handle));
         cameras.erase(packet.handle);
-    } break;
+    }
+    break;
 
     case UpdatePacket::Operation::Update: {
         assert(cameras.contains(packet.handle));
         cameras[packet.handle]->update(
             std::get<Camera::UpdatePacket>(packet.data));
-    } break;
+    }
+    break;
     }
 }
 
-void SceneManagerImpl::processMeshPacket(const UpdatePacket& packet) {
+void SceneManagerImpl::processMeshPacket(const UpdatePacket& packet)
+{
     RenderManager* renderManager = mVisualSystem->getRenderManager();
 
-    switch (packet.operation) {
+    switch (packet.operation)
+    {
     case UpdatePacket::Operation::Create: {
         assert(!meshes.contains(packet.handle));
         meshes[packet.handle] = DefaultMeshBlock();
-    } break;
+    }
+    break;
 
     case UpdatePacket::Operation::Destroy: {
         assert(meshes.contains(packet.handle));
         auto& mesh = meshes[packet.handle];
-        if (mesh.blockKey != kInvalidDrawBlockKey) {
+        if (mesh.blockKey != kInvalidDrawBlockKey)
+        {
             renderManager->removeDrawBlock(mesh.blockKey);
         }
         meshes.erase(packet.handle);
-    } break;
+    }
+    break;
 
     case UpdatePacket::Operation::Update: {
         assert(meshes.contains(packet.handle));
@@ -194,23 +232,27 @@ void SceneManagerImpl::processMeshPacket(const UpdatePacket& packet) {
             std::get<RenderableMeshUpdatePacket>(packet.data);
         bool isDirty = false;
 
-        switch (data.type) {
+        switch (data.type)
+        {
         case RenderableMeshUpdatePacket::Property::LocalMatrix: {
             mesh.instanceData.mLocalToWorld = std::get<Matrix4>(data.data);
             mesh.instanceData.mNormalTransform =
                 mesh.instanceData.mLocalToWorld.inverse().transpose();
-            if (mesh.blockKey != kInvalidDrawBlockKey) {
+            if (mesh.blockKey != kInvalidDrawBlockKey)
+            {
                 renderManager->updateInstanceData(mesh.blockKey,
                                                   mesh.instanceData);
             }
-        } break;
+        }
+        break;
 
         case RenderableMeshUpdatePacket::Property::MeshName: {
             const std::string& meshName = std::get<std::string>(data.data);
             mesh.mesh =
                 mVisualSystem->getResourceManager()->LoadMeshFromFile(meshName);
             isDirty = true;
-        } break;
+        }
+        break;
 
         case RenderableMeshUpdatePacket::Property::ColorMapName: {
             const std::string& colormapName = std::get<std::string>(data.data);
@@ -219,25 +261,32 @@ void SceneManagerImpl::processMeshPacket(const UpdatePacket& packet) {
             mesh.material =
                 mVisualSystem->getMaterialManager()->createMaterial(params);
             isDirty = true;
-        } break;
+        }
+        break;
 
         default:
             assert(false);
             break;
         }
 
-        if (isDirty) {
+        if (isDirty)
+        {
             dirtyMeshes.insert(packet.handle);
-            if (mesh.blockKey != kInvalidDrawBlockKey) {
+            if (mesh.blockKey != kInvalidDrawBlockKey)
+            {
                 renderManager->removeDrawBlock(mesh.blockKey);
                 mesh.blockKey = kInvalidDrawBlockKey;
             }
         }
-    } break;
+    }
+    break;
     }
 }
 
-Camera* SceneManagerImpl::getMainCamera() { return activeCamera; }
+Camera* SceneManagerImpl::getMainCamera()
+{
+    return activeCamera;
+}
 
 } // namespace Graphics
 } // namespace Engine

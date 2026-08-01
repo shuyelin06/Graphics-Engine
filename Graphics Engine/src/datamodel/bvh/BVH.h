@@ -18,16 +18,19 @@
 
 #define BVH_NO_INTERSECTION -1
 
-namespace Engine {
+namespace Engine
+{
 using namespace Math;
-namespace Datamodel {
+namespace Datamodel
+{
 typedef unsigned int UINT;
 
 // BVHTriangle:
 // Represents a triangle that the BVH uses.
 // Stores the base triangle data as well as
 // additional metadata.
-struct BVHTriangle {
+struct BVHTriangle
+{
     Triangle triangle;
     Vector3 center;
 
@@ -40,7 +43,8 @@ struct BVHTriangle {
 
 // BVHRay:
 // Represents a ray that the BVH uses
-struct BVHRay {
+struct BVHRay
+{
     Vector3 origin;
     Vector3 direction;
 
@@ -51,7 +55,8 @@ struct BVHRay {
 
 // BVHNode:
 // A single node in the BVH.
-struct BVHNode {
+struct BVHNode
+{
     // (x,y,z) bounds of the node
     AABB bounds;
 
@@ -75,7 +80,8 @@ struct BVHNode {
 };
 
 // RayCast Information
-struct BVHRayCast {
+struct BVHRayCast
+{
     bool hit;
 
     const BVHTriangle* hit_triangle;
@@ -86,7 +92,8 @@ struct BVHRayCast {
 // Represents a bounding volume hierarchy, which is a
 // spatial acceleration structure for raycasting.
 // https://jacco.ompf2.com/2022/04/13/how-to-build-a-bvh-part-1-basics/
-class BVH {
+class BVH
+{
   private:
     std::vector<BVHNode> node_pool;
 
@@ -136,7 +143,8 @@ class BVH {
 
 // We also support transformed BVH's, so we can reuse the same BVH
 // (for say, the same mesh) on different transforms.
-class TransformedBVH {
+class TransformedBVH
+{
   private:
     BVH* bvh;
 

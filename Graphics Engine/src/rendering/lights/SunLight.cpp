@@ -7,11 +7,14 @@
 #include "../core/Frustum.h"
 #include "math/Compute.h"
 
-namespace Engine {
-namespace Graphics {
+namespace Engine
+{
+namespace Graphics
+{
 // Note: Constructor will need to be updated if SUN_NUM_CASCADES changes
 SunLight::SunLight(ShadowLight** light_arr, int _resolution)
-    : light_cascades{light_arr[0], light_arr[1], light_arr[2]} {
+    : light_cascades{light_arr[0], light_arr[1], light_arr[2]}
+{
     setSunDirection(Vector3(0.25f, -0.75f, 0.25f).unit());
 
     resolution = _resolution;
@@ -24,20 +27,24 @@ SunLight::SunLight(ShadowLight** light_arr, int _resolution)
 }
 SunLight::~SunLight() = default;
 
-const ShadowLight* SunLight::getSunCascade(int index) const {
+const ShadowLight* SunLight::getSunCascade(int index) const
+{
     return light_cascades[index];
 }
 
-Vector3 SunLight::getDirection() const {
+Vector3 SunLight::getDirection() const
+{
     const Vector3 direc = direction.rotationMatrix3() * Vector3::PositiveZ();
     return direc;
 }
 
-void SunLight::updateSunCascades(const Frustum& camera_frustum) {
+void SunLight::updateSunCascades(const Frustum& camera_frustum)
+{
     constexpr float Z_EPSILON = 0.005f;
     constexpr float DIVISIONS[SUN_NUM_CASCADES + 1] = {0.0f, 0.4f, 0.75f, 1.0f};
 
-    for (int i = 0; i < SUN_NUM_CASCADES; i++) {
+    for (int i = 0; i < SUN_NUM_CASCADES; i++)
+    {
         const float z_near = DIVISIONS[i] - Z_EPSILON;
         const float z_far = DIVISIONS[i + 1] + Z_EPSILON;
         updateCascade(i, z_near, z_far, camera_frustum);
@@ -46,14 +53,18 @@ void SunLight::updateSunCascades(const Frustum& camera_frustum) {
 
 // SetSunDirection:
 // Sets the sun's quaternion so that it points in the directional
-void SunLight::setSunDirection(const Vector3& direc) {
+void SunLight::setSunDirection(const Vector3& direc)
+{
     direction = Quaternion::RotationToVector(direc);
 }
 
 // UpdateCascade:
 // Updates one of the sun-light's cascades.
-void SunLight::updateCascade(int index, float min_z, float max_z,
-                             const Frustum& cam_frustum) {
+void SunLight::updateCascade(int index,
+                             float min_z,
+                             float max_z,
+                             const Frustum& cam_frustum)
+{
     ShadowLight& light = *light_cascades[index];
 
     // First, determine the division of the camera frustum we'll be operating
@@ -68,7 +79,8 @@ void SunLight::updateCascade(int index, float min_z, float max_z,
     };
 
     // Transform from Viewing Cube -> World Space
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 8; i++)
+    {
         const Vector3 point = frustum_points[i];
         frustum_points[i] = cam_frustum.toWorldSpace(point);
     }
@@ -78,7 +90,8 @@ void SunLight::updateCascade(int index, float min_z, float max_z,
     // camera-> While we do this, find the frustum center point.
     Vector3 center_point = Vector3(0.f, 0.f, 0.f);
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++)
+    {
         const Vector3 p_near = frustum_points[i];
         const Vector3 p_far = frustum_points[i + 4];
         const Vector3 v_direction = p_far - p_near;

@@ -3,15 +3,18 @@
 #include "math/Matrix4.h"
 #include "math/OBB.h"
 
-namespace Engine {
+namespace Engine
+{
 using namespace Math;
 
-namespace Graphics {
+namespace Graphics
+{
 // Frustum Class:
 // Represents a viewing frustum (camera, light, etc.)
 // represented by a frustum matrix.
 // Can be used to perform frustum culling.
-class Frustum {
+class Frustum
+{
   private:
     // A matrix that converts world-space coordinates to the
     // camera's frustum space (normalized unit cube) space.

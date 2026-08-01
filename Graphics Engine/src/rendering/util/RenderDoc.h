@@ -1,8 +1,11 @@
 #pragma once
 
-namespace Engine {
-namespace Graphics {
-namespace RenderDoc {
+namespace Engine
+{
+namespace Graphics
+{
+namespace RenderDoc
+{
 void InitializeRenderDoc();
 bool IsRenderDocInitialized();
 void StartRenderDocCapture();

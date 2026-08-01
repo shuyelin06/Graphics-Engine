@@ -6,8 +6,10 @@
 
 #include "utility/Stopwatch.h"
 
-namespace Engine {
-namespace Graphics {
+namespace Engine
+{
+namespace Graphics
+{
 
 struct CPUTimerBatch;
 
@@ -17,7 +19,8 @@ struct CPUTimerBatch;
 // frame.
 // MAKE SURE THIS IS ALLOCATED ON THE STACK. Assign the output of
 // TrackCPUTime() to a local variable, and keep it until the end of the scope.
-class ICPUTimer {
+class ICPUTimer
+{
   private:
     CPUTimerBatch* timer_batch;
 
@@ -31,7 +34,8 @@ class ICPUTimer {
 // commands take.
 // Initialization is handled by the visual system
 // (as the data is displayed on the ImGui menu).
-class CPUTimer {
+class CPUTimer
+{
   private:
     static CPUTimer* system_timer;
     static std::mutex mutex;

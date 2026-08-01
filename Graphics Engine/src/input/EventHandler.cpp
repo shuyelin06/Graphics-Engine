@@ -1,7 +1,9 @@
 #include "EventHandler.h"
 
-namespace Engine {
-namespace Input {
+namespace Engine
+{
+namespace Input
+{
 std::vector<HandleData> EventHandler::handlesToAdd = std::vector<HandleData>();
 std::vector<HandleData> EventHandler::handlesToRemove =
     std::vector<HandleData>();
@@ -11,7 +13,8 @@ std::vector<HandleData> EventHandler::handlesToRemove =
 // Note that an input handler must accept InputData as an argument, and return a
 // boolean indicating if the input was consumed or not by this handle.
 void EventHandler::RegisterEventHandler(InputEvent event_type,
-                                        EventHandle handle) {
+                                        EventHandle handle)
+{
     HandleData data;
     data.event_type = event_type;
     data.handle = handle;
@@ -22,8 +25,8 @@ void EventHandler::RegisterEventHandler(InputEvent event_type,
 // Main interface for removing an input handler.
 // Note to successfully remove a handle, the same function pointer should be
 // used.
-void EventHandler::RemoveEventHandler(InputEvent event_type,
-                                      EventHandle handle) {
+void EventHandler::RemoveEventHandler(InputEvent event_type, EventHandle handle)
+{
     HandleData data;
     data.event_type = event_type;
     data.handle = handle;

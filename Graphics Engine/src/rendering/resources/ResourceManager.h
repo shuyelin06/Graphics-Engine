@@ -15,24 +15,30 @@ struct ID3D11Device;
 struct ID3D11DeviceContext;
 struct ID3D11Buffer;
 
-namespace Engine {
-namespace Graphics {
+namespace Engine
+{
+namespace Graphics
+{
 class ResourceManagerImpl;
 
-enum MeshPoolType {
+enum MeshPoolType
+{
     MeshPoolType_Terrain,
     MeshPoolType_Default,
     MeshPoolType_Count,
 };
 
-struct TextureRequestParams {
+struct TextureRequestParams
+{
     // Texture Target Settings:
     // 1) TargetExisting: A pre-existing texture can be provided. That texture's settings are used as the config
     // 2) TargetNew: A new texture can be created. A config can be specified.
-    struct TargetExisting {
+    struct TargetExisting
+    {
         std::shared_ptr<Texture> target = nullptr;
     };
-    struct TargetNew {
+    struct TargetNew
+    {
         std::string debugName = "";
 
         TextureLayout layout = TextureLayout::R8G8B8A8_UNORM;
@@ -44,25 +50,33 @@ struct TextureRequestParams {
     // Texture Data Settings:
     // 1) File IO: Read data from a file specified by a path
     // 2) TextureBuilder: Read data from a texture builder
-    struct DataFromFile {
+    struct DataFromFile
+    {
         std::string path;
     };
-    struct DataFromBuilder {
+    struct DataFromBuilder
+    {
         const TextureBuilder* builder;
     };
     std::variant<DataFromFile, DataFromBuilder> dataSettings;
 
     TextureRequestParams() = default;
 
-    TargetNew& targetUseNew() { return targetSettings.emplace<TargetNew>(); }
-    TargetExisting& targetUseExisting() {
+    TargetNew& targetUseNew()
+    {
+        return targetSettings.emplace<TargetNew>();
+    }
+    TargetExisting& targetUseExisting()
+    {
         return targetSettings.emplace<TargetExisting>();
     }
 
-    DataFromFile& dataFromFile() {
+    DataFromFile& dataFromFile()
+    {
         return dataSettings.emplace<DataFromFile>();
     }
-    DataFromBuilder& dataFromBuilder() {
+    DataFromBuilder& dataFromBuilder()
+    {
         return dataSettings.emplace<DataFromBuilder>();
     }
 };
@@ -70,7 +84,8 @@ struct TextureRequestParams {
 // ResourceManager Class:
 // Manages assets for the engine. Provides methods
 // to load assets, and prepare them for rendering.
-class ResourceManager {
+class ResourceManager
+{
   public:
     static std::unique_ptr<ResourceManager>
     create(ID3D11Device* device, ID3D11DeviceContext* context);

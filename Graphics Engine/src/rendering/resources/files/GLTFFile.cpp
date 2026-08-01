@@ -14,18 +14,25 @@
 // The GLTFFile uses the STB library to read image files
 #include "stb/stb_image.h"
 
-namespace Engine {
-namespace Graphics {
-GLTFFile::GLTFFile(const std::string& _path) : path(_path) {}
+namespace Engine
+{
+namespace Graphics
+{
+GLTFFile::GLTFFile(const std::string& _path)
+    : path(_path)
+{
+}
 
-struct Uint4 {
+struct Uint4
+{
     uint16_t index[4];
 };
 // Accessor Parsing functions that let us convert accessor data into a
 // format the engine uses.
 static void
 ParseAccessor(const cgltf_accessor* accessor,
-              const std::function<void(int, const void*, size_t)>& callback) {
+              const std::function<void(int, const void*, size_t)>& callback)
+{
     // f is invoked for every parsed element from the buffer. We can use that to
     // read the data wherever we want.
     // f(index, elementData, elementSize)
@@ -35,14 +42,17 @@ ParseAccessor(const cgltf_accessor* accessor,
     const uint32_t num_elements = accessor->count;
     const uint32_t stride = accessor->stride;
 
-    for (int i = 0; i < num_elements; i++) {
+    for (int i = 0; i < num_elements; i++)
+    {
         callback(i, buffer + stride * i, stride);
     }
 }
 
 Asset* GLTFFile::readFromFile(MeshBuilder& mesh_builder,
-                              AtlasBuilder& tex_builder, ID3D11Device* device,
-                              ID3D11DeviceContext* context) {
+                              AtlasBuilder& tex_builder,
+                              ID3D11Device* device,
+                              ID3D11DeviceContext* context)
+{
     // Deprecated, to be reimplemented later.
     return nullptr;
     /*
@@ -332,7 +342,8 @@ Asset* GLTFFile::readFromFile(MeshBuilder& mesh_builder,
     */
 }
 
-void GLTFFile::ReadGLTFMesh(const std::string& path, MeshBuilder& builder) {
+void GLTFFile::ReadGLTFMesh(const std::string& path, MeshBuilder& builder)
+{
     builder.reset();
 
     cgltf_options options = {};
@@ -373,7 +384,8 @@ void GLTFFile::ReadGLTFMesh(const std::string& path, MeshBuilder& builder) {
     vertex_data.clear();
     vertex_data.resize(element_count);
 
-    for (int i_attr = 0; i_attr < prim.attributes_count; i_attr++) {
+    for (int i_attr = 0; i_attr < prim.attributes_count; i_attr++)
+    {
         const cgltf_attribute& attr = prim.attributes[i_attr];
         const cgltf_attribute_type& type = attr.type;
         const auto& accessor = attr.data;
@@ -384,7 +396,8 @@ void GLTFFile::ReadGLTFMesh(const std::string& path, MeshBuilder& builder) {
         assert(type != cgltf_attribute_type_joints);
         assert(type != cgltf_attribute_type_weights);
 
-        switch (type) {
+        switch (type)
+        {
         case cgltf_attribute_type_position:
             builder.addLayout(POSITION);
             ParseAccessor(accessor, [&vertex_data](int index, const void* data,
@@ -480,7 +493,8 @@ void GLTFFile::parseMaterial(const cgltf_material* mat_data,
 */
 
 const AtlasAllocation& GLTFFile::parseBaseColorTex(const cgltf_texture* tex,
-                                                   AtlasBuilder& tex_builder) {
+                                                   AtlasBuilder& tex_builder)
+{
     const cgltf_image* image = tex->image;
     const cgltf_buffer_view* view = image->buffer_view;
 
@@ -499,8 +513,10 @@ const AtlasAllocation& GLTFFile::parseBaseColorTex(const cgltf_texture* tex,
     // Load thes 4 channels into our texture
     const AtlasAllocation& alloc = tex_builder.allocateRegion(width, height);
 
-    for (int row = 0; row < height; row++) {
-        for (int col = 0; col < width; col++) {
+    for (int row = 0; row < height; row++)
+    {
+        for (int col = 0; col < width; col++)
+        {
             const int index = (row * width + col) * 4;
             const TextureColor color =
                 TextureColor(pixel_data[index + 0], pixel_data[index + 1],

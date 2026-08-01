@@ -8,16 +8,20 @@
 #include "DMBinding.h"
 #include "physics/PhysicsObject.h"
 
-namespace Engine {
+namespace Engine
+{
 using namespace Math;
 
-namespace Datamodel {
+namespace Datamodel
+{
 /* --- Constructors / Destructors --- */
 // Constructor:
 // Creates an object with no parent and a
 // local position of (0,0,0)
 Object::Object(const DMObjectTag& object_tag)
-    : dm_handle(object_tag), m_local(&getDMHandle(), "LocalMatrix") {
+    : dm_handle(object_tag)
+    , m_local(&getDMHandle(), "LocalMatrix")
+{
     // Objects start with no parent and no children
     parent = nullptr;
     children = std::vector<Object*>(0);
@@ -39,7 +43,8 @@ Object::Object(const DMObjectTag& object_tag)
 // Destructor:
 // Frees all memory allocated for this object, including children
 // and components.
-Object::~Object() {
+Object::~Object()
+{
     // Unbind
     if (dm_binding != nullptr)
         dm_binding->unbind();
@@ -49,16 +54,21 @@ Object::~Object() {
         delete child;
 }
 
-const DMTrackedObject& Object::getDMHandle() const { return dm_handle; }
+const DMTrackedObject& Object::getDMHandle() const
+{
+    return dm_handle;
+}
 
-Object* Object::setName(const std::string& new_name) {
+Object* Object::setName(const std::string& new_name)
+{
 #if defined(_DEBUG)
     name = new_name;
 #endif
     return this;
 };
 
-const std::string& Object::getName() {
+const std::string& Object::getName()
+{
 #if defined(_DEBUG)
     return name;
 #else
@@ -67,22 +77,35 @@ const std::string& Object::getName() {
 }
 
 /* --- Object Class ID Methods --- */
-void Object::setClassID(uint16_t id) { class_id = id; }
-uint16_t Object::getClassID() const { return class_id; }
+void Object::setClassID(uint16_t id)
+{
+    class_id = id;
+}
+uint16_t Object::getClassID() const
+{
+    return class_id;
+}
 
 /* --- Object Hierarchy Methods --- */
 // GetParent:
 // Returns the object's parent. Returns nullptr if the parent does
 // not exist.
-Object* Object::getParent() const { return parent; }
+Object* Object::getParent() const
+{
+    return parent;
+}
 
 // GetChildren:
 // Returns the object's children
-std::vector<Object*>& Object::getChildren() { return children; }
+std::vector<Object*>& Object::getChildren()
+{
+    return children;
+}
 
 // BindChild:
 // Binds an object to this object's children vector
-void Object::addChild(Object* object) {
+void Object::addChild(Object* object)
+{
     // TODO: Should remove pointers if object has parent.
     // Should also validate that object is not already a child.
     assert(object->parent == nullptr);
@@ -90,13 +113,24 @@ void Object::addChild(Object* object) {
     children.push_back(object);
 }
 
-void Object::markForDestruction() { destroy = true; }
-bool Object::shouldDestroy() const { return destroy; }
+void Object::markForDestruction()
+{
+    destroy = true;
+}
+bool Object::shouldDestroy() const
+{
+    return destroy;
+}
 
 /* --- Datamodel Bindings --- */
-void Object::bind(DMBinding* _dm_binding) { dm_binding = _dm_binding; }
-void Object::unbind() {
-    if (dm_binding != nullptr) {
+void Object::bind(DMBinding* _dm_binding)
+{
+    dm_binding = _dm_binding;
+}
+void Object::unbind()
+{
+    if (dm_binding != nullptr)
+    {
         dm_binding = nullptr;
         destroy = true;
     }
@@ -105,19 +139,26 @@ void Object::unbind() {
 /* --- Transform Methods --- */
 // GetTransform:
 // Returns the object's transform property
-Transform& Object::getTransform() { return transform; }
+Transform& Object::getTransform()
+{
+    return transform;
+}
 
 // GetLocalToWorldMatrix:
 // Returns the Object's Local -> World matrix. This can be used
 // to transform points in the object's local space into world space.
-const Matrix4& Object::getLocalMatrix() const { return m_local.readProperty(); }
+const Matrix4& Object::getLocalMatrix() const
+{
+    return m_local.readProperty();
+}
 
 // UpdateLocalToWorldMatrix:
 // Update the Local -> World matrix for the object, given the
 // parent's Local -> World matrix.
 // This method is called in an update pre-pass every frame, and lets us
 // cache the matrix to save computation.
-const Matrix4& Object::updateLocalMatrix(const Math::Matrix4& m_parent) {
+const Matrix4& Object::updateLocalMatrix(const Math::Matrix4& m_parent)
+{
     // Generate local transform
     const Matrix4 m_local_transform = transform.transformMatrix();
     const Matrix4 m_parent_transform = m_parent;

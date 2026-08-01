@@ -2,11 +2,14 @@
 
 #include "Vector3.h"
 
-namespace Engine {
-namespace Math {
+namespace Engine
+{
+namespace Math
+{
 // Axis-Aligned Bounding Box (AABB):
 // Represents an AABB in 3D space.
-class AABB {
+class AABB
+{
   private:
     Vector3 minimum;
     Vector3 maximum;

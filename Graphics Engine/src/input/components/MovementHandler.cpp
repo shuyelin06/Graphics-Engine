@@ -2,9 +2,12 @@
 
 #include "input/InputState.h"
 
-namespace Engine {
-namespace Input {
-MovementHandler::MovementHandler(Transform* _transform) {
+namespace Engine
+{
+namespace Input
+{
+MovementHandler::MovementHandler(Transform* _transform)
+{
     transform = _transform;
 
     sensitivity = 5.0f;
@@ -17,7 +20,8 @@ MovementHandler::MovementHandler(Transform* _transform) {
 }
 MovementHandler::~MovementHandler() = default;
 
-void MovementHandler::update() {
+void MovementHandler::update()
+{
     // Handle XYZ movement first.
     Vector3 movementVector = Vector3();
 
@@ -40,7 +44,8 @@ void MovementHandler::update() {
     // If any movement input is active, offset the object
     // position.
     // Normalize movement vector and offset position
-    if (movementVector.magnitude() != 0) {
+    if (movementVector.magnitude() != 0)
+    {
         constexpr float MOVEMENT_SPEED = 0.5f;
 
         movementVector.inplaceNormalize();
@@ -54,7 +59,8 @@ void MovementHandler::update() {
     const float new_pos_x = InputState::DeviceXCoordinate();
     const float new_pos_y = InputState::DeviceYCoordinate();
 
-    if (InputState::IsSymbolActive(DEVICE_ALT_INTERACT)) {
+    if (InputState::IsSymbolActive(DEVICE_ALT_INTERACT))
+    {
         const float x_delta = new_pos_x - prev_x;
         const float y_delta = prev_y - new_pos_y;
 

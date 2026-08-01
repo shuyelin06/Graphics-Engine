@@ -8,13 +8,17 @@
 
 #include "rendering/core/Camera.h"
 
-namespace Engine {
-namespace Graphics {
+namespace Engine
+{
+namespace Graphics
+{
 class VisualSystem;
 class SceneManagerImpl;
 
-struct RenderableMeshUpdatePacket {
-    enum class Property {
+struct RenderableMeshUpdatePacket
+{
+    enum class Property
+    {
         LocalMatrix,
         MeshName,
         ColorMapName,
@@ -25,14 +29,21 @@ struct RenderableMeshUpdatePacket {
     std::variant<Matrix4, std::string> data;
 };
 
-class SceneManager {
+class SceneManager
+{
   public:
     static std::unique_ptr<SceneManager> create(VisualSystem* visualSystem);
     ~SceneManager();
 
     // Datamodel Updates
-    struct UpdatePacket {
-        enum Operation { Create, Destroy, Update };
+    struct UpdatePacket
+    {
+        enum Operation
+        {
+            Create,
+            Destroy,
+            Update
+        };
 
         uint32_t handle; // Object Handle
         Operation operation;

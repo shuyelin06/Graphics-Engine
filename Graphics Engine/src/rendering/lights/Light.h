@@ -12,16 +12,19 @@
 #include "math/Matrix4.h"
 #include "math/Transform.h"
 
-namespace Engine {
+namespace Engine
+{
 using namespace Datamodel;
 
-namespace Graphics {
+namespace Graphics
+{
 class ConstantBuffer;
 
 // Struct ShadowMapViewport
 // Represents where in the shadowmap_atlas the light's
 // shadow_map is. Stored in pixel coordinates.
-struct ShadowMapViewport {
+struct ShadowMapViewport
+{
     float x, y, width, height;
 
     D3D11_VIEWPORT toD3D11() const;
@@ -32,7 +35,8 @@ struct ShadowMapViewport {
 // shadows shadow mapping. The "direction" of the light's view is given by the
 // direction of its rotated +Z axis. Lights have a position and rotation in
 // space that defines what regions they light up.
-class ShadowLight : public DMBinding {
+class ShadowLight : public DMBinding
+{
   protected:
     Color color;
     ShadowMapViewport shadow_viewport;
@@ -68,9 +72,13 @@ class ShadowLight : public DMBinding {
 
     void setColor(const Color& color);
 
-    void setOrthogonalFrustum(float size_y, float aspect_ratio, float z_near,
+    void setOrthogonalFrustum(float size_y,
+                              float aspect_ratio,
+                              float z_near,
                               float z_far);
-    void setPerspectiveFrustum(float fov_y, float aspect_ratio, float z_near,
+    void setPerspectiveFrustum(float fov_y,
+                               float aspect_ratio,
+                               float z_near,
                                float z_far);
 };
 } // namespace Graphics

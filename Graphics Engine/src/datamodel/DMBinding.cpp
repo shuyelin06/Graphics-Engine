@@ -2,18 +2,24 @@
 
 #include "Object.h"
 
-namespace Engine {
-namespace Datamodel {
-DMBinding::DMBinding(Object* obj) {
-    if (obj) {
+namespace Engine
+{
+namespace Datamodel
+{
+DMBinding::DMBinding(Object* obj)
+{
+    if (obj)
+    {
         dm_object = obj;
         dm_object->bind(this);
     }
 }
-DMBinding::~DMBinding() {
+DMBinding::~DMBinding()
+{
     // On destruction, notify the bound object that the
     // binding is gone
-    if (dm_object != nullptr) {
+    if (dm_object != nullptr)
+    {
         dm_object->unbind();
         dm_object = nullptr;
     }
@@ -21,14 +27,23 @@ DMBinding::~DMBinding() {
 
 // Disconnect / ShouldDestroy:
 // Unbinds this from the object. After this is called, it should be cleaned up.
-void DMBinding::unbind() { dm_object = nullptr; }
-bool DMBinding::shouldDestroy() const { return dm_object == nullptr; }
+void DMBinding::unbind()
+{
+    dm_object = nullptr;
+}
+bool DMBinding::shouldDestroy() const
+{
+    return dm_object == nullptr;
+}
 
 // PullDatamodelData:
 // Main interfacing function to pull datamodel data. We use a function
 // so that we can enforce when the datamodel is being accessed.
 // To pull, override pullDatamodelDataImpl.
-void DMBinding::pullDatamodelData() { pullDatamodelDataImpl(dm_object); }
+void DMBinding::pullDatamodelData()
+{
+    pullDatamodelDataImpl(dm_object);
+}
 void DMBinding::pullDatamodelDataImpl(Object* object) {}
 
 } // namespace Datamodel

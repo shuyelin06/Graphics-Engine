@@ -9,9 +9,12 @@
 #include "rendering/util/GPUTimer.h"
 #endif
 
-namespace Engine {
-namespace Graphics {
-struct SkyConfig {
+namespace Engine
+{
+namespace Graphics
+{
+struct SkyConfig
+{
     bool renderSky = false;
 
     float density_falloff = 8.f;
@@ -23,7 +26,8 @@ struct SkyConfig {
     float reflective_strength = 1.f;
 };
 
-class PostFXManagerImpl {
+class PostFXManagerImpl
+{
   private:
     VisualSystem* mVisualSystem;
 
@@ -40,8 +44,8 @@ class PostFXManagerImpl {
     void imGui();
 };
 
-std::unique_ptr<PostFXManager>
-PostFXManager::create(VisualSystem* visualSystem) {
+std::unique_ptr<PostFXManager> PostFXManager::create(VisualSystem* visualSystem)
+{
     std::unique_ptr<PostFXManager> ptr =
         std::unique_ptr<PostFXManager>(new PostFXManager());
     ptr->mImpl = std::make_unique<PostFXManagerImpl>(visualSystem);
@@ -50,23 +54,30 @@ PostFXManager::create(VisualSystem* visualSystem) {
 PostFXManager::PostFXManager() = default;
 PostFXManager::~PostFXManager() = default;
 
-void PostFXManager::render() { mImpl->render(); }
+void PostFXManager::render()
+{
+    mImpl->render();
+}
 
 PostFXManagerImpl::PostFXManagerImpl(VisualSystem* visualSystem)
-    : mVisualSystem(visualSystem) {
+    : mVisualSystem(visualSystem)
+{
 
     ImGuiHelper::registerImGuiCallback("Render/PostFX", [this]() { imGui(); });
 }
 
-void PostFXManagerImpl::render() {
+void PostFXManagerImpl::render()
+{
     Pipeline* pipeline = mVisualSystem->getPipeline();
 
-    if (mSkyConfig.renderSky) {
+    if (mSkyConfig.renderSky)
+    {
         renderSky(pipeline);
     }
 }
 
-void PostFXManagerImpl::renderSky(Pipeline* pipeline) {
+void PostFXManagerImpl::renderSky(Pipeline* pipeline)
+{
 #if defined(_DEBUG)
     IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Sky Processing");
 #endif
@@ -111,11 +122,14 @@ void PostFXManagerImpl::renderSky(Pipeline* pipeline) {
     pipeline->drawPostProcessQuad();
 }
 
-void PostFXManagerImpl::imGui() {
+void PostFXManagerImpl::imGui()
+{
 #if defined(IMGUI_ENABLED)
     ImGui::Checkbox("Render Sky", &mSkyConfig.renderSky);
-    if (mSkyConfig.renderSky) {
-        if (ImGui::CollapsingHeader("Sky Config")) {
+    if (mSkyConfig.renderSky)
+    {
+        if (ImGui::CollapsingHeader("Sky Config"))
+        {
             ImGui::SliderFloat("Density Falloff", &mSkyConfig.density_falloff,
                                0.f, 8.f);
             ImGui::SliderFloat("Atmosphere Height",

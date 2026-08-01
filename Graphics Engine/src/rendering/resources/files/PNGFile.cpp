@@ -12,15 +12,22 @@
 #define SUCCESS 1
 #define FAILURE 0
 
-namespace Engine {
-namespace Graphics {
-PNGFile::PNGFile(const std::string& file_path) { path = file_path; }
+namespace Engine
+{
+namespace Graphics
+{
+PNGFile::PNGFile(const std::string& file_path)
+{
+    path = file_path;
+}
 
 // --- PNG File Writing ---
 // Given a ID3D11Texture2D, writes its contents to a png file for exporting /
 // reading externally.
-bool PNGFile::writePNGData(ID3D11Device* device, ID3D11DeviceContext* context,
-                           ID3D11Texture2D* texture) {
+bool PNGFile::writePNGData(ID3D11Device* device,
+                           ID3D11DeviceContext* context,
+                           ID3D11Texture2D* texture)
+{
     // Get description of the texture
     D3D11_TEXTURE2D_DESC tex_desc;
     texture->GetDesc(&tex_desc);
@@ -77,7 +84,8 @@ bool PNGFile::writePNGData(ID3D11Device* device, ID3D11DeviceContext* context,
         return true;
 }
 
-TextureBuilder PNGFile::ReadPNGData(const std::vector<uint8_t>& data) {
+TextureBuilder PNGFile::ReadPNGData(const std::vector<uint8_t>& data)
+{
     std::vector<uint8_t> image;
     unsigned int width, height;
 
@@ -87,12 +95,15 @@ TextureBuilder PNGFile::ReadPNGData(const std::vector<uint8_t>& data) {
 
     // Parse content of image into a format the engine can use. lodepng
     // automatically converts the PNG into RGBA values.
-    TextureBuilder builder =
-        TextureBuilder(width, height, TextureLayout::R8G8B8A8_UNORM); // TODO should be automatic to 1 pixel
+    TextureBuilder builder = TextureBuilder(
+        width, height,
+        TextureLayout::R8G8B8A8_UNORM); // TODO should be automatic to 1 pixel
 
     TextureColor color;
-    for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
+    for (int y = 0; y < height; y++)
+    {
+        for (int x = 0; x < width; x++)
+        {
             const unsigned int index = (y * width + x) * 4;
             memcpy(&color, &image[index], 4 * sizeof(uint8_t));
             builder.setColor(x, y, color);

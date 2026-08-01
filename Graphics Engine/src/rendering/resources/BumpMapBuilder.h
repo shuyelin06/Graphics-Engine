@@ -2,13 +2,16 @@
 
 #include "TextureBuilder.h"
 
-namespace Engine {
-namespace Graphics {
+namespace Engine
+{
+namespace Graphics
+{
 // BumpMapBuilder Class:
 // An extended texture builder class, that supports bump map creation.
 // After loading a height map into the builder, call generate() to generate a
 // texture that has normals encoded into its RGB channels.
-class BumpMapBuilder : private TextureBuilder {
+class BumpMapBuilder : private TextureBuilder
+{
   private:
     using TextureBuilder::reset;
 

@@ -10,10 +10,12 @@
 #include "rendering/core/Mesh.h"
 #include "rendering/core/Texture.h"
 
-namespace Engine {
+namespace Engine
+{
 using namespace Math;
 
-namespace Graphics {
+namespace Graphics
+{
 class VisualSystem;
 class RenderManagerImpl;
 
@@ -31,7 +33,8 @@ class RenderManagerImpl;
 // A RenderView is an entity that the scene can be rendered from.
 // Think of it like a "camera". RenderManager provides a few entrypoints for
 // systems to provide it views
-struct RenderView {
+struct RenderView
+{
     Vector3 position;
     float zNear;
     Vector3 direction;
@@ -55,7 +58,8 @@ struct RenderView {
 using DrawBlockKey = uint32_t;
 inline constexpr DrawBlockKey kInvalidDrawBlockKey = 0xFFFF;
 
-struct DrawBlock {
+struct DrawBlock
+{
     AABB extents{};
 
     Mesh* mesh = nullptr;
@@ -74,7 +78,8 @@ struct DrawBlock {
 // - Shadows. Skinned Meshes. Normal Meshes
 // - RenderManager should own pipeline.
 // - Instancing support
-class RenderManager {
+class RenderManager
+{
   public:
     static std::unique_ptr<RenderManager> create(VisualSystem* engine,
                                                  ID3D11DeviceContext* context,
@@ -82,7 +87,9 @@ class RenderManager {
     ~RenderManager();
 
     DrawBlockKey addDrawBlock(const DrawBlock& block);
-    void updateInstanceData(const DrawBlockKey key, InstanceData instanceData, int numInstances = 1);
+    void updateInstanceData(const DrawBlockKey key,
+                            InstanceData instanceData,
+                            int numInstances = 1);
     void removeDrawBlock(const DrawBlockKey key);
 
     void setMainView(const RenderView& view);

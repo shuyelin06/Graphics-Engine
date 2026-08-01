@@ -9,10 +9,12 @@
 #include "math/Color.h"
 #endif
 
-namespace Engine {
+namespace Engine
+{
 using namespace Math;
 
-namespace Physics {
+namespace Physics
+{
 class AABBTree;
 struct AABBNode;
 class CollisionObject;
@@ -21,11 +23,12 @@ class PhysicsSystem;
 // AxisAlignedBoundingBox (AABB):
 // Represents an AABB in 3D space, given by its lower left corner and upper
 // right corner.
-class CollisionAABB {
-friend class AABBTree;
-friend struct AABBNode;
-friend class CollisionObject;
-friend class PhysicsSystem;
+class CollisionAABB
+{
+    friend class AABBTree;
+    friend struct AABBNode;
+    friend class CollisionObject;
+    friend class PhysicsSystem;
 
   private:
     Vector3 minimum;

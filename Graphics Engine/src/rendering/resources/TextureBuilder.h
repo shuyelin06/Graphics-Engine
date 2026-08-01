@@ -5,20 +5,25 @@
 
 #include "../core/TextureAtlas.h"
 
-namespace Engine {
-namespace Graphics {
+namespace Engine
+{
+namespace Graphics
+{
 class ResourceManagerImpl;
 
-struct TextureColor {
+struct TextureColor
+{
     uint8_t data[4];
 
-    struct UNormR8G8B8A8 {
+    struct UNormR8G8B8A8
+    {
         uint8_t r;
         uint8_t g;
         uint8_t b;
         uint8_t a;
 
-        UNormR8G8B8A8& operator+=(const UNormR8G8B8A8& color) {
+        UNormR8G8B8A8& operator+=(const UNormR8G8B8A8& color)
+        {
             r += color.r;
             g += color.g;
             b += color.b;
@@ -26,7 +31,8 @@ struct TextureColor {
             return *this;
         }
     };
-    struct FloatR32 {
+    struct FloatR32
+    {
         float r;
     };
 
@@ -34,18 +40,23 @@ struct TextureColor {
     TextureColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
     TextureColor(float r);
 
-    template <typename T> T& asType() { return *reinterpret_cast<T*>(data); }
+    template <typename T> T& asType()
+    {
+        return *reinterpret_cast<T*>(data);
+    }
 };
 
 // TextureBuilder Class:
 // Provides an interface for building textures manually.
 // Pixels should be loaded in the range [0,255].
 // The texture builder only supports the building of 8-bit RGBA channels.
-class TextureBuilder {
+class TextureBuilder
+{
     friend class ResourceManagerImpl;
 
   protected:
-    struct MipLevel {
+    struct MipLevel
+    {
         uint8_t* data; // Pointer to the data vector
         unsigned int width = 0;
         unsigned int height = 0;
@@ -56,7 +67,9 @@ class TextureBuilder {
     TextureLayout layout;
 
   public:
-    TextureBuilder(UINT width, UINT height, TextureLayout layout,
+    TextureBuilder(UINT width,
+                   UINT height,
+                   TextureLayout layout,
                    unsigned int numMips = 1);
     ~TextureBuilder();
 
@@ -78,17 +91,18 @@ class TextureBuilder {
   private:
     size_t computeMipByteSize(const MipLevel& mipLevel);
 
-    TextureColor& getTextureColor(const MipLevel& mipLevel, unsigned int x,
-                                  unsigned int y);
-    bool hasTextureColor(const MipLevel& mipLevel, unsigned int x,
-                         unsigned int y);
+    TextureColor&
+    getTextureColor(const MipLevel& mipLevel, unsigned int x, unsigned int y);
+    bool
+    hasTextureColor(const MipLevel& mipLevel, unsigned int x, unsigned int y);
 };
 
 // AtlasBuilder Class:
 // An extended texture builder class, that supports writing to texture atlases.
 // Can be used to build atlases of multiple textures together (reduce the total
 // number of draw calls).
-class AtlasBuilder : private TextureBuilder {
+class AtlasBuilder : private TextureBuilder
+{
   private:
     using TextureBuilder::reset;
 

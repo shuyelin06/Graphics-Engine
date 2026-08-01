@@ -10,34 +10,40 @@
 #include "Vector2.h"
 #include "Vector4.h"
 
-namespace Engine {
+namespace Engine
+{
 
-namespace Math {
+namespace Math
+{
 
 // Modulus:
 // Performs a modulus that properly wraps around for negatives.
 // For example, 7 % 5 = 2, and -2 % 5 = 3.
-int Modulus(int value, int mod) {
+int Modulus(int value, int mod)
+{
     return ((value %= mod) < 0) ? value + mod : value;
 }
 
 // Clamp:
 // Forces value to be within the range [low, high]
-float Clamp(float val, float low, float high) {
+float Clamp(float val, float low, float high)
+{
     const float temp = val < low ? low : val;
     return temp > high ? high : temp;
 }
 
 // Lerp:
 // Linearly interpolate between a,b given t.
-float Lerp(float a, float b, float t) {
+float Lerp(float a, float b, float t)
+{
     assert(0 <= t && t <= 1);
     return a * (1 - t) + b * t;
 }
 
 // CubicInterp:
 // Cubic interpolation between a,b given t
-float CubicInterp(float a, float b, float t) {
+float CubicInterp(float a, float b, float t)
+{
     const float t2 = t * t;
     const float t3 = t2 * t;
     return (b - a + 1.5f) * t3 - 1.5f * t2 + a;
@@ -45,25 +51,30 @@ float CubicInterp(float a, float b, float t) {
 
 // Random:
 // Generates a random value within the range [low, high]
-float Random(float low, float high) {
+float Random(float low, float high)
+{
     // Generate random float
     float rand_num = (float)(rand()) / float(RAND_MAX);
     return rand_num * (high - low) + low;
 }
-int Random(int low, int high) {
+int Random(int low, int high)
+{
     float rand = Random(0.0f, 1.0f);
     return low + (int)(rand * (high - low));
 }
-bool RandomExperiment(float prob_success) {
+bool RandomExperiment(float prob_success)
+{
     return Random(0.0f, 1.0f) <= prob_success;
 }
 
 // Spherical to Euler Coordinate-System Conversions.
 // Theta is the angle on the xy-plane, phi is the angle from the z axis.
-Vector3 SphericalToEuler(const Vector3& spherical) {
+Vector3 SphericalToEuler(const Vector3& spherical)
+{
     return SphericalToEuler(spherical.x, spherical.y, spherical.z);
 }
-Vector3 SphericalToEuler(float r, float theta, float phi) {
+Vector3 SphericalToEuler(float r, float theta, float phi)
+{
     const float x = r * sinf(theta) * cosf(phi);
     const float y = r * sinf(theta) * sinf(phi);
     const float z = r * cosf(theta);
@@ -71,10 +82,12 @@ Vector3 SphericalToEuler(float r, float theta, float phi) {
     return Vector3(x, y, z);
 }
 
-Vector3 EulerToSpherical(const Vector3& euler) {
+Vector3 EulerToSpherical(const Vector3& euler)
+{
     return EulerToSpherical(euler.x, euler.y, euler.z);
 }
-Vector3 EulerToSpherical(float x, float y, float z) {
+Vector3 EulerToSpherical(float x, float y, float z)
+{
     const float r = sqrtf(x * x + y * y + z * z);
     const float theta = acosf(z / r);
     const float phi = atan2f(y, x);
@@ -82,7 +95,8 @@ Vector3 EulerToSpherical(float x, float y, float z) {
     return Vector3(r, theta, phi);
 }
 
-MD5Hash hashMD5(const void* data, size_t byteSize) {
+MD5Hash hashMD5(const void* data, size_t byteSize)
+{
     MD5Context context;
     md5Init(&context);
     md5Update(&context, (uint8_t*)data, byteSize);
@@ -94,10 +108,13 @@ MD5Hash hashMD5(const void* data, size_t byteSize) {
     return output;
 }
 
-MD5Hash hashMD5(const void** dataArr, const size_t* byteSizeArr, size_t numElements) {
+MD5Hash
+hashMD5(const void** dataArr, const size_t* byteSizeArr, size_t numElements)
+{
     MD5Context context;
     md5Init(&context);
-    for (size_t i = 0; i < numElements; i++) {
+    for (size_t i = 0; i < numElements; i++)
+    {
         md5Update(&context, (uint8_t*)(dataArr[i]), byteSizeArr[i]);
     }
     md5Finalize(&context);

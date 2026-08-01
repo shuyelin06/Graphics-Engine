@@ -10,8 +10,10 @@
 #include "math/Compute.h"
 #include "math/Quaternion.h"
 
-namespace Engine {
-namespace Graphics {
+namespace Engine
+{
+namespace Graphics
+{
 class ResourceManager;
 
 // MeshBuilder Class:
@@ -20,7 +22,8 @@ class ResourceManager;
 // buffer references these vertices by index to create triangles for the mesh.
 // A mesh vertex contains all properties a vertex can possibly have. It's about
 // the same as the vertex streams defined in VertexStreamIDs.h
-struct MeshVertex {
+struct MeshVertex
+{
     Vector3 position;
     Vector2 tex;
     Vector3 normal;
@@ -36,7 +39,8 @@ struct MeshVertex {
     const void* GetAddressOf(VertexDataStream bindable_stream) const;
 };
 
-struct MeshTriangle {
+struct MeshTriangle
+{
     uint32_t vertex0;
     uint32_t vertex1;
     uint32_t vertex2;
@@ -45,7 +49,8 @@ struct MeshTriangle {
     MeshTriangle(UINT v0, UINT v1, UINT v2);
 };
 
-class MeshBuilder {
+class MeshBuilder
+{
     friend class ResourceManager;
 
   public:
@@ -92,7 +97,9 @@ class MeshBuilder {
     // the builder. Unit cube centered around the origin
     void addTriangle(const Vector3& a, const Vector3& b, const Vector3& c);
     void addCube(const Vector3& center, const Quaternion& rotation, float size);
-    void addTube(const Vector3& start, const Vector3& end, float radius,
+    void addTube(const Vector3& start,
+                 const Vector3& end,
+                 float radius,
                  int num_vertices);
 
     // Discard the current normals for the mesh and regenerate them

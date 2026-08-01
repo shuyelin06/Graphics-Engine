@@ -1,10 +1,13 @@
 #pragma once
 
-namespace Engine {
-namespace Math {
+namespace Engine
+{
+namespace Math
+{
 // Color Class:
 // Represents an RGB color, where each component is in the range [0,1].
-class Color {
+class Color
+{
   public:
     float r, g, b;
 

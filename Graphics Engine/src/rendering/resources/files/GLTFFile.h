@@ -10,19 +10,24 @@ struct cgltf_accessor;
 struct cgltf_material;
 struct cgltf_texture;
 
-namespace Engine {
-namespace Graphics {
+namespace Engine
+{
+namespace Graphics
+{
 // GLTFFile:
 // Interface for reading GLTF Binary files.
-class GLTFFile {
+class GLTFFile
+{
   private:
     std::string path;
 
   public:
     GLTFFile(const std::string& path);
 
-    Asset* readFromFile(MeshBuilder& mesh_builder, AtlasBuilder& tex_builder,
-                        ID3D11Device* device, ID3D11DeviceContext* context);
+    Asset* readFromFile(MeshBuilder& mesh_builder,
+                        AtlasBuilder& tex_builder,
+                        ID3D11Device* device,
+                        ID3D11DeviceContext* context);
 
     static void ReadGLTFMesh(const std::string& path, MeshBuilder& builder);
 

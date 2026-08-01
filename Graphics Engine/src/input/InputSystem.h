@@ -7,13 +7,16 @@
 #include "EventHandler.h"
 #include "InputState.h"
 
-namespace Engine {
-namespace Input {
+namespace Engine
+{
+namespace Input
+{
 
 // InputSystem Class
 // Provides a high-level interface for managing
 // user input
-class InputSystem {
+class InputSystem
+{
   private:
     // Event callback chains
     std::vector<EventHandle> callback_chains[EventCount];

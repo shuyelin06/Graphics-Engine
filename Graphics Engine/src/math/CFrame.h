@@ -4,11 +4,14 @@
 #include "Quaternion.h"
 #include "Vector3.h"
 
-namespace Engine {
-namespace Math {
+namespace Engine
+{
+namespace Math
+{
 // Coordinate Frame:
 // Position (Vector3) + Rotation (Quaternion)
-class CFrame {
+class CFrame
+{
   private:
     Vector3 position;
     Quaternion rotation;

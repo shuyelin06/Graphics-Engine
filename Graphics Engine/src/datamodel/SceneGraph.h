@@ -5,17 +5,20 @@
 #include "Object.h"
 #include "terrain/Terrain.h"
 
-namespace Engine {
+namespace Engine
+{
 using namespace Math;
 
-namespace Datamodel {
+namespace Datamodel
+{
 // Class SceneGraph:
 // Stores and manages all objects in the scene. Objects are stored in a
 // tree-like hierarchy, Parent <--> Children Where all children node transforms
 // are based off the local coordinate system of their parent. The reference
 // coordinate system of all nodes without a parent is the world coordinate
 // system.
-class Scene {
+class Scene
+{
   private:
     std::vector<Object*> objects;
 

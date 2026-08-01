@@ -7,11 +7,14 @@ struct ID3D11DeviceContext;
 struct ID3D11Buffer;
 struct ID3D11ShaderResourceView;
 
-namespace Engine {
-namespace Graphics {
+namespace Engine
+{
+namespace Graphics
+{
 // StructuredBuffer Class:
 // An interface for working with structured buffers in this engine.
-class StructuredBuffer {
+class StructuredBuffer
+{
   private:
     friend class Pipeline;
 
@@ -25,13 +28,14 @@ class StructuredBuffer {
     StructuredBuffer();
     ~StructuredBuffer();
 
-    void initialize(ID3D11Device* device, size_t elementSize,
-                    size_t numElements);
+    void
+    initialize(ID3D11Device* device, size_t elementSize, size_t numElements);
 
     // UploadData:
     // Given a vector of data elements, uploads the data to the structured
     // buffer. Takes the minimum of the two sizes to upload.
-    void uploadData(ID3D11DeviceContext* context, const void* addr,
+    void uploadData(ID3D11DeviceContext* context,
+                    const void* addr,
                     unsigned int array_size);
 };
 

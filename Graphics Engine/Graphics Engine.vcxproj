@@ -264,7 +264,6 @@
     <ClCompile Include="src\rendering\core\VertexStreamIDs.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\..\..\Program Files\RenderDoc\renderdoc_app.h" />
     <ClInclude Include="include\cgltf\cgltf.h" />
     <ClInclude Include="include\lodepng\lodepng.h" />
     <ClInclude Include="include\md5\md5.h" />

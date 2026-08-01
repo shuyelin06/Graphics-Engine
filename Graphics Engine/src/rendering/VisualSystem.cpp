@@ -9,12 +9,14 @@
 #include "util/GPUTimer.h"
 #endif
 
-namespace Engine {
-
-namespace Graphics {
+namespace Engine
+{
+namespace Graphics
+{
 // Constructor
 // Initializes the VisualSystem
-VisualSystem::VisualSystem(HWND window) {
+VisualSystem::VisualSystem(HWND window)
+{
     // Initialize my pipeline
     pipeline = std::make_unique<Pipeline>(window);
 
@@ -43,7 +45,8 @@ VisualSystem::VisualSystem(HWND window) {
 
 // Render:
 // Renders the entire scene to the screen.
-void VisualSystem::render() {
+void VisualSystem::render()
+{
     pipeline->beginFrame(frame++);
 
 #if defined(_DEBUG)
@@ -66,7 +69,8 @@ void VisualSystem::render() {
     RenderDoc::EndRenderDocCaptureIfCapturing();
 }
 
-void VisualSystem::renderPrepare() {
+void VisualSystem::renderPrepare()
+{
 #if defined(_DEBUG)
     ICPUTimer cpu_timer = CPUTimer::TrackCPUTime("Render Prepare");
 #endif
@@ -113,33 +117,47 @@ Device* VisualSystem::getDevice() const
 {
     return device.get();
 }
-ResourceManager* VisualSystem::getResourceManager() const {
+ResourceManager* VisualSystem::getResourceManager() const
+{
     return resource_manager.get();
 }
-MaterialManager* VisualSystem::getMaterialManager() const {
+MaterialManager* VisualSystem::getMaterialManager() const
+{
     return material_manager.get();
 }
-SceneListener* VisualSystem::getSceneListener() const {
+SceneListener* VisualSystem::getSceneListener() const
+{
     return scene_listener.get();
 }
-SceneManager* VisualSystem::getSceneManager() const {
+SceneManager* VisualSystem::getSceneManager() const
+{
     return scene_manager.get();
 }
-RenderManager* VisualSystem::getRenderManager() const {
+RenderManager* VisualSystem::getRenderManager() const
+{
     return render_manager.get();
 }
-LightManager* VisualSystem::getLightManager() const { return light_manager; }
+LightManager* VisualSystem::getLightManager() const
+{
+    return light_manager;
+}
 
-Pipeline* VisualSystem::getPipeline() const { return pipeline.get(); }
+Pipeline* VisualSystem::getPipeline() const
+{
+    return pipeline.get();
+}
 
-void VisualSystem::doRenderDocUI() {
+void VisualSystem::doRenderDocUI()
+{
 #if defined(IMGUI_ENABLED)
-    if (!RenderDoc::IsRenderDocInitialized()) {
+    if (!RenderDoc::IsRenderDocInitialized())
+    {
         ImGui::Text("RenderDoc failed to initialize.");
         return;
     }
 
-    if (ImGui::Button("Take RenderDoc Capture")) {
+    if (ImGui::Button("Take RenderDoc Capture"))
+    {
         RenderDoc::StartRenderDocCapture();
     }
 #endif

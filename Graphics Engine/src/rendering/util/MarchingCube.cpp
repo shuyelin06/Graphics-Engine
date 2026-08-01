@@ -11,9 +11,11 @@
 
 constexpr float EPSILON = 0.0001f;
 
-namespace Engine {
+namespace Engine
+{
 using namespace Math;
-namespace Datamodel {
+namespace Datamodel
+{
 // -------------------------------------------------------------
 // Terrain Generation using an adapted version of Lewiner, et. al's
 // 3D Marching Cubes implementation.
@@ -43,8 +45,15 @@ namespace Datamodel {
 MarchingCube::MarchingCube() = default;
 MarchingCube::~MarchingCube() = default;
 
-void MarchingCube::updateData(float a1, float a2, float a3, float a4, float a5,
-                              float a6, float a7, float a8) {
+void MarchingCube::updateData(float a1,
+                              float a2,
+                              float a3,
+                              float a4,
+                              float a5,
+                              float a6,
+                              float a7,
+                              float a8)
+{
     vertexData[0] = a1;
     vertexData[1] = a2;
     vertexData[2] = a3;
@@ -59,7 +68,8 @@ void MarchingCube::updateData(float a1, float a2, float a3, float a4, float a5,
 // vertexData. This uses the Marching Cube algorithm, and assumes the surface
 // exists at the value 0.
 void MarchingCube::generateSurface(Triangle* triangle_output,
-                                   int* num_triangles) {
+                                   int* num_triangles)
+{
     assert(triangle_output != nullptr && num_triangles != nullptr);
 
     output_triangulation = triangle_output;
@@ -72,7 +82,8 @@ void MarchingCube::generateSurface(Triangle* triangle_output,
     const char configID = CaseTable[vertexMask][1];
     char subconfigID = 0;
 
-    switch (caseID) {
+    switch (caseID)
+    {
     case 0:
         break;
 
@@ -106,11 +117,13 @@ void MarchingCube::generateSurface(Triangle* triangle_output,
     case 6:
         if (testFaceAmbiguity(TestTableCase6[configID][0]))
             createTriangles(TilingTableCase6_2[configID], 5); // 6.2
-        else {
+        else
+        {
             if (testInternalAmbiguity(caseID, configID, subconfigID,
                                       TestTableCase6[configID][1]))
                 createTriangles(TilingTableCase6_1_1[configID], 3); // 6.1.1
-            else {
+            else
+            {
                 createTriangles(TilingTableCase6_1_2[configID], 9); // 6.1.2
             }
         }
@@ -123,7 +136,8 @@ void MarchingCube::generateSurface(Triangle* triangle_output,
             subconfigID += 2;
         if (testFaceAmbiguity(TestTableCase7[configID][2]))
             subconfigID += 4;
-        switch (subconfigID) {
+        switch (subconfigID)
+        {
         case 0:
             createTriangles(TilingTableCase7_1[configID], 3);
             break;
@@ -164,18 +178,25 @@ void MarchingCube::generateSurface(Triangle* triangle_output,
         break;
 
     case 10:
-        if (testFaceAmbiguity(TestTableCase10[configID][0])) {
+        if (testFaceAmbiguity(TestTableCase10[configID][0]))
+        {
             if (testFaceAmbiguity(TestTableCase10[configID][1]))
                 createTriangles(TilingTableCase10_1_1_Inverted[configID],
                                 4); // 10.1.1
-            else {
+            else
+            {
                 createTriangles(TilingTableCase10_2[configID], 8); // 10.2
             }
-        } else {
-            if (testFaceAmbiguity(TestTableCase10[configID][1])) {
+        }
+        else
+        {
+            if (testFaceAmbiguity(TestTableCase10[configID][1]))
+            {
                 createTriangles(TilingTableCase10_2_Inverted[configID],
                                 8); // 10.2
-            } else {
+            }
+            else
+            {
                 if (testInternalAmbiguity(caseID, configID, subconfigID,
                                           TestTableCase10[configID][2]))
                     createTriangles(TilingTableCase10_1_1[configID],
@@ -192,18 +213,25 @@ void MarchingCube::generateSurface(Triangle* triangle_output,
         break;
 
     case 12:
-        if (testFaceAmbiguity(TestTableCase12[configID][0])) {
+        if (testFaceAmbiguity(TestTableCase12[configID][0]))
+        {
             if (testFaceAmbiguity(TestTableCase12[configID][1]))
                 createTriangles(TilingTableCase12_1_1_Inverted[configID],
                                 4); // 12.1.1
-            else {
+            else
+            {
                 createTriangles(TilingTableCase12_2[configID], 8); // 12.2
             }
-        } else {
-            if (testFaceAmbiguity(TestTableCase12[configID][1])) {
+        }
+        else
+        {
+            if (testFaceAmbiguity(TestTableCase12[configID][1]))
+            {
                 createTriangles(TilingTableCase12_2_Inverted[configID],
                                 8); // 12.2
-            } else {
+            }
+            else
+            {
                 if (testInternalAmbiguity(caseID, configID, subconfigID,
                                           TestTableCase12[configID][2]))
                     createTriangles(TilingTableCase12_1_1[configID],
@@ -228,7 +256,8 @@ void MarchingCube::generateSurface(Triangle* triangle_output,
             subconfigID += 16;
         if (testFaceAmbiguity(TestTableCase13[configID][5]))
             subconfigID += 32;
-        switch (SubconfigTableCase13[subconfigID]) {
+        switch (SubconfigTableCase13[subconfigID])
+        {
         case 0: /* 13.1 */
             createTriangles(TilingTableCase13_1[configID], 4);
             break;
@@ -409,23 +438,29 @@ void MarchingCube::generateSurface(Triangle* triangle_output,
 // Given a sequence of edges from the tiling table,
 // generates triangles from them. This is used to generate the surface
 // triangulation for our marching cube.
-void MarchingCube::createTriangles(const char* edgeList, char numberTriangles) {
+void MarchingCube::createTriangles(const char* edgeList, char numberTriangles)
+{
     Vector3 vertices[3];
 
     (*output_num_triangles) = numberTriangles;
 
-    for (int i = 0; i < numberTriangles; i++) {
-        for (int t = 0; t < 3; t++) {
+    for (int i = 0; i < numberTriangles; i++)
+    {
+        for (int t = 0; t < 3; t++)
+        {
             const char edgeID = edgeList[i * 3 + t];
 
-            if (edgeID == 12) {
+            if (edgeID == 12)
+            {
                 Vector3 interiorPoint = Vector3();
                 int count = 0;
 
-                for (int v = 0; v < 12; v++) {
+                for (int v = 0; v < 12; v++)
+                {
                     const Vector3 point = generateVertexOnEdge(v);
 
-                    if (point.x != -1) {
+                    if (point.x != -1)
+                    {
                         interiorPoint += point;
                         count++;
                     }
@@ -434,7 +469,8 @@ void MarchingCube::createTriangles(const char* edgeList, char numberTriangles) {
                 interiorPoint /= count;
 
                 vertices[t] = interiorPoint;
-            } else if (0 <= edgeID && edgeID <= 11)
+            }
+            else if (0 <= edgeID && edgeID <= 11)
                 vertices[t] = generateVertexOnEdge(edgeID);
             else // Invalid
                 assert(false);
@@ -448,14 +484,16 @@ void MarchingCube::createTriangles(const char* edgeList, char numberTriangles) {
 // Determines the coordinate of the terrain at some edgeID.
 // Assumes that if we linearly interpolate, the value will hit 0
 // along the edge.
-Vector3 MarchingCube::generateVertexOnEdge(char edgeID) {
+Vector3 MarchingCube::generateVertexOnEdge(char edgeID)
+{
     // We have 2 points that form an edge - we sample the data at these points
     Vector3 basePoint, offset;
     float baseValue, offsetValue;
 
     // Based on the edge, determine the location of the edge's points,
     // and sample at these edge points
-    switch (edgeID) {
+    switch (edgeID)
+    {
     case 0:
         basePoint = Vector3(0, 0, 0);
         baseValue = vertexData[0];
@@ -564,13 +602,15 @@ Vector3 MarchingCube::generateVertexOnEdge(char edgeID) {
 // resolve the ambiguity, telling us which corner the ambiguity resides on. This
 // is also known as the asymptotic decider. A negative ID indicates that we need
 // to flip the results of the test.
-bool MarchingCube::testFaceAmbiguity(char faceID) {
+bool MarchingCube::testFaceAmbiguity(char faceID)
+{
     assert((1 <= faceID && faceID <= 6) || (-6 <= faceID && faceID <= -1));
 
     float a, b, c, d;
 
     // Given the face ID, load the data from the face's vertices
-    switch (faceID) {
+    switch (faceID)
+    {
     case -1:
     case 1:
         a = vertexData[0];
@@ -659,8 +699,11 @@ bool MarchingCube::testFaceAmbiguity(char faceID) {
 // surface). Sign can either be 7 or -7, indicating if we should invert the
 // results of the test or not. If 7, return true if the interior is empty. If
 // -7, return false if the interior is empty.
-bool MarchingCube::testInternalAmbiguity(char caseID, char configID,
-                                         char subConfigID, char sign) {
+bool MarchingCube::testInternalAmbiguity(char caseID,
+                                         char configID,
+                                         char subConfigID,
+                                         char sign)
+{
     // Tracks the plane that should connect the points (if it does exist).
     float t, at = 0, bt = 0, ct = 0, dt = 0;
     // Caches some data for calculations
@@ -670,7 +713,8 @@ bool MarchingCube::testInternalAmbiguity(char caseID, char configID,
     // our ambiguous case is on.
     char referenceEdge = -1;
 
-    switch (caseID) {
+    switch (caseID)
+    {
     case 4:
     case 10:
         a = (vertexData[4] - vertexData[0]) * (vertexData[6] - vertexData[2]) -
@@ -694,7 +738,8 @@ bool MarchingCube::testInternalAmbiguity(char caseID, char configID,
     case 7:
     case 12:
     case 13:
-        switch (caseID) {
+        switch (caseID)
+        {
         case 6:
             referenceEdge = TestTableCase6[configID][2];
             break;
@@ -708,7 +753,8 @@ bool MarchingCube::testInternalAmbiguity(char caseID, char configID,
             referenceEdge = TilingTableCase13_5_1[configID][subConfigID][0];
             break;
         }
-        switch (referenceEdge) {
+        switch (referenceEdge)
+        {
         case 0:
             t = vertexData[0] / (vertexData[0] - vertexData[1]);
             at = 0;
@@ -819,7 +865,8 @@ bool MarchingCube::testInternalAmbiguity(char caseID, char configID,
     if (dt >= 0)
         test += 8;
 
-    switch (test) {
+    switch (test)
+    {
     case 0:
         return sign > 0;
     case 1:
@@ -864,7 +911,8 @@ bool MarchingCube::testInternalAmbiguity(char caseID, char configID,
 // Generate a mask for the cube indicating what vertices of the voxel are inside
 // the surface, and what vertices are outside. Voxels with bit flipped to 1 are
 // inside the surface, and voxels with bit flipped to 0 are outside the surface.
-char MarchingCube::computeVertexMask() {
+char MarchingCube::computeVertexMask()
+{
     unsigned char mask = 0;
 
     // For each vertex in the voxel, test if it is inside the surface by

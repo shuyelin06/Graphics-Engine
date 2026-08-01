@@ -2,14 +2,17 @@
 
 #include "math/Transform.h"
 
-namespace Engine {
+namespace Engine
+{
 using namespace Math;
 
-namespace Input {
+namespace Input
+{
 // MovementHandler Class:
 // Represents an object which polls the input system and
 // modifies an object's transform
-class MovementHandler {
+class MovementHandler
+{
   private:
     // Center of the screen
     int center_x, center_y;

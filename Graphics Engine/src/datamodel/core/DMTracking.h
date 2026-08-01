@@ -3,11 +3,14 @@
 #include "DMEvent.h"
 #include "DMListener.h"
 
-namespace Engine {
-namespace Datamodel {
+namespace Engine
+{
+namespace Datamodel
+{
 void FireDatamodelEvent(const DMEvent& event);
 
-class DMTrackedObject {
+class DMTrackedObject
+{
   private:
     const DMObjectHandle handle;
     const DMObjectTag object_tag;
@@ -20,7 +23,8 @@ class DMTrackedObject {
     DMObjectTag getObjectTag() const;
 };
 
-template <typename T> struct DMTrackedProperty {
+template <typename T> struct DMTrackedProperty
+{
   private:
     const DMTrackedObject* owner;
     const DMPropertyTag property_tag;
@@ -29,10 +33,16 @@ template <typename T> struct DMTrackedProperty {
 
   public:
     DMTrackedProperty(const DMTrackedObject* _owner, const DMPropertyTag& _tag)
-        : owner(_owner), property_tag(_tag), data() {}
+        : owner(_owner)
+        , property_tag(_tag)
+        , data()
+    {
+    }
 
-    void writeProperty(const T& new_value) {
-        if (data != new_value) {
+    void writeProperty(const T& new_value)
+    {
+        if (data != new_value)
+        {
             data = new_value;
 
             DMEvent event;
@@ -45,8 +55,14 @@ template <typename T> struct DMTrackedProperty {
         }
     };
 
-    T& readProperty() { return data; }
-    const T& readProperty() const { return data; }
+    T& readProperty()
+    {
+        return data;
+    }
+    const T& readProperty() const
+    {
+        return data;
+    }
 };
 
 } // namespace Datamodel

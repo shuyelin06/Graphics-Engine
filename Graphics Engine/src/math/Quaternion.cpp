@@ -4,23 +4,37 @@
 
 #include "Compute.h"
 
-namespace Engine {
-namespace Math {
+namespace Engine
+{
+namespace Math
+{
 // Raw Quaternion Methods
-Quaternion::Quaternion(const Vector3& _im, float _r) {
+Quaternion::Quaternion(const Vector3& _im, float _r)
+{
     im = _im;
     r = _r;
 }
 
-const Vector3& Quaternion::getIm() const { return im; }
-float Quaternion::getR() const { return r; }
+const Vector3& Quaternion::getIm() const
+{
+    return im;
+}
+float Quaternion::getR() const
+{
+    return r;
+}
 
 // Normal Quaternion Methods
-Quaternion::Quaternion() : im(0, 0, 0), r(1) {}
+Quaternion::Quaternion()
+    : im(0, 0, 0)
+    , r(1)
+{
+}
 
 // Norm:
 // Calculates and returns the conjugate's norm
-float Quaternion::norm() const {
+float Quaternion::norm() const
+{
     float sq_prod = im.x * im.x + im.y * im.y + im.z * im.z + r * r;
     return sqrtf(sq_prod);
 }
@@ -28,7 +42,8 @@ float Quaternion::norm() const {
 // Conjugate:
 // Returns this quaternion's conjugate, the quaternion such that
 // its product with this gives us a real number
-Quaternion Quaternion::conjugate() const {
+Quaternion Quaternion::conjugate() const
+{
     Quaternion new_qhat;
     new_qhat.im = -im;
     new_qhat.r = r;
@@ -38,7 +53,8 @@ Quaternion Quaternion::conjugate() const {
 // RotationMatrix:
 // Generates the rotation matrix for this quaternion. Assumes this quaternion
 // is a unit quaternion
-Matrix4 Quaternion::rotationMatrix4() const {
+Matrix4 Quaternion::rotationMatrix4() const
+{
     const Vector3 qv = im;
     const float qw = r;
 
@@ -52,7 +68,8 @@ Matrix4 Quaternion::rotationMatrix4() const {
     return rotation_matrix;
 }
 
-Matrix3 Quaternion::rotationMatrix3() const {
+Matrix3 Quaternion::rotationMatrix3() const
+{
     const Vector3 qv = im;
     const float qw = r;
 
@@ -70,7 +87,8 @@ Matrix3 Quaternion::rotationMatrix3() const {
 // Addition:
 // Adds two quaternions together and returns a new quaternion
 // representing their result
-Quaternion Quaternion::operator+(const Quaternion& qhat) const {
+Quaternion Quaternion::operator+(const Quaternion& qhat) const
+{
     Quaternion new_qhat;
     new_qhat.im = im + qhat.im;
     new_qhat.r = r + qhat.r;
@@ -80,7 +98,8 @@ Quaternion Quaternion::operator+(const Quaternion& qhat) const {
 // Compound (In-Place) Addition
 // Adds one quaternion to the other, where this quaternion is
 // modified in-place
-Quaternion& Quaternion::operator+=(const Quaternion& qhat) {
+Quaternion& Quaternion::operator+=(const Quaternion& qhat)
+{
     im += qhat.im;
     r += qhat.r;
     return *this;
@@ -92,7 +111,8 @@ Quaternion& Quaternion::operator+=(const Quaternion& qhat) {
 // When working with unit quaternions, this is equivalent to
 // combining two rotations, where the rightmost quaternion (rotation)
 // is applied first.
-Quaternion Quaternion::operator*(const Quaternion& qhat) const {
+Quaternion Quaternion::operator*(const Quaternion& qhat) const
+{
     Quaternion new_qhat;
     new_qhat.im = im.cross(qhat.im) + qhat.im * r + im * qhat.r;
     new_qhat.r = r * qhat.r - im.dot(qhat.im);
@@ -102,7 +122,8 @@ Quaternion Quaternion::operator*(const Quaternion& qhat) const {
 // Compound (In-Place) Multiplication
 // Multiplies a quaternion to this, modifying this quaternion
 // in place
-Quaternion& Quaternion::operator*=(const Quaternion& qhat) {
+Quaternion& Quaternion::operator*=(const Quaternion& qhat)
+{
     const Vector3 imNew = im.cross(qhat.im) + qhat.im * r + im * qhat.r;
     const float rNew = r * qhat.r - im.dot(qhat.im);
     im = imNew;
@@ -113,12 +134,16 @@ Quaternion& Quaternion::operator*=(const Quaternion& qhat) {
 // Identity:
 // Returns the identity quaternion, with a 0 imaginary vector
 // and real component equal to 1
-Quaternion Quaternion::Identity() { return Quaternion(Vector3(0, 0, 0), 1); }
+Quaternion Quaternion::Identity()
+{
+    return Quaternion(Vector3(0, 0, 0), 1);
+}
 
 // Slerp:
 // Performs a spherical interpolation between two quaternions.
-Quaternion Quaternion::Slerp(const Quaternion& a_in, const Quaternion& b_in,
-                             float time) {
+Quaternion
+Quaternion::Slerp(const Quaternion& a_in, const Quaternion& b_in, float time)
+{
     // Slerp by
     // https://github.khronos.org/glTF-Tutorials/gltfTutorial/gltfTutorial_007_Animations.html
     float dot_prod = a_in.im.dot(b_in.im) + a_in.r * b_in.r;
@@ -127,14 +152,16 @@ Quaternion Quaternion::Slerp(const Quaternion& a_in, const Quaternion& b_in,
     Quaternion b = b_in;
 
     // Make sure we take the shortest path in case dot Product is negative
-    if (dot_prod < 0.0f) {
+    if (dot_prod < 0.0f)
+    {
         b = Quaternion(-b.im, -b.r);
         dot_prod = -dot_prod;
     }
 
     // If the two quaternions are too close to each other, just linear
     // interpolate between the 4D vector
-    if (dot_prod > 0.9995f) {
+    if (dot_prod > 0.9995f)
+    {
         Quaternion output =
             Quaternion(a.im + (b.im - a.im) * time, a.r + (b.r - a.r) * time);
 
@@ -163,7 +190,8 @@ Quaternion Quaternion::Slerp(const Quaternion& a_in, const Quaternion& b_in,
 
 // RotationAroundAxis:
 // Generate a unit quaternion representing a rotation around a given axis
-Quaternion Quaternion::RotationAroundAxis(const Vector3& axis, float theta) {
+Quaternion Quaternion::RotationAroundAxis(const Vector3& axis, float theta)
+{
     const Vector3 normalized = axis.unit();
     const float radians = theta / 2;
     return Quaternion(normalized * sinf(radians), cosf(radians));
@@ -172,7 +200,8 @@ Quaternion Quaternion::RotationAroundAxis(const Vector3& axis, float theta) {
 // RotationBetweenVectors:
 // Generate a unit quaternion representing a rotation that rotates +Z to some
 // vector. Does this using spherical coordinates.
-Quaternion Quaternion::RotationToVector(const Vector3& direction) {
+Quaternion Quaternion::RotationToVector(const Vector3& direction)
+{
     const Vector3 normalized = direction.unit();
 
     // Now, convert to spherical coordinates

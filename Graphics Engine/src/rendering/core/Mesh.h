@@ -16,9 +16,11 @@
 #include "math/Vector2.h"
 #include "math/Vector3.h"
 
-namespace Engine {
+namespace Engine
+{
 using namespace Math;
-namespace Graphics {
+namespace Graphics
+{
 typedef unsigned int UINT;
 
 // --- Mesh ---
@@ -28,7 +30,8 @@ typedef unsigned int UINT;
 
 // TODO: MeshPool will let us group meshes into shared buffers
 struct Mesh;
-struct MeshPool {
+struct MeshPool
+{
   private:
     friend class MeshBuilder;
     // Default Constructor, used by MeshBuilder to create
@@ -70,7 +73,8 @@ struct MeshPool {
     void updateGPUResources(ID3D11DeviceContext* context);
 };
 
-struct Mesh {
+struct Mesh
+{
     Mesh();
     Mesh(MeshPool* pool);
     ~Mesh();
@@ -98,7 +102,8 @@ struct Mesh {
 // Defines a local transform in space. Nodes can have children, and the
 // transforms of these children are influenced by their parents.
 // Nodes are used for skinning and animations.
-struct Node {
+struct Node
+{
     Transform transform;
     Matrix4 m_local;
 
@@ -122,7 +127,8 @@ struct Node {
 // 3) Apply (inverse bind)^-1 matrix to retransform back to model space
 // For multiple joints, a vertex will also store weights determining how much
 // that joint matrix influences the vertex
-struct SkinJoint {
+struct SkinJoint
+{
     const Node* node;
     Matrix4 m_transform;
 
@@ -138,8 +144,14 @@ struct SkinJoint {
 // which change over time.
 // The base construct for an animation is the AnimationState, which defines
 // how one node's local properties change within a time frame t in [0,1].
-enum LocalStateType { ANIMATION_POSITION, ANIMATION_ROTATION, ANIMATION_SCALE };
-class LocalState {
+enum LocalStateType
+{
+    ANIMATION_POSITION,
+    ANIMATION_ROTATION,
+    ANIMATION_SCALE
+};
+class LocalState
+{
   private:
     float x, y, z, w;
     float time;
@@ -160,7 +172,8 @@ class LocalState {
     void setTime(float time);
 };
 
-class AnimationState {
+class AnimationState
+{
   private:
     Node* target_node;
     LocalStateType state_type;
@@ -178,7 +191,8 @@ class AnimationState {
     LocalState stateAtTime(float time) const;
 };
 
-class Animation {
+class Animation
+{
   private:
     std::vector<AnimationState*> states;
 
@@ -197,7 +211,8 @@ class Animation {
 // compose one renderable entity.
 // The placement of meshes within an asset is defined by node classes.
 // This allows for animations within the asset.
-class Asset {
+class Asset
+{
   private:
     // Meshes that the asset is made up of. A mesh defines a renderable
     // collection of triangles in the asset.

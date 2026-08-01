@@ -13,7 +13,8 @@
 #include "ThreadPool.h"
 #include "UniqueFunction.h"
 
-namespace Engine {
+namespace Engine
+{
 // JobGraph lets you define a sequence of jobs, which are functions which may or
 // may not have dependencies with each other. Jobs are automatically scheduled
 // when they have no dependencies and where they are scheduled depends on their context:
@@ -22,16 +23,22 @@ namespace Engine {
 // To share data between jobs, JobPool provides thread-safe access to JobGraphMemoryPool.
 // Jobs can move data under unique_ptrs to the pool, and associate it with a string token for other jobs
 // to access.
-class JobGraphMemoryPool {
+class JobGraphMemoryPool
+{
   private:
     // Erase the type under the unique ptrs so that we can store them together
     // in the map.
-    struct WrapperBase {
+    struct WrapperBase
+    {
         virtual ~WrapperBase() = default;
     };
-    template <typename T> struct Wrapper : public WrapperBase {
+    template <typename T> struct Wrapper : public WrapperBase
+    {
         std::unique_ptr<T> ptr;
-        Wrapper(std::unique_ptr<T> ptr) : ptr(std::move(ptr)) {}
+        Wrapper(std::unique_ptr<T> ptr)
+            : ptr(std::move(ptr))
+        {
+        }
     };
 
     std::unordered_map<std::string, std::unique_ptr<WrapperBase>> mMemoryMap;
@@ -42,16 +49,19 @@ class JobGraphMemoryPool {
     ~JobGraphMemoryPool();
 
     template <typename T>
-    void store(const std::string& token, std::unique_ptr<T>&& data) {
+    void store(const std::string& token, std::unique_ptr<T>&& data)
+    {
         std::scoped_lock<std::mutex> lock(mMemoryMapLock);
         mMemoryMap[token] = std::make_unique<Wrapper<T>>(std::move(data));
     }
 
-    template <typename T> std::unique_ptr<T> load(const std::string& token) {
+    template <typename T> std::unique_ptr<T> load(const std::string& token)
+    {
         std::scoped_lock<std::mutex> lock(mMemoryMapLock);
 
         auto iter = mMemoryMap.find(token);
-        if (iter == mMemoryMap.end()) {
+        if (iter == mMemoryMap.end())
+        {
             return nullptr;
         }
 
@@ -65,14 +75,17 @@ class JobGraphMemoryPool {
     }
 };
 
-enum class JobGraphContext {
+enum class JobGraphContext
+{
     kAsync = 0,
     kSynchronous = 1,
 };
 using JobGraphFunction = UniqueFunction<bool(JobGraphMemoryPool& memoryPool)>;
-class JobGraph {
+class JobGraph
+{
   private:
-    struct JobNode {
+    struct JobNode
+    {
         // Job and context that this node will execute in
         JobGraphFunction job;
         JobGraphContext context;
@@ -82,8 +95,12 @@ class JobGraph {
         std::vector<JobNode*> dependents;
 
         JobNode(JobGraphFunction&& func, JobGraphContext context)
-            : job(std::move(func)), context(context), dependencyCount(0),
-              dependents() {}
+            : job(std::move(func))
+            , context(context)
+            , dependencyCount(0)
+            , dependents()
+        {
+        }
     };
     std::vector<std::unique_ptr<JobNode>> mNodes;
 
@@ -117,7 +134,8 @@ class JobGraph {
     JobID createJob(JobGraphContext context, JobGraphFunction&& func);
     void registerDependency(JobID parentID, JobID dependentID);
     template <typename T>
-    void storeMemory(const std::string& token, std::unique_ptr<T>&& data) {
+    void storeMemory(const std::string& token, std::unique_ptr<T>&& data)
+    {
         mMemoryPool.store(token, std::move(data));
     }
 

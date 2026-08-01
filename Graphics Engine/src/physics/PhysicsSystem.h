@@ -10,11 +10,14 @@
 
 #include "utility/Stopwatch.h"
 
-namespace Engine {
-namespace Physics {
+namespace Engine
+{
+namespace Physics
+{
 // PhysicsSystem Class
 // Manages physics behaviors in the game engine.
-class PhysicsSystem {
+class PhysicsSystem
+{
   private:
     // Track delta time
     Utility::Stopwatch stopwatch;

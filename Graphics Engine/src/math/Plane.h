@@ -2,11 +2,14 @@
 
 #include "Vector3.h"
 
-namespace Engine {
-namespace Math {
+namespace Engine
+{
+namespace Math
+{
 // Plane Class:
 // Represents a plane as a normal and a distance from the origin.
-class Plane {
+class Plane
+{
   private:
     Vector3 normal;
     float distance;

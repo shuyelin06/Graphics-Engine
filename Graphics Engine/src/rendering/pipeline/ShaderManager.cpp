@@ -9,13 +9,18 @@
 
 constexpr bool ALLOW_CACHING = false;
 
-namespace Engine {
-namespace Graphics {
+namespace Engine
+{
+namespace Graphics
+{
 
 static const std::string cache_folder = "bin/";
 static const std::string shader_folder = "shaders/";
 
-ShaderManager::ShaderManager(ID3D11Device* _device) { device = _device; }
+ShaderManager::ShaderManager(ID3D11Device* _device)
+{
+    device = _device;
+}
 ShaderManager::~ShaderManager() = default;
 
 // InitializeShaders:
@@ -24,7 +29,8 @@ ShaderManager::~ShaderManager() = default;
 // We can use pins to make one shader file usable for multiple different input
 // types or configurations. Pass in NULL if there are no pins.
 // For vertex shaders, an additional array of input layouts is needed.
-struct ShaderConfig {
+struct ShaderConfig
+{
     ShaderType shader_type;
 
     std::string shader_name; // Name of Shader in Engine
@@ -38,7 +44,8 @@ struct ShaderConfig {
     std::vector<std::string> pins;
 };
 
-void ShaderManager::initializeShaders() {
+void ShaderManager::initializeShaders()
+{
     const std::vector<ShaderConfig> shaders = {
         // DebugPoint:
         // Uses instancing to draw colored points in the scene. Only
@@ -118,7 +125,8 @@ void ShaderManager::initializeShaders() {
         // ...
     };
 
-    for (const ShaderConfig& config : shaders) {
+    for (const ShaderConfig& config : shaders)
+    {
         if (config.shader_type == Vertex)
             createVertexShader(config);
         else
@@ -130,7 +138,8 @@ void ShaderManager::initializeShaders() {
 // Allows shaders to use the #include directive, by searching for the contents
 // of the files as given by the directive.
 // This class extends the ID3D11Include interface to do this.
-class ShaderIncludeHandler : public ID3DInclude {
+class ShaderIncludeHandler : public ID3DInclude
+{
   public:
     ShaderIncludeHandler() = default;
     ~ShaderIncludeHandler() = default;
@@ -143,7 +152,8 @@ class ShaderIncludeHandler : public ID3DInclude {
     {
         // This includer handler only supports user includes. Others (like
         // system includes) should be handled by the system itself.
-        if (include_type == D3D_INCLUDE_LOCAL) {
+        if (include_type == D3D_INCLUDE_LOCAL)
+        {
             // Open file
             const std::string path =
                 shader_folder + "include/" + std::string(file_name);
@@ -161,11 +171,13 @@ class ShaderIncludeHandler : public ID3DInclude {
             fclose(file);
 
             return S_OK;
-        } else
+        }
+        else
             return E_NOTIMPL;
     }
 
-    HRESULT Close(LPCVOID data) noexcept override {
+    HRESULT Close(LPCVOID data) noexcept override
+    {
         delete[] data;
         return S_OK;
     }
@@ -174,7 +186,8 @@ class ShaderIncludeHandler : public ID3DInclude {
 // GetVertexShader:
 // Returns a vertex shader by a given slot, which internally
 // indexes an array.
-VertexShader* ShaderManager::getVertexShader(const std::string& name) {
+VertexShader* ShaderManager::getVertexShader(const std::string& name)
+{
     if (vertex_shaders.contains(name))
         return vertex_shaders[name];
     else
@@ -184,7 +197,8 @@ VertexShader* ShaderManager::getVertexShader(const std::string& name) {
 // GetPixelShader:
 // Returns a pixel shader by a given slot, which internally
 // indexes an array.
-PixelShader* ShaderManager::getPixelShader(const std::string& name) {
+PixelShader* ShaderManager::getPixelShader(const std::string& name)
+{
     if (pixel_shaders.contains(name))
         return pixel_shaders[name];
     else
@@ -195,7 +209,8 @@ PixelShader* ShaderManager::getPixelShader(const std::string& name) {
 // Compiles a file into a shader blob. Used in the creation of vertex
 // and pixel shaders.
 ID3DBlob* ShaderManager::compileShaderBlob(ShaderType type,
-                                           const ShaderConfig& config) {
+                                           const ShaderConfig& config)
+{
     ID3DBlob* compiled_blob = NULL;
 
     // Generate path to shader file
@@ -205,15 +220,18 @@ ID3DBlob* ShaderManager::compileShaderBlob(ShaderType type,
 
     std::string cached_blob_path =
         cache_folder + config.source_file + "--" + config.entry_point;
-    if (!config.pins.empty()) {
-        for (const std::string& pin : config.pins) {
+    if (!config.pins.empty())
+    {
+        for (const std::string& pin : config.pins)
+        {
             cached_blob_path += ", " + pin;
         }
     }
     const std::wstring cached_blob_path_w =
         std::wstring(cached_blob_path.begin(), cached_blob_path.end());
 
-    if (std::filesystem::exists(cached_blob_path) && ALLOW_CACHING) {
+    if (std::filesystem::exists(cached_blob_path) && ALLOW_CACHING)
+    {
         // If the blob was last modified after the shader, then it is the most
         // up-to-date blob for the shader and we don't need to recompile.
         auto blob_last_modified =
@@ -221,7 +239,8 @@ ID3DBlob* ShaderManager::compileShaderBlob(ShaderType type,
         auto shader_last_modified =
             std::filesystem::last_write_time(shader_path);
 
-        if (blob_last_modified >= shader_last_modified) {
+        if (blob_last_modified >= shader_last_modified)
+        {
             D3DReadFileToBlob(cached_blob_path_w.c_str(), &compiled_blob);
 
             if (compiled_blob != NULL)
@@ -235,7 +254,8 @@ ID3DBlob* ShaderManager::compileShaderBlob(ShaderType type,
     const char* compiler_target = "";
     const UINT flags = 0 | D3DCOMPILE_DEBUG | D3DCOMPILE_ENABLE_STRICTNESS;
 
-    switch (type) {
+    switch (type)
+    {
     case Vertex:
         compiler_target = "vs_5_0";
         break;
@@ -249,11 +269,13 @@ ID3DBlob* ShaderManager::compileShaderBlob(ShaderType type,
     // the shader code.
     D3D_SHADER_MACRO* macros = NULL;
 
-    if (!config.pins.empty()) {
+    if (!config.pins.empty())
+    {
         shader_macros.clear();
 
         const std::vector<std::string>& pins = config.pins;
-        for (const std::string& pin : pins) {
+        for (const std::string& pin : pins)
+        {
             D3D_SHADER_MACRO macro;
             macro.Name = pin.c_str();
             macro.Definition = NULL;
@@ -275,14 +297,17 @@ ID3DBlob* ShaderManager::compileShaderBlob(ShaderType type,
     delete include_settings;
 
     // Error handling
-    if (FAILED(result)) {
+    if (FAILED(result))
+    {
         // Print error if message exists
-        if (error_blob) {
+        if (error_blob)
+        {
             OutputDebugStringA((char*)error_blob->GetBufferPointer());
             error_blob->Release();
         }
         // Release shader blob if allocated
-        if (compiled_blob) {
+        if (compiled_blob)
+        {
             compiled_blob->Release();
         }
         assert(false);
@@ -294,7 +319,8 @@ ID3DBlob* ShaderManager::compileShaderBlob(ShaderType type,
     return compiled_blob;
 }
 
-void ShaderManager::createVertexShader(const ShaderConfig& config) {
+void ShaderManager::createVertexShader(const ShaderConfig& config)
+{
     // Obtain shader blob
     ID3DBlob* shader_blob = compileShaderBlob(Vertex, config);
 
@@ -304,10 +330,12 @@ void ShaderManager::createVertexShader(const ShaderConfig& config) {
 
     std::vector<D3D11_INPUT_ELEMENT_DESC> input_desc;
 
-    for (const VertexDataStream& stream : config.input_layout) {
+    for (const VertexDataStream& stream : config.input_layout)
+    {
         D3D11_INPUT_ELEMENT_DESC desc;
 
-        switch (stream) {
+        switch (stream)
+        {
         // Position Stream:
         // A buffer of (x,y,z) floats for 3D position
         case POSITION:
@@ -324,7 +352,8 @@ void ShaderManager::createVertexShader(const ShaderConfig& config) {
                     0,
                     D3D11_INPUT_PER_VERTEX_DATA,
                     0};
-        } break;
+        }
+        break;
 
         // Texture Stream:
         // A buffer of (u,v) floats as texture coordinates
@@ -433,7 +462,8 @@ void ShaderManager::createVertexShader(const ShaderConfig& config) {
 
 // CreatePixelShader:
 // Creates a pixel shader and adds it to the array of pixel shaders
-void ShaderManager::createPixelShader(const ShaderConfig& config) {
+void ShaderManager::createPixelShader(const ShaderConfig& config)
+{
     assert(config.input_layout.empty());
 
     // Obtain shader blob

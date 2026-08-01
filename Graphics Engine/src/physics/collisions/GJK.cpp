@@ -5,15 +5,18 @@
 
 #include "GJKSupport.h"
 
-#include "math/QuickHull.h"
 #include "math/Matrix4.h"
 #include "math/Quaternion.h"
+#include "math/QuickHull.h"
 
 #include "rendering/VisualDebug.h"
 
-namespace Engine {
-namespace Physics {
-GJKSolver::GJKSolver(GJKSupportFunc* _shape_1, GJKSupportFunc* _shape_2) {
+namespace Engine
+{
+namespace Physics
+{
+GJKSolver::GJKSolver(GJKSupportFunc* _shape_1, GJKSupportFunc* _shape_2)
+{
     shape_1 = _shape_1;
     shape_2 = _shape_2;
 
@@ -27,35 +30,58 @@ GJKSolver::GJKSolver(GJKSupportFunc* _shape_1, GJKSupportFunc* _shape_2) {
 // To do this, it attempts to "smartly" choose directions to create a simplex
 // within this difference, and checks if this simplex contains the origin or
 // not.
-struct GJKSimplex {
+struct GJKSimplex
+{
     Vector3 points[4];
     int num_points;
 
-    GJKSimplex() : points() { num_points = 0; }
+    GJKSimplex()
+        : points()
+    {
+        num_points = 0;
+    }
 
-    void swap(int i1, int i2) {
+    void swap(int i1, int i2)
+    {
         const Vector3 temp = points[i1];
         points[i1] = points[i2];
         points[i2] = temp;
     }
-    void push_back(const Vector3& p) { points[num_points++] = p; }
-    void remove(int index) {
+    void push_back(const Vector3& p)
+    {
+        points[num_points++] = p;
+    }
+    void remove(int index)
+    {
         for (int i = index; i < num_points - 1; i++)
             points[index] = points[index + 1];
         num_points--;
     }
 
     // Last (p1) to first (p4) vertex inserted, in that order
-    const Vector3& p1() const { return points[num_points - 1]; }
-    const Vector3& p2() const { return points[num_points - 2]; }
-    const Vector3& p3() const { return points[num_points - 3]; }
-    const Vector3& p4() const { return points[num_points - 4]; }
+    const Vector3& p1() const
+    {
+        return points[num_points - 1];
+    }
+    const Vector3& p2() const
+    {
+        return points[num_points - 2];
+    }
+    const Vector3& p3() const
+    {
+        return points[num_points - 3];
+    }
+    const Vector3& p4() const
+    {
+        return points[num_points - 4];
+    }
 };
 
 // CheckIntersection:
 // Returns whether or not the shapes intersect.
 // True on intersection, false if none.
-bool GJKSolver::checkIntersection() {
+bool GJKSolver::checkIntersection()
+{
     if (simplex != nullptr)
         delete simplex;
     simplex = new GJKSimplex();
@@ -71,24 +97,28 @@ bool GJKSolver::checkIntersection() {
 // Represents one iteration of the GJK algorithm.
 // The behavior changes based on the number of points we have in the
 // simplex already.
-SolverStatus GJKSolver::iterate() {
+SolverStatus GJKSolver::iterate()
+{
     // Attempt to grow our simplex. We do this by selecting a "good"
     // direction to query our support functions, depending on how many
     // points we currently have in the simplex. When our simplex is full, we
     // start checking if it contains our origin point.
-    switch (simplex->num_points) {
+    switch (simplex->num_points)
+    {
     // Empty Simplex: Choose some initial direction.
     // Direction can be whatever we want. Commonly, it is the
     // direction pointing from one shape center to the other.
     case 0: {
         direction = shape_1->center() - shape_2->center();
-    } break;
+    }
+    break;
 
     // Single Point:
     // Flip the direction
     case 1: {
         direction = -direction;
-    } break;
+    }
+    break;
 
     // Line:
     // Direction is the vector orthogonal to the line p1, p2,
@@ -101,7 +131,8 @@ SolverStatus GJKSolver::iterate() {
         const Vector3 AO = -A;
 
         direction = (AB.cross(AO)).cross(AB);
-    } break;
+    }
+    break;
 
     // Triangle:
     // Direction is the normal of the triangle pointing towards the
@@ -118,7 +149,8 @@ SolverStatus GJKSolver::iterate() {
 
         // Flip normal if it is not pointing towards the origin.
         const Vector3 AO = -A;
-        if (direction.dot(AO) < 0) {
+        if (direction.dot(AO) < 0)
+        {
             direction = -direction;
 
             // Flip orientation of triangle if it is facing the wrong way.
@@ -126,8 +158,8 @@ SolverStatus GJKSolver::iterate() {
             // correctly point outwards.
             simplex->swap(1, 2);
         }
-
-    } break;
+    }
+    break;
 
     // Tetrahedron:
     // We have a full simplex. We now check to see where the
@@ -160,31 +192,41 @@ SolverStatus GJKSolver::iterate() {
         // If we know what face the origin is outside, we will correct our
         // simplex so that the triangle is clock-wise when viewed from the
         // origin (so that our algorithm chooses the correct direction later).
-        if (ABCNorm.dot(AO) > 0.0f) {
+        if (ABCNorm.dot(AO) > 0.0f)
+        {
             simplex->remove(0); // Remove Point D
             direction = ABCNorm;
-        } else if (ACDNorm.dot(AO) > 0.0f) {
+        }
+        else if (ACDNorm.dot(AO) > 0.0f)
+        {
             simplex->remove(2); // Remove Point B
             direction = ACDNorm;
-        } else if (ADBNorm.dot(AO) > 0.0f) {
+        }
+        else if (ADBNorm.dot(AO) > 0.0f)
+        {
             simplex->remove(1); // Remove Point C
             direction = ADBNorm;
         }
         // If not outside any of the triangles, then origin
         // is within the tetrahedron!
-        else {
+        else
+        {
             return IntersectionTrue;
         }
-    } break;
+    }
+    break;
     }
 
     // With our direction, we query to find our support point.
     // If the new vertex.dot(direction) is < 0, then origin cannot
     // exist inside our Minkowski Difference.
     const Vector3 newVertex = querySupports(direction);
-    if (direction.dot(newVertex) < 0.0f) {
+    if (direction.dot(newVertex) < 0.0f)
+    {
         return IntersectionFalse;
-    } else {
+    }
+    else
+    {
         simplex->push_back(newVertex);
         return Evolving;
     }
@@ -194,29 +236,36 @@ SolverStatus GJKSolver::iterate() {
 // If an intersection is found, returns the vector of penetration between
 // the two shapes. Does this using the expanding prototype algorithm (EPA)
 // https://allenchou.net/2013/12/game-physics-contact-generation-epa/
-Vector3 GJKSolver::penetrationVector() {
+Vector3 GJKSolver::penetrationVector()
+{
     Vector3 penetration = Vector3::VectorMax();
     float distance = FLT_MAX;
 
     const int SAMPLES_THETA = 15;
     const int SAMPLES_PHI = 10;
 
-    for (int i = 0; i < SAMPLES_THETA; i++) {
+    for (int i = 0; i < SAMPLES_THETA; i++)
+    {
         const float theta = i * (2 * 3.14159f) / SAMPLES_THETA;
 
-        for (int j = 0; j < SAMPLES_PHI; j++) {
+        for (int j = 0; j < SAMPLES_PHI; j++)
+        {
             const float phi = j * (3.14159) / SAMPLES_PHI;
 
-            const Quaternion rotation = Quaternion::RotationAroundAxis(Vector3::PositiveZ(), theta) * Quaternion::RotationAroundAxis(Vector3::PositiveY(), phi);
+            const Quaternion rotation =
+                Quaternion::RotationAroundAxis(Vector3::PositiveZ(), theta) *
+                Quaternion::RotationAroundAxis(Vector3::PositiveY(), phi);
             const Matrix3 m_rotation = rotation.rotationMatrix3();
             const Vector3 direction = m_rotation * Vector3::PositiveZ();
 
-            Graphics::VisualDebug::DrawLine(Vector3(), direction * 3, Color::White());
+            Graphics::VisualDebug::DrawLine(Vector3(), direction * 3,
+                                            Color::White());
 
             const Vector3 support_point = querySupports(direction);
             Graphics::VisualDebug::DrawPoint(support_point, 1.25f);
 
-            if (support_point.dot(direction) < distance) {
+            if (support_point.dot(direction) < distance)
+            {
                 penetration = support_point.projectOnto(direction);
                 distance = support_point.dot(direction);
             }
@@ -229,10 +278,11 @@ Vector3 GJKSolver::penetrationVector() {
 // QuerySupports:
 // Given a direction, queries the suport functions to find the corresponding
 // support point in the Minkowski Difference
-const Vector3 GJKSolver::querySupports(const Vector3& direction) {
+const Vector3 GJKSolver::querySupports(const Vector3& direction)
+{
     return shape_1->furthestPoint(direction) -
            shape_2->furthestPoint(-direction);
 }
 
-} // namespace Math
+} // namespace Physics
 } // namespace Engine

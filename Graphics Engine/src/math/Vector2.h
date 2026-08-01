@@ -1,19 +1,24 @@
 #pragma once
 
-namespace Engine {
-namespace Math {
+namespace Engine
+{
+namespace Math
+{
 // Vector2 Class:
 // Contains methods and data for a 2-dimensional
 // vector2.
-class Vector2 {
+class Vector2
+{
   public:
     // x,u and v,y components are equivalent, and can be
     // used interchangeably.
-    union {
+    union
+    {
         float u;
         float x;
     };
-    union {
+    union
+    {
         float v;
         float y;
     };
@@ -38,7 +43,7 @@ class Vector2 {
     Vector2 operator-(const Vector2&) const; // Subtraction
     Vector2& operator-=(const Vector2&);     // Compound (In-Place) Subtraction
     Vector2 operator-() const;               // Negation
-    Vector2 operator/(float) const; // Division
+    Vector2 operator/(float) const;          // Division
 };
 } // namespace Math
 } // namespace Engine

@@ -10,18 +10,23 @@
 
 typedef unsigned int UINT;
 
-namespace Engine {
+namespace Engine
+{
 using namespace Math;
 
-namespace Graphics {
+namespace Graphics
+{
 
-enum class TextureLayout : uint8_t {
+enum class TextureLayout : uint8_t
+{
     R8G8B8A8_UNORM = 0,
     R32_FLOAT = 1, // 32-Bit Float from R Channel
 };
 
-inline static size_t TextureLayoutByteSize(TextureLayout layout) {
-    switch (layout) {
+inline static size_t TextureLayoutByteSize(TextureLayout layout)
+{
+    switch (layout)
+    {
     case TextureLayout::R8G8B8A8_UNORM:
         [[fallthrough]];
     case TextureLayout::R32_FLOAT:
@@ -34,7 +39,8 @@ inline static size_t TextureLayoutByteSize(TextureLayout layout) {
 
 // Texture Struct:
 // Represents a texture that can be uploaded to the GPU.
-struct Texture {
+struct Texture
+{
     // GPU handle to the texture
     ID3D11Texture2D* texture = nullptr;
 

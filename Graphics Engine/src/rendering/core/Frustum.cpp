@@ -4,20 +4,25 @@
 #include <float.h>
 #include <math.h>
 
-namespace Engine {
-namespace Graphics {
-Frustum::Frustum(const Matrix4& _m_world_to_frustum) {
+namespace Engine
+{
+namespace Graphics
+{
+Frustum::Frustum(const Matrix4& _m_world_to_frustum)
+{
     m_world_to_frustum = _m_world_to_frustum;
     m_frustum_to_world = m_world_to_frustum.inverse();
 }
 
-Vector3 Frustum::toWorldSpace(const Vector3& frustum_coords) const {
+Vector3 Frustum::toWorldSpace(const Vector3& frustum_coords) const
+{
     Vector4 transformed = m_frustum_to_world * Vector4(frustum_coords, 1.f);
     transformed = transformed / transformed.w;
     return transformed.xyz();
 }
 
-Vector3 Frustum::toFrustumSpace(const Vector3& world_space) const {
+Vector3 Frustum::toFrustumSpace(const Vector3& world_space) const
+{
     Vector4 transformed = m_world_to_frustum * Vector4(world_space, 1.f);
     transformed = transformed / transformed.w;
     return transformed.xyz();
@@ -25,7 +30,8 @@ Vector3 Frustum::toFrustumSpace(const Vector3& world_space) const {
 
 // FillArrWithFrustumPoints:
 // Fills a size 8+ array with the frustum points in frustum space.
-void Frustum::fillArrWithFrustumPoints(Vector3* point_arr) const {
+void Frustum::fillArrWithFrustumPoints(Vector3* point_arr) const
+{
     // Near Plane
     point_arr[0] = Vector3(-1, -1, 0);
     point_arr[1] = Vector3(1, -1, 0);
@@ -41,11 +47,13 @@ void Frustum::fillArrWithFrustumPoints(Vector3* point_arr) const {
 
 // fillArrWithWorldPoints:
 // Fills a size 8+ array with the frustum points in world space.
-void Frustum::fillArrWithWorldPoints(Vector3* point_arr) const {
+void Frustum::fillArrWithWorldPoints(Vector3* point_arr) const
+{
     fillArrWithFrustumPoints(point_arr);
 
     // Transform to world space
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 8; i++)
+    {
         const Vector3 point = point_arr[i];
         point_arr[i] = toWorldSpace(point);
     }
@@ -58,7 +66,8 @@ static bool testSeparationAlongAxis(const Vector3& axis,
                                     const Vector3* frustum_points,
                                     const Vector3* obb_points);
 
-bool Frustum::intersectsOBB(const OBB& obb) const {
+bool Frustum::intersectsOBB(const OBB& obb) const
+{
     // Fill my arrays with the OBB and frustum points, both in world
     // coordinates
     Vector3 frust_pts[8];
@@ -97,7 +106,8 @@ bool Frustum::intersectsOBB(const OBB& obb) const {
     Vector3 obb_axes[3];
     obb.fillArrWithAxes(obb_axes);
 
-    for (const Vector3& obb_axis : obb_axes) {
+    for (const Vector3& obb_axis : obb_axes)
+    {
         axis = obb_axis;
         if (testSeparationAlongAxis(axis, frust_pts, obb_points))
             return false;
@@ -132,7 +142,8 @@ bool Frustum::intersectsOBB(const OBB& obb) const {
 
 bool testSeparationAlongAxis(const Vector3& axis,
                              const Vector3* frustum_points,
-                             const Vector3* obb_points) {
+                             const Vector3* obb_points)
+{
     // Project both points to the axis, and see if the intervals of projections
     // overlap.
     // - If they overlap, then we have to test another axis.
@@ -142,7 +153,8 @@ bool testSeparationAlongAxis(const Vector3& axis,
     float frustum_min = FLT_MAX, frustum_max = -FLT_MAX;
     float obb_min = FLT_MAX, obb_max = FLT_MAX;
 
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 8; i++)
+    {
         // Project frustum points
         const Vector3& frustum_point = frustum_points[i];
         const float frustum_projection = frustum_point.scalarProjection(axis);
@@ -160,7 +172,8 @@ bool testSeparationAlongAxis(const Vector3& axis,
     return (obb_max < frustum_min - 0.0001f || frustum_max < obb_min - 0.0001f);
 }
 
-const Matrix4& Frustum::getFrustumToWorldMatrix() const {
+const Matrix4& Frustum::getFrustumToWorldMatrix() const
+{
     return m_frustum_to_world;
 }
 
