@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 
+#include <deque>
 #include <mutex>
 #include <regex>
 #include <string.h>
@@ -10,6 +11,9 @@
 #include <vector>
 
 #include <assert.h>
+
+#include "core/JobGraph.h"
+#include "core/UniqueFunction.h"
 
 #include "math/Vector2.h"
 #include "math/Vector3.h"
@@ -34,27 +38,23 @@ using namespace Math;
 namespace Graphics {
 static const std::string RESOURCE_FOLDER = "data/";
 
-TextureRequestParams::TextureRequestParams(const std::string& debugName)
-    : debugName(debugName) {}
+static const char* kIOPathToken = "IOFilePath";
+static const char* kTextureTargetToken = "TextureTarget";
+static const char* kTextureDataToken = "TextureData";
 
-void TextureRequestParams::initCreateFromFile(const std::string& path,
-                                              bool editable) {
-    requestType = TextureRequestType::CreateFromFile;
-    this->path = path;
-    this->editable = editable;
-}
-void TextureRequestParams::initCreateFromBuilder(const TextureBuilder& builder,
-                                                 bool editable) {
-    requestType = TextureRequestType::CreateFromBuilder;
-    this->builder = &builder;
-    this->editable = editable;
-}
-void TextureRequestParams::initUpdateFromBuilder(
-    const TextureBuilder& builder, const std::shared_ptr<Texture>& target) {
-    requestType = TextureRequestType::UpdateFromBuilder;
-    this->builder = &builder;
-    this->target = target;
-}
+struct IOPathParam {
+    std::string path;
+    IOPathParam(const std::string& path) : path(path) {}
+};
+struct TextureTargetParam {
+    std::shared_ptr<Texture> texture;
+    TextureTargetParam(std::shared_ptr<Texture>& texture) : texture(texture) {}
+};
+struct TextureDataParam {
+    std::vector<uint8_t> data;
+    TextureDataParam() = default;
+    TextureDataParam(const std::vector<uint8_t>& data) : data(data) {}
+};
 
 enum class BuildJobStatus : uint8_t {
     Failed = -2,
@@ -113,10 +113,10 @@ class ResourceManagerImpl {
 
     // Job Management
     // Tracks the state of resource generation
+    std::vector<std::unique_ptr<JobGraph>> jobs;
+
     std::vector<MeshBuildingJob> mesh_jobs;
     std::mutex mesh_job_mutex;
-    std::vector<TextureBuildingJob> texture_jobs;
-    std::mutex texture_job_mutex;
 
   public:
     ResourceManagerImpl(ID3D11Device* device, ID3D11DeviceContext* context);
@@ -147,11 +147,13 @@ class ResourceManagerImpl {
 
   private:
     void processMeshJob(const MeshBuildingJob& job);
-    bool processTextureJob(TextureBuildingJob& job);
 
-    void textureJobPendingResources(TextureBuildingJob& job);
-    void textureJobPendingGPUCreation(TextureBuildingJob& job);
-    void textureJobPendingGPUUpload(TextureBuildingJob& job);
+    // In: kIOPathToken, kTextureTargetToken. Out: kTextureDataToken, kTextureTargetToken
+    bool textureJobReadIOData(JobGraphMemoryPool& pool);
+    // In: kTextureTargetToken. Out: kTextureTargetToken
+    bool textureJobPendingGPUCreation(JobGraphMemoryPool& pool);
+    // In: kTextureTargetToken. Out: None
+    bool textureJobPendingGPUUpload(JobGraphMemoryPool& pool);
 
     // System Asset Generation
     void LoadCubeMesh();
@@ -250,15 +252,16 @@ void ResourceManagerImpl::updatePerform() {
     }
 
     {
-        std::scoped_lock<std::mutex> texture_job_lock(texture_job_mutex);
+        auto iter = jobs.begin();
+        while (iter != jobs.end()) {
+            JobGraph* job = (*iter).get();
+            job->processSynchronousJobs();
 
-        auto iter = texture_jobs.begin();
-        while (iter != texture_jobs.end()) {
-            const bool remove = processTextureJob(*iter);
-            if (remove)
-                iter = texture_jobs.erase(iter);
-            else
+            if (job->isDone()) {
+                iter = jobs.erase(iter);
+            } else {
                 ++iter;
+            }
         }
     }
 
@@ -344,47 +347,94 @@ ResourceManagerImpl::requestMesh(const MeshBuilder& mesh_builder) {
 
 std::shared_ptr<Texture>
 ResourceManagerImpl::requestTexture(const TextureRequestParams& params) {
-    std::scoped_lock<std::mutex> lock(texture_job_mutex);
+    // TODO Thread Safe Please
+    jobs.emplace_back(std::make_unique<JobGraph>());
+    JobGraph* graph = jobs.back().get();
 
-    const bool createNewTexture =
-        (params.requestType == TextureRequestType::CreateFromBuilder ||
-         params.requestType == TextureRequestType::CreateFromFile);
+    // Determine my target.
+    std::shared_ptr<Texture> texture = nullptr;
+    JobGraph::JobID gpuCreationJob = JobGraph::kInvalidJobID;
 
-    TextureBuildingJob& job = texture_jobs.emplace_back();
-
-    if (createNewTexture) {
-        job.texture = std::make_shared<Texture>();
-        job.texture->debugName = params.debugName;
-        job.texture->editable = params.editable;
+    if (auto targetExisting = std::get_if<TextureRequestParams::TargetExisting>(
+            &params.targetSettings)) {
+        texture = targetExisting->target;
+    } else if (auto targetNew = std::get_if<TextureRequestParams::TargetNew>(
+                   &params.targetSettings)) {
+        texture = std::make_shared<Texture>();
         // Track in textures vector
-        textures.push_back(job.texture);
+        textures.push_back(texture);
+
+        texture->debugName = targetNew->debugName;
+        texture->layout = targetNew->layout;
+        texture->mips = targetNew->mipLevels;
+        texture->editable = targetNew->editable;
+
+        // Because we have a new texture, we must create a job to create on the GPU.
+        gpuCreationJob = graph->createJob(
+            JobGraphContext::kSynchronous, [this](JobGraphMemoryPool& pool) {
+                return textureJobPendingGPUCreation(pool);
+            });
     } else {
-        assert(params.target);
-        job.texture = params.target;
+        throw std::runtime_error("Invalid target setting!");
     }
 
-    switch (params.requestType) {
-    case TextureRequestType::CreateFromFile: {
-        job.status = BuildJobStatus::PendingResourceData;
-        job.resourceFilePath = params.path;
-    } break;
+    // Determine my data source.
+    JobGraph::JobID dataJob = JobGraph::kInvalidJobID;
 
-    case TextureRequestType::CreateFromBuilder:
-        [[fallthrough]];
-    case TextureRequestType::UpdateFromBuilder: {
-        job.status = createNewTexture ? BuildJobStatus::PendingGPUCreation
-                                      : BuildJobStatus::PendingGPUUpload;
+    if (auto dataFromFile = std::get_if<TextureRequestParams::DataFromFile>(
+            &params.dataSettings)) {
+        std::unique_ptr<IOPathParam> pathParam =
+            std::make_unique<IOPathParam>(RESOURCE_FOLDER + dataFromFile->path);
+        graph->storeMemory(kIOPathToken, std::move(pathParam));
 
-        const auto& builder = *params.builder;
-        job.data = builder.getData();
-        job.texture->layout = builder.getLayout();
-        job.texture->width = builder.getWidth();
-        job.texture->height = builder.getHeight();
-        job.texture->mips = builder.getNumMips();
-    } break;
+        dataJob = graph->createJob(JobGraphContext::kAsync,
+                                   [this](JobGraphMemoryPool& pool) {
+                                       return textureJobReadIOData(pool);
+                                   });
+    } else if (auto dataFromBuilder =
+                   std::get_if<TextureRequestParams::DataFromBuilder>(
+                       &params.dataSettings)) {
+        const auto& builder = *dataFromBuilder->builder;
+
+        std::unique_ptr<TextureDataParam> dataParam =
+            std::make_unique<TextureDataParam>(builder.getData());
+        texture->layout = builder.getLayout();
+        texture->width = builder.getWidth();
+        texture->height = builder.getHeight();
+        texture->mips = builder.getNumMips();
+
+        graph->storeMemory(kTextureDataToken, std::move(dataParam));
+    } else {
+        throw std::runtime_error("Invalid data setting!");
     }
 
-    return job.texture;
+    std::unique_ptr<TextureTargetParam> targetParam =
+        std::make_unique<TextureTargetParam>(texture);
+    graph->storeMemory(kTextureTargetToken, std::move(targetParam));
+
+    JobGraph::JobID gpuUploadJob = graph->createJob(
+        JobGraphContext::kSynchronous, [this](JobGraphMemoryPool& pool) {
+            return textureJobPendingGPUUpload(pool);
+        });
+
+    if (dataJob != JobGraph::kInvalidJobID) {
+        if (gpuCreationJob != JobGraph::kInvalidJobID) {
+            graph->registerDependency(dataJob, gpuCreationJob);
+            graph->registerDependency(gpuCreationJob, gpuUploadJob);
+        } else {
+            graph->registerDependency(dataJob, gpuUploadJob);
+        }
+    } else {
+        if (gpuCreationJob != JobGraph::kInvalidJobID) {
+            graph->registerDependency(gpuCreationJob, gpuUploadJob);
+        } else {
+            // Nothing
+        }
+    }
+
+    graph->kickoff();
+
+    return texture;
 }
 
 void ResourceManagerImpl::clearDepthStencil(const Texture& texture) {
@@ -625,49 +675,24 @@ static DXGI_FORMAT TextureLayoutToDXGI(TextureLayout layout) {
     return DXGI_FORMAT_UNKNOWN;
 }
 
-bool ResourceManagerImpl::processTextureJob(TextureBuildingJob& job) {
-    bool jobFinished = false;
+bool ResourceManagerImpl::textureJobReadIOData(JobGraphMemoryPool& pool) {
+    std::unique_ptr<IOPathParam> pathParam =
+        pool.load<IOPathParam>(kIOPathToken);
+    std::unique_ptr<TextureTargetParam> targetParam =
+        pool.load<TextureTargetParam>(kTextureTargetToken);
 
-    switch (job.status) {
-    case BuildJobStatus::PendingResourceData: {
-        textureJobPendingResources(job);
-        assert(job.status == BuildJobStatus::Failed ||
-               job.status == BuildJobStatus::PendingGPUCreation);
-    } break;
+    const std::string& path = pathParam->path;
+    auto& texture = targetParam->texture;
 
-    case BuildJobStatus::PendingGPUCreation: {
-        textureJobPendingGPUCreation(job);
-        assert(job.status == BuildJobStatus::Failed ||
-               job.status == BuildJobStatus::PendingGPUUpload);
-    } break;
-
-    case BuildJobStatus::PendingGPUUpload: {
-        textureJobPendingGPUUpload(job);
-        assert(job.status == BuildJobStatus::Failed ||
-               job.status == BuildJobStatus::Ready);
-    } break;
-
-    case BuildJobStatus::Failed:
-        jobFinished = true;
-        break;
-
-    case BuildJobStatus::Ready:
-        job.texture->ready = true;
-        jobFinished = true;
-        break;
-    }
-
-    return jobFinished;
-}
-
-void ResourceManagerImpl::textureJobPendingResources(TextureBuildingJob& job) {
-    const std::string full_path = RESOURCE_FOLDER + job.resourceFilePath;
+    // RESOURCE_FOLDER + job.resourceFilePath;
 
     // Matches to find the file name and extension separately.
     // (?:.+/)* matches the path but does not put it in a capture group.
     std::regex name_pattern("(?:.+/)*([a-zA-Z0-9]+)\\.([a-zA-Z]+)");
     smatch match;
-    regex_search(job.resourceFilePath, match, name_pattern);
+    regex_search(path, match, name_pattern);
+
+    std::unique_ptr<TextureDataParam> dataParam = nullptr;
 
     bool success = false;
     if (match.size() == 3) {
@@ -675,84 +700,90 @@ void ResourceManagerImpl::textureJobPendingResources(TextureBuildingJob& job) {
         // const std::string name = match[1];
         const std::string extension = match[2];
 
-        FileReader reader = FileReader(full_path);
+        FileReader reader = FileReader(path);
         if (reader.readFileData()) {
             if (extension == "png") {
                 TextureBuilder builder = PNGFile::ReadPNGData(reader.getData());
 
-                job.texture->layout = builder.getLayout();
-                job.texture->width = builder.getWidth();
-                job.texture->height = builder.getHeight();
-                job.texture->mips = builder.getNumMips();
+                texture->layout = builder.getLayout();
+                texture->width = builder.getWidth();
+                texture->height = builder.getHeight();
+                texture->mips = builder.getNumMips();
 
-                job.status = BuildJobStatus::PendingGPUCreation;
-                job.data = builder.getData();
+                dataParam =
+                    std::make_unique<TextureDataParam>(builder.getData());
 
                 success = true;
-            } else
-                assert(false); // Unsupported Format
+            }
         }
     }
 
     if (success) {
-        job.status = BuildJobStatus::PendingGPUCreation;
-    } else {
-        job.status = BuildJobStatus::Failed;
+        pool.store(kTextureTargetToken, std::move(targetParam));
+        pool.store(kTextureDataToken, std::move(dataParam));
     }
+
+    return success;
 }
 
-void ResourceManagerImpl::textureJobPendingGPUCreation(
-    TextureBuildingJob& job) {
-    assert(job.texture && !job.texture->texture);
+bool ResourceManagerImpl::textureJobPendingGPUCreation(
+    JobGraphMemoryPool& pool) {
+    std::unique_ptr<TextureTargetParam> targetParam =
+        pool.load<TextureTargetParam>(kTextureTargetToken);
 
-    auto& texture = job.texture;
+    auto& texture = targetParam->texture;
 
     // Creation settings
-    const bool isEditableTexture = job.texture->editable;
-    const unsigned int numMips = job.texture->mips;
-
     HRESULT result;
 
     // Generate my GPU texture resource
     D3D11_TEXTURE2D_DESC tex_desc = {};
     tex_desc.Width = texture->width;
     tex_desc.Height = texture->height;
-    tex_desc.MipLevels = numMips;
+    tex_desc.MipLevels = texture->mips;
     tex_desc.ArraySize = 1;
     tex_desc.Format = TextureLayoutToDXGI(texture->layout);
     tex_desc.SampleDesc.Count = 1;
     tex_desc.Usage =
-        isEditableTexture ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
-    tex_desc.CPUAccessFlags = isEditableTexture ? D3D11_CPU_ACCESS_WRITE : 0;
+        texture->editable ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
+    tex_desc.CPUAccessFlags = texture->editable ? D3D11_CPU_ACCESS_WRITE : 0;
     tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 
     // Note: We do not pass initial data here. We will set the data in the
     // upload stage for easier reasoning about (yes, more inefficient but that
     // is not the primary focus right now)
     result = device->CreateTexture2D(&tex_desc, nullptr, &texture->texture);
-    assert(SUCCEEDED(result));
+    if (!SUCCEEDED(result))
+        return false;
 
     // Generate a shader view for my texture
     D3D11_SHADER_RESOURCE_VIEW_DESC tex_view = {};
     tex_view.Format = TextureLayoutToDXGI(texture->layout);
     tex_view.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
     tex_view.Texture2D.MostDetailedMip = 0;
-    tex_view.Texture2D.MipLevels = numMips;
-    result = device->CreateShaderResourceView(job.texture->texture, &tex_view,
-                                              &(job.texture->shader_view));
-    assert(SUCCEEDED(result));
+    tex_view.Texture2D.MipLevels = texture->mips;
+    result = device->CreateShaderResourceView(texture->texture, &tex_view,
+                                              &(texture->shader_view));
+    if (!SUCCEEDED(result))
+        return false;
 
-    job.status = BuildJobStatus::PendingGPUUpload;
+    pool.store(kTextureTargetToken, std::move(targetParam));
+
+    return true;
 }
 
-void ResourceManagerImpl::textureJobPendingGPUUpload(TextureBuildingJob& job) {
-    assert(job.texture && job.texture->texture);
+bool ResourceManagerImpl::textureJobPendingGPUUpload(JobGraphMemoryPool& pool) {
+    std::unique_ptr<TextureTargetParam> targetParam =
+        pool.load<TextureTargetParam>(kTextureTargetToken);
+    std::unique_ptr<TextureDataParam> dataParam =
+        pool.load<TextureDataParam>(kTextureDataToken);
 
-    auto& texture = job.texture;
+    auto& texture = targetParam->texture;
+    auto& data = dataParam->data;
 
     // Creation settings
     const bool isEditableTexture = texture->editable;
-    const unsigned int numMips = job.texture->mips;
+    const unsigned int numMips = texture->mips;
 
     const size_t byteSize = TextureLayoutByteSize(texture->layout);
 
@@ -769,7 +800,7 @@ void ResourceManagerImpl::textureJobPendingGPUUpload(TextureBuildingJob& job) {
         context->Map(texture->texture, 0, D3D11_MAP_WRITE_DISCARD, 0, &sr);
 
         uint8_t* dest = reinterpret_cast<uint8_t*>(sr.pData);
-        const uint8_t* src = reinterpret_cast<const uint8_t*>(job.data.data());
+        const uint8_t* src = reinterpret_cast<const uint8_t*>(data.data());
 
         // We need to copy row-by-row, because while rows are aligned, there
         // may be padding after each row that we're not aware about.
@@ -780,7 +811,7 @@ void ResourceManagerImpl::textureJobPendingGPUUpload(TextureBuildingJob& job) {
 
         context->Unmap(texture->texture, 0);
     } else {
-        uint8_t* dataSrc = job.data.data();
+        uint8_t* dataSrc = data.data();
         unsigned int mipWidth = texture->width;
         unsigned int mipHeight = texture->height;
 
@@ -795,7 +826,9 @@ void ResourceManagerImpl::textureJobPendingGPUUpload(TextureBuildingJob& job) {
         }
     }
 
-    job.status = BuildJobStatus::Ready;
+    texture->ready = true;
+
+    return true;
 }
 
 // System Resources
@@ -810,9 +843,14 @@ void ResourceManagerImpl::LoadFallbackColormap() {
     TextureBuilder builder =
         TextureBuilder(1, 1, TextureLayout::R8G8B8A8_UNORM);
     builder.clear();
-    TextureRequestParams texParams("Fallback Colormap");
-    texParams.initCreateFromBuilder(builder, false);
-    fallbackColormap = requestTexture(texParams);
+    TextureRequestParams request;
+    auto& targetSettings = request.targetUseNew();
+    targetSettings.debugName = "Fallback Colormap";
+    targetSettings.editable = false;
+    targetSettings.layout = TextureLayout::R8G8B8A8_UNORM;
+    auto& dataSettings = request.dataFromBuilder();
+    dataSettings.builder = &builder;
+    fallbackColormap = requestTexture(request);
 }
 
 } // namespace Graphics

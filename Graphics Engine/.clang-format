@@ -7,3 +7,31 @@ IndentWidth: 4
 
 DerivePointerAlignment: false
 PointerAlignment: Left
+
+# Parameters either all go on one line, or split
+BinPackParameters: false
+
+# Initializer Settings
+BreakConstructorInitializers: BeforeComma
+ConstructorInitializerIndentWidth: 4
+PackConstructorInitializers: Never
+
+# Disable splitting long comment lines
+ReflowComments: false
+
+# Use fine-grained brace wrapping rules
+BreakBeforeBraces: Custom
+
+# Set brace wrapping for major code structures
+BraceWrapping:
+  AfterClass: true
+  AfterControlStatement: Always
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterStruct: true
+  AfterUnion: true
+  BeforeElse: true
+
+# Keep empty functions (like empty constructors) on a single line
+AllowShortFunctionsOnASingleLine: Empty

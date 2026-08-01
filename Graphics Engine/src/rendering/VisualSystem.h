@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include "core/Device.h"
 #include "lights/LightManager.h"
 #include "pipeline/PipelineManager.h"
 #include "pipeline/RenderManager.h"
@@ -32,6 +33,8 @@ class VisualSystem {
     uint64_t frame;
 
     // Managers
+    std::unique_ptr<Device> device;
+
     std::unique_ptr<Pipeline> pipeline;
     std::unique_ptr<ResourceManager> resource_manager;
     std::unique_ptr<MaterialManager> material_manager;
@@ -50,6 +53,7 @@ class VisualSystem {
     void renderPrepare();
     void render();
 
+    Device* getDevice() const;
     ResourceManager* getResourceManager() const;
     MaterialManager* getMaterialManager() const;
     SceneListener* getSceneListener() const;

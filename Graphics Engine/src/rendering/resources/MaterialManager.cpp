@@ -192,12 +192,17 @@ MaterialManagerImpl::createMaterial(const TerrainMaterialParams& params) {
     technique->vertexShader = "Terrain";
     technique->pixelShader = "Terrain";
 
-    TextureRequestParams texRequest("Terrain Colormap");
-    texRequest.initCreateFromFile(params.colormap, false);
+    TextureRequestParams request;
+    auto& targetSettings = request.targetUseNew();
+    targetSettings.debugName = "Terrain Colormap";
+    targetSettings.editable = false;
+    targetSettings.layout = TextureLayout::R8G8B8A8_UNORM;
+    auto& dataSettings = request.dataFromFile();
+    dataSettings.path = params.colormap;
 
     ShaderResource colormap{};
     colormap.initializeTextureResource(
-        resourceManager->requestTexture(texRequest),
+        resourceManager->requestTexture(request),
         SamplerType::Sampler_Linear);
     technique->bindPixelResource(4, colormap);
 

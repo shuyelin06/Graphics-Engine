@@ -15,6 +15,7 @@ namespace Engine {
 // to execute a variety of jobs asynchronously.
 // Uses a custom UniqueFunction type to allow for lambdas that are move only
 // (e.g. lambdas that have ownership of unique ptrs)
+using ThreadPoolFunction = UniqueFunction<void()>;
 class ThreadPool {
   private:
     // Singleton Instance
@@ -24,7 +25,7 @@ class ThreadPool {
     std::thread workers[NUM_THREADS];
     std::atomic<uint8_t> numActive;
 
-    std::deque<UniqueFunction> job_queue;
+    std::deque<ThreadPoolFunction> job_queue;
     bool finished;
 
     // Synchronization on the job_queue
@@ -43,7 +44,7 @@ class ThreadPool {
 
     static uint8_t GetNumberActiveWorkers();
     static int GetNumberPendingJobs();
-    static void ScheduleJob(UniqueFunction function);
+    static void ScheduleJob(ThreadPoolFunction&& function);
 
     static void DestroyThreadPool();
 };

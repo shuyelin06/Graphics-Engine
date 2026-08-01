@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <variant>
 
 #include "MeshBuilder.h"
 #include "TextureBuilder.h"
@@ -24,25 +25,46 @@ enum MeshPoolType {
     MeshPoolType_Count,
 };
 
-enum class TextureRequestType {
-    CreateFromFile = 0,
-    CreateFromBuilder = 1,
-    UpdateFromBuilder = 2,
-};
 struct TextureRequestParams {
-    TextureRequestType requestType;
-    std::string debugName;
+    // Texture Target Settings:
+    // 1) TargetExisting: A pre-existing texture can be provided. That texture's settings are used as the config
+    // 2) TargetNew: A new texture can be created. A config can be specified.
+    struct TargetExisting {
+        std::shared_ptr<Texture> target = nullptr;
+    };
+    struct TargetNew {
+        std::string debugName = "";
 
-    std::string path;              // CreateFromFile
-    bool editable;                 // CreateFromFile, CreateFromBuilder
-    const TextureBuilder* builder; // CreateFromBuilder, UpdateFromBuilder
-    std::shared_ptr<Texture> target; // UpdateFromBuilder
+        TextureLayout layout = TextureLayout::R8G8B8A8_UNORM;
+        bool editable = false;
+        uint8_t mipLevels = 1;
+    };
+    std::variant<TargetExisting, TargetNew> targetSettings;
 
-    TextureRequestParams(const std::string& debugName = "");
-    void initCreateFromFile(const std::string& path, bool editable);
-    void initCreateFromBuilder(const TextureBuilder& builder, bool editable);
-    void initUpdateFromBuilder(const TextureBuilder& builder,
-                               const std::shared_ptr<Texture>& target);
+    // Texture Data Settings:
+    // 1) File IO: Read data from a file specified by a path
+    // 2) TextureBuilder: Read data from a texture builder
+    struct DataFromFile {
+        std::string path;
+    };
+    struct DataFromBuilder {
+        const TextureBuilder* builder;
+    };
+    std::variant<DataFromFile, DataFromBuilder> dataSettings;
+
+    TextureRequestParams() = default;
+
+    TargetNew& targetUseNew() { return targetSettings.emplace<TargetNew>(); }
+    TargetExisting& targetUseExisting() {
+        return targetSettings.emplace<TargetExisting>();
+    }
+
+    DataFromFile& dataFromFile() {
+        return dataSettings.emplace<DataFromFile>();
+    }
+    DataFromBuilder& dataFromBuilder() {
+        return dataSettings.emplace<DataFromBuilder>();
+    }
 };
 
 // ResourceManager Class:

@@ -46,6 +46,8 @@
 
 #include "rendering/util/RenderDoc.h"
 
+#include "core/JobGraph.h"
+
 // --- TEST
 
 // ---
@@ -104,14 +106,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     srand(0);
 
     // --- Create my Systems ---
+    // --- Create my ThreadPool ---
+    const int num_worker_threads = std::thread::hardware_concurrency() - 1;
+    ThreadPool::InitializeThreadPool();
+
     InputSystem input_system = InputSystem(hwnd);
     input_system_handle = &input_system;
     VisualSystem visual_system = VisualSystem(hwnd);
     PhysicsSystem physics_system = PhysicsSystem();
-
-    // --- Create my ThreadPool ---
-    const int num_worker_threads = std::thread::hardware_concurrency() - 1;
-    ThreadPool::InitializeThreadPool();
 
     // --- Create my Scene ---
     Datamodel::RegisterDatamodelListener(visual_system.getSceneListener());
@@ -213,7 +215,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             ImGui::Text("Pending Jobs: %i", ThreadPool::GetNumberPendingJobs());
             ImGui::Text("Active Workers: %i",
                         ThreadPool::GetNumberActiveWorkers());
-            ImGui::EndMenu();
         }
 #endif
 

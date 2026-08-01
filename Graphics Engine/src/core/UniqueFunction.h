@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <stdexcept>
 
 namespace Engine {
 // UniqueFunction Implementation:
@@ -16,20 +17,31 @@ namespace Engine {
 // 3) Now, using pointers, we can store a pointer of the base interface under
 //    our UniqueFunction class so it is not a template, but can accept arbitrary
 //    lambdas.
-struct CallableFunction {
-    virtual ~CallableFunction() = default;
-    virtual void call() = 0;
-};
 
-template <typename T> struct CallableWrapper : public CallableFunction {
-    T callable;
+// Template to allow type enforcing with UniqueFunctions
+template <typename Signature> class UniqueFunction;
 
-    CallableWrapper(T&& callable) : callable(std::move(callable)) {}
-    void call() override { callable(); }
-};
-
-class UniqueFunction {
+// Specialize the template. By breaking the function down into
+// UniqueFunction<Ret(Args...)>, we are setting this pattern where the compiler
+// will use this specialization if it matches (basically any function
+// signature). Furthermore, this pattern lets us separate the return value and
+// argument list.
+template <typename Ret, typename... Args> class UniqueFunction<Ret(Args...)> {
   private:
+    struct CallableFunction {
+        virtual ~CallableFunction() = default;
+        virtual Ret call(Args... args) = 0;
+    };
+
+    template <typename T> struct CallableWrapper : public CallableFunction {
+        T callable;
+
+        CallableWrapper(T&& callable) : callable(std::move(callable)) {}
+        Ret call(Args... args) override {
+            return callable(std::forward<Args>(args)...);
+        }
+    };
+
     std::unique_ptr<CallableFunction> callable;
 
   public:
@@ -48,10 +60,10 @@ class UniqueFunction {
     UniqueFunction& operator=(const UniqueFunction&) = delete;
 
     // Override the () operator to invoke the function
-    void operator()() {
-        if (callable) {
-            callable->call();
-        }
+    Ret operator()(Args... args) {
+        if (callable == nullptr)
+            throw std::runtime_error("Function Invalid");
+        return callable->call(std::forward<Args>(args)...);
     }
 };
 

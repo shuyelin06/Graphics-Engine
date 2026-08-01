@@ -368,12 +368,17 @@ void Terrain2DManagerImpl::regenerateHeightmapTexture() {
         }
     }
 
-    TextureRequestParams texParams;
-    texParams.initCreateFromBuilder(builder, false);
+    TextureRequestParams request;
+    auto& targetSettings = request.targetUseNew();
+    targetSettings.debugName = "Fallback Colormap";
+    targetSettings.editable = false;
+    targetSettings.layout = TextureLayout::R32_FLOAT;
+    auto& dataSettings = request.dataFromBuilder();
+    dataSettings.builder = &builder;
 
     ShaderResource resource;
     mHeightmapTexture =
-        mVisualSystem->getResourceManager()->requestTexture(texParams);
+        mVisualSystem->getResourceManager()->requestTexture(request);
     mTerrainTechnique = mTerrainMaterial->getTechnique(RenderPass::kOpaque);
     SamplerType sampler = config.useLinearSampling ? SamplerType::Sampler_Linear
                                                    : SamplerType::Sampler_Point;

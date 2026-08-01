@@ -14,7 +14,7 @@ ThreadPool::ThreadPool() {
 
     // Create my thread workers. These will execute the
     // executeWorker function.
-    numActive.store(0, std::memory_order_relaxed);
+    numActive.store(0);
     for (int i = 0; i < NUM_THREADS; i++) {
         workers[i] = std::thread(&ThreadPool::executeWorker, this, i);
     }
@@ -36,7 +36,7 @@ ThreadPool::~ThreadPool() {
 }
 
 uint8_t ThreadPool::GetNumberActiveWorkers() {
-    return threadpool->numActive.load(std::memory_order_acquire);
+    return threadpool->numActive.load(std::memory_order_relaxed);
 }
 
 int ThreadPool::GetNumberPendingJobs() {
@@ -48,7 +48,7 @@ int ThreadPool::GetNumberPendingJobs() {
     return result;
 }
 
-void ThreadPool::ScheduleJob(UniqueFunction function) {
+void ThreadPool::ScheduleJob(ThreadPoolFunction&& function) {
     auto& instance = *threadpool;
 
     // Add to our queue, locking temporarily to avoid race conditions
@@ -70,7 +70,7 @@ void ThreadPool::executeWorker(int index) {
         // Grab the first job in the queue.
         // We use mutexes to synchronize our threads
         // so that we have no race conditions.
-        UniqueFunction curJob;
+        UniqueFunction<void()> curJob;
         {
             // Lock the job queue so other threads block
             std::unique_lock<std::mutex> lock(job_mutex);
@@ -95,9 +95,11 @@ void ThreadPool::executeWorker(int index) {
         }
 
         // Execute this job. Mark as active while executing.
-        numActive.fetch_add(1, std::memory_order_relaxed);
+        // Addition to counter must be acquire, subtraction release so that curJob is not
+        // optimized in a way that it falls outside of the atomic counting.
+        numActive.fetch_add(1, std::memory_order_acquire);
         curJob();
-        numActive.fetch_sub(1, std::memory_order_relaxed);
+        numActive.fetch_sub(1, std::memory_order_release);
     }
 }
 
