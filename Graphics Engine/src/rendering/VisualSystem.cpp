@@ -20,23 +20,23 @@ VisualSystem::VisualSystem(HWND window)
     // Initialize my pipeline
     pipeline = std::make_unique<Pipeline>(window);
 
-    ID3D11Device* deviceInterface = pipeline->getDevice();
-    ID3D11DeviceContext* context = pipeline->getContext();
+    device = pipeline->getDevice();
+    ID3D11Device* deviceInterface = device->getDevice();
+    DeviceContext* context = pipeline->getContext();
 
-    device = std::make_unique<Device>(deviceInterface);
-
-    resource_manager = ResourceManager::create(deviceInterface, context);
+    resource_manager = ResourceManager::create(deviceInterface, context->getContext());
     resource_manager->initializeSystemResources();
     material_manager = MaterialManager::create(resource_manager.get());
 
-    render_manager = RenderManager::create(this, context, deviceInterface);
+    render_manager =
+        RenderManager::create(this, context->getContext(), deviceInterface);
     postfx_manager = PostFXManager::create(this);
 
     // Initialize each of my managers with the resources they need
     scene_listener = SceneListener::create(this);
     scene_manager = SceneManager::create(this);
 
-    light_manager = new LightManager(deviceInterface, 4096);
+    light_manager = new LightManager(device, 4096);
     terrain2D = Terrain2DManager::create(this);
 
     ImGuiHelper::registerImGuiCallback("Render/Renderdoc",
@@ -115,7 +115,7 @@ void VisualSystem::renderPrepare()
 
 Device* VisualSystem::getDevice() const
 {
-    return device.get();
+    return device;
 }
 ResourceManager* VisualSystem::getResourceManager() const
 {

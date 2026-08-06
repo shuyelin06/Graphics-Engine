@@ -7,14 +7,14 @@
 #include <assert.h>
 #include <optional>
 
-constexpr bool ALLOW_CACHING = false;
+constexpr bool ALLOW_CACHING = true;
 
 namespace Engine
 {
 namespace Graphics
 {
 
-static const std::string cache_folder = "bin/";
+static const std::string cache_folder = "bin_shaders/";
 static const std::string shader_folder = "shaders/";
 
 ShaderManager::ShaderManager(ID3D11Device* _device)

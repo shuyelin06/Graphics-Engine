@@ -37,10 +37,7 @@ class DebugRenderPassScope
         const std::wstring wstring = std::wstring(name.begin(), name.end());
         annotation->BeginEvent(wstring.c_str());
     }
-    ~DebugRenderPassScope()
-    {
-        annotation->EndEvent();
-    }
+    ~DebugRenderPassScope() { annotation->EndEvent(); }
 };
 
 DrawBlock::DrawBlock() = default;
@@ -108,7 +105,8 @@ class RenderManagerImpl
     void perform();
 
   private:
-    void executeRenderPass(RenderPass pass,
+    void executeRenderPass(DeviceContext* context,
+                           RenderPass pass,
                            const RenderView& view,
                            const std::string& annotation);
 };
@@ -138,10 +136,7 @@ void RenderManager::setMainView(const RenderView& view)
     mImpl->setMainView(view);
 }
 
-void RenderManager::perform()
-{
-    mImpl->perform();
-}
+void RenderManager::perform() { mImpl->perform(); }
 
 std::unique_ptr<RenderManager>
 RenderManager::create(VisualSystem* visual_system,
@@ -228,10 +223,7 @@ void RenderManagerImpl::removeDrawBlock(const DrawBlockKey key)
     drawBlocks.erase(key);
 }
 
-void RenderManagerImpl::setMainView(const RenderView& view)
-{
-    mainView = view;
-}
+void RenderManagerImpl::setMainView(const RenderView& view) { mainView = view; }
 
 // Executes the Render Pipeline. Critical Path.
 // A couple of assumptions are made here:
@@ -245,6 +237,8 @@ void RenderManagerImpl::perform()
 {
     Pipeline* pipeline = visualSystem->getPipeline();
     ResourceManager* resourceManager = visualSystem->getResourceManager();
+
+    DeviceContext* context = pipeline->getContext();
 
     Texture* renderTarget = pipeline->getRenderTargetDest();
     Texture* depthStencil = pipeline->getDepthStencil();
@@ -260,15 +254,10 @@ void RenderManagerImpl::perform()
     // Bind my global constant buffers (CB0)
     // Vertex Constant Buffer 0:
     // Stores the camera view and projection matrices
-    pipeline->markVertexCBUsage(0, true);
-    pipeline->markVertexCBUsage(3, true);
-    pipeline->markPixelCBUsage(0, true);
-
     {
-        IConstantBuffer vCB0 = pipeline->loadVertexCB(0);
         Matrix4 screenFromWorld =
             mainView.mLocalToFrustum * mainView.mWorldToLocal;
-        vCB0.loadData(&screenFromWorld, FLOAT4X4);
+        context->loadVertexCB(0, &screenFromWorld, sizeof(screenFromWorld));
     }
 
     {
@@ -280,28 +269,27 @@ void RenderManagerImpl::perform()
             mainView.mLocalToFrustum * mainView.mWorldToLocal;
         pcb0Data.mScreenToWorld = pcb0Data.mWorldToScreen.inverse();
         pcb0Data.resolutionInfo = mainView.viewport;
-
-        IConstantBuffer pcb0_common = pipeline->loadPixelCB(0);
-        pcb0_common.loadData(&pcb0Data, sizeof(pcb0Data));
+        context->loadPixelCB(0, &pcb0Data, sizeof(pcb0Data));
     }
 
     // Vertex Constant Buffer 1:
     // Stores the camera view and projection matrices
     {
-        pipeline->markVertexCBUsage(1, true);
-        IConstantBuffer vCB1 = pipeline->loadVertexCB(1);
-
-        const Matrix4 viewMatrix = mainView.mWorldToLocal;
-        vCB1.loadData(&viewMatrix, FLOAT4X4);
-        const Matrix4 projectionMatrix = mainView.mLocalToFrustum;
-        vCB1.loadData(&projectionMatrix, FLOAT4X4);
+        struct VCB1
+        {
+            Matrix4 viewMatrix;
+            Matrix4 projectionMatrix;
+        };
+        VCB1 vcb1Data;
+        vcb1Data.viewMatrix = mainView.mWorldToLocal;
+        vcb1Data.projectionMatrix = mainView.mLocalToFrustum;
+        context->loadVertexCB(1, &vcb1Data, sizeof(vcb1Data));
     }
 
     // Pixel Constant Buffer 1: Light Data
     // Stores data that is needed for lighting / shadowing.
     {
-        IConstantBuffer pCB1 = pipeline->loadPixelCB(1);
-        visualSystem->getLightManager()->bindLightData(pCB1);
+        visualSystem->getLightManager()->bindLightData(context);
     }
 
     // Vertex Constant Buffer 3: Instance Data
@@ -312,9 +300,9 @@ void RenderManagerImpl::perform()
 
         // if (instanceDataDirty)
         {
-            IConstantBuffer vCB3 = pipeline->loadVertexCB(3);
-            vCB3.loadData(instanceDataPool.getData(),
-                          instanceDataPool.getSize() * sizeof(InstanceData));
+            context->loadVertexCB(3, instanceDataPool.getData(),
+                                  instanceDataPool.getSize() *
+                                      sizeof(InstanceData));
         }
     }
 
@@ -331,23 +319,20 @@ void RenderManagerImpl::perform()
         pipeline->bindRenderTarget(mainView.renderTarget, mainView.depthStencil,
                                    Depth_TestAndWrite);
         pipeline->bindBlendSettings(Blend_Default);
-        executeRenderPass(RenderPass::kOpaque, mainView, "Opaque");
+        executeRenderPass(context, RenderPass::kOpaque, mainView, "Opaque");
     }
 
     {
         pipeline->bindRenderTarget(mainView.renderTarget, mainView.depthStencil,
                                    Depth_TestAndWrite);
         pipeline->bindBlendSettings(Blend_Default);
-        executeRenderPass(RenderPass::kDebug, mainView, "Debug");
+        executeRenderPass(context, RenderPass::kDebug, mainView, "Debug");
     }
 
-    pipeline->markVertexCBUsage(0, false);
-    pipeline->markVertexCBUsage(1, false);
-    pipeline->markVertexCBUsage(3, false);
-    pipeline->markPixelCBUsage(0, false);
 }
 
-void RenderManagerImpl::executeRenderPass(RenderPass pass,
+void RenderManagerImpl::executeRenderPass(DeviceContext* context,
+                                          RenderPass pass,
                                           const RenderView& view,
                                           const std::string& annotation)
 {
@@ -503,15 +488,7 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
         for (int slot = 0; slot < kVertexConstantBufferMax; slot++)
         {
             const auto& buffer = technique->vertexCBuffers[slot];
-            if (buffer.size() > 0)
-            {
-                pipeline->markVertexCBUsage(slot, true);
-
-                IConstantBuffer cbHandle = pipeline->loadVertexCB(slot);
-                cbHandle.loadData(buffer.data(), buffer.size());
-
-                pipeline->markVertexCBUsage(slot, false);
-            }
+            context->loadVertexCB(slot, buffer.data(), buffer.size());
         }
 
         for (int slot = 0; slot < kVertexResourceMax; slot++)
@@ -529,15 +506,7 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
         for (int slot = 0; slot < kVertexConstantBufferMax; slot++)
         {
             const auto& buffer = technique->pixelCbuffers[slot];
-            if (buffer.size() > 0)
-            {
-                pipeline->markPixelCBUsage(slot, true);
-
-                IConstantBuffer cbHandle = pipeline->loadPixelCB(slot);
-                cbHandle.loadData(buffer.data(), buffer.size());
-
-                pipeline->markPixelCBUsage(slot, false);
-            }
+            context->loadPixelCB(slot, buffer.data(), buffer.size());
         }
 
         for (int slot = 0; slot < kPixelResourceMax; slot++)
@@ -557,13 +526,9 @@ void RenderManagerImpl::executeRenderPass(RenderPass pass,
         // API, but do not touch CB4.
 
         {
-            pipeline->markVertexCBUsage(4, true);
-            assert(sizeof(InstanceDataKey) == sizeof(uint32_t));
-            IConstantBuffer cbHandle = pipeline->loadVertexCB(4);
-            cbHandle.loadData(instanceDataIndices.data(),
-                              sizeof(InstanceDataKey) *
-                                  instanceDataIndices.size());
-            pipeline->markVertexCBUsage(4, false);
+            context->loadVertexCB(4, instanceDataIndices.data(),
+                                  sizeof(InstanceDataKey) *
+                                      instanceDataIndices.size());
         }
 
         pipeline->drawMesh(mesh, numInstances);

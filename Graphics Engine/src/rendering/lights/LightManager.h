@@ -3,6 +3,7 @@
 #include "../core/TextureAtlas.h"
 #include "datamodel/SceneGraph.h"
 
+#include "rendering/core/Device.h"
 #include "rendering/core/Mesh.h"
 #include "rendering/core/Texture.h"
 
@@ -58,6 +59,7 @@ class IConstantBuffer;
 class LightManager
 {
   private:
+    std::shared_ptr<Texture> atlas_texture;
     TextureAtlas* shadow_atlas;
     std::vector<ShadowLight*> shadow_lights;
 
@@ -76,7 +78,7 @@ class LightManager
     std::vector<ShadowCaster> shadow_casters;
 
   public:
-    LightManager(ID3D11Device* device, unsigned int atlas_size);
+    LightManager(Device* device, unsigned int atlas_size);
 
     // Datamodel Handling
     void pullDatamodelData();
@@ -105,7 +107,7 @@ class LightManager
     void clusterShadowCasters();
 
     // Bind data to pipeline
-    void bindLightData(IConstantBuffer& cb);
+    void bindLightData(DeviceContext* context);
 
   private:
     // ImGui

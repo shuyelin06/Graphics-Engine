@@ -1,2 +1,3 @@
-Graphics Engine/.vs
-Graphics Engine/bin/
+.vs
+bin/
+Graphics Engine/bin_shaders/

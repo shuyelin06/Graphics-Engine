@@ -36,7 +36,7 @@ class VisualSystem
     uint64_t frame;
 
     // Managers
-    std::unique_ptr<Device> device;
+    Device* device;
 
     std::unique_ptr<Pipeline> pipeline;
     std::unique_ptr<ResourceManager> resource_manager;

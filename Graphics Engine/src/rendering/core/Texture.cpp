@@ -41,38 +41,18 @@ Texture::Texture(ID3D11Device* device, const D3D11_TEXTURE2D_DESC& desc)
 
 Texture::~Texture()
 {
-    if (texture != nullptr)
+    if (texture)
         texture->Release();
-    if (shader_view != nullptr)
+    if (depth_view)
+        depth_view->Release();
+    if (shader_view)
         shader_view->Release();
-}
-
-// Create views for my texture, so that it can be bound in the pipeline
-void Texture::createShaderResourceView(ID3D11Device* device,
-                                       D3D11_SHADER_RESOURCE_VIEW_DESC& desc)
-{
-    HRESULT result =
-        device->CreateShaderResourceView(texture, &desc, &shader_view);
-    assert(SUCCEEDED(result));
-}
-void Texture::createDepthStencilView(ID3D11Device* device,
-                                     D3D11_DEPTH_STENCIL_VIEW_DESC& desc)
-{
-    HRESULT result =
-        device->CreateDepthStencilView(texture, &desc, &depth_view);
-    assert(SUCCEEDED(result));
-}
-void Texture::createRenderTargetView(ID3D11Device* device)
-{
-    HRESULT result = device->CreateRenderTargetView(texture, 0, &target_view);
-    assert(SUCCEEDED(result));
+    if (target_view)
+        target_view->Release();
 }
 
 #if defined(_DEBUG)
-void Texture::displayImGui() const
-{
-    displayImGui(256);
-}
+void Texture::displayImGui() const { displayImGui(256); }
 void Texture::displayImGui(float display_width) const
 {
     ImGui::Image((ImTextureID)(intptr_t)shader_view,

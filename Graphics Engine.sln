@@ -1,0 +1,51 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.7.12002.237
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Graphics Engine", "Graphics Engine\Graphics Engine.vcxproj", "{30D63F9E-DE56-425F-B971-5BEDF937BEA4}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Math", "Math\Math.vcxproj", "{BCAD216C-5716-4996-B595-B57030CF70D7}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CommonTests", "CommonTests\CommonTests.vcxproj", "{28FFE6CB-50AE-4C68-B0D9-3FEFAF68F6DE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{30D63F9E-DE56-425F-B971-5BEDF937BEA4}.Debug|x64.ActiveCfg = Debug|x64
+		{30D63F9E-DE56-425F-B971-5BEDF937BEA4}.Debug|x64.Build.0 = Debug|x64
+		{30D63F9E-DE56-425F-B971-5BEDF937BEA4}.Debug|x86.ActiveCfg = Debug|Win32
+		{30D63F9E-DE56-425F-B971-5BEDF937BEA4}.Debug|x86.Build.0 = Debug|Win32
+		{30D63F9E-DE56-425F-B971-5BEDF937BEA4}.Release|x64.ActiveCfg = Release|x64
+		{30D63F9E-DE56-425F-B971-5BEDF937BEA4}.Release|x64.Build.0 = Release|x64
+		{30D63F9E-DE56-425F-B971-5BEDF937BEA4}.Release|x86.ActiveCfg = Release|Win32
+		{30D63F9E-DE56-425F-B971-5BEDF937BEA4}.Release|x86.Build.0 = Release|Win32
+		{BCAD216C-5716-4996-B595-B57030CF70D7}.Debug|x64.ActiveCfg = Debug|x64
+		{BCAD216C-5716-4996-B595-B57030CF70D7}.Debug|x64.Build.0 = Debug|x64
+		{BCAD216C-5716-4996-B595-B57030CF70D7}.Debug|x86.ActiveCfg = Debug|Win32
+		{BCAD216C-5716-4996-B595-B57030CF70D7}.Debug|x86.Build.0 = Debug|Win32
+		{BCAD216C-5716-4996-B595-B57030CF70D7}.Release|x64.ActiveCfg = Release|x64
+		{BCAD216C-5716-4996-B595-B57030CF70D7}.Release|x64.Build.0 = Release|x64
+		{BCAD216C-5716-4996-B595-B57030CF70D7}.Release|x86.ActiveCfg = Release|Win32
+		{BCAD216C-5716-4996-B595-B57030CF70D7}.Release|x86.Build.0 = Release|Win32
+		{28FFE6CB-50AE-4C68-B0D9-3FEFAF68F6DE}.Debug|x64.ActiveCfg = Debug|x64
+		{28FFE6CB-50AE-4C68-B0D9-3FEFAF68F6DE}.Debug|x64.Build.0 = Debug|x64
+		{28FFE6CB-50AE-4C68-B0D9-3FEFAF68F6DE}.Debug|x86.ActiveCfg = Debug|Win32
+		{28FFE6CB-50AE-4C68-B0D9-3FEFAF68F6DE}.Debug|x86.Build.0 = Debug|Win32
+		{28FFE6CB-50AE-4C68-B0D9-3FEFAF68F6DE}.Release|x64.ActiveCfg = Release|x64
+		{28FFE6CB-50AE-4C68-B0D9-3FEFAF68F6DE}.Release|x64.Build.0 = Release|x64
+		{28FFE6CB-50AE-4C68-B0D9-3FEFAF68F6DE}.Release|x86.ActiveCfg = Release|Win32
+		{28FFE6CB-50AE-4C68-B0D9-3FEFAF68F6DE}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {AFF865BC-751E-4AA4-9665-05DC2D83EBB4}
+	EndGlobalSection
+EndGlobal

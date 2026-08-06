@@ -54,10 +54,7 @@ std::unique_ptr<PostFXManager> PostFXManager::create(VisualSystem* visualSystem)
 PostFXManager::PostFXManager() = default;
 PostFXManager::~PostFXManager() = default;
 
-void PostFXManager::render()
-{
-    mImpl->render();
-}
+void PostFXManager::render() { mImpl->render(); }
 
 PostFXManagerImpl::PostFXManagerImpl(VisualSystem* visualSystem)
     : mVisualSystem(visualSystem)
@@ -94,29 +91,44 @@ void PostFXManagerImpl::renderSky(Pipeline* pipeline)
                                SamplerType::Sampler_Point);
 
     {
-        IConstantBuffer pcb2 = pipeline->loadPixelCB(2);
+        std::vector<uint8_t> data;
+        auto appendData = [&data](const void* src, size_t bytes) {
+            // Convert our data into a character array, and read the number of bytes
+            // specified by the CBDataFormat into our constant buffer.
+            const char* charData = static_cast<const char*>(src);
+
+            data.resize(data.size() + bytes);
+            uint8_t* vectorEnd = &data[data.size() - bytes];
+
+            if (src != nullptr)
+                memcpy(vectorEnd, charData, bytes);
+            else
+                memset(vectorEnd, 0, bytes);
+        };
 
         Vector3 sun_direction = Vector3(-3.0f, -1.0f, 0.0f).unit();
-        pcb2.loadData(&sun_direction, FLOAT3);
+        appendData(&sun_direction, 12);
         const float sun_size = 0.0125f;
-        pcb2.loadData(&sun_size, FLOAT);
+        appendData(&sun_size, 4);
         Vector3 sun_color = Vector3(1.f, 1.f, 0.0f);
-        pcb2.loadData(&sun_color, FLOAT3);
-        pcb2.loadData(nullptr, FLOAT);
+        appendData(&sun_color, 12);
+        appendData(nullptr, 4);
 
-        pcb2.loadData(&mSkyConfig.density_falloff, FLOAT);
-        pcb2.loadData(&mSkyConfig.atmosphere_height, FLOAT);
-        pcb2.loadData(&mSkyConfig.max_distance, FLOAT);
-        pcb2.loadData(&mSkyConfig.num_steps_atmosphere, INT);
+        appendData(&mSkyConfig.density_falloff, 4);
+        appendData(&mSkyConfig.atmosphere_height, 4);
+        appendData(&mSkyConfig.max_distance, 4);
+        appendData(&mSkyConfig.num_steps_atmosphere, 4);
 
         const Vector3 scattering_coefficients =
             Vector3(powf(200.f / 700.f, 4), powf(200.f / 530.f, 4),
                     powf(200.f / 440.f, 4)) *
             mSkyConfig.scattering;
-        pcb2.loadData(&scattering_coefficients, FLOAT3);
-        pcb2.loadData(&mSkyConfig.num_steps_optical_depth, INT);
+        appendData(&scattering_coefficients, 12);
+        appendData(&mSkyConfig.num_steps_optical_depth, 4);
 
-        pcb2.loadData(&mSkyConfig.reflective_strength, FLOAT);
+        appendData(&mSkyConfig.reflective_strength, 4);
+
+        pipeline->getContext()->loadPixelCB(2, data.data(), data.size());
     }
 
     pipeline->drawPostProcessQuad();

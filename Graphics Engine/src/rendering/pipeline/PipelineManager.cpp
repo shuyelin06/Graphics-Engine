@@ -19,11 +19,11 @@ namespace Graphics
 {
 Pipeline::Pipeline(HWND window)
 {
-    // Initialize my device, context, and render targets
+    // Initialize my device, context->getContext(), and render targets
     initializeTargets(window);
 
     // Initialize my shader manager
-    shader_manager = new ShaderManager(device);
+    shader_manager = new ShaderManager(device->getDevice());
     shader_manager->initializeShaders();
 
     // Initialize my vertex buffers / offsets / strides
@@ -38,18 +38,6 @@ Pipeline::Pipeline(HWND window)
     vb_strides[COLOR] = sizeof(float) * 3;
     vb_strides[JOINTS] = sizeof(float) * 4;
     vb_strides[WEIGHTS] = sizeof(float) * 4;
-
-    // Initialize my constant buffer handles
-    for (int i = 0; i < kVertexConstantBufferMax; i++)
-    {
-        vcb_handles[i] = new ConstantBuffer();
-        debug_vcb_usages[i] = false;
-    }
-    for (int i = 0; i < kPixelConstantBufferMax; i++)
-    {
-        pcb_handles[i] = new ConstantBuffer();
-        debug_pcb_usages[i] = false;
-    }
 
     // Initialize my full screen quad
     {
@@ -67,7 +55,8 @@ Pipeline::Pipeline(HWND window)
         D3D11_SUBRESOURCE_DATA sr_data = {};
         sr_data.pSysMem = (void*)fullscreen_quad;
 
-        device->CreateBuffer(&buffer_desc, &sr_data, &postprocess_quad);
+        device->getDevice()->CreateBuffer(&buffer_desc, &sr_data,
+                                          &postprocess_quad);
     }
 
     initializeSamplers();
@@ -86,15 +75,6 @@ Pipeline::~Pipeline()
 #if defined(_DEBUG)
     imGuiShutdown();
 #endif
-
-    for (int i = 0; i < kVertexConstantBufferMax; i++)
-    {
-        delete vcb_handles[i];
-    }
-    for (int i = 0; i < kPixelConstantBufferMax; i++)
-    {
-        delete pcb_handles[i];
-    }
 
     for (int i = 0; i < (int)SamplerType::SamplerCount; i++)
     {
@@ -121,108 +101,21 @@ void Pipeline::initializeTargets(HWND _window)
     // Create my swap chain. This will let me swap between textures for
     // rendering, so the user doesn't see the next frame while it's being
     // rendered.
-    {
-        DXGI_SWAP_CHAIN_DESC swap_chain_descriptor = {0};
+    InitializeGraphicsAPI(window, device, context);
 
-        swap_chain_descriptor.BufferDesc.RefreshRate.Numerator = 0;
-        swap_chain_descriptor.BufferDesc.RefreshRate.Denominator = 1;
-        swap_chain_descriptor.BufferDesc.Width = width;
-        swap_chain_descriptor.BufferDesc.Height = height;
-        swap_chain_descriptor.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-        swap_chain_descriptor.SampleDesc.Count = 1;
-        swap_chain_descriptor.SampleDesc.Quality = 0;
-        swap_chain_descriptor.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        swap_chain_descriptor.BufferCount = 1; // # Back Buffers
-        swap_chain_descriptor.OutputWindow = window;
-        swap_chain_descriptor.Windowed = true; // Displaying to a Window
+    render_target_src = device->createTexture(
+        TextureLayout::R8G8B8A8_UNORM_SGRB,
+        TextureUsage::RenderTarget | TextureUsage::ShaderResource, width,
+        height, 1, "Render Target Source");
+    render_target_dest = device->createTexture(
+        TextureLayout::R8G8B8A8_UNORM_SGRB,
+        TextureUsage::RenderTarget | TextureUsage::ShaderResource, width,
+        height, 1, "Render Target Destination");
 
-        D3D_FEATURE_LEVEL feature_level; // Stores the GPU functionality
-        result = D3D11CreateDeviceAndSwapChain(
-            NULL, D3D_DRIVER_TYPE_HARDWARE, NULL,
-            0, // Flags
-            NULL, 0, D3D11_SDK_VERSION, &swap_chain_descriptor, &swapchain,
-            &device, &feature_level, &context);
-        assert(S_OK == result && swapchain && device && context);
-    }
-
-    // Create my screen target with the swap chain's frame buffer. This
-    // will store my output image.
-    ID3D11Texture2D* tex;
-
-    {
-        result =
-            swapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&tex);
-        assert(SUCCEEDED(result));
-        screen_target = new Texture(tex, width, height);
-
-        result = device->CreateRenderTargetView(screen_target->texture, 0,
-                                                &screen_target->target_view);
-        assert(SUCCEEDED(result));
-
-        // Free frame buffer (no longer needed)
-        screen_target->texture->Release();
-    }
-
-    D3D11_TEXTURE2D_DESC tex_desc = {};
-    D3D11_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
-
-    // Create 2 render targets. We will ping pong between
-    // these two render targets during post processing.
-    {
-        tex_desc.Width = width;
-        tex_desc.Height = height;
-        tex_desc.MipLevels = 1;
-        tex_desc.ArraySize = 1;
-        tex_desc.MipLevels = 1;
-        tex_desc.ArraySize = 1;
-        tex_desc.SampleDesc.Count = 1;
-        tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-        tex_desc.BindFlags =
-            D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-
-        srv_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-        srv_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-        srv_desc.Texture2D.MostDetailedMip = 0;
-        srv_desc.Texture2D.MipLevels = 1;
-
-        render_target_src = new Texture(device, tex_desc);
-        render_target_src->createShaderResourceView(device, srv_desc);
-        render_target_src->createRenderTargetView(device);
-
-        render_target_dest = new Texture(device, tex_desc);
-        render_target_dest->createShaderResourceView(device, srv_desc);
-        render_target_dest->createRenderTargetView(device);
-    }
-
-    // Create another texture as a depth stencil, for z-testing
-    // Create my depth stencil which will be used for z-tests
-    // 24 Bits for Depth, 8 Bits for Stencil
-    {
-        tex_desc.Width = width;
-        tex_desc.Height = height;
-        tex_desc.MipLevels = 1;
-        tex_desc.ArraySize = 1;
-        tex_desc.MipLevels = 1;
-        tex_desc.ArraySize = 1;
-        tex_desc.SampleDesc.Count = 1;
-        tex_desc.Format = DXGI_FORMAT_R24G8_TYPELESS;
-        tex_desc.BindFlags =
-            D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
-
-        srv_desc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
-        srv_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-        srv_desc.Texture2D.MostDetailedMip = 0;
-        srv_desc.Texture2D.MipLevels = 1;
-
-        D3D11_DEPTH_STENCIL_VIEW_DESC desc_stencil = {};
-        desc_stencil.Format =
-            DXGI_FORMAT_D24_UNORM_S8_UINT; // Same format as texture
-        desc_stencil.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
-
-        depth_stencil = new Texture(device, tex_desc);
-        depth_stencil->createDepthStencilView(device, desc_stencil);
-        depth_stencil->createShaderResourceView(device, srv_desc);
-    }
+    depth_stencil = device->createTexture(TextureLayout::R24_UNORM_G8_UINT,
+                                          TextureUsage::DepthStencil |
+                                              TextureUsage::ShaderResource,
+                                          width, height, 1, "Depth Stencil");
 
     // Create my depth states
     {
@@ -239,7 +132,7 @@ void Pipeline::initializeTargets(HWND _window)
         // No stencil testing
         desc.StencilEnable = FALSE;
 
-        result = device->CreateDepthStencilState(
+        result = device->getDevice()->CreateDepthStencilState(
             &desc, &depth_states[Depth_TestAndWrite]);
         assert(SUCCEEDED(result));
 
@@ -252,7 +145,7 @@ void Pipeline::initializeTargets(HWND _window)
         // No stencil testing
         desc.StencilEnable = FALSE;
 
-        HRESULT result = device->CreateDepthStencilState(
+        HRESULT result = device->getDevice()->CreateDepthStencilState(
             &desc, &depth_states[Depth_TestNoWrite]);
         assert(SUCCEEDED(result));
     }
@@ -270,8 +163,8 @@ void Pipeline::initializeTargets(HWND _window)
         blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_MAX;
         blend_desc.RenderTarget[0].RenderTargetWriteMask =
             D3D11_COLOR_WRITE_ENABLE_ALL;
-        result = device->CreateBlendState(&blend_desc,
-                                          &blend_states[Blend_SrcAlphaOnly]);
+        result = device->getDevice()->CreateBlendState(
+            &blend_desc, &blend_states[Blend_SrcAlphaOnly]);
         assert(SUCCEEDED(result));
 
         blend_desc.RenderTarget[0].BlendEnable = TRUE;
@@ -283,8 +176,8 @@ void Pipeline::initializeTargets(HWND _window)
         blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_MAX;
         blend_desc.RenderTarget[0].RenderTargetWriteMask =
             D3D11_COLOR_WRITE_ENABLE_ALL;
-        result = device->CreateBlendState(&blend_desc,
-                                          &blend_states[Blend_UseSrcAndDest]);
+        result = device->getDevice()->CreateBlendState(
+            &blend_desc, &blend_states[Blend_UseSrcAndDest]);
         assert(SUCCEEDED(result));
     }
 }
@@ -307,7 +200,7 @@ void Pipeline::initializeSamplers()
     sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
     sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
 
-    device->CreateSamplerState(&sampler_desc, &sampler);
+    device->getDevice()->CreateSamplerState(&sampler_desc, &sampler);
     assert(sampler != NULL);
 
     samplers[SamplerType::Sampler_Point] = sampler;
@@ -327,7 +220,7 @@ void Pipeline::initializeSamplers()
     sampler_desc.MinLOD = 0;
     sampler_desc.MaxLOD = 1.0f;
 
-    device->CreateSamplerState(&sampler_desc, &sampler);
+    device->getDevice()->CreateSamplerState(&sampler_desc, &sampler);
     assert(sampler != NULL);
 
     samplers[Sampler_Shadow] = sampler;
@@ -341,32 +234,23 @@ void Pipeline::initializeSamplers()
     sampler_desc.MinLOD = 0.0f; // holy moly!!!! this was clamping it wtf
     sampler_desc.MaxLOD = D3D11_FLOAT32_MAX;
 
-    device->CreateSamplerState(&sampler_desc, &sampler);
+    device->getDevice()->CreateSamplerState(&sampler_desc, &sampler);
     assert(sampler != NULL);
 
     samplers[Sampler_Linear] = sampler;
 }
 
-ID3D11Device* Pipeline::getDevice() const
-{
-    return device;
-}
-ID3D11DeviceContext* Pipeline::getContext() const
-{
-    return context;
-}
+Device* Pipeline::getDevice() const { return device.get(); }
+DeviceContext* Pipeline::getContext() const { return context.get(); }
 Texture* Pipeline::getRenderTargetDest() const
 {
-    return render_target_dest;
+    return render_target_dest.get();
 }
 Texture* Pipeline::getRenderTargetSrc() const
 {
-    return render_target_src;
+    return render_target_src.get();
 }
-Texture* Pipeline::getDepthStencil() const
-{
-    return depth_stencil;
-}
+Texture* Pipeline::getDepthStencil() const { return depth_stencil.get(); }
 
 // Prepare
 void Pipeline::beginFrame(const uint64_t frame)
@@ -376,7 +260,8 @@ void Pipeline::beginFrame(const uint64_t frame)
     stats = Pipeline::Stats();
 
     const float baseColor[4] = {0.f, 0.f, 0.f, 1.f};
-    context->ClearRenderTargetView(render_target_dest->target_view, baseColor);
+    context->getContext()->ClearRenderTargetView(
+        render_target_dest->target_view, baseColor);
 }
 
 void Pipeline::setVertexTopology(VertexTopology topology)
@@ -384,11 +269,13 @@ void Pipeline::setVertexTopology(VertexTopology topology)
     switch (topology)
     {
     case VertexTopology::TriangleList:
-        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        context->getContext()->IASetPrimitiveTopology(
+            D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         break;
 
     case VertexTopology::LineList:
-        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+        context->getContext()->IASetPrimitiveTopology(
+            D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
         break;
 
     default:
@@ -407,8 +294,8 @@ void Pipeline::bindVertexShader(const std::string& vs_name)
         vs_active = newVS;
 
         // Bind shader and input layout
-        context->IASetInputLayout(vs_active->layout);
-        context->VSSetShader(vs_active->shader, NULL, 0);
+        context->getContext()->IASetInputLayout(vs_active->layout);
+        context->getContext()->VSSetShader(vs_active->shader, NULL, 0);
     }
 }
 
@@ -420,7 +307,7 @@ void Pipeline::bindPixelShader(const std::string& ps_name)
     if (newPS != ps_active)
     {
         ps_active = newPS;
-        context->PSSetShader(ps_active->shader, NULL, 0);
+        context->getContext()->PSSetShader(ps_active->shader, NULL, 0);
     }
 }
 
@@ -449,7 +336,7 @@ void Pipeline::bindRenderTarget(Texture* renderTarget,
     {
         assert(depthStencil->depth_view);
         ID3D11DepthStencilState* state = depth_states[depthFlags];
-        context->OMSetDepthStencilState(state, 0);
+        context->getContext()->OMSetDepthStencilState(state, 0);
         depthView = depthStencil->depth_view;
 
         assert(viewport.Width == -1.f || viewport.Width == depthStencil->width);
@@ -465,14 +352,15 @@ void Pipeline::bindRenderTarget(Texture* renderTarget,
         }
     }
 
-    context->OMSetRenderTargets(1, targetViewPtr, depthView);
+    context->getContext()->OMSetRenderTargets(1, targetViewPtr, depthView);
 
-    context->RSSetViewports(1, &viewport);
+    context->getContext()->RSSetViewports(1, &viewport);
 }
 
 void Pipeline::bindBlendSettings(BlendFlags blendFlag)
 {
-    context->OMSetBlendState(blend_states[blendFlag], nullptr, 0xFFFFFFFF);
+    context->getContext()->OMSetBlendState(blend_states[blendFlag], nullptr,
+                                           0xFFFFFFFF);
 }
 
 void Pipeline::bindRenderTarget(TargetFlags f_target,
@@ -506,63 +394,40 @@ void Pipeline::bindRenderTarget(TargetFlags f_target,
     {
         depth_view = depth_stencil->depth_view;
         ID3D11DepthStencilState* state = depth_states[f_depth];
-        context->OMSetDepthStencilState(state, 0);
+        context->getContext()->OMSetDepthStencilState(state, 0);
     }
 
-    context->OMSetRenderTargets(1, &target_view, depth_view);
-    context->RSSetViewports(1, &viewport);
+    context->getContext()->OMSetRenderTargets(1, &target_view, depth_view);
+    context->getContext()->RSSetViewports(1, &viewport);
 
     // Handle blend flags
-    context->OMSetBlendState(blend_states[f_blend], nullptr, 0xFFFFFFFF);
+    context->getContext()->OMSetBlendState(blend_states[f_blend], nullptr,
+                                           0xFFFFFFFF);
 }
 
 void Pipeline::swapActiveTarget()
 {
-    Texture* temp = render_target_dest;
-    render_target_dest = render_target_src;
-    render_target_src = temp;
+    std::swap(render_target_src, render_target_dest);
 }
 
 void Pipeline::bindVertexTexture(uint8_t slot,
                                  const Texture& texture,
                                  SamplerType samplerType)
 {
-    context->VSSetShaderResources(slot, 1, &texture.shader_view);
+    context->getContext()->VSSetShaderResources(slot, 1, &texture.shader_view);
 
     ID3D11SamplerState* state = samplers[samplerType];
-    context->VSSetSamplers(slot, 1, &state);
+    context->getContext()->VSSetSamplers(slot, 1, &state);
 }
 
 void Pipeline::bindPixelTexture(uint8_t slot,
                                 const Texture& texture,
                                 SamplerType samplerType)
 {
-    context->PSSetShaderResources(slot, 1, &texture.shader_view);
+    context->getContext()->PSSetShaderResources(slot, 1, &texture.shader_view);
 
     ID3D11SamplerState* sampler = samplers[samplerType];
-    context->PSSetSamplers(slot, 1, &sampler);
-}
-
-// Constant Buffer Loading
-IConstantBuffer Pipeline::loadVertexCB(int slot)
-{
-    assert(0 <= slot && slot < kVertexConstantBufferMax);
-    return IConstantBuffer(vcb_handles[slot], slot, CBVertex, device, context);
-}
-IConstantBuffer Pipeline::loadPixelCB(int slot)
-{
-    assert(0 <= slot && slot < kPixelConstantBufferMax);
-    return IConstantBuffer(pcb_handles[slot], slot, CBPixel, device, context);
-}
-void Pipeline::markVertexCBUsage(int slot, bool usage)
-{
-    assert(debug_vcb_usages[slot] == !usage);
-    debug_vcb_usages[slot] = usage;
-}
-void Pipeline::markPixelCBUsage(int slot, bool usage)
-{
-    assert(debug_pcb_usages[slot] == !usage);
-    debug_pcb_usages[slot] = usage;
+    context->getContext()->PSSetSamplers(slot, 1, &sampler);
 }
 
 void Pipeline::drawMesh(const Mesh* mesh,
@@ -579,7 +444,8 @@ void Pipeline::drawMesh(const Mesh* mesh,
     // All meshes are assumed to havae a triangle list topology.
     // While there are more efficient representations, this is done
     // for simplicity.
-    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    context->getContext()->IASetPrimitiveTopology(
+        D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     if (pool != active_pool_addr)
     {
@@ -587,7 +453,8 @@ void Pipeline::drawMesh(const Mesh* mesh,
 
         // Bind my index buffer. All meshes are assumed to have one index
         // buffer, associated with multiple vertex buffers.
-        context->IASetIndexBuffer(pool->ibuffer, DXGI_FORMAT_R32_UINT, 0);
+        context->getContext()->IASetIndexBuffer(pool->ibuffer,
+                                                DXGI_FORMAT_R32_UINT, 0);
 
         // Iterate through the layout of my pool and bind all vertex buffers.
         memset(vb_buffers, 0, sizeof(ID3D11Buffer*) * BINDABLE_STREAM_COUNT);
@@ -599,8 +466,8 @@ void Pipeline::drawMesh(const Mesh* mesh,
             }
         }
 
-        context->IASetVertexBuffers(0, BINDABLE_STREAM_COUNT, vb_buffers,
-                                    vb_strides, vb_offsets);
+        context->getContext()->IASetVertexBuffers(
+            0, BINDABLE_STREAM_COUNT, vb_buffers, vb_strides, vb_offsets);
     }
 
     // Issue my draw call. We will always draw indexed instanced, even if the
@@ -610,8 +477,8 @@ void Pipeline::drawMesh(const Mesh* mesh,
         (tri_end == -1) ? mesh->num_triangles * 3 : (tri_end - tri_start) * 3;
     const UINT index_offset = mesh->vertex_start;
 
-    context->DrawIndexedInstanced(num_indices, instance_count, index_start,
-                                  index_offset, 0);
+    context->getContext()->DrawIndexedInstanced(num_indices, instance_count,
+                                                index_start, index_offset, 0);
 
     stats.numDraws++;
 }
@@ -621,11 +488,12 @@ void Pipeline::drawPostProcessQuad()
     const UINT vertexStride = sizeof(float) * 4;
     const UINT vertexOffset = 0;
 
-    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    context->IASetVertexBuffers(0, 1, &postprocess_quad, &vertexStride,
-                                &vertexOffset);
+    context->getContext()->IASetPrimitiveTopology(
+        D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    context->getContext()->IASetVertexBuffers(0, 1, &postprocess_quad,
+                                              &vertexStride, &vertexOffset);
 
-    context->Draw(6, 0);
+    context->getContext()->Draw(6, 0);
 }
 
 // Present:
@@ -642,12 +510,14 @@ void Pipeline::endFrame()
         bindVertexShader("PostProcess");
         bindPixelShader("PostProcess");
 
-        context->OMSetRenderTargets(1, &screen_target->target_view, nullptr);
-        context->RSSetViewports(1, &viewport);
-        context->OMSetBlendState(blend_states[Blend_SrcAlphaOnly], nullptr,
-                                 0xFFFFFFFF);
+        ID3D11RenderTargetView* targetView = context->getRenderTarget();
+        context->getContext()->OMSetRenderTargets(1, &targetView, nullptr);
+        context->getContext()->RSSetViewports(1, &viewport);
+        context->getContext()->OMSetBlendState(blend_states[Blend_SrcAlphaOnly],
+                                               nullptr, 0xFFFFFFFF);
 
-        context->PSSetShaderResources(0, 1, &render_target_dest->shader_view);
+        context->getContext()->PSSetShaderResources(
+            0, 1, &render_target_dest->shader_view);
 
         drawPostProcessQuad();
     }
@@ -657,7 +527,7 @@ void Pipeline::endFrame()
     imGuiFinish();
 #endif
 
-    swapchain->Present(1, 0);
+    context->present();
 
 #if defined(_DEBUG)
     imGuiPrepare();
@@ -679,10 +549,10 @@ void Pipeline::imGuiInitialize(HWND window)
         ImGuiConfigFlags_NavEnableGamepad; // Enable Gamepad Controls
 
     ImGui_ImplWin32_Init(window);
-    ImGui_ImplDX11_Init(device, context);
+    ImGui_ImplDX11_Init(device->getDevice(), context->getContext());
 
     // Create GPU + CPU Timers
-    GPUTimer::Initialize(device, context);
+    GPUTimer::Initialize(device->getDevice(), context->getContext());
     CPUTimer::Initialize();
 }
 

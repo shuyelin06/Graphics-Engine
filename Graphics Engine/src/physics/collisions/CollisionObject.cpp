@@ -85,7 +85,7 @@ void CollisionObject::debugDrawCollider(void)
     solver.computeConvexHull(*collision_hull);
     ConvexHull* hull = solver.getHull();
     hull->transformPoints(transform);
-    hull->debugDrawConvexHull();
+    // hull->debugDrawConvexHull();
     delete hull;
 }
 #endif

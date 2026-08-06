@@ -3,6 +3,8 @@
 #include <atomic>
 #include <cstdint>
 
+#include "core/Bitflags.h"
+
 #include "rendering/Direct3D11.h"
 #include "rendering/ImGui.h"
 
@@ -17,10 +19,19 @@ using namespace Math;
 namespace Graphics
 {
 
+enum class TextureUsage : uint8_t
+{
+    ShaderResource = 1 << 0,
+    DepthStencil = 1 << 1,
+    RenderTarget = 1 << 2,
+};
+
 enum class TextureLayout : uint8_t
 {
-    R8G8B8A8_UNORM = 0,
-    R32_FLOAT = 1, // 32-Bit Float from R Channel
+    R8G8B8A8_UNORM_SGRB = 0,
+    R8G8B8A8_UNORM = 1,
+    R32_FLOAT = 2, // 32-Bit Float from R Channel
+    R24_UNORM_G8_UINT = 3,
 };
 
 inline static size_t TextureLayoutByteSize(TextureLayout layout)
@@ -56,9 +67,9 @@ struct Texture
     bool editable; // Can the texture be edited?
 
     // Different views for the texture. NULL if uninitialized.
-    ID3D11ShaderResourceView* shader_view;
-    ID3D11DepthStencilView* depth_view;
-    ID3D11RenderTargetView* target_view;
+    ID3D11ShaderResourceView* shader_view = nullptr;
+    ID3D11DepthStencilView* depth_view = nullptr;
+    ID3D11RenderTargetView* target_view = nullptr;
 
     std::atomic<bool> ready = false;
 
@@ -67,13 +78,6 @@ struct Texture
     Texture(ID3D11Texture2D* tex, UINT width, UINT height);
     Texture(ID3D11Device* device, const D3D11_TEXTURE2D_DESC& desc);
     ~Texture();
-
-    // View Initialization
-    void createShaderResourceView(ID3D11Device* device,
-                                  D3D11_SHADER_RESOURCE_VIEW_DESC& desc);
-    void createDepthStencilView(ID3D11Device* device,
-                                D3D11_DEPTH_STENCIL_VIEW_DESC& desc);
-    void createRenderTargetView(ID3D11Device* device);
 
 #if defined(_DEBUG)
     void displayImGui() const;

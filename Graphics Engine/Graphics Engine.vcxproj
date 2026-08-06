@@ -17,6 +17,14 @@
       <Configuration>Release</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="Test|Win32">
+      <Configuration>Test</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Test|x64">
+      <Configuration>Test</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
@@ -52,6 +60,12 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Test|Win32'">
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Test|x64'">
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
@@ -81,14 +95,18 @@
     <IncludePath>C:\Users\shuye\Documents\GitHub\Graphics-Engine\Graphics Engine\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(SolutionDir)\bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)\bin\intermediates\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)\bin\$(ProjectName)\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\bin\$(ProjectName)\intermediates\$(Platform)\$(Configuration)\</IntDir>
     <IncludePath>C:\Users\shuye\Documents\GitHub\Graphics-Engine\Graphics Engine\src;C:\Users\shuye\Documents\GitHub\Graphics-Engine\Graphics Engine\src\rendering\shaders\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(SolutionDir)\bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)\bin\intermediates\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)\bin\$(ProjectName)\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\bin\$(ProjectName)\intermediates\$(Platform)\$(Configuration)\</IntDir>
     <IncludePath>C:\Users\shuye\Documents\GitHub\Graphics-Engine\Graphics Engine\src;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Test|x64'">
+    <OutDir>$(SolutionDir)\bin\$(ProjectName)\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\bin\$(ProjectName)\intermediates\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -133,7 +151,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>include/;src/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Joshua Lin\Documents\Git\Graphics-Engine\Math\include;include/;src/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ForcedIncludeFiles>
       </ForcedIncludeFiles>
     </ClCompile>
@@ -155,7 +173,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Joshua Lin\Documents\Git\Graphics-Engine\Math\include;include/;src/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -165,10 +183,14 @@
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Test|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\Joshua Lin\Documents\Git\Graphics-Engine\Math\include;include/;src/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="include\cgltf\cgltf.cpp" />
     <ClCompile Include="include\lodepng\lodepng.cpp" />
-    <ClCompile Include="include\md5\md5.cpp" />
     <ClCompile Include="include\stb\stb_image.cpp" />
     <ClCompile Include="src\core\JobGraph.cpp" />
     <ClCompile Include="src\datamodel\bvh\BVH.cpp" />
@@ -181,7 +203,6 @@
     <ClCompile Include="src\datamodel\objects\DMMesh.cpp" />
     <ClCompile Include="src\datamodel\objects\DMPhysics.cpp" />
     <ClCompile Include="src\datamodel\SceneGraph.cpp" />
-    <ClCompile Include="src\math\CFrame.cpp" />
     <ClCompile Include="src\rendering\core\Device.cpp" />
     <ClCompile Include="src\rendering\ImGuiHelper.cpp" />
     <ClCompile Include="src\rendering\pipeline\RenderManager.cpp" />
@@ -198,35 +219,18 @@
     <ClCompile Include="src\physics\PhysicsTerrain.cpp" />
     <ClCompile Include="src\rendering\core\VertexStreamIDs.cpp" />
     <ClCompile Include="src\rendering\resources\BumpMapBuilder.cpp" />
-    <ClCompile Include="src\rendering\pipeline\ConstantBuffer.cpp" />
     <ClCompile Include="src\rendering\resources\files\FileReader.cpp" />
     <ClCompile Include="src\input\components\MovementHandler.cpp" />
     <ClCompile Include="src\input\InputFrame.cpp" />
-    <ClCompile Include="src\math\AABB.cpp" />
-    <ClCompile Include="src\math\OBB.cpp" />
     <ClCompile Include="src\physics\collisions\CollisionAABB.cpp" />
-    <ClCompile Include="src\math\ConvexHull.cpp" />
     <ClCompile Include="src\physics\collisions\CollisionObject.cpp" />
     <ClCompile Include="src\physics\collisions\GJK.cpp" />
     <ClCompile Include="src\physics\collisions\GJKSupport.cpp" />
-    <ClCompile Include="src\math\QuickHull.cpp" />
-    <ClCompile Include="src\math\PerlinNoise.cpp" />
-    <ClCompile Include="src\math\Transform.cpp" />
     <ClCompile Include="src\input\InputState.cpp" />
     <ClCompile Include="src\input\EventHandler.cpp" />
-    <ClCompile Include="src\math\Color.cpp" />
-    <ClCompile Include="src\math\Compute.cpp" />
     <ClCompile Include="src\datamodel\Object.cpp" />
     <ClCompile Include="src\input\InputSystem.cpp" />
-    <ClCompile Include="src\math\Matrix3.cpp" />
-    <ClCompile Include="src\math\Plane.cpp" />
-    <ClCompile Include="src\math\Quaternion.cpp" />
-    <ClCompile Include="src\math\Triangle.cpp" />
-    <ClCompile Include="src\math\Vector2.cpp" />
-    <ClCompile Include="src\math\Vector3.cpp" />
     <ClCompile Include="src\Main.cpp" />
-    <ClCompile Include="src\math\Matrix4.cpp" />
-    <ClCompile Include="src\math\Vector4.cpp" />
     <ClCompile Include="src\physics\collisions\AABBTree.cpp" />
     <ClCompile Include="src\physics\PhysicsObject.cpp" />
     <ClCompile Include="src\rendering\core\Mesh.cpp" />
@@ -266,10 +270,10 @@
   <ItemGroup>
     <ClInclude Include="include\cgltf\cgltf.h" />
     <ClInclude Include="include\lodepng\lodepng.h" />
-    <ClInclude Include="include\md5\md5.h" />
     <ClInclude Include="include\renderdoc\renderdoc_app.h" />
     <ClInclude Include="include\stb\stb_image.h" />
     <ClInclude Include="src\core\ArenaAllocator.h" />
+    <ClInclude Include="src\core\BitFlags.h" />
     <ClInclude Include="src\core\JobGraph.h" />
     <ClInclude Include="src\core\PoolAllocator.h" />
     <ClInclude Include="src\core\StackString.h" />
@@ -287,7 +291,6 @@
     <ClInclude Include="src\datamodel\objects\DMLight.h" />
     <ClInclude Include="src\datamodel\objects\DMMesh.h" />
     <ClInclude Include="src\datamodel\objects\DMPhysics.h" />
-    <ClInclude Include="src\math\CFrame.h" />
     <ClInclude Include="src\rendering\core\Device.h" />
     <ClInclude Include="src\rendering\core\RenderSettings.h" />
     <ClInclude Include="src\rendering\pipeline\DrawCall.h" />
@@ -301,12 +304,10 @@
     <ClInclude Include="src\rendering\terrain2D\Terrain2DManager.h" />
     <ClInclude Include="src\datamodel\terrain\TerrainConfig.h" />
     <ClInclude Include="src\GlobalConfig.h" />
-    <ClInclude Include="src\math\SDF.h" />
     <ClInclude Include="src\physics\PhysicsTerrain.h" />
     <ClInclude Include="src\rendering\core\Material.h" />
     <ClInclude Include="src\rendering\lights\LightDataGPU.h" />
     <ClInclude Include="src\rendering\resources\BumpMapBuilder.h" />
-    <ClInclude Include="src\rendering\pipeline\ConstantBuffer.h" />
     <ClInclude Include="src\rendering\pipeline\StructuredBuffer.h" />
     <ClInclude Include="src\rendering\resources\files\FileReader.h" />
     <ClInclude Include="src\datamodel\SceneGraph.h" />
@@ -314,14 +315,10 @@
     <ClInclude Include="src\datamodel\terrain\Terrain.h" />
     <ClInclude Include="src\input\InputFrame.h" />
     <ClInclude Include="src\input\SymbolData.h" />
-    <ClInclude Include="src\math\AABB.h" />
-    <ClInclude Include="src\math\OBB.h" />
     <ClInclude Include="src\physics\collisions\CollisionAABB.h" />
-    <ClInclude Include="src\math\ConvexHull.h" />
     <ClInclude Include="src\physics\collisions\CollisionObject.h" />
     <ClInclude Include="src\physics\collisions\GJK.h" />
     <ClInclude Include="src\physics\collisions\GJKSupport.h" />
-    <ClInclude Include="src\math\QuickHull.h" />
     <ClInclude Include="src\physics\collisions\AABBTree.h" />
     <ClInclude Include="src\physics\PhysicsObject.h" />
     <ClInclude Include="src\rendering\lights\LightManager.h" />
@@ -338,23 +335,11 @@
     <ClInclude Include="include\imgui\imstb_truetype.h" />
     <ClInclude Include="src\rendering\util\MarchingCubeTables.h" />
     <ClInclude Include="src\input\components\MovementHandler.h" />
-    <ClInclude Include="src\math\PerlinNoise.h" />
-    <ClInclude Include="src\math\Transform.h" />
     <ClInclude Include="src\input\InputState.h" />
     <ClInclude Include="src\input\EventHandler.h" />
     <ClInclude Include="src\input\EventData.h" />
-    <ClInclude Include="src\math\Color.h" />
-    <ClInclude Include="src\math\Compute.h" />
     <ClInclude Include="src\datamodel\Object.h" />
     <ClInclude Include="src\input\InputSystem.h" />
-    <ClInclude Include="src\math\Matrix3.h" />
-    <ClInclude Include="src\math\Plane.h" />
-    <ClInclude Include="src\math\Quaternion.h" />
-    <ClInclude Include="src\math\Triangle.h" />
-    <ClInclude Include="src\math\Vector2.h" />
-    <ClInclude Include="src\math\Vector3.h" />
-    <ClInclude Include="src\math\Matrix4.h" />
-    <ClInclude Include="src\math\Vector4.h" />
     <ClInclude Include="src\rendering\core\Mesh.h" />
     <ClInclude Include="src\rendering\resources\MeshBuilder.h" />
     <ClInclude Include="src\rendering\core\Camera.h" />
@@ -381,6 +366,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Math\Math.vcxproj">
+      <Project>{bcad216c-5716-4996-b595-b57030cf70d7}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

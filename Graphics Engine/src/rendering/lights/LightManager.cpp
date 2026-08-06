@@ -1,7 +1,6 @@
 #include "LightManager.h"
 
 #include "../ImGui.h"
-#include "../pipeline/ConstantBuffer.h"
 #include "LightDataGPU.h"
 #include "rendering/VisualDebug.h"
 
@@ -9,54 +8,18 @@ namespace Engine
 {
 namespace Graphics
 {
-LightManager::LightManager(ID3D11Device* device, unsigned int atlas_size)
+LightManager::LightManager(Device* device, unsigned int atlas_size)
     : shadow_lights()
 {
     DMLight::ConnectToCreation([this](Object* obj) { onObjectCreate(obj); });
 
-    D3D11_TEXTURE2D_DESC tex_desc = {};
-    D3D11_DEPTH_STENCIL_VIEW_DESC ds_desc = {};
-    D3D11_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
-
-    // Create my shadow atlas.
-    // This will have 24 Bits for R Channel (depth), 8 Bits for G Channel
-    // (stencil).
-    // The resource will be able to be accessed as a depth stencil and shader
-    // resource.
-    tex_desc.Width = atlas_size;
-    tex_desc.Height = atlas_size;
-    tex_desc.MipLevels = tex_desc.ArraySize = 1;
-    tex_desc.Format = DXGI_FORMAT_R24G8_TYPELESS;
-    tex_desc.SampleDesc.Count = 1;
-    tex_desc.Usage = D3D11_USAGE_DEFAULT;
-    tex_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
-    tex_desc.CPUAccessFlags = 0;
-    tex_desc.MiscFlags = 0;
-
-    Texture* atlas_texture = new Texture(device, tex_desc);
-
-    // Initialize a depth stencil view, to allow the texture to be used as a
-    // depth buffer. DXGI_FORMAT_D24_UNORM_S8_UINT specifies 24 bits for depth,
-    // 8 bits for stencil
-    ds_desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    ds_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-    ds_desc.Texture2D.MipSlice = 0;
-
-    atlas_texture->createDepthStencilView(device, ds_desc);
-
-    // Initialize a shader resource view, so that the texture data
-    // can be sampled in the shader.
-    // DXGI_FORMAT_R24_UNORM_X8_TYPELESS specifies 24 bits in the R channel
-    // UNORM (0.0f -> 1.0f), and 8 bits to be ignored
-    srv_desc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
-    srv_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-    srv_desc.Texture2D.MostDetailedMip = 0;
-    srv_desc.Texture2D.MipLevels = 1;
-
-    atlas_texture->createShaderResourceView(device, srv_desc);
+    atlas_texture = device->createTexture(
+        TextureLayout::R24_UNORM_G8_UINT,
+        TextureUsage::DepthStencil | TextureUsage::ShaderResource, atlas_size,
+        atlas_size, 1, "Shadow Atlas");
 
     // Create my shadow atlas with this texture
-    shadow_atlas = new TextureAtlas(atlas_texture);
+    shadow_atlas = new TextureAtlas(atlas_texture.get());
 
     // Create sun light
     createSunLight(QUALITY_5);
@@ -110,10 +73,7 @@ void LightManager::updateSunCascades(const Frustum& camera_frustum)
 
 // ResetShadowCasters:
 // Clears the shadow caster vector
-void LightManager::resetShadowCasters()
-{
-    shadow_casters.clear();
-}
+void LightManager::resetShadowCasters() { shadow_casters.clear(); }
 
 // AddShadowCaster:
 // Adds a shadow caster to the light manager
@@ -172,10 +132,7 @@ const Texture* LightManager::getAtlasTexture(void) const
 
 // GetLights:
 // Returns the lights.
-const SunLight* LightManager::getSunLight() const
-{
-    return sun_light;
-}
+const SunLight* LightManager::getSunLight() const { return sun_light; }
 
 const ShadowLight* LightManager::getShadowLight(UINT index) const
 {
@@ -245,9 +202,24 @@ void LightManager::createSunLight(ShadowMapQuality quality)
 // --- Binding ---
 // BindLightData:
 // Binds lighting data to a provided constant buffer handle.
-void LightManager::bindLightData(IConstantBuffer& cb)
+void LightManager::bindLightData(DeviceContext* context)
 {
     const std::vector<ShadowLight*>& lights = shadow_lights;
+
+    std::vector<uint8_t> data;
+    auto appendData = [&data](const void* src, size_t bytes) {
+        // Convert our data into a character array, and read the number of bytes
+        // specified by the CBDataFormat into our constant buffer.
+        const char* charData = static_cast<const char*>(src);
+
+        data.resize(data.size() + bytes);
+        uint8_t* vectorEnd = &data[data.size() - bytes];
+
+        if (src != nullptr)
+            memcpy(vectorEnd, charData, bytes);
+        else
+            memset(vectorEnd, 0, bytes);
+    };
 
     LightDataGPU lightData;
     // Needed for normalization of the texture coordinates to [0,1].
@@ -255,15 +227,15 @@ void LightManager::bindLightData(IConstantBuffer& cb)
     const float tex_height = (float)shadow_atlas->getTexture()->height;
 
     const int lightCount = lights.size();
-    cb.loadData(&lightCount, INT);
+    appendData(&lightCount, 4);
 
     // Global Lighting Data
     const Vector3 sun_direc = sun_light->getDirection();
-    cb.loadData(&sun_direc, FLOAT3);
+    appendData(&sun_direc, 12);
 
     const Vector2 thresholds = Vector2(0.4f, 0.75f);
-    cb.loadData(&thresholds, FLOAT2);
-    cb.loadData(nullptr, FLOAT2);
+    appendData(&thresholds, 8);
+    appendData(nullptr, 8);
 
     for (int i = 0; i < SUN_NUM_CASCADES; i++)
     {
@@ -272,7 +244,7 @@ void LightManager::bindLightData(IConstantBuffer& cb)
         lightData.tex_y /= tex_height;
         lightData.tex_width /= tex_width;
         lightData.tex_height /= tex_height;
-        cb.loadData(&lightData, sizeof(LightDataGPU));
+        appendData(&lightData, sizeof(LightDataGPU));
     }
 
     // Local Lighting Data
@@ -283,8 +255,10 @@ void LightManager::bindLightData(IConstantBuffer& cb)
         lightData.tex_y /= tex_height;
         lightData.tex_width /= tex_width;
         lightData.tex_height /= tex_height;
-        cb.loadData(&lightData, sizeof(LightDataGPU));
+        appendData(&lightData, sizeof(LightDataGPU));
     }
+
+    context->loadPixelCB(1, data.data(), data.size());
 }
 
 void LightManager::imGui()

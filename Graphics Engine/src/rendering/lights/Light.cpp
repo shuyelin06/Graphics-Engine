@@ -2,7 +2,6 @@
 
 #include <assert.h>
 
-#include "../pipeline/ConstantBuffer.h"
 #include "datamodel/Object.h"
 
 namespace Engine

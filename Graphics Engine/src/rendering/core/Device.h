@@ -1,40 +1,67 @@
 #pragma once
 
-#include <memory>
-
 #include "Texture.h"
 
-// D3D11 Forward Declarations
-struct ID3D11Device;
-struct ID3D11DeviceContext;
+#include <memory>
 
 namespace Engine
 {
 namespace Graphics
 {
-class Device
-{
-  private:
-    ID3D11Device* device;
+class Device;
+class DeviceContext;
+struct DeviceImpl;
+struct DeviceContextImpl;
 
-  public:
-    Device(ID3D11Device*);
-    ~Device();
-
-    std::shared_ptr<Texture> createTexture(TextureLayout layout,
-                                           unsigned int width,
-                                           unsigned int height,
-                                           unsigned int mips,
-                                           bool dynamic = false);
-};
+void InitializeGraphicsAPI(HWND window,
+                           std::unique_ptr<Device>& outDevice,
+                           std::unique_ptr<DeviceContext>& outContext);
 
 class DeviceContext
 {
   private:
-    ID3D11DeviceContext* context;
+    friend void InitializeGraphicsAPI(HWND window,
+                                      std::unique_ptr<Device>& device,
+                                      std::unique_ptr<DeviceContext>& context);
+
+    std::unique_ptr<DeviceContextImpl> mImpl;
 
   public:
-    DeviceContext(ID3D11DeviceContext*);
+    DeviceContext();
+    ~DeviceContext();
+
+    ID3D11DeviceContext* getContext();
+    ID3D11RenderTargetView* getRenderTarget();
+
+    void loadVertexCB(uint8_t slot, const void* data, size_t bytes);
+    void loadPixelCB(uint8_t slot, const void* data, size_t bytes);
+
+    void present();
+};
+
+class Device
+{
+  private:
+    friend void InitializeGraphicsAPI(HWND window,
+                                      std::unique_ptr<Device>& device,
+                                      std::unique_ptr<DeviceContext>& context);
+
+    std::unique_ptr<DeviceImpl> mImpl;
+
+  public:
+    Device();
+    ~Device();
+
+    // Temporary
+    ID3D11Device* getDevice();
+
+    std::shared_ptr<Texture> createTexture(TextureLayout layout,
+                                           TextureUsage usage,
+                                           unsigned int width,
+                                           unsigned int height,
+                                           unsigned int mips,
+                                           const char* debugName,
+                                           bool dynamic = false);
 };
 
 } // namespace Graphics

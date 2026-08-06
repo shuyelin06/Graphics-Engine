@@ -2,10 +2,11 @@
 
 #include <cstdint>
 
+#include "../Direct3D11.h"
+#include "rendering/core/Device.h"
 #include "rendering/core/RenderSettings.h"
 #include "rendering/core/Texture.h"
 
-#include "ConstantBuffer.h"
 #include "Shader.h"
 #include "ShaderManager.h"
 #include "StructuredBuffer.h"
@@ -82,17 +83,15 @@ class Pipeline
   private:
     // D3D Interfaces
     HWND window;
-    ID3D11Device* device;
-    ID3D11DeviceContext* context;
+    std::unique_ptr<Device> device;
+    std::unique_ptr<DeviceContext> context;
 
     // Swapchain and Render Targets
-    IDXGISwapChain* swapchain;
     D3D11_VIEWPORT viewport;
 
-    Texture* screen_target;
-    Texture* render_target_dest;
-    Texture* render_target_src;
-    Texture* depth_stencil;
+    std::shared_ptr<Texture> render_target_dest = nullptr;
+    std::shared_ptr<Texture> render_target_src = nullptr;
+    std::shared_ptr<Texture> depth_stencil = nullptr;
 
     TargetFlags flag_target;
     DepthStencilFlags flag_depth;
@@ -110,12 +109,6 @@ class Pipeline
     UINT vb_strides[BINDABLE_STREAM_COUNT];
     UINT vb_offsets[BINDABLE_STREAM_COUNT];
 
-    // Constant Buffer Handles
-    ConstantBuffer* vcb_handles[kVertexConstantBufferMax];
-    ConstantBuffer* pcb_handles[kPixelConstantBufferMax];
-    bool debug_vcb_usages[kVertexConstantBufferMax];
-    bool debug_pcb_usages[kPixelConstantBufferMax];
-
     // Active Shaders
     ShaderManager* shader_manager;
     VertexShader* vs_active;
@@ -131,8 +124,8 @@ class Pipeline
     Pipeline(HWND window);
     ~Pipeline();
 
-    ID3D11Device* getDevice() const;
-    ID3D11DeviceContext* getContext() const;
+    Device* getDevice() const;
+    DeviceContext* getContext() const;
     Texture* getRenderTargetDest() const;
     Texture* getRenderTargetSrc() const;
     Texture* getDepthStencil() const;
@@ -146,12 +139,11 @@ class Pipeline
 
     void bindVertexSB(const StructuredBuffer& sb, unsigned int slot)
     {
-        context->VSSetShaderResources(slot, 1, &sb.srv);
+        context->getContext()->VSSetShaderResources(slot, 1, &sb.srv);
     }
     void bindVertexTexture(uint8_t slot,
                            const Texture& texture,
                            SamplerType samplerType);
-    IConstantBuffer loadVertexCB(int slot);
 
     // Pixel Technique API
     void bindRenderTarget(Texture* renderTarget,
@@ -165,16 +157,11 @@ class Pipeline
     template <typename T>
     void bindPixelSB(const StructuredBuffer& sb, unsigned int slot)
     {
-        context->PSSetShaderResources(slot, 1, &sb.srv);
+        context->getContext()->PSSetShaderResources(slot, 1, &sb.srv);
     }
     void bindPixelTexture(uint8_t slot,
                           const Texture& texture,
                           SamplerType samplerType);
-    IConstantBuffer loadPixelCB(int slot);
-
-    // Debug (Pipeline Enforcement)
-    void markVertexCBUsage(int slot, bool usage);
-    void markPixelCBUsage(int slot, bool usage);
 
     // Draw Calls. Set tri_end to -1 if you want it to draw all triangles
     // after tri_start.
