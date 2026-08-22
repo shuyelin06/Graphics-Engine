@@ -1,9 +1,7 @@
 #pragma once
 
-#include <bitset>
-#include <vector>
+#include "rendering/Direct3D11.h"
 
-#include "../Direct3D11.h"
 #include "rendering/core/VertexStreamIDs.h"
 
 namespace Engine
@@ -17,7 +15,7 @@ namespace Graphics
 //    - Pixel Shader
 // Shaders can be bound to the graphics pipeline, and
 // can have data passed into their constant buffers.
-struct VertexShader
+struct D3D11VertexShader
 {
     ID3D11VertexShader* shader;
     ID3D11InputLayout* layout;
@@ -27,16 +25,16 @@ struct VertexShader
     // (see VertexStreamIDs.h)
     VertexLayout vertexLayout;
 
-    VertexShader(ID3D11VertexShader* shader, ID3D11InputLayout* layout);
-    ~VertexShader();
+    D3D11VertexShader(ID3D11VertexShader* shader, ID3D11InputLayout* layout);
+    ~D3D11VertexShader();
 };
 
-struct PixelShader
+struct D3D11PixelShader
 {
     ID3D11PixelShader* shader;
 
-    PixelShader(ID3D11PixelShader* shader);
-    ~PixelShader();
+    D3D11PixelShader(ID3D11PixelShader* shader);
+    ~D3D11PixelShader();
 };
 
 } // namespace Graphics

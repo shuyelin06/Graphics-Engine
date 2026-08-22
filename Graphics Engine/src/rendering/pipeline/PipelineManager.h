@@ -6,9 +6,8 @@
 #include "rendering/core/Device.h"
 #include "rendering/core/RenderSettings.h"
 #include "rendering/core/Texture.h"
+#include "rendering/core/VertexStreamIDs.h"
 
-#include "Shader.h"
-#include "ShaderManager.h"
 #include "StructuredBuffer.h"
 
 #define INDEX_LIST_START 0
@@ -43,7 +42,6 @@ enum TargetFlags
 // PipelineManager Class:
 // Provides an interface for working with the 3D rendering pipeline.
 // Uses D3D under the hood.
-struct Mesh;
 class Texture;
 
 class Pipeline
@@ -60,22 +58,10 @@ class Pipeline
     std::shared_ptr<Texture> depth_stencil = nullptr;
 
     TargetFlags flag_target;
-    DepthStencilFlags flag_depth;
-    BlendFlags flag_blend;
+    DepthSettings flag_depth;
+    BlendSettings flag_blend;
 
-    // Bound Vertex / Index Buffer
-    const void* active_pool_addr;
-    ID3D11Buffer* vb_buffers[BINDABLE_STREAM_COUNT];
-    UINT vb_strides[BINDABLE_STREAM_COUNT];
-    UINT vb_offsets[BINDABLE_STREAM_COUNT];
-
-    // Active Shaders
-    ShaderManager* shader_manager;
-    VertexShader* vs_active;
-    PixelShader* ps_active;
-
-    // Post Processing
-    ID3D11Buffer* postprocess_quad;
+    std::shared_ptr<Geometry> postprocessQuad;
 
     void initializeTargets(HWND window);
 
@@ -93,30 +79,11 @@ class Pipeline
     void beginFrame(const uint64_t frame);
 
     // Vertex Technique API
-    void bindVertexShader(const std::string& vs_name);
     void setVertexTopology(VertexTopology topology);
 
-    void bindVertexSB(const StructuredBuffer& sb, unsigned int slot)
-    {
-        context->getContext()->VSSetShaderResources(slot, 1, &sb.srv);
-    }
-
     // Pixel Technique API
-    void bindRenderTarget(TargetFlags, DepthStencilFlags, BlendFlags);
-    void bindPixelShader(const std::string& ps_name);
+    void bindRenderTarget(TargetFlags, DepthSettings, BlendSettings);
 
-    template <typename T>
-    void bindPixelSB(const StructuredBuffer& sb, unsigned int slot)
-    {
-        context->getContext()->PSSetShaderResources(slot, 1, &sb.srv);
-    }
-
-    // Draw Calls. Set tri_end to -1 if you want it to draw all triangles
-    // after tri_start.
-    void drawMesh(const Mesh* mesh,
-                  UINT instance_count,
-                  int tri_start = INDEX_LIST_START,
-                  int tri_end = INDEX_LIST_END);
     void drawPostProcessQuad();
 
     // Render to Screen
@@ -131,8 +98,6 @@ class Pipeline
     };
     Stats stats;
     void imGui();
-
-    
 
 #if defined(_DEBUG)
     // ImGui Display

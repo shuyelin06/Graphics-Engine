@@ -4,7 +4,7 @@
 
 struct PS_IN
 {
-    float4 position_clip : SV_POSITION;
+    float4 position_clip : SV_Position;
 };
 
 DefineTex2D(render_target, 2);

@@ -63,7 +63,7 @@ struct DrawBlock
 {
     AABB extents{};
 
-    Mesh* mesh = nullptr;
+    Geometry* mesh = nullptr;
     Material* material = nullptr;
 
     InstanceData* instanceData = nullptr;
@@ -71,7 +71,7 @@ struct DrawBlock
 
     DrawBlock();
 
-    void initialize(AABB _extents, Mesh* mesh, Material* material);
+    void initialize(AABB _extents, Geometry* mesh, Material* material);
 };
 
 // TODO:

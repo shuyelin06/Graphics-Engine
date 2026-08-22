@@ -32,11 +32,11 @@ struct ShaderResource
     struct
     {
         std::shared_ptr<Texture> texture = nullptr;
-        SamplerType sampleState{};
+        SamplerSettings sampleState{};
     } textureData;
 
     void initializeTextureResource(std::shared_ptr<Texture> texture,
-                                   SamplerType sampleState);
+                                   SamplerSettings sampleState);
 };
 
 struct Technique

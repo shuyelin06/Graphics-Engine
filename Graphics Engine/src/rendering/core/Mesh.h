@@ -6,7 +6,8 @@
 #include <string>
 #include <vector>
 
-#include "../Direct3D11.h"
+#include "rendering/core/Device.h"
+
 #include "Texture.h"
 #include "VertexStreamIDs.h"
 
@@ -41,7 +42,7 @@ struct MeshPool
   public:
     // Meshes Allocated to this Pool.
     // This pool is in charge of deallocating them.
-    std::vector<std::weak_ptr<Mesh>> meshes;
+    std::vector<std::weak_ptr<Geometry>> meshes;
     // Layout, i.e. the streams that the pool stores
     VertexLayout layout;
 
@@ -52,11 +53,11 @@ struct MeshPool
     // GPU-Side Index / Vertex Buffers
     bool has_gpu_resources;
 
-    ID3D11Buffer* ibuffer;
-    uint32_t triangle_size;     // # Tris Currently in the Buffer
-    uint32_t triangle_capacity; // # Tris the Buffer can Hold
+    std::shared_ptr<Buffer> ibuffer;
+    uint32_t index_size;     // # Tris Currently in the Buffer
+    uint32_t index_capacity; // # Tris the Buffer can Hold
 
-    ID3D11Buffer* vbuffers[BINDABLE_STREAM_COUNT];
+    std::shared_ptr<Buffer> vbuffers[BINDABLE_STREAM_COUNT] = {nullptr};
     uint32_t vertex_size;     // # Vertices Currently in the Buffer
     uint32_t vertex_capacity; // # Vertices the Buffer can Hold
 
@@ -69,32 +70,8 @@ struct MeshPool
 
     // Works with the GPU resources.
     // To update, you must have created the GPU resources first.
-    void createGPUResources(ID3D11Device* device);
-    void updateGPUResources(ID3D11DeviceContext* context);
-};
-
-struct Mesh
-{
-    Mesh();
-    Mesh(MeshPool* pool);
-    ~Mesh();
-
-    // Ready Bool
-    std::atomic<bool> ready;
-
-    // MeshPool (Collection of Buffers) Containing the Mesh.
-    MeshPool* buffer_pool;
-    VertexLayout layout;
-
-    // Vertex / Index Starts and Offsets into the MeshPool
-    uint32_t vertex_start;
-    uint32_t num_vertices;
-
-    uint32_t triangle_start;
-    uint32_t num_triangles;
-
-    // AABB for the Mesh
-    Math::AABB aabb;
+    void createGPUResources(Device* device);
+    void updateGPUResources(DeviceContext* context);
 };
 
 // TODO: Move animation stuff out.
@@ -216,7 +193,7 @@ class Asset
   private:
     // Meshes that the asset is made up of. A mesh defines a renderable
     // collection of triangles in the asset.
-    std::vector<std::shared_ptr<Mesh>> meshes;
+    std::vector<std::shared_ptr<Geometry>> meshes;
 
     // Nodes in the asset. Allows mesh skinning and animations.
     std::vector<Node*> nodes;
@@ -237,7 +214,6 @@ class Asset
     // returned.
     void addSkinJoint(const Node* node, const Matrix4& m_inverse_bind);
 
-    UINT addMesh(std::shared_ptr<Mesh>& mesh);
     UINT addNode(Node* node);
     UINT addAnimation(Animation* animation);
 
@@ -247,9 +223,6 @@ class Asset
 
     // Asset Accessing.
     // Retrieve data from the asset for rendering
-    const std::vector<std::shared_ptr<Mesh>>& getMeshes() const;
-    const Mesh* getMesh(UINT index) const;
-
     const std::vector<Node*>& getNodes() const;
     const Node* getNode(UINT index) const;
 

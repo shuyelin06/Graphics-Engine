@@ -15,9 +15,8 @@ MeshPool::MeshPool()
 
     ibuffer = NULL;
     cpu_ibuffer = NULL;
-    triangle_size = triangle_capacity = 0;
+    index_size = index_capacity = 0;
 
-    memset(vbuffers, 0, sizeof(ID3D11Buffer*) * BINDABLE_STREAM_COUNT);
     memset(cpu_vbuffers, 0, sizeof(uint8_t*) * BINDABLE_STREAM_COUNT);
     vertex_size = vertex_capacity = 0;
 }
@@ -31,14 +30,12 @@ MeshPool::MeshPool(VertexLayout _layout, uint32_t tri_size, uint32_t v_size)
     // Create my index buffer
     ibuffer = nullptr;
 
-    triangle_size = 0;
-    triangle_capacity = tri_size;
+    index_size = 0;
+    index_capacity = tri_size * 3;
 
-    cpu_ibuffer =
-        std::make_unique<uint8_t[]>(triangle_capacity * 3 * sizeof(UINT));
+    cpu_ibuffer = std::make_unique<uint8_t[]>(index_capacity * sizeof(UINT));
 
     // Create my CPU-side vertex buffers
-    memset(vbuffers, 0, sizeof(ID3D11Buffer*) * BINDABLE_STREAM_COUNT);
     memset(cpu_vbuffers, 0, sizeof(uint8_t*) * BINDABLE_STREAM_COUNT);
 
     vertex_size = 0;
@@ -57,15 +54,15 @@ MeshPool::MeshPool(VertexLayout _layout, uint32_t tri_size, uint32_t v_size)
 
 void MeshPool::cleanAndCompact()
 {
-    std::vector<std::shared_ptr<Mesh>> meshesStrong;
+    std::vector<std::shared_ptr<Geometry>> meshesStrong;
     meshesStrong.reserve(meshes.size());
 
     // Iterate through the mesh pointers, removing pointers with only one
     // reference. These are meshes that are no longer being used anywhere else.
-    std::vector<std::weak_ptr<Mesh>>::iterator iter;
+    std::vector<std::weak_ptr<Geometry>>::iterator iter;
     for (iter = meshes.begin(); iter != meshes.end();)
     {
-        std::shared_ptr<Mesh> mesh = (*iter).lock();
+        std::shared_ptr<Geometry> mesh = (*iter).lock();
         if (!mesh)
         {
             iter = meshes.erase(iter);
@@ -82,30 +79,29 @@ void MeshPool::cleanAndCompact()
     int head = 0;
     for (int i = 0; i < meshesStrong.size(); i++)
     {
-        Mesh* mesh = meshesStrong[i].get();
+        Geometry* mesh = meshesStrong[i].get();
 
-        if (head != mesh->triangle_start)
+        if (head != mesh->indexOffset)
         {
-            const UINT STRIDE = 3 * sizeof(UINT);
-            std::memmove(cpu_ibuffer.get() + STRIDE * head,
-                         cpu_ibuffer.get() + STRIDE * mesh->triangle_start,
-                         STRIDE * mesh->num_triangles);
-            mesh->triangle_start = head;
+            std::memmove(cpu_ibuffer.get() + head,
+                         cpu_ibuffer.get() + mesh->indexOffset,
+                         sizeof(UINT) * mesh->indexCount);
+            mesh->indexOffset = head;
         }
 
-        head += mesh->num_triangles;
+        head += mesh->indexOffset;
     }
 
-    triangle_size = head;
+    index_size = head;
 
     // Remove fragmentation in the vertex buffers on the CPU-side
     head = 0;
 
     for (int i = 0; i < meshesStrong.size(); i++)
     {
-        Mesh* mesh = meshesStrong[i].get();
+        Geometry* mesh = meshesStrong[i].get();
 
-        if (head != mesh->vertex_start)
+        if (head != mesh->vertexOffset)
         {
             for (int i = 0; i < BINDABLE_STREAM_COUNT; i++)
             {
@@ -115,106 +111,64 @@ void MeshPool::cleanAndCompact()
                         VertexLayout::VertexStreamStride((VertexDataStream)i);
                     std::memmove(cpu_vbuffers[i].get() + STRIDE * head,
                                  cpu_vbuffers[i].get() +
-                                     STRIDE * mesh->vertex_start,
-                                 STRIDE * mesh->num_vertices);
+                                     STRIDE * mesh->vertexOffset,
+                                 STRIDE * mesh->vertexCount);
                 }
             }
-            mesh->vertex_start = head;
+            mesh->vertexOffset = head;
         }
 
-        head += mesh->num_vertices;
+        head += mesh->vertexCount;
     }
 
     vertex_size = head;
 }
 
-void MeshPool::createGPUResources(ID3D11Device* device)
+void MeshPool::createGPUResources(Device* device)
 {
     has_gpu_resources = true;
 
-    D3D11_BUFFER_DESC buff_desc = {};
-    // Create my index buffer
-    buff_desc.ByteWidth = triangle_capacity * 3 * sizeof(UINT);
-    buff_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-    buff_desc.Usage = D3D11_USAGE_DYNAMIC;
-    buff_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-    device->CreateBuffer(&buff_desc, NULL, &ibuffer);
-
-    // Create my vertex buffers
-    buff_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-    buff_desc.Usage = D3D11_USAGE_DYNAMIC;
-    buff_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    ibuffer = device->createBuffer("Index Buffer", BufferType::Index,
+                                   index_capacity * 3 * sizeof(UINT),
+                                   nullptr, true);
 
     for (int i = 0; i < BINDABLE_STREAM_COUNT; i++)
     {
         if (layout.hasVertexStream((VertexDataStream)i))
         {
-            buff_desc.ByteWidth =
+            vbuffers[i] = device->createBuffer(
+                "Vertex Buffer", BufferType::Vertex,
                 vertex_capacity *
-                VertexLayout::VertexStreamStride((VertexDataStream)i);
-            device->CreateBuffer(&buff_desc, NULL, &vbuffers[i]);
+                    VertexLayout::VertexStreamStride((VertexDataStream)i),
+                nullptr, true);
         }
     }
 }
 
-void MeshPool::updateGPUResources(ID3D11DeviceContext* context)
+void MeshPool::updateGPUResources(DeviceContext* context)
 {
     assert(has_gpu_resources);
 
+    HRESULT result;
+
     // Copy index buffer to the GPU
-    D3D11_MAPPED_SUBRESOURCE sr = {0};
-    context->Map(ibuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &sr);
-    memcpy(static_cast<uint8_t*>(sr.pData), cpu_ibuffer.get(),
-           triangle_capacity * 3 * sizeof(UINT));
-    context->Unmap(ibuffer, 0);
+    context->updateBuffer(ibuffer, cpu_ibuffer.get(),
+                          index_capacity * 3 * sizeof(UINT));
 
     // Copy vertex data to the GPU
     for (int i = 0; i < BINDABLE_STREAM_COUNT; i++)
     {
-        if (cpu_vbuffers[i] != nullptr)
+        if (vbuffers[i] != nullptr)
         {
-            context->Map(vbuffers[i], 0, D3D11_MAP_WRITE_DISCARD, 0, &sr);
-            memcpy(static_cast<uint8_t*>(sr.pData), cpu_vbuffers[i].get(),
-                   vertex_capacity *
-                       VertexLayout::VertexStreamStride((VertexDataStream)i));
-            context->Unmap(vbuffers[i], 0);
+            context->updateBuffer(
+                vbuffers[i], cpu_vbuffers[i].get(),
+                vertex_capacity *
+                    VertexLayout::VertexStreamStride((VertexDataStream)i));
         }
     }
 }
 
-MeshPool::~MeshPool()
-{
-    if (ibuffer)
-        ibuffer->Release();
-
-    for (int i = 0; i < BINDABLE_STREAM_COUNT; i++)
-    {
-        if (vbuffers[i])
-        {
-            vbuffers[i]->Release();
-        }
-    }
-}
-Mesh::Mesh()
-{
-    buffer_pool = nullptr;
-    layout = VertexLayout();
-    vertex_start = num_vertices = 0;
-    triangle_start = num_triangles = 0;
-    aabb = AABB();
-}
-
-Mesh::Mesh(MeshPool* pool)
-{
-    buffer_pool = pool;
-
-    layout = VertexLayout();
-    vertex_start = num_vertices = 0;
-    triangle_start = num_triangles = 0;
-    aabb = AABB();
-}
-
-Mesh::~Mesh() = default;
+MeshPool::~MeshPool() {}
 
 // --- Node ---
 Node::Node()
@@ -258,18 +212,12 @@ LocalState::LocalState()
     time = 0.f;
 }
 
-Vector3 LocalState::position() const
-{
-    return Vector3(x, y, z);
-}
+Vector3 LocalState::position() const { return Vector3(x, y, z); }
 Quaternion LocalState::rotation() const
 {
     return Quaternion(Vector3(x, y, z), w);
 }
-Vector3 LocalState::scale() const
-{
-    return Vector3(x, y, z);
-}
+Vector3 LocalState::scale() const { return Vector3(x, y, z); }
 
 void LocalState::setData(const Vector4& data)
 {
@@ -301,14 +249,8 @@ void LocalState::setScale(const Vector3& scale)
     z = scale.z;
 }
 
-float LocalState::getTime() const
-{
-    return time;
-}
-void LocalState::setTime(float _time)
-{
-    time = _time;
-}
+float LocalState::getTime() const { return time; }
+void LocalState::setTime(float _time) { time = _time; }
 
 // An animation stores a collection of local states over time,
 // and defines the property of the local state as well as the target node.
@@ -343,14 +285,8 @@ void AnimationState::normalizeTimes()
     }
 }
 
-LocalStateType AnimationState::getType() const
-{
-    return state_type;
-}
-Node* AnimationState::getTargetNode() const
-{
-    return target_node;
-}
+LocalStateType AnimationState::getType() const { return state_type; }
+Node* AnimationState::getTargetNode() const { return target_node; }
 
 LocalState AnimationState::stateAtTime(float time) const
 {
@@ -398,10 +334,7 @@ LocalState AnimationState::stateAtTime(float time) const
     return output;
 }
 
-Animation::Animation()
-{
-    states.resize(0);
-}
+Animation::Animation() { states.resize(0); }
 
 AnimationState& Animation::newAnimationState(Node* target_node,
                                              LocalStateType state_type)
@@ -461,13 +394,6 @@ void Asset::addSkinJoint(const Node* node, const Matrix4& m_inverse_bind)
     skin.push_back(SkinJoint(node, m_inverse_bind));
 }
 
-UINT Asset::addMesh(std::shared_ptr<Mesh>& mesh)
-{
-    const UINT index = meshes.size();
-    meshes.push_back(mesh);
-    return index;
-}
-
 UINT Asset::addNode(Node* node)
 {
     const UINT index = nodes.size();
@@ -491,32 +417,11 @@ void Asset::applyAnimationAtTime(UINT animation_index, float time) const
 }
 
 // Access an Asset
-const std::vector<std::shared_ptr<Mesh>>& Asset::getMeshes() const
-{
-    return meshes;
-}
-const Mesh* Asset::getMesh(UINT index) const
-{
-    return meshes[index].get();
-}
+const std::vector<Node*>& Asset::getNodes() const { return nodes; }
+const Node* Asset::getNode(UINT index) const { return nodes[index]; }
 
-const std::vector<Node*>& Asset::getNodes() const
-{
-    return nodes;
-}
-const Node* Asset::getNode(UINT index) const
-{
-    return nodes[index];
-}
-
-const std::vector<SkinJoint>& Asset::getSkinJoints() const
-{
-    return skin;
-}
-bool Asset::isSkinned() const
-{
-    return skin.size() != 0;
-}
+const std::vector<SkinJoint>& Asset::getSkinJoints() const { return skin; }
+bool Asset::isSkinned() const { return skin.size() != 0; }
 
 } // namespace Graphics
 } // namespace Engine

@@ -24,13 +24,12 @@ namespace Graphics
 // 2) The VertexAddressors array in MeshBuilder.cpp
 enum VertexDataStream : uint16_t
 {
-    POSITION = 0, // 3D XYZ Position (3 Floats)
-    TEXTURE = 1,  // 2D Texture Coordinates (2 Floats)
-    NORMAL = 2,   // 3D Normal Direction (3 Floats)
-    COLOR = 3,    // RGB Color (3 Floats)
-    JOINTS = 4,   // 4D Integer Vector of Node Indices (4 Integers)
-    WEIGHTS = 5,  // 4D Vector of Skin Weights (4 Floats)
-
+    // Pack into groups of 4 floats for better accessing patterns
+    PosXYZ_TexU = 0,  // XYZ Position + Texture U Coordinate (4 Floats)
+    NormXYZ_TexV = 1, // XYZ Normal + Texture V Coordinate (4 Floats)
+    ColorRGBA = 2,    // Color RGBA
+    JOINTS = 3,       // 4D Integer Vector of Node Indices (4 Integers)
+    WEIGHTS = 4,      // 4D Vector of Skin Weights (4 Floats)
     BINDABLE_STREAM_COUNT,
 
     // These data streams are not bindable by the engine, and will not
@@ -40,8 +39,6 @@ enum VertexDataStream : uint16_t
     INSTANCE_ID = BINDABLE_STREAM_COUNT,
     // VERTEX_ID: Used for vertex pulling
     VERTEX_ID,
-    // SV_POSITION: Used for post-processing
-    SV_POSITION,
     // Position + RGB Color; Debug Line Rendering
     DEBUG_LINE,
 };

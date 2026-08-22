@@ -4,6 +4,8 @@
 
 #include "rendering/Direct3D11.h"
 
+#include "D3D11ShaderCompiler.h"
+
 namespace Engine
 {
 namespace Graphics
@@ -22,7 +24,8 @@ class Direct3D11Device : public Device
     std::shared_ptr<Buffer> createBuffer(const char* debugName,
                                          BufferType type,
                                          size_t byteSize,
-                                         const void* initData) override;
+                                         const void* initData,
+                                         bool dynamic) override;
 
     std::shared_ptr<Texture> createTexture(const char* debugName,
                                            TextureLayout layout,
@@ -41,6 +44,11 @@ class Direct3D11DeviceContext : public DeviceContext
     ID3D11DeviceContext* context;
     ID3D11Device* device;
 
+    // Shaders
+    std::unique_ptr<D3D11ShaderCompiler> shaderManager;
+    D3D11VertexShader* vsActive = nullptr;
+    D3D11PixelShader* psActive = nullptr;
+
     // Screen Target
     IDXGISwapChain* swapchain;
     ID3D11RenderTargetView* screenTarget;
@@ -49,10 +57,13 @@ class Direct3D11DeviceContext : public DeviceContext
     ID3D11Buffer* vertexCB[kVertexConstantBufferMax] = {nullptr};
     ID3D11Buffer* pixelCB[kVertexConstantBufferMax] = {nullptr};
 
-    ID3D11DepthStencilState*
-        depth_states[(int)DepthStencilFlags::DepthFlagCount];
-    ID3D11BlendState* blend_states[(int)BlendFlags::BlendFlagCount];
-    ID3D11SamplerState* samplers[(int)SamplerType::SamplerCount];
+    ID3D11Buffer* vb_buffers[BINDABLE_STREAM_COUNT] = {nullptr};
+    unsigned int vb_strides[BINDABLE_STREAM_COUNT] = {0};
+    unsigned int vb_offsets[BINDABLE_STREAM_COUNT] = {0};
+
+    ID3D11DepthStencilState* depth_states[(int)DepthSettings::DepthFlagCount];
+    ID3D11BlendState* blend_states[(int)BlendSettings::BlendFlagCount];
+    ID3D11SamplerState* samplers[(int)SamplerSettings::SamplerCount];
 
   public:
     Direct3D11DeviceContext(ID3D11DeviceContext* context,
@@ -66,6 +77,9 @@ class Direct3D11DeviceContext : public DeviceContext
     ID3D11DeviceContext* getContext() override;
 
     // Resources
+    void updateBuffer(const std::shared_ptr<Buffer>& buffer,
+                      const void* src,
+                      size_t bytes) override;
     void updateTexture(const std::shared_ptr<Texture>& texture,
                        uint8_t slice,
                        const void* src,
@@ -79,20 +93,23 @@ class Direct3D11DeviceContext : public DeviceContext
     // Rendering
     void bindRenderTarget(const std::shared_ptr<Texture>& target,
                           const std::shared_ptr<Texture>& depth,
-                          DepthStencilFlags depthFlags,
-                          BlendFlags blendFlags) override;
+                          DepthSettings depthFlags,
+                          BlendSettings blendFlags) override;
+    void bindShaderProgram(const char* vs, const char* ps) override;
 
     // Vertex Shader Options:
     void loadVertexCB(uint8_t slot, const void* data, size_t bytes) override;
     void bindVertexTexture(uint8_t slot,
                            const std::shared_ptr<Texture>& texture,
-                           SamplerType sampler) override;
+                           SamplerSettings sampler) override;
 
     // Pixel Shader Options:
     void loadPixelCB(uint8_t slot, const void* data, size_t bytes) override;
     void bindPixelTexture(uint8_t slot,
                           const std::shared_ptr<Texture>& texture,
-                          SamplerType sampler) override;
+                          SamplerSettings sampler) override;
+
+    void draw(const Geometry* geometry, uint32_t instanceCount) override;
 
     void present() override;
 
@@ -100,6 +117,10 @@ class Direct3D11DeviceContext : public DeviceContext
     void initializeDepthStates();
     void initializeBlendStates();
     void initializeSamplers();
+
+    void loadConstantBuffer(ID3D11Buffer** bufferPtr,
+                            const void* data,
+                            size_t bytes);
 };
 
 } // namespace Graphics

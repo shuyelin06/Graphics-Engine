@@ -1,7 +1,7 @@
 #include "RenderDoc.h"
 
 // Comment this in to enable RenderDoc
-#define ENABLE_RENDER_DOC 1
+#define ENABLE_RENDER_DOC
 
 #ifdef ENABLE_RENDER_DOC
 #include "renderdoc/renderdoc_app.h"

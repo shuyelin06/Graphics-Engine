@@ -22,23 +22,6 @@ Pipeline::Pipeline(HWND window)
     // Initialize my device, context->getContext(), and render targets
     initializeTargets(window);
 
-    // Initialize my shader manager
-    shader_manager = new ShaderManager(device->getDevice());
-    shader_manager->initializeShaders();
-
-    // Initialize my vertex buffers / offsets / strides
-    active_pool_addr = NULL;
-    memset(vb_buffers, 0, sizeof(ID3D11Buffer*) * BINDABLE_STREAM_COUNT);
-    memset(vb_strides, 0, sizeof(UINT) * BINDABLE_STREAM_COUNT);
-    memset(vb_offsets, 0, sizeof(UINT) * BINDABLE_STREAM_COUNT);
-
-    vb_strides[POSITION] = sizeof(float) * 3;
-    vb_strides[TEXTURE] = sizeof(float) * 2;
-    vb_strides[NORMAL] = sizeof(float) * 3;
-    vb_strides[COLOR] = sizeof(float) * 3;
-    vb_strides[JOINTS] = sizeof(float) * 4;
-    vb_strides[WEIGHTS] = sizeof(float) * 4;
-
     // Initialize my full screen quad
     {
         const Vector4 fullscreen_quad[6] = {
@@ -47,16 +30,14 @@ Pipeline::Pipeline(HWND window)
             // Second Triangle
             Vector4(-1, -1, 0, 1), Vector4(1, 1, 0, 1), Vector4(1, -1, 0, 1)};
 
-        D3D11_BUFFER_DESC buffer_desc = {};
-        buffer_desc.ByteWidth = sizeof(fullscreen_quad);
-        buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-        buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+        std::shared_ptr<Buffer> fullScreenQuad = device->createBuffer(
+            "Full Screen Quad", BufferType::Vertex, sizeof(fullscreen_quad),
+            fullscreen_quad, false);
 
-        D3D11_SUBRESOURCE_DATA sr_data = {};
-        sr_data.pSysMem = (void*)fullscreen_quad;
-
-        device->getDevice()->CreateBuffer(&buffer_desc, &sr_data,
-                                          &postprocess_quad);
+        postprocessQuad = std::make_shared<Geometry>();
+        postprocessQuad->vertexBuffers[VertexDataStream::PosXYZ_TexU] =
+            fullScreenQuad;
+        postprocessQuad->indexCount = 6;
     }
 
 #if defined(_DEBUG)
@@ -73,8 +54,6 @@ Pipeline::~Pipeline()
 #if defined(_DEBUG)
     imGuiShutdown();
 #endif
-
-    delete shader_manager;
 }
 
 void Pipeline::initializeTargets(HWND _window)
@@ -154,37 +133,9 @@ void Pipeline::setVertexTopology(VertexTopology topology)
     }
 }
 
-// Shader Management
-void Pipeline::bindVertexShader(const std::string& vs_name)
-{
-    VertexShader* newVS = shader_manager->getVertexShader(vs_name);
-    assert(newVS);
-
-    if (newVS != vs_active)
-    {
-        vs_active = newVS;
-
-        // Bind shader and input layout
-        context->getContext()->IASetInputLayout(vs_active->layout);
-        context->getContext()->VSSetShader(vs_active->shader, NULL, 0);
-    }
-}
-
-void Pipeline::bindPixelShader(const std::string& ps_name)
-{
-    PixelShader* newPS = shader_manager->getPixelShader(ps_name);
-    assert(newPS);
-
-    if (newPS != ps_active)
-    {
-        ps_active = newPS;
-        context->getContext()->PSSetShader(ps_active->shader, NULL, 0);
-    }
-}
-
 void Pipeline::bindRenderTarget(TargetFlags f_target,
-                                DepthStencilFlags f_depth,
-                                BlendFlags f_blend)
+                                DepthSettings f_depth,
+                                BlendSettings f_blend)
 {
     /*
     flag_target = f_target;
@@ -231,70 +182,11 @@ void Pipeline::swapActiveTarget()
     std::swap(render_target_src, render_target_dest);
 }
 
-void Pipeline::drawMesh(const Mesh* mesh,
-                        UINT instance_count,
-                        int tri_start,
-                        int tri_end)
-{
-    assert(mesh);
-    assert(mesh->buffer_pool);
-
-    const MeshPool* pool = mesh->buffer_pool;
-    assert(pool->layout.vertexLayoutSupports(vs_active->vertexLayout));
-
-    // All meshes are assumed to havae a triangle list topology.
-    // While there are more efficient representations, this is done
-    // for simplicity.
-    context->getContext()->IASetPrimitiveTopology(
-        D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-    if (pool != active_pool_addr)
-    {
-        active_pool_addr = pool;
-
-        // Bind my index buffer. All meshes are assumed to have one index
-        // buffer, associated with multiple vertex buffers.
-        context->getContext()->IASetIndexBuffer(pool->ibuffer,
-                                                DXGI_FORMAT_R32_UINT, 0);
-
-        // Iterate through the layout of my pool and bind all vertex buffers.
-        memset(vb_buffers, 0, sizeof(ID3D11Buffer*) * BINDABLE_STREAM_COUNT);
-        for (int i = 0; i < BINDABLE_STREAM_COUNT; i++)
-        {
-            if (pool->layout.hasVertexStream((VertexDataStream)i))
-            {
-                vb_buffers[i] = pool->vbuffers[i];
-            }
-        }
-
-        context->getContext()->IASetVertexBuffers(
-            0, BINDABLE_STREAM_COUNT, vb_buffers, vb_strides, vb_offsets);
-    }
-
-    // Issue my draw call. We will always draw indexed instanced, even if the
-    // number of instances is 1.
-    const UINT index_start = (mesh->triangle_start + tri_start) * 3;
-    const UINT num_indices =
-        (tri_end == -1) ? mesh->num_triangles * 3 : (tri_end - tri_start) * 3;
-    const UINT index_offset = mesh->vertex_start;
-
-    context->getContext()->DrawIndexedInstanced(num_indices, instance_count,
-                                                index_start, index_offset, 0);
-
-    stats.numDraws++;
-}
-
 void Pipeline::drawPostProcessQuad()
 {
-    const UINT vertexStride = sizeof(float) * 4;
-    const UINT vertexOffset = 0;
-
     context->getContext()->IASetPrimitiveTopology(
         D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    context->getContext()->IASetVertexBuffers(0, 1, &postprocess_quad,
-                                              &vertexStride, &vertexOffset);
-
-    context->getContext()->Draw(6, 0);
+    context->draw(postprocessQuad.get(), 1);
 }
 
 // Present:
@@ -308,14 +200,13 @@ void Pipeline::endFrame()
         IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Render Finish Pass");
 #endif
 
-        bindVertexShader("PostProcess");
-        bindPixelShader("PostProcess");
+        context->bindShaderProgram("PostProcess", "PostProcess");
 
         context->bindRenderTarget(nullptr, nullptr,
-                                  DepthStencilFlags::Depth_Disabled,
-                                  BlendFlags::SrcAlphaOnly);
+                                  DepthSettings::Depth_Disabled,
+                                  BlendSettings::SrcAlphaOnly);
         context->bindPixelTexture(0, render_target_dest,
-                                  SamplerType::Sampler_Point);
+                                  SamplerSettings::Point);
 
         drawPostProcessQuad();
     }

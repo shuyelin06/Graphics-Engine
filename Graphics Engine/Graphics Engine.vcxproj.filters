@@ -48,10 +48,10 @@
     <ClCompile Include="src\rendering\core\Mesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\pipeline\ShaderManager.cpp">
+    <ClCompile Include="src\rendering\core\d3d11\D3D11ShaderCompiler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\pipeline\Shader.cpp">
+    <ClCompile Include="src\rendering\core\d3d11\D3D11Shader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\core\Camera.cpp">
@@ -284,10 +284,10 @@
     <ClInclude Include="src\rendering\core\Mesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\pipeline\ShaderManager.h">
+    <ClInclude Include="src\rendering\core\d3d11\D3D11ShaderCompiler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\pipeline\Shader.h">
+    <ClInclude Include="src\rendering\core\d3d11\D3D11Shader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\util\MarchingCubeTables.h">
@@ -543,6 +543,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\core\d3d11\D3D11Device.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rendering\core\Geometry.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

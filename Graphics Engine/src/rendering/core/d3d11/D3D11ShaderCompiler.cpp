@@ -1,4 +1,4 @@
-#include "ShaderManager.h"
+#include "D3D11ShaderCompiler.h"
 
 #include <filesystem>
 #include <stdio.h>
@@ -7,7 +7,7 @@
 #include <assert.h>
 #include <optional>
 
-constexpr bool ALLOW_CACHING = true;
+constexpr bool ALLOW_CACHING = false;
 
 namespace Engine
 {
@@ -17,11 +17,11 @@ namespace Graphics
 static const std::string cache_folder = "bin_shaders/";
 static const std::string shader_folder = "shaders/";
 
-ShaderManager::ShaderManager(ID3D11Device* _device)
+D3D11ShaderCompiler::D3D11ShaderCompiler(ID3D11Device* _device)
 {
     device = _device;
 }
-ShaderManager::~ShaderManager() = default;
+D3D11ShaderCompiler::~D3D11ShaderCompiler() = default;
 
 // InitializeShaders:
 // Creates all of the shaders usable by the engine. To create a shader, populate
@@ -44,7 +44,7 @@ struct ShaderConfig
     std::vector<std::string> pins;
 };
 
-void ShaderManager::initializeShaders()
+void D3D11ShaderCompiler::initializeShaders()
 {
     const std::vector<ShaderConfig> shaders = {
         // DebugPoint:
@@ -54,7 +54,7 @@ void ShaderManager::initializeShaders()
          "DebugPoint",
          "misc/DebugPointRenderer.hlsl",
          "vs_main",
-         {POSITION, INSTANCE_ID},
+         {PosXYZ_TexU, INSTANCE_ID},
          {}},
         {Pixel,
          "DebugPoint",
@@ -76,7 +76,7 @@ void ShaderManager::initializeShaders()
         // Takes vertex triangle data, as well as
         // matrix transforms and writes them to a light's shadow map (depth
         // buffer).
-        {Vertex, "ShadowMap", "ShadowMap.hlsl", "vs_main", {POSITION}, {}},
+        {Vertex, "ShadowMap", "ShadowMap.hlsl", "vs_main", {PosXYZ_TexU}, {}},
         {Pixel, "ShadowMap", "ShadowMap.hlsl", "ps_main", {}, {}},
         // Terrain Shader:
         // Handles rendering of the scene's terrain.
@@ -84,7 +84,7 @@ void ShaderManager::initializeShaders()
          "Terrain",
          "V_Terrain.hlsl",
          "vsterrain_main",
-         {POSITION, INSTANCE_ID},
+         {PosXYZ_TexU, INSTANCE_ID},
          {}},
         {Pixel, "Terrain", "P_Terrain.hlsl", "psterrain_main", {}, {}},
         // Shadow:
@@ -93,7 +93,7 @@ void ShaderManager::initializeShaders()
          "ShadowShader",
          "ShadowShaderV.hlsl",
          "vs_main",
-         {POSITION, NORMAL, COLOR},
+         {PosXYZ_TexU, NormXYZ_TexV, ColorRGBA},
          {}},
         {Pixel, "ShadowShader", "ShadowShaderP.hlsl", "ps_main", {}, {}},
         // Shadow (Textured):
@@ -102,13 +102,13 @@ void ShaderManager::initializeShaders()
          "TexturedMesh",
          "V_TexturedMesh.hlsl",
          "vs_main",
-         {POSITION, TEXTURE, NORMAL, INSTANCE_ID},
+         {PosXYZ_TexU, NormXYZ_TexV, INSTANCE_ID},
          {}},
         {Vertex,
          "SkinnedMesh",
          "V_TexturedMesh.hlsl",
          "vs_main",
-         {POSITION, TEXTURE, NORMAL, JOINTS, WEIGHTS, INSTANCE_ID},
+         {PosXYZ_TexU, NormXYZ_TexV, JOINTS, WEIGHTS, INSTANCE_ID},
          {"SKINNED_MESH"}},
         {Pixel, "TexturedMesh", "P_TexturedMesh.hlsl", "ps_main", {}, {}},
         // --- Post Processing Effects ---
@@ -117,7 +117,7 @@ void ShaderManager::initializeShaders()
          "PostProcess",
          "Post_VertexShader.hlsl",
          "vs_main",
-         {SV_POSITION},
+         {PosXYZ_TexU},
          {}},
         {Pixel, "PostProcess", "Post_PixelShader.hlsl", "ps_main", {}, {}},
         {Pixel, "Sky", "Post_Abovewater.hlsl", "ps_main", {}, {}},
@@ -186,10 +186,11 @@ class ShaderIncludeHandler : public ID3DInclude
 // GetVertexShader:
 // Returns a vertex shader by a given slot, which internally
 // indexes an array.
-VertexShader* ShaderManager::getVertexShader(const std::string& name)
+D3D11VertexShader* D3D11ShaderCompiler::getVertexShader(const char* name)
 {
-    if (vertex_shaders.contains(name))
-        return vertex_shaders[name];
+    auto iter = vertex_shaders.find(name);
+    if (iter != vertex_shaders.end())
+        return iter->second;
     else
         return nullptr;
 }
@@ -197,10 +198,11 @@ VertexShader* ShaderManager::getVertexShader(const std::string& name)
 // GetPixelShader:
 // Returns a pixel shader by a given slot, which internally
 // indexes an array.
-PixelShader* ShaderManager::getPixelShader(const std::string& name)
+D3D11PixelShader* D3D11ShaderCompiler::getPixelShader(const char* name)
 {
-    if (pixel_shaders.contains(name))
-        return pixel_shaders[name];
+    auto iter = pixel_shaders.find(name);
+    if (iter != pixel_shaders.end())
+        return iter->second;
     else
         return nullptr;
 }
@@ -208,8 +210,8 @@ PixelShader* ShaderManager::getPixelShader(const std::string& name)
 // CompileShaderBlob:
 // Compiles a file into a shader blob. Used in the creation of vertex
 // and pixel shaders.
-ID3DBlob* ShaderManager::compileShaderBlob(ShaderType type,
-                                           const ShaderConfig& config)
+ID3DBlob* D3D11ShaderCompiler::compileShaderBlob(ShaderType type,
+                                                 const ShaderConfig& config)
 {
     ID3DBlob* compiled_blob = NULL;
 
@@ -319,7 +321,7 @@ ID3DBlob* ShaderManager::compileShaderBlob(ShaderType type,
     return compiled_blob;
 }
 
-void ShaderManager::createVertexShader(const ShaderConfig& config)
+void D3D11ShaderCompiler::createVertexShader(const ShaderConfig& config)
 {
     // Obtain shader blob
     ID3DBlob* shader_blob = compileShaderBlob(Vertex, config);
@@ -336,46 +338,31 @@ void ShaderManager::createVertexShader(const ShaderConfig& config)
 
         switch (stream)
         {
-        // Position Stream:
-        // A buffer of (x,y,z) floats for 3D position
-        case POSITION:
-            desc = {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,
-                    POSITION,   0, D3D11_INPUT_PER_VERTEX_DATA,
-                    0};
-            break;
-
-        case SV_POSITION: {
-            desc = {"SV_POSITION",
+        case PosXYZ_TexU:
+            desc = {"PosXYZ_TexU",
                     0,
                     DXGI_FORMAT_R32G32B32A32_FLOAT,
-                    0,
+                    PosXYZ_TexU,
                     0,
                     D3D11_INPUT_PER_VERTEX_DATA,
                     0};
-        }
-        break;
-
-        // Texture Stream:
-        // A buffer of (u,v) floats as texture coordinates
-        case TEXTURE:
-            desc = {"TEXTURE", 0, DXGI_FORMAT_R32G32_FLOAT,
-                    TEXTURE,   0, D3D11_INPUT_PER_VERTEX_DATA,
+            break;
+        case NormXYZ_TexV:
+            desc = {"NormXYZ_TexV",
+                    0,
+                    DXGI_FORMAT_R32G32B32A32_FLOAT,
+                    NormXYZ_TexV,
+                    0,
+                    D3D11_INPUT_PER_VERTEX_DATA,
                     0};
             break;
-
-        // Normal Stream:
-        // A buffer of (x,y,z) normal directions
-        case NORMAL:
-            desc = {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT,
-                    NORMAL,   0, D3D11_INPUT_PER_VERTEX_DATA,
-                    0};
-            break;
-
-        // Color Stream:
-        // A buffer of RGB colors
-        case COLOR:
-            desc = {"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT,
-                    COLOR,   0, D3D11_INPUT_PER_VERTEX_DATA,
+        case ColorRGBA:
+            desc = {"ColorRGBA",
+                    0,
+                    DXGI_FORMAT_R32G32B32A32_FLOAT,
+                    ColorRGBA,
+                    0,
+                    D3D11_INPUT_PER_VERTEX_DATA,
                     0};
             break;
 
@@ -452,7 +439,8 @@ void ShaderManager::createVertexShader(const ShaderConfig& config)
     shader_blob->Release(); // Free shader blob memory
 
     // Create my vertex shader
-    VertexShader* v_shader = new VertexShader(vertexShader, inputLayout);
+    D3D11VertexShader* v_shader =
+        new D3D11VertexShader(vertexShader, inputLayout);
     for (const VertexDataStream& stream : config.input_layout)
         if (stream < BINDABLE_STREAM_COUNT)
             v_shader->vertexLayout.addVertexStream(stream);
@@ -462,7 +450,7 @@ void ShaderManager::createVertexShader(const ShaderConfig& config)
 
 // CreatePixelShader:
 // Creates a pixel shader and adds it to the array of pixel shaders
-void ShaderManager::createPixelShader(const ShaderConfig& config)
+void D3D11ShaderCompiler::createPixelShader(const ShaderConfig& config)
 {
     assert(config.input_layout.empty());
 
@@ -481,7 +469,7 @@ void ShaderManager::createPixelShader(const ShaderConfig& config)
     // Free shader blob memory
     shader_blob->Release();
 
-    PixelShader* p_shader = new PixelShader(pixelShader);
+    D3D11PixelShader* p_shader = new D3D11PixelShader(pixelShader);
     pixel_shaders[config.shader_name] = p_shader;
 }
 

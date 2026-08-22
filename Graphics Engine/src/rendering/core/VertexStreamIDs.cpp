@@ -6,19 +6,7 @@ namespace Engine
 {
 namespace Graphics
 {
-static unsigned int StreamStrides[BINDABLE_STREAM_COUNT] = {
-    3 * sizeof(float), // POSITION
-    2 * sizeof(float), // TEXTURE
-    3 * sizeof(float), // NORMAL
-    3 * sizeof(float), // COLOR
-    4 * sizeof(float), // JOINTS
-    4 * sizeof(float)  // WEIGHTS
-};
-
-VertexLayout::VertexLayout()
-{
-    layout_pin = 0;
-}
+VertexLayout::VertexLayout() { layout_pin = 0; }
 VertexLayout::VertexLayout(const VertexLayout& layout)
 {
     layout_pin = layout.layout_pin;
@@ -28,19 +16,16 @@ void VertexLayout::setAllStreams()
 {
     for (int i = 0; i < BINDABLE_STREAM_COUNT; i++)
     {
-        if (hasVertexStream((VertexDataStream)i))
-        {
-            layout_pin |= 1 << i;
-        }
+        layout_pin |= 1 << i;
     }
 }
 void VertexLayout::addVertexStream(VertexDataStream stream)
 {
-    layout_pin |= stream;
+    layout_pin |= (1 << stream);
 }
 bool VertexLayout::hasVertexStream(VertexDataStream stream) const
 {
-    return (layout_pin & stream) == stream;
+    return (layout_pin & (1 << stream)) == (1 << stream);
 }
 bool VertexLayout::vertexLayoutSupports(const VertexLayout& layout) const
 {
@@ -66,8 +51,7 @@ bool VertexLayout::operator==(const VertexLayout& layout) const
 
 size_t VertexLayout::VertexStreamStride(VertexDataStream stream)
 {
-    assert(0 <= stream && stream < BINDABLE_STREAM_COUNT);
-    return StreamStrides[stream];
+    return sizeof(float) * 4;
 };
 
 } // namespace Graphics

@@ -42,7 +42,7 @@ class DebugRenderPassScope
 
 DrawBlock::DrawBlock() = default;
 
-void DrawBlock::initialize(AABB _extents, Mesh* _mesh, Material* _material)
+void DrawBlock::initialize(AABB _extents, Geometry* _mesh, Material* _material)
 {
     extents = _extents;
     mesh = _mesh;
@@ -251,8 +251,8 @@ void RenderManagerImpl::perform()
         resourceManager->getFallbackColormap();
     const std::shared_ptr<Texture>& shadowAtlas =
         visualSystem->getLightManager()->getAtlasTexture();
-    context->bindPixelTexture(0, colormap, SamplerType::Sampler_Point);
-    context->bindPixelTexture(1, shadowAtlas, SamplerType::Sampler_Shadow);
+    context->bindPixelTexture(0, colormap, SamplerSettings::Point);
+    context->bindPixelTexture(1, shadowAtlas, SamplerSettings::Shadow);
     context->clearDepthStencil(depthStencil);
 
     // Bind my global constant buffers (CB0)
@@ -321,15 +321,15 @@ void RenderManagerImpl::perform()
 
     {
         context->bindRenderTarget(mainView.renderTarget, mainView.depthStencil,
-                                  DepthStencilFlags::Depth_TestAndWrite,
-                                  BlendFlags::Blend_Default);
+                                  DepthSettings::Depth_TestAndWrite,
+                                  BlendSettings::Blend_Default);
         executeRenderPass(context, RenderPass::kOpaque, mainView, "Opaque");
     }
 
     {
         context->bindRenderTarget(mainView.renderTarget, mainView.depthStencil,
-                                  DepthStencilFlags::Depth_TestAndWrite,
-                                  BlendFlags::Blend_Default);
+                                  DepthSettings::Depth_TestAndWrite,
+                                  BlendSettings::Blend_Default);
         executeRenderPass(context, RenderPass::kDebug, mainView, "Debug");
     }
 }
@@ -397,9 +397,9 @@ void RenderManagerImpl::executeRenderPass(DeviceContext* context,
                   }
                   // Sort by mesh pool since that causes rebindings.
                   // Less than technique, but still meaningful.
-                  else if (a.mesh->buffer_pool != b.mesh->buffer_pool)
+                  else if (a.mesh != b.mesh)
                   {
-                      return a.mesh->buffer_pool < b.mesh->buffer_pool;
+                      return a.mesh < b.mesh;
                   }
                   // Finally, sort by mesh pointer. Having the same mesh means
                   // we can do an instanced draw call.
@@ -466,8 +466,7 @@ void RenderManagerImpl::executeRenderPass(DeviceContext* context,
             batchNext = batchNext && (baseDrawCall.depth == nextDrawCall.depth);
             batchNext =
                 batchNext && (baseDrawCall.technique == nextDrawCall.technique);
-            batchNext = batchNext && (baseDrawCall.mesh->buffer_pool ==
-                                      nextDrawCall.mesh->buffer_pool);
+            batchNext = batchNext && (baseDrawCall.mesh == nextDrawCall.mesh);
             batchNext = batchNext && (baseDrawCall.mesh == nextDrawCall.mesh);
 
             if (batchNext)
@@ -484,10 +483,11 @@ void RenderManagerImpl::executeRenderPass(DeviceContext* context,
         // Bind everything
         // TODO Shader Resources
 
-        const Mesh* mesh = baseDrawCall.mesh;
+        const Geometry* mesh = baseDrawCall.mesh;
         const Technique* technique = baseDrawCall.technique;
 
-        pipeline->bindVertexShader(technique->vertexShader);
+        context->bindShaderProgram(technique->vertexShader.c_str(),
+                                   technique->pixelShader.c_str());
         for (int slot = 0; slot < kVertexConstantBufferMax; slot++)
         {
             const auto& buffer = technique->vertexCBuffers[slot];
@@ -505,7 +505,6 @@ void RenderManagerImpl::executeRenderPass(DeviceContext* context,
             }
         }
 
-        pipeline->bindPixelShader(technique->pixelShader);
         for (int slot = 0; slot < kVertexConstantBufferMax; slot++)
         {
             const auto& buffer = technique->pixelCbuffers[slot];
@@ -534,7 +533,7 @@ void RenderManagerImpl::executeRenderPass(DeviceContext* context,
                                       instanceDataIndices.size());
         }
 
-        pipeline->drawMesh(mesh, numInstances);
+        context->draw(mesh, numInstances);
 
         tail++;
     }

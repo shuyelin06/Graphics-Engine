@@ -17,7 +17,7 @@ DefineTex2D(heightmap, 0);
 
 struct VS_IN
 {
-    float3 position_local : POSITION;
+    float4 PosXYZ_TexU : PosXYZ_TexU;
     uint instanceID : SV_InstanceID;
 };
 
@@ -49,8 +49,8 @@ VS_OUT vsterrain_main(VS_IN input)
 
     // Based on my ChunkData, determine my (x,z) world position
     ChunkData data = chunkData[input.instanceID];
-    float x = data.positionXZ.x + input.position_local.x * data.extentsXZ.x;
-    float z = data.positionXZ.y + input.position_local.z * data.extentsXZ.y;
+    float x = data.positionXZ.x + input.PosXYZ_TexU.x * data.extentsXZ.x;
+    float z = data.positionXZ.y + input.PosXYZ_TexU.z * data.extentsXZ.y;
     
     // Convert world position to UV coordinates that we can use to sample the heightmap
     float2 uv = float2((x - heightMapWorldPosition.x) / heightMapWorldExtents.x,
@@ -60,7 +60,7 @@ VS_OUT vsterrain_main(VS_IN input)
     // Add to the input position. We add because mesh has skirts that have negative y coordinates
     // which we need to factor in (to hide LOD transitions)
     float height = SampleTex2DLevel(heightmap, uv, 0, float2(0,0)).r;
-    float3 worldPosition = float3(x, input.position_local.y + height, z);
+    float3 worldPosition = float3(x, input.PosXYZ_TexU.y + height, z);
     float4 clipPosition = mul(CB(m_world_to_screen), float4(worldPosition, 1));
 
     // Generate my normal

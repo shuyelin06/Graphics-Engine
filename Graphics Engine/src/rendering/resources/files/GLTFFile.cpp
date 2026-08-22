@@ -398,7 +398,7 @@ void GLTFFile::ReadGLTFMesh(const std::string& path, MeshBuilder& builder)
         switch (type)
         {
         case cgltf_attribute_type_position:
-            builder.addLayout(POSITION);
+            builder.addLayout(PosXYZ_TexU);
             ParseAccessor(accessor, [&vertex_data](int index, const void* data,
                                                    size_t size) {
                 assert(size == sizeof(Vector3));
@@ -407,7 +407,8 @@ void GLTFFile::ReadGLTFMesh(const std::string& path, MeshBuilder& builder)
             break;
 
         case cgltf_attribute_type_texcoord:
-            builder.addLayout(TEXTURE);
+            builder.addLayout(PosXYZ_TexU);
+            builder.addLayout(NormXYZ_TexV);
             ParseAccessor(accessor, [&vertex_data](int index, const void* data,
                                                    size_t size) {
                 assert(size == sizeof(Vector2));
@@ -416,7 +417,7 @@ void GLTFFile::ReadGLTFMesh(const std::string& path, MeshBuilder& builder)
             break;
 
         case cgltf_attribute_type_normal:
-            builder.addLayout(NORMAL);
+            builder.addLayout(NormXYZ_TexV);
             ParseAccessor(accessor, [&vertex_data](int index, const void* data,
                                                    size_t size) {
                 assert(size == sizeof(Vector3));

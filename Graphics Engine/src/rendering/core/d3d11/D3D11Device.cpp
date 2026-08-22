@@ -3,6 +3,7 @@
 #include <assert.h>
 
 #include "D3D11Buffer.h"
+#include "D3D11Shader.h"
 #include "D3D11Texture.h"
 
 namespace Engine
@@ -42,7 +43,7 @@ void InitializeGraphicsAPI(HWND window,
     D3D_FEATURE_LEVEL feature_level; // Stores the GPU functionality
     HRESULT result = D3D11CreateDeviceAndSwapChain(
         NULL, D3D_DRIVER_TYPE_HARDWARE, NULL,
-        0, // Flags
+        D3D11_CREATE_DEVICE_DEBUG, // Flags
         NULL, 0, D3D11_SDK_VERSION, &swap_chain_descriptor, &swapchain, &device,
         &feature_level, &context);
     assert(S_OK == result && device && swapchain && context);
@@ -76,9 +77,11 @@ ID3D11Device* Direct3D11Device::getDevice() { return device; }
 std::shared_ptr<Buffer> Direct3D11Device::createBuffer(const char* debugName,
                                                        BufferType type,
                                                        size_t byteSize,
-                                                       const void* initData)
+                                                       const void* initData,
+                                                       bool dynamic)
 {
-    return std::make_shared<D3D11Buffer>(device, type, byteSize, initData);
+    return std::make_shared<D3D11Buffer>(device, type, byteSize, initData,
+                                         dynamic);
 }
 
 std::shared_ptr<Texture> Direct3D11Device::createTexture(const char* debugName,
@@ -106,6 +109,17 @@ Direct3D11DeviceContext::Direct3D11DeviceContext(ID3D11DeviceContext* context,
     , screenTarget(target)
     , screenViewport(viewport)
 {
+    memset(vb_buffers, 0, sizeof(ID3D11Buffer*) * BINDABLE_STREAM_COUNT);
+    memset(vb_strides, 0, sizeof(UINT) * BINDABLE_STREAM_COUNT);
+    memset(vb_offsets, 0, sizeof(UINT) * BINDABLE_STREAM_COUNT);
+
+    for (int i = 0; i < BINDABLE_STREAM_COUNT; i++)
+    {
+        vb_strides[i] = VertexLayout::VertexStreamStride((VertexDataStream)i);
+    }
+
+    shaderManager = std::make_unique<D3D11ShaderCompiler>(device);
+    shaderManager->initializeShaders();
     initializeDepthStates();
     initializeBlendStates();
     initializeSamplers();
@@ -133,7 +147,7 @@ void Direct3D11DeviceContext::initializeDepthStates()
     D3D11_DEPTH_STENCIL_DESC desc = {};
     HRESULT result;
 
-    depth_states[(int)DepthStencilFlags::Depth_Disabled] = nullptr;
+    depth_states[(int)DepthSettings::Depth_Disabled] = nullptr;
 
     // Enable depth testing
     desc.DepthEnable = TRUE;
@@ -145,7 +159,7 @@ void Direct3D11DeviceContext::initializeDepthStates()
     desc.StencilEnable = FALSE;
 
     result = device->CreateDepthStencilState(
-        &desc, &depth_states[(int)DepthStencilFlags::Depth_TestAndWrite]);
+        &desc, &depth_states[(int)DepthSettings::Depth_TestAndWrite]);
     assert(SUCCEEDED(result));
 
     // Enable depth testing
@@ -158,7 +172,7 @@ void Direct3D11DeviceContext::initializeDepthStates()
     desc.StencilEnable = FALSE;
 
     result = device->CreateDepthStencilState(
-        &desc, &depth_states[(int)DepthStencilFlags::Depth_TestNoWrite]);
+        &desc, &depth_states[(int)DepthSettings::Depth_TestNoWrite]);
     assert(SUCCEEDED(result));
 }
 
@@ -178,7 +192,7 @@ void Direct3D11DeviceContext::initializeBlendStates()
     blend_desc.RenderTarget[0].RenderTargetWriteMask =
         D3D11_COLOR_WRITE_ENABLE_ALL;
     result = device->CreateBlendState(
-        &blend_desc, &blend_states[(int)BlendFlags::SrcAlphaOnly]);
+        &blend_desc, &blend_states[(int)BlendSettings::SrcAlphaOnly]);
     assert(SUCCEEDED(result));
 
     blend_desc.RenderTarget[0].BlendEnable = TRUE;
@@ -191,7 +205,7 @@ void Direct3D11DeviceContext::initializeBlendStates()
     blend_desc.RenderTarget[0].RenderTargetWriteMask =
         D3D11_COLOR_WRITE_ENABLE_ALL;
     result = device->CreateBlendState(
-        &blend_desc, &blend_states[(int)BlendFlags::Blend_UseSrcAndDest]);
+        &blend_desc, &blend_states[(int)BlendSettings::Blend_UseSrcAndDest]);
     assert(SUCCEEDED(result));
 }
 
@@ -206,8 +220,8 @@ void Direct3D11DeviceContext::initializeSamplers()
     sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
     sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
 
-    result = device->CreateSamplerState(
-        &sampler_desc, &samplers[(int)SamplerType::Sampler_Point]);
+    result = device->CreateSamplerState(&sampler_desc,
+                                        &samplers[(int)SamplerSettings::Point]);
     assert(SUCCEEDED(result));
 
     // Shadow Sampler: Index 1
@@ -226,7 +240,7 @@ void Direct3D11DeviceContext::initializeSamplers()
     sampler_desc.MaxLOD = 1.0f;
 
     result = device->CreateSamplerState(
-        &sampler_desc, &samplers[(int)SamplerType::Sampler_Shadow]);
+        &sampler_desc, &samplers[(int)SamplerSettings::Shadow]);
     assert(SUCCEEDED(result));
 
     // Bilinear Sampler: Index 2
@@ -239,7 +253,7 @@ void Direct3D11DeviceContext::initializeSamplers()
     sampler_desc.MaxLOD = D3D11_FLOAT32_MAX;
 
     device->CreateSamplerState(&sampler_desc,
-                               &samplers[(int)SamplerType::Sampler_Linear]);
+                               &samplers[(int)SamplerSettings::Linear]);
     assert(SUCCEEDED(result));
 }
 
@@ -247,6 +261,13 @@ void Direct3D11DeviceContext::initializeSamplers()
 ID3D11DeviceContext* Direct3D11DeviceContext::getContext() { return context; }
 
 // Resources
+void Direct3D11DeviceContext::updateBuffer(
+    const std::shared_ptr<Buffer>& buffer, const void* src, size_t bytes)
+{
+    D3D11Buffer* buf = reinterpret_cast<D3D11Buffer*>(buffer.get());
+    buf->upload(context, src, bytes);
+}
+
 void Direct3D11DeviceContext::updateTexture(
     const std::shared_ptr<Texture>& texture,
     uint8_t slice,
@@ -261,6 +282,7 @@ void Direct3D11DeviceContext::generateMips(
     const std::shared_ptr<Texture>& texture)
 {
     D3D11Texture* tex = reinterpret_cast<D3D11Texture*>(texture.get());
+    assert(tex->getSRV());
     context->GenerateMips(tex->getSRV());
 }
 
@@ -284,8 +306,8 @@ void Direct3D11DeviceContext::clearDepthStencil(
 void Direct3D11DeviceContext::bindRenderTarget(
     const std::shared_ptr<Texture>& target,
     const std::shared_ptr<Texture>& depth,
-    DepthStencilFlags flags,
-    BlendFlags blendFlags)
+    DepthSettings flags,
+    BlendSettings blendFlags)
 {
     D3D11Texture* targetTex = reinterpret_cast<D3D11Texture*>(target.get());
     D3D11Texture* depthTex = reinterpret_cast<D3D11Texture*>(depth.get());
@@ -340,19 +362,38 @@ void Direct3D11DeviceContext::bindRenderTarget(
                              0xFFFFFFFF);
 }
 
-static bool loadConstantBuffer(ID3D11DeviceContext* context,
-                               ID3D11Device* device,
-                               ID3D11Buffer** buffer,
-                               const void* data,
-                               size_t bytes)
+void Direct3D11DeviceContext::bindShaderProgram(const char* vs, const char* ps)
 {
-    // Do nothing if CB has nothing
-    if (bytes == 0)
-        return false;
+    D3D11VertexShader* vsShader = shaderManager->getVertexShader(vs);
+    D3D11PixelShader* psShader = shaderManager->getPixelShader(ps);
+
+    if (vsActive != vsShader)
+    {
+        context->IASetInputLayout(vsShader->layout);
+        context->VSSetShader(vsShader->shader, NULL, 0);
+        vsActive = vsShader;
+    }
+
+    if (psActive != psShader)
+    {
+        context->PSSetShader(psShader->shader, NULL, 0);
+        psActive = psShader;
+    }
+
+    assert(vsActive && psActive);
+}
+
+void Direct3D11DeviceContext::loadConstantBuffer(ID3D11Buffer** bufferPtr,
+                                                 const void* data,
+                                                 size_t bytes)
+{
+    HRESULT result;
+
+    ID3D11Buffer* buffer = *bufferPtr;
 
     // If the buffer resource has never been created before, or the current
     // resource is too small for mapping / unmapping, create a new one.
-    if (*buffer == nullptr)
+    if (buffer == nullptr)
     {
         // Create buffer to allow dynamic usage, i.e. accessible by
         // GPU read and CPU write. We opt for this usage so that we can update
@@ -364,22 +405,26 @@ static bool loadConstantBuffer(ID3D11DeviceContext* context,
         buff_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
         // Create buffer
-        HRESULT result = device->CreateBuffer(&buff_desc, NULL, buffer);
+        result = device->CreateBuffer(&buff_desc, NULL, &buffer);
         assert(SUCCEEDED(result));
     }
+
+    assert(buffer != nullptr);
 
     // Perform resource renaming to update buffer data
     // Disable GPU access to data and obtain the my constant buffer resource
     D3D11_MAPPED_SUBRESOURCE mapped_resource = {0};
-    context->Map(*buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_resource);
+    result =
+        context->Map(buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_resource);
+    assert(SUCCEEDED(result));
 
     // Update the data in the resource
     memcpy(mapped_resource.pData, data, bytes);
 
     // Reenable GPU access to data
-    context->Unmap(*buffer, 0);
+    context->Unmap(buffer, 0);
 
-    return true;
+    *bufferPtr = buffer;
 }
 
 // Vertex Shader Options:
@@ -387,19 +432,23 @@ void Direct3D11DeviceContext::loadVertexCB(uint8_t slot,
                                            const void* data,
                                            size_t bytes)
 {
-    const bool success =
-        loadConstantBuffer(context, device, &vertexCB[slot], data, bytes);
-    context->VSSetConstantBuffers(slot, 1, &vertexCB[slot]);
+    if (bytes > 0)
+    {
+        loadConstantBuffer(&vertexCB[slot], data, bytes);
+        context->VSSetConstantBuffers(slot, 1, &vertexCB[slot]);
+    }
 }
 
 void Direct3D11DeviceContext::bindVertexTexture(
-    uint8_t slot, const std::shared_ptr<Texture>& texture, SamplerType sampler)
+    uint8_t slot,
+    const std::shared_ptr<Texture>& texture,
+    SamplerSettings sampler)
 {
     D3D11Texture* tex = reinterpret_cast<D3D11Texture*>(texture.get());
     ID3D11ShaderResourceView* srv = tex->getSRV();
     assert(srv);
     context->VSSetShaderResources(slot, 1, &srv);
-    context->VSSetSamplers(slot, 1, &samplers[(int) sampler]);
+    context->VSSetSamplers(slot, 1, &samplers[(int)sampler]);
 }
 
 // Pixel Shader Options:
@@ -407,12 +456,16 @@ void Direct3D11DeviceContext::loadPixelCB(uint8_t slot,
                                           const void* data,
                                           size_t bytes)
 {
-    const bool success =
-        loadConstantBuffer(context, device, &pixelCB[slot], data, bytes);
-    context->PSSetConstantBuffers(slot, 1, &pixelCB[slot]);
+    if (bytes > 0)
+    {
+        loadConstantBuffer(&pixelCB[slot], data, bytes);
+        context->PSSetConstantBuffers(slot, 1, &pixelCB[slot]);
+    }
 }
 void Direct3D11DeviceContext::bindPixelTexture(
-    uint8_t slot, const std::shared_ptr<Texture>& texture, SamplerType sampler)
+    uint8_t slot,
+    const std::shared_ptr<Texture>& texture,
+    SamplerSettings sampler)
 {
     D3D11Texture* tex = reinterpret_cast<D3D11Texture*>(texture.get());
     ID3D11ShaderResourceView* srv = tex->getSRV();
@@ -421,7 +474,59 @@ void Direct3D11DeviceContext::bindPixelTexture(
     context->PSSetSamplers(slot, 1, &samplers[(int)sampler]);
 }
 
-void Direct3D11DeviceContext::present() { swapchain->Present(1, 0); }
+void Direct3D11DeviceContext::draw(const Geometry* geometry,
+                                   uint32_t instanceCount)
+{
+    bool invalidateVertexBindings = false;
+    for (int i = 0; i < BINDABLE_STREAM_COUNT; i++)
+    {
+        if (!geometry->vertexBuffers[i])
+            continue;
+
+        D3D11Buffer* vertexBuffer =
+            reinterpret_cast<D3D11Buffer*>(geometry->vertexBuffers[i].get());
+        if (vb_buffers[i] != vertexBuffer->getBuffer())
+        {
+            vb_buffers[i] = vertexBuffer->getBuffer();
+            invalidateVertexBindings = true;
+        }
+    }
+
+    if (invalidateVertexBindings)
+    {
+        context->IASetVertexBuffers(0, BINDABLE_STREAM_COUNT, vb_buffers,
+                                    vb_strides, vb_offsets);
+    }
+
+    // Draw with Index Buffer
+    if (geometry->indexBuffer)
+    {
+        D3D11Buffer* indexBuffer =
+            reinterpret_cast<D3D11Buffer*>(geometry->indexBuffer.get());
+        context->IASetIndexBuffer(indexBuffer->getBuffer(),
+                                  DXGI_FORMAT_R32_UINT, 0);
+        context->DrawIndexedInstanced(geometry->indexCount, instanceCount,
+                                      geometry->indexOffset,
+                                      geometry->vertexOffset, 0);
+    }
+    // Draw with no Index Buffer
+    else
+    {
+        context->DrawInstanced(geometry->indexCount, instanceCount,
+                               geometry->vertexOffset, 0);
+    }
+}
+
+void Direct3D11DeviceContext::present()
+{
+    HRESULT result = swapchain->Present(1, 0);
+    if (result == DXGI_ERROR_DEVICE_REMOVED ||
+        result == DXGI_ERROR_DEVICE_RESET)
+    {
+        result = device->GetDeviceRemovedReason();
+    }
+    assert(SUCCEEDED(result));
+}
 
 } // namespace Graphics
 } // namespace Engine

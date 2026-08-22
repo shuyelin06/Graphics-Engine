@@ -37,7 +37,7 @@ struct DrawCall
     uint32_t depth = 0xFF;
 
     // Mesh, Technique Replaces both Vertex and Pixel Technique
-    const Mesh* mesh = nullptr;
+    const Geometry* mesh = nullptr;
     const Technique* technique = nullptr;
 
     // Index of the Draw Call's instance data in the global

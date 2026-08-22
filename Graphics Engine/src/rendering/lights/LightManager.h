@@ -44,7 +44,7 @@ struct ShadowCluster
 
 struct ShadowCaster
 {
-    const Mesh* mesh;
+    const Geometry* mesh;
     Matrix4 m_localToWorld;
 };
 

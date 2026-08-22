@@ -15,7 +15,7 @@ using UpdatePacket = SceneManager::UpdatePacket;
 
 struct DefaultMeshBlock
 {
-    std::shared_ptr<Mesh> mesh = nullptr;
+    std::shared_ptr<Geometry> mesh = nullptr;
     std::shared_ptr<Material> material = nullptr;
     InstanceData instanceData{};
 
@@ -63,15 +63,9 @@ void SceneManager::submitUpdatePacket(const UpdatePacket& packet)
     mImpl->submitUpdatePacket(packet);
 }
 
-void SceneManager::update()
-{
-    mImpl->update();
-}
+void SceneManager::update() { mImpl->update(); }
 
-Camera* SceneManager::getMainCamera()
-{
-    return mImpl->getMainCamera();
-}
+Camera* SceneManager::getMainCamera() { return mImpl->getMainCamera(); }
 
 std::unique_ptr<SceneManager> SceneManager::create(VisualSystem* visualSystem)
 {
@@ -283,10 +277,7 @@ void SceneManagerImpl::processMeshPacket(const UpdatePacket& packet)
     }
 }
 
-Camera* SceneManagerImpl::getMainCamera()
-{
-    return activeCamera;
-}
+Camera* SceneManagerImpl::getMainCamera() { return activeCamera; }
 
 } // namespace Graphics
 } // namespace Engine

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Buffer.h"
+#include "Geometry.h"
 #include "Texture.h"
 
 #include <memory>
@@ -19,7 +20,7 @@ namespace Graphics
 class Device;
 class DeviceContext;
 
-enum class DepthStencilFlags : uint8_t
+enum class DepthSettings : uint8_t
 {
     // Prevents the depth stencil from being bound
     Depth_Disabled = 0,
@@ -33,7 +34,7 @@ enum class DepthStencilFlags : uint8_t
     DepthFlagCount
 };
 
-enum class BlendFlags : uint8_t
+enum class BlendSettings : uint8_t
 {
     // Blending is done only off of the source alpha. For example, if srcA =
     // 0.7,
@@ -51,11 +52,11 @@ enum class BlendFlags : uint8_t
 
 // SamplerSlot Enum:
 // Different samplers the pipeline supports.
-enum class SamplerType : uint8_t
+enum class SamplerSettings : uint8_t
 {
-    Sampler_Point = 0,
-    Sampler_Shadow = 1,
-    Sampler_Linear = 2,
+    Point = 0,
+    Shadow = 1,
+    Linear = 2,
     // Anisotrophic = 3,
     // Note: Additional samplers can be added here
     SamplerCount
@@ -75,6 +76,9 @@ class DeviceContext
     virtual ID3D11DeviceContext* getContext() = 0;
 
     // Resources
+    virtual void updateBuffer(const std::shared_ptr<Buffer>& buffer,
+                              const void* src,
+                              size_t bytes) = 0;
     virtual void updateTexture(const std::shared_ptr<Texture>& texture,
                                uint8_t slice,
                                const void* src,
@@ -89,20 +93,24 @@ class DeviceContext
     // Set target == null to use the screen space render target
     virtual void bindRenderTarget(const std::shared_ptr<Texture>& target,
                                   const std::shared_ptr<Texture>& depth,
-                                  DepthStencilFlags flags,
-                                  BlendFlags blendFlags) = 0;
+                                  DepthSettings flags,
+                                  BlendSettings blendFlags) = 0;
+    virtual void bindShaderProgram(const char* vs, const char* ps) = 0;
 
     // Vertex Shader Options:
     virtual void loadVertexCB(uint8_t slot, const void* data, size_t bytes) = 0;
     virtual void bindVertexTexture(uint8_t slot,
                                    const std::shared_ptr<Texture>& texture,
-                                   SamplerType sampler) = 0;
+                                   SamplerSettings sampler) = 0;
 
     // Pixel Shader Options:
     virtual void loadPixelCB(uint8_t slot, const void* data, size_t bytes) = 0;
     virtual void bindPixelTexture(uint8_t slot,
                                   const std::shared_ptr<Texture>& texture,
-                                  SamplerType sampler) = 0;
+                                  SamplerSettings sampler) = 0;
+
+    virtual void draw(const Geometry* geometry,
+                      uint32_t instanceCount) = 0;
 
     virtual void present() = 0;
 };
@@ -119,7 +127,8 @@ class Device
     virtual std::shared_ptr<Buffer> createBuffer(const char* debugName,
                                                  BufferType type,
                                                  size_t byteSize,
-                                                 const void* initData) = 0;
+                                                 const void* initData,
+                                                 bool dynamic) = 0;
 
     virtual std::shared_ptr<Texture>
     createTexture(const char* debugName,

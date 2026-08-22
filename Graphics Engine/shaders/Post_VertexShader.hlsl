@@ -1,7 +1,7 @@
 // Basic Post-Processing Vertex Shader.
 struct VS_IN
 {
-    float4 position : SV_POSITION;
+    float4 position : PosXYZ_TexU;
 };
 
 struct PS_IN

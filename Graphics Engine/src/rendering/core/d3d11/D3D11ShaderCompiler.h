@@ -1,11 +1,13 @@
 #pragma once
 
+#include <string>
 #include <unordered_map>
 #include <vector>
 
-#include "../Direct3D11.h"
-#include "../core/VertexStreamIDs.h"
-#include "Shader.h"
+#include "D3D11Shader.h"
+#include "rendering/Direct3D11.h"
+
+#include "../VertexStreamIDs.h"
 
 namespace Engine
 {
@@ -23,27 +25,27 @@ enum ShaderType
     Pixel
 };
 
-class ShaderManager
+class D3D11ShaderCompiler
 {
   private:
     ID3D11Device* device;
 
-    std::unordered_map<std::string, VertexShader*> vertex_shaders;
-    std::unordered_map<std::string, PixelShader*> pixel_shaders;
+    std::unordered_map<std::string, D3D11VertexShader*> vertex_shaders;
+    std::unordered_map<std::string, D3D11PixelShader*> pixel_shaders;
 
     // Used in compilation
     std::vector<D3D_SHADER_MACRO> shader_macros;
 
   public:
-    ShaderManager(ID3D11Device* _device);
-    ~ShaderManager();
+    D3D11ShaderCompiler(ID3D11Device* _device);
+    ~D3D11ShaderCompiler();
 
     // Load and configure all of the shaders usable by the engine
     void initializeShaders();
 
     // Access a shader by its respective enumerator slot.
-    VertexShader* getVertexShader(const std::string& name);
-    PixelShader* getPixelShader(const std::string& name);
+    D3D11VertexShader* getVertexShader(const char* vs);
+    D3D11PixelShader* getPixelShader(const char* ps);
 
   private:
     // Helper functions for compiling and building vertex and pixel shaders

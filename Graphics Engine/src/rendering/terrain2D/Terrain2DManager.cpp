@@ -69,7 +69,7 @@ class Terrain2DManagerImpl
 
     std::unique_ptr<HeightMapGenerator> mHeightmapGenerator;
 
-    std::shared_ptr<Mesh> mTerrainMesh;
+    std::shared_ptr<Geometry> mTerrainMesh;
     std::shared_ptr<Material> mTerrainMaterial;
 
     Technique* mTerrainTechnique;
@@ -299,7 +299,7 @@ void Terrain2DManagerImpl::regenerateMesh()
     MeshBuilder builder;
 
     builder.reset();
-    builder.addLayout(POSITION);
+    builder.addLayout(PosXYZ_TexU);
 
     // Generate a grid of points in the order of
     // 6 7 8...
@@ -410,7 +410,7 @@ void Terrain2DManagerImpl::regenerateHeightmapTexture(DeviceContext* context)
 
     ShaderResource resource;
     resource.initializeTextureResource(mHeightmapGenerator->getTexture(),
-                                       SamplerType::Sampler_Linear);
+                                       SamplerSettings::Linear);
     mTerrainTechnique = mTerrainMaterial->getTechnique(RenderPass::kOpaque);
     mTerrainTechnique->bindVertexResource(0, resource);
 }

@@ -21,7 +21,7 @@ cbuffer MESH_TRANSFORM : register(b1)
 // The GPU will automatically write to the depth buffer.
 struct VS_IN
 {
-    float3 position_local : POSITION;
+    float4 PosXYZ_TexU : PosXYZ_TexU;
 };
 
 struct VS_OUT
@@ -36,7 +36,7 @@ VS_OUT vs_main(VS_IN input)
     // Zero the Memory
     VS_OUT output = (VS_OUT) 0;
     
-    float4 position = float4(input.position_local, 1.0f);
+    float4 position = float4(input.PosXYZ_TexU.xyz, 1.0f);
     position = mul(m_world, position); // Local -> World
     position = mul(m_view, position); // World -> Light View
     position = mul(m_projection, position); // Light View -> Clipping

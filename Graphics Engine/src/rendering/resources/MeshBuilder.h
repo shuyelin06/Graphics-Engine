@@ -36,7 +36,7 @@ struct MeshVertex
     MeshVertex(const Vector3& position, const Color& color);
     MeshVertex(const MeshVertex& vertex);
 
-    const void* GetAddressOf(VertexDataStream bindable_stream) const;
+    void pullVertexAttribute(VertexDataStream bindable_stream, Vector4& out) const;
 };
 
 struct MeshTriangle

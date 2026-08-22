@@ -55,7 +55,7 @@ struct MeshBuildingJob
     std::vector<MeshTriangle> index_data;
     VertexLayout layout;
 
-    std::shared_ptr<Mesh> mesh = nullptr;
+    std::shared_ptr<Geometry> mesh = nullptr;
 };
 
 struct DebugState
@@ -79,11 +79,11 @@ class ResourceManagerImpl
     // Resources owned by ResourceManager
     std::vector<std::unique_ptr<MeshPool>> mesh_pools;
     std::shared_ptr<Texture> fallbackColormap;
-    std::shared_ptr<Mesh> cubeMesh;
+    std::shared_ptr<Geometry> cubeMesh;
 
     // Weak tracking of resources for reuse and debugging
     std::vector<std::weak_ptr<Texture>> textures;
-    std::unordered_map<uint32_t, std::weak_ptr<Mesh>> mesh_map;
+    std::unordered_map<uint32_t, std::weak_ptr<Geometry>> mesh_map;
 
     // Job Management
     // Tracks the state of resource generation
@@ -107,9 +107,10 @@ class ResourceManagerImpl
     std::shared_ptr<Texture> getFallbackColormap() const;
 
     // Create Resources
-    std::shared_ptr<Mesh> LoadMeshFromFile(const std::string& relative_path);
+    std::shared_ptr<Geometry>
+    LoadMeshFromFile(const std::string& relative_path);
 
-    std::shared_ptr<Mesh> requestMesh(const MeshBuilder& mesh_builder);
+    std::shared_ptr<Geometry> requestMesh(const MeshBuilder& mesh_builder);
     std::shared_ptr<Texture> requestTexture(const char* path);
 
     // Debug Display
@@ -151,13 +152,13 @@ std::shared_ptr<Texture> ResourceManager::getFallbackColormap() const
     return mImpl->getFallbackColormap();
 }
 
-std::shared_ptr<Mesh>
+std::shared_ptr<Geometry>
 ResourceManager::LoadMeshFromFile(const std::string& relative_path)
 {
     return mImpl->LoadMeshFromFile(relative_path);
 }
 
-std::shared_ptr<Mesh>
+std::shared_ptr<Geometry>
 ResourceManager::requestMesh(const MeshBuilder& mesh_builder)
 {
     return mImpl->requestMesh(mesh_builder);
@@ -187,26 +188,9 @@ ResourceManagerImpl::~ResourceManagerImpl() = default;
 // Loads assets into the asset manager.
 void ResourceManagerImpl::initializeSystemResources()
 {
-    // TODO: Be able to create mesh pools on demand
-    VertexLayout terrainLayout;
-    terrainLayout.addVertexStream(POSITION);
-    terrainLayout.addVertexStream(NORMAL);
-    mesh_pools.emplace_back(
-        std::make_unique<MeshPool>(terrainLayout, 600000, 800000));
-    VertexLayout defaultLayout;
-    defaultLayout.setAllStreams();
-    mesh_pools.emplace_back(
-        std::make_unique<MeshPool>(defaultLayout, 100000, 100000));
-
     // System assets are loaded here
     LoadCubeMesh();
     LoadFallbackColormap();
-
-    mesh_pools[MeshPoolType_Terrain]->createGPUResources(device->getDevice());
-    mesh_pools[MeshPoolType_Terrain]->updateGPUResources(context->getContext());
-
-    mesh_pools[MeshPoolType_Default]->createGPUResources(device->getDevice());
-    mesh_pools[MeshPoolType_Default]->updateGPUResources(context->getContext());
 }
 
 void ResourceManagerImpl::updatePerform()
@@ -224,7 +208,7 @@ void ResourceManagerImpl::updatePerform()
     for (std::unique_ptr<MeshPool>& pool : mesh_pools)
     {
         pool->cleanAndCompact();
-        pool->updateGPUResources(context->getContext());
+        pool->updateGPUResources(context);
     }
 }
 
@@ -234,7 +218,7 @@ std::shared_ptr<Texture> ResourceManagerImpl::getFallbackColormap() const
     return fallbackColormap;
 }
 
-std::shared_ptr<Mesh>
+std::shared_ptr<Geometry>
 ResourceManagerImpl::LoadMeshFromFile(const std::string& relative_path)
 {
     if (relative_path.empty())
@@ -248,7 +232,7 @@ ResourceManagerImpl::LoadMeshFromFile(const std::string& relative_path)
     smatch match;
     regex_search(relative_path, match, name_pattern);
 
-    std::shared_ptr<Mesh> output = nullptr;
+    std::shared_ptr<Geometry> output = nullptr;
 
     // If name is ever needed:
     // const std::string name = match[1];
@@ -266,7 +250,7 @@ ResourceManagerImpl::LoadMeshFromFile(const std::string& relative_path)
     return output;
 }
 
-std::shared_ptr<Mesh>
+std::shared_ptr<Geometry>
 ResourceManagerImpl::requestMesh(const MeshBuilder& mesh_builder)
 {
     if (mesh_builder.index_buffer.empty() || mesh_builder.vertex_buffer.empty())
@@ -282,8 +266,8 @@ ResourceManagerImpl::requestMesh(const MeshBuilder& mesh_builder)
     // This can save a lot of work for duplicate meshes.
     if (auto iter = mesh_map.find(hash); iter != mesh_map.end())
     {
-        std::weak_ptr<Mesh> meshWeak = mesh_map[hash];
-        std::shared_ptr<Mesh> mesh = meshWeak.lock();
+        std::weak_ptr<Geometry> meshWeak = mesh_map[hash];
+        std::shared_ptr<Geometry> mesh = meshWeak.lock();
 
         if (mesh)
         {
@@ -302,7 +286,7 @@ ResourceManagerImpl::requestMesh(const MeshBuilder& mesh_builder)
     mesh_job.index_data = mesh_builder.index_buffer;
     mesh_job.layout = mesh_builder.layout;
 
-    mesh_job.mesh = std::make_shared<Mesh>();
+    mesh_job.mesh = std::make_shared<Geometry>();
     mesh_job.mesh->ready = false;
 
     mesh_map[hash] = mesh_job.mesh;
@@ -336,7 +320,8 @@ std::shared_ptr<Texture> ResourceManagerImpl::requestTexture(const char* path)
             {
                 TextureBuilder builder = PNGFile::ReadPNGData(reader.getData());
                 texture = device->createTexture(
-                    "", builder.getLayout(), TextureUsage::ShaderResource,
+                    "", builder.getLayout(),
+                    TextureUsage::ShaderResource | TextureUsage::RenderTarget,
                     builder.getWidth(), builder.getHeight(), 1, 1, false,
                     builder.getData().data());
                 context->generateMips(texture);
@@ -361,7 +346,7 @@ void ResourceManagerImpl::imGui()
             {
                 ImGui::Text("Allocations: %zu", mesh_pool->meshes.size());
                 ImGui::Text("Vertex Count: %u", mesh_pool->vertex_size);
-                ImGui::Text("Triangle Count: %u", mesh_pool->triangle_size);
+                ImGui::Text("Index Count: %u", mesh_pool->index_size);
             }
             ImGui::Unindent();
         }
@@ -377,7 +362,7 @@ void ResourceManagerImpl::imGui()
             int mesh_index = 0;
             for (const auto& pair : mesh_map)
             {
-                const std::shared_ptr<Mesh> mesh_ptr = pair.second.lock();
+                const std::shared_ptr<Geometry> mesh_ptr = pair.second.lock();
 
                 if (!mesh_ptr)
                     continue;
@@ -387,9 +372,9 @@ void ResourceManagerImpl::imGui()
                 ImGui::TableSetColumnIndex(0);
                 ImGui::Text("%i", mesh_index++);
                 ImGui::TableSetColumnIndex(1);
-                ImGui::Text("%zu", mesh_ptr->num_triangles * 3);
+                ImGui::Text("%zu", mesh_ptr->vertexCount);
                 ImGui::TableSetColumnIndex(2);
-                ImGui::Text("%zu", mesh_ptr->num_vertices);
+                ImGui::Text("%zu", mesh_ptr->indexCount);
             }
 
             ImGui::EndTable();
@@ -505,8 +490,8 @@ void ResourceManagerImpl::processMeshJob(const MeshBuildingJob& job)
             job.vertex_data.size() + mesh_pool->vertex_size <=
             mesh_pool->vertex_capacity;
         const bool has_index_space =
-            job.index_data.size() + mesh_pool->triangle_size <=
-            mesh_pool->triangle_capacity;
+            job.index_data.size() * 3 + mesh_pool->index_size <=
+            mesh_pool->index_capacity;
 
         if (layout_match && has_vertex_space && has_index_space)
         {
@@ -516,8 +501,8 @@ void ResourceManagerImpl::processMeshJob(const MeshBuildingJob& job)
 
     if (!pool)
     {
-        constexpr int DEFAULT_POOL_TRIANGLES = 100000;
-        constexpr int DEFAULT_POOL_VERTICES = 100000;
+        constexpr int DEFAULT_POOL_TRIANGLES = 100;
+        constexpr int DEFAULT_POOL_VERTICES = 100;
 
         const int poolTriangles =
             max(DEFAULT_POOL_TRIANGLES, job.index_data.size());
@@ -533,13 +518,13 @@ void ResourceManagerImpl::processMeshJob(const MeshBuildingJob& job)
 
     if (!pool->has_gpu_resources)
     {
-        pool->createGPUResources(device->getDevice());
+        pool->createGPUResources(device);
     }
 
     assert(pool->has_gpu_resources); // Must call createGPUResources
 
     // Copy to CPU-side index and vertex buffers
-    memcpy(pool->cpu_ibuffer.get() + pool->triangle_size * sizeof(MeshTriangle),
+    memcpy(pool->cpu_ibuffer.get() + pool->index_size * sizeof(UINT),
            job.index_data.data(), job.index_data.size() * sizeof(MeshTriangle));
 
     // Upload my vertex buffer data. We have to allocate based on pool's
@@ -552,46 +537,47 @@ void ResourceManagerImpl::processMeshJob(const MeshBuildingJob& job)
         {
             const UINT byte_size =
                 VertexLayout::VertexStreamStride((VertexDataStream)i);
+            Vector4 out = Vector4();
 
             // Now, for each vertex, I will pull the data I want for my
             // stream and then copy it to the end of my buffer.
             for (int j = 0; j < job.vertex_data.size(); j++)
             {
-                const void* address =
-                    job.vertex_data[j].GetAddressOf((VertexDataStream)i);
+                job.vertex_data[j].pullVertexAttribute((VertexDataStream)i,
+                                                       out);
 
                 // Also copy to my CPU-side copy of the data
                 memcpy(pool->cpu_vbuffers[i].get() +
                            (pool->vertex_size + j) * byte_size,
-                       address, byte_size);
+                       &out, byte_size);
             }
         }
     }
 
     // Create my mesh
-    const std::shared_ptr<Mesh>& mesh = job.mesh;
+    const std::shared_ptr<Geometry>& mesh = job.mesh;
     pool->meshes.emplace_back(mesh);
-    mesh->buffer_pool = pool;
-    mesh->layout = job.layout;
-    mesh->vertex_start = pool->vertex_size;
-    mesh->num_vertices = job.vertex_data.size();
-    mesh->triangle_start = pool->triangle_size;
-    mesh->num_triangles = job.index_data.size();
 
-    // TODO
-    // meshes.push_back(mesh);
-
-    for (const MeshVertex& vertex : job.vertex_data)
-        mesh->aabb.expandToContain(vertex.position);
+    mesh->indexBuffer = pool->ibuffer;
+    for (int i = 0; i < BINDABLE_STREAM_COUNT; i++)
+    {
+        if (job.layout.hasVertexStream((VertexDataStream)i))
+        {
+            mesh->vertexBuffers[i] = pool->vbuffers[i];
+        }
+    }
+    mesh->vertexOffset = pool->vertex_size;
+    mesh->indexOffset = pool->index_size;
+    mesh->indexCount = job.index_data.size() * 3;
+    mesh->vertexCount = job.vertex_data.size();
 
     // Update my mesh pool
     pool->vertex_size += job.vertex_data.size();
-    pool->triangle_size += job.index_data.size();
+    pool->index_size += job.index_data.size() * 3;
 
     // Upload to GPU
-    pool->updateGPUResources(context->getContext());
+    pool->updateGPUResources(context);
 
-    // Done. Pop the job and mark the mesh as ready.
     mesh->ready = true;
 }
 
@@ -599,7 +585,7 @@ void ResourceManagerImpl::processMeshJob(const MeshBuildingJob& job)
 void ResourceManagerImpl::LoadCubeMesh()
 {
     MeshBuilder builder = MeshBuilder();
-    builder.addLayout(POSITION);
+    builder.addLayout(PosXYZ_TexU);
     builder.addCube(Vector3(0, 0, 0), Quaternion(), 1.f);
     cubeMesh = requestMesh(builder);
 }

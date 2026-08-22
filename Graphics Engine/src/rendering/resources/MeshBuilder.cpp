@@ -36,35 +36,35 @@ MeshVertex::MeshVertex(const MeshVertex& vertex)
     weights = vertex.weights;
 }
 
-const void* MeshVertex::GetAddressOf(VertexDataStream bindable_stream) const
+void MeshVertex::pullVertexAttribute(VertexDataStream bindable_stream,
+                                     Vector4& out) const
 {
     assert(bindable_stream < BINDABLE_STREAM_COUNT);
 
     switch (bindable_stream)
     {
-    case POSITION:
-        return &position;
-    case TEXTURE:
-        return &tex;
-    case NORMAL:
-        return &normal;
-    case COLOR:
-        return &color;
+    case PosXYZ_TexU:
+        out = Vector4(position, tex.u);
+        break;
+    case NormXYZ_TexV:
+        out = Vector4(normal, tex.v);
+        break;
+    case ColorRGBA:
+        out = Vector4(color.r, color.g, color.b, 1.f);
+        break;
     case JOINTS:
-        return &joints;
+        out = joints;
+        break;
     case WEIGHTS:
-        return &weights;
+        out = weights;
+        break;
+
     default:
         assert(false); // Unimplemented
     }
-
-    return nullptr;
 }
 
-MeshTriangle::MeshTriangle()
-{
-    vertex0 = vertex1 = vertex2 = 0;
-}
+MeshTriangle::MeshTriangle() { vertex0 = vertex1 = vertex2 = 0; }
 MeshTriangle::MeshTriangle(UINT v0, UINT v1, UINT v2)
 {
     vertex0 = v0;
@@ -98,18 +98,12 @@ const std::vector<MeshVertex>& MeshBuilder::getVertices() const
 {
     return vertex_buffer;
 }
-std::vector<MeshVertex>& MeshBuilder::getVertices()
-{
-    return vertex_buffer;
-}
+std::vector<MeshVertex>& MeshBuilder::getVertices() { return vertex_buffer; }
 const std::vector<MeshTriangle>& MeshBuilder::getIndices() const
 {
     return index_buffer;
 }
-std::vector<MeshTriangle>& MeshBuilder::getIndices()
-{
-    return index_buffer;
-}
+std::vector<MeshTriangle>& MeshBuilder::getIndices() { return index_buffer; }
 
 MD5Hash MeshBuilder::generateHash() const
 {
@@ -125,10 +119,7 @@ MD5Hash MeshBuilder::generateHash() const
 
     return hashMD5(dataArr, byteSizeArr, 3);
 }
-bool MeshBuilder::isEmpty() const
-{
-    return index_buffer.size() == 0;
-}
+bool MeshBuilder::isEmpty() const { return index_buffer.size() == 0; }
 
 // AddLayout:
 // Add a layout vertex buffer for the builder to generate with
@@ -190,10 +181,7 @@ void MeshBuilder::popTriangles(UINT num_triangles)
 
 // GetVertex;
 // Return a MeshVertex from the builder (by index) for modification
-MeshVertex& MeshBuilder::getVertex(UINT index)
-{
-    return vertex_buffer[index];
-}
+MeshVertex& MeshBuilder::getVertex(UINT index) { return vertex_buffer[index]; }
 Vector3& MeshBuilder::getPosition(UINT index)
 {
     return vertex_buffer[index].position;
@@ -326,7 +314,7 @@ void MeshBuilder::addTube(const Vector3& start,
 void MeshBuilder::regenerateNormals()
 {
     // Only do this if the builder is to generate the normal stream
-    assert(layout.hasVertexStream(NORMAL));
+    assert(layout.hasVertexStream(NormXYZ_TexV));
 
     // Regenerate mesh normals. We do this by calculating the normal
     // for each triangle face, and adding them to a vector to

@@ -45,9 +45,8 @@ cbuffer CB5_SKIN_DATA : register(b5)
 #if defined(SKINNED_MESH)
 struct VS_IN
 {
-    float3 position_local : POSITION;
-    float2 tex_coord : TEXTURE;
-    float3 normal : NORMAL;
+    float4 PosXYZ_TexU : PosXYZ_TexU;
+    float4 NormXYZ_TexV : NormXYZ_TexV;
 
     float4 joints : JOINTS;
     float4 weights : WEIGHTS;
@@ -57,9 +56,8 @@ struct VS_IN
 #else
 struct VS_IN
 {
-    float3 position_local : POSITION;
-    float2 tex_coord : TEXTURE;
-    float3 normal : NORMAL;
+    float4 PosXYZ_TexU : PosXYZ_TexU;
+    float4 NormXYZ_TexV : NormXYZ_TexV;
     
     uint instance : SV_InstanceID;
 };
@@ -88,10 +86,10 @@ VS_OUT vs_main(VS_IN input)
     uint instanceID = instanceHandles[input.instance / 4].handleGlob[input.instance % 4];
     
     // Texture Coordinates:
-    output.tex_coord = input.tex_coord;
+    output.tex_coord = float2(input.PosXYZ_TexU.a, input.NormXYZ_TexV.a);
     
     // World / Clipping Position:
-    float4 pos = float4(input.position_local, 1.0f);
+    float4 pos = float4(input.PosXYZ_TexU.xyz, 1.0f);
     
 #if defined(SKINNED_MESH)
     float4 joints = input.joints;
@@ -119,7 +117,7 @@ VS_OUT vs_main(VS_IN input)
     output.position_clip = pos;
     
     // Normals:
-    float4 norm = float4(input.normal, 0.0f);
+    float4 norm = float4(input.NormXYZ_TexV.xyz, 0.0f);
     
     norm = mul(instanceData[instanceID].mNormalTransform, norm);
 #if defined(SKINNED_MESH)

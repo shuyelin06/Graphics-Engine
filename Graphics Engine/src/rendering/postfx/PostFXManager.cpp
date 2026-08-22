@@ -79,16 +79,16 @@ void PostFXManagerImpl::renderSky(Pipeline* pipeline, DeviceContext* context)
     IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Sky Processing");
 #endif
 
-    pipeline->bindVertexShader("PostProcess");
-    pipeline->bindPixelShader("Sky");
-    pipeline->bindRenderTarget(Target_SwapTarget, DepthStencilFlags::Depth_Disabled,
-                               BlendFlags::Blend_Default);
+    context->bindShaderProgram("PostProcess", "Sky");
+    pipeline->bindRenderTarget(Target_SwapTarget,
+                               DepthSettings::Depth_Disabled,
+                               BlendSettings::Blend_Default);
 
     // Set samplers and texture
     context->bindPixelTexture(2, pipeline->getRenderTargetSrc(),
-                               SamplerType::Sampler_Point);
+                              SamplerSettings::Point);
     context->bindPixelTexture(3, pipeline->getDepthStencil(),
-                               SamplerType::Sampler_Point);
+                              SamplerSettings::Point);
 
     {
         std::vector<uint8_t> data;

@@ -15,9 +15,9 @@ cbuffer CB2 : register(b2)
 /* Vertex Shader Input */
 struct VS_IN
 {
-    float3 position_local : POSITION;
-    float3 normal : NORMAL;
-    float3 color : COLOR;
+    float4 PosXYZ_TexU : PosXYZ_TexU;
+    float4 NormXYZ_TexV : NormXYZ_TexV;
+    float4 ColorRGBA : ColorRGBA;
 };
 
 /* Vertex Shader Output (Pixel Shader Input) */
@@ -41,10 +41,10 @@ VS_OUT vs_main(VS_IN input)
 	// Zero the Memory
     VS_OUT output = (VS_OUT) 0;
     
-    float4 pos = float4(input.position_local, 1.0f);
-    float4 norm = float4(input.normal, 0.0f);
+    float4 pos = float4(input.PosXYZ_TexU.xyz, 1.0f);
+    float4 norm = float4(input.NormXYZ_TexV.xyz, 0.0f);
 	
-    output.color = input.color;
+    output.color = input.ColorRGBA.rgb;
     
     // Find World Position
     pos = mul(m_world, pos);

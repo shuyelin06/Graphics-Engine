@@ -182,7 +182,9 @@ void D3D11Texture::update(ID3D11DeviceContext* context,
     {
         // Write to my texture using Map / Unmap.
         D3D11_MAPPED_SUBRESOURCE sr;
-        context->Map(texture, slice, D3D11_MAP_WRITE_DISCARD, 0, &sr);
+        HRESULT result =
+            context->Map(texture, slice, D3D11_MAP_WRITE_DISCARD, 0, &sr);
+        assert(SUCCEEDED(result));
         assert(sr.RowPitch == rowPitch && sr.DepthPitch == depthPitch);
 
         uint8_t* dest = reinterpret_cast<uint8_t*>(sr.pData);

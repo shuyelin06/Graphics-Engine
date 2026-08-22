@@ -26,7 +26,7 @@ cbuffer CB1 : register(b1)
 struct VS_INPUT
 {
     // Position of one of the cube's vertices
-    float3 vertex_position : POSITION;
+    float4 PosXYZ_TexU : PosXYZ_TexU;
     
     // Unique identifier for the cube (point)
     uint instance : SV_InstanceID;
@@ -48,11 +48,11 @@ PS_INPUT vs_main(VS_INPUT input)
     PointData data = points[input.instance];
     
     // Transform vertex position based on per-point data
-    input.vertex_position = input.vertex_position * data.scale;
-    input.vertex_position = input.vertex_position + data.position;
+    input.PosXYZ_TexU.xyz = input.PosXYZ_TexU.xyz * data.scale;
+    input.PosXYZ_TexU.xyz = input.PosXYZ_TexU.xyz + data.position;
     
     // Transform to camera space
-    float4 pos = float4(input.vertex_position, 1.0f);
+    float4 pos = float4(input.PosXYZ_TexU.xyz, 1.0f);
     pos = mul(m_view, pos);
     pos = mul(m_projection, pos);
     

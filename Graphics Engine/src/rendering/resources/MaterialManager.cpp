@@ -8,7 +8,7 @@ namespace Engine
 namespace Graphics
 {
 void ShaderResource::initializeTextureResource(std::shared_ptr<Texture> texture,
-                                               SamplerType sampleState)
+                                               SamplerSettings sampleState)
 {
     bound = true;
     resourceType = Type::Texture;
@@ -250,7 +250,7 @@ MaterialManagerImpl::createMaterial(const TerrainMaterialParams& params)
     ShaderResource colormap{};
     colormap.initializeTextureResource(
         resourceManager->requestTexture("terrain/Grass.png"),
-                                       SamplerType::Sampler_Linear);
+                                       SamplerSettings::Linear);
     technique->bindPixelResource(4, colormap);
 
     return material;

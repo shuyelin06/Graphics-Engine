@@ -255,8 +255,8 @@
     <ClCompile Include="src\rendering\resources\files\GLTFFile.cpp" />
     <ClCompile Include="src\rendering\resources\files\PNGFile.cpp" />
     <ClCompile Include="src\rendering\pipeline\PipelineManager.cpp" />
-    <ClCompile Include="src\rendering\pipeline\Shader.cpp" />
-    <ClCompile Include="src\rendering\pipeline\ShaderManager.cpp" />
+    <ClCompile Include="src\rendering\core\d3d11\D3D11Shader.cpp" />
+    <ClCompile Include="src\rendering\core\d3d11\D3D11ShaderCompiler.cpp" />
     <ClCompile Include="src\rendering\util\CPUTimer.cpp" />
     <ClCompile Include="src\rendering\util\GPUTimer.cpp" />
     <ClCompile Include="src\rendering\core\TextureAtlas.cpp" />
@@ -296,6 +296,7 @@
     <ClInclude Include="src\rendering\core\d3d11\D3D11Device.h" />
     <ClInclude Include="src\rendering\core\d3d11\D3D11Texture.h" />
     <ClInclude Include="src\rendering\core\Device.h" />
+    <ClInclude Include="src\rendering\core\Geometry.h" />
     <ClInclude Include="src\rendering\core\RenderSettings.h" />
     <ClInclude Include="src\rendering\core\Resource.h" />
     <ClInclude Include="src\rendering\pipeline\DrawCall.h" />
@@ -351,8 +352,8 @@
     <ClInclude Include="src\rendering\resources\ResourceManager.h" />
     <ClInclude Include="src\rendering\lights\SunLight.h" />
     <ClInclude Include="src\rendering\pipeline\PipelineManager.h" />
-    <ClInclude Include="src\rendering\pipeline\Shader.h" />
-    <ClInclude Include="src\rendering\pipeline\ShaderManager.h" />
+    <ClInclude Include="src\rendering\core\d3d11\D3D11Shader.h" />
+    <ClInclude Include="src\rendering\core\d3d11\D3D11ShaderCompiler.h" />
     <ClInclude Include="src\rendering\util\CPUTimer.h" />
     <ClInclude Include="src\rendering\core\Frustum.h" />
     <ClInclude Include="src\rendering\util\GLBFile.h" />
