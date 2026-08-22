@@ -22,9 +22,9 @@ VisualSystem::VisualSystem(HWND window)
 
     device = pipeline->getDevice();
     ID3D11Device* deviceInterface = device->getDevice();
-    DeviceContext* context = pipeline->getContext();
+    context = pipeline->getContext();
 
-    resource_manager = ResourceManager::create(deviceInterface, context->getContext());
+    resource_manager = ResourceManager::create(device, context);
     resource_manager->initializeSystemResources();
     material_manager = MaterialManager::create(resource_manager.get());
 
@@ -47,6 +47,8 @@ VisualSystem::VisualSystem(HWND window)
 // Renders the entire scene to the screen.
 void VisualSystem::render()
 {
+    terrain2D->updatePerform(context);
+
     pipeline->beginFrame(frame++);
 
 #if defined(_DEBUG)
@@ -56,7 +58,7 @@ void VisualSystem::render()
 #endif
 
         render_manager->perform();
-        postfx_manager->render();
+        postfx_manager->render(context);
 
 #if defined(_DEBUG)
     }
@@ -98,7 +100,7 @@ void VisualSystem::renderPrepare()
     resource_manager->updatePerform();
 
     Camera* camera = scene_manager->getMainCamera();
-    Texture* target = pipeline->getRenderTargetDest();
+    std::shared_ptr<Texture> target = pipeline->getRenderTargetDest();
     RenderView mainView;
     mainView.position = camera->getPosition();
     mainView.zNear = camera->getZNear();
@@ -106,17 +108,15 @@ void VisualSystem::renderPrepare()
     mainView.zFar = camera->getZFar();
     mainView.mWorldToLocal = camera->getWorldToCameraMatrix();
     mainView.mLocalToFrustum = camera->getFrustumMatrix();
-    mainView.viewport = Vector4((float)target->width, (float)target->height,
-                                camera->getZNear(), camera->getZFar());
+    mainView.viewport =
+        Vector4((float)target->getWidth(), (float)target->getHeight(),
+                camera->getZNear(), camera->getZFar());
     mainView.renderTarget = target;
     mainView.depthStencil = pipeline->getDepthStencil();
     render_manager->setMainView(mainView);
 }
 
-Device* VisualSystem::getDevice() const
-{
-    return device;
-}
+Device* VisualSystem::getDevice() const { return device; }
 ResourceManager* VisualSystem::getResourceManager() const
 {
     return resource_manager.get();
@@ -137,15 +137,9 @@ RenderManager* VisualSystem::getRenderManager() const
 {
     return render_manager.get();
 }
-LightManager* VisualSystem::getLightManager() const
-{
-    return light_manager;
-}
+LightManager* VisualSystem::getLightManager() const { return light_manager; }
 
-Pipeline* VisualSystem::getPipeline() const
-{
-    return pipeline.get();
-}
+Pipeline* VisualSystem::getPipeline() const { return pipeline.get(); }
 
 void VisualSystem::doRenderDocUI()
 {

@@ -85,7 +85,7 @@ class LightManager
     void onObjectCreate(Object* object);
 
     // Get the light manager's data
-    const Texture* getAtlasTexture(void) const;
+    const std::shared_ptr<Texture> getAtlasTexture(void) const;
 
     const SunLight* getSunLight() const;
     const ShadowLight* getShadowLight(UINT index) const;

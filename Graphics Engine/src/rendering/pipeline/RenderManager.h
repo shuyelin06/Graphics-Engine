@@ -45,8 +45,8 @@ struct RenderView
     Matrix4 mLocalToFrustum;
     Vector4 viewport; // x, y, width, height
 
-    Texture* renderTarget = nullptr;
-    Texture* depthStencil = nullptr;
+    std::shared_ptr<Texture> renderTarget = nullptr;
+    std::shared_ptr<Texture> depthStencil = nullptr;
 };
 
 // A DrawBlock is an abstract spatial entity that contains

@@ -18,7 +18,7 @@ class PostFXManager
     static std::unique_ptr<PostFXManager> create(VisualSystem* visualSystem);
     ~PostFXManager();
 
-    void render();
+    void render(DeviceContext* context);
 
   private:
     PostFXManager();

@@ -203,7 +203,9 @@
     <ClCompile Include="src\datamodel\objects\DMMesh.cpp" />
     <ClCompile Include="src\datamodel\objects\DMPhysics.cpp" />
     <ClCompile Include="src\datamodel\SceneGraph.cpp" />
-    <ClCompile Include="src\rendering\core\Device.cpp" />
+    <ClCompile Include="src\rendering\core\d3d11\D3D11Buffer.cpp" />
+    <ClCompile Include="src\rendering\core\d3d11\D3D11Device.cpp" />
+    <ClCompile Include="src\rendering\core\d3d11\D3D11Texture.cpp" />
     <ClCompile Include="src\rendering\ImGuiHelper.cpp" />
     <ClCompile Include="src\rendering\pipeline\RenderManager.cpp" />
     <ClCompile Include="src\rendering\pipeline\RenderManager.h" />
@@ -239,7 +241,6 @@
     <ClCompile Include="src\rendering\core\Camera.cpp" />
     <ClCompile Include="src\rendering\lights\Light.cpp" />
     <ClCompile Include="src\rendering\resources\ResourceManager.cpp" />
-    <ClCompile Include="src\rendering\core\Texture.cpp" />
     <ClCompile Include="src\rendering\resources\TextureBuilder.cpp" />
     <ClCompile Include="include\imgui\imgui.cpp" />
     <ClCompile Include="include\imgui\imgui_demo.cpp" />
@@ -272,7 +273,6 @@
     <ClInclude Include="include\lodepng\lodepng.h" />
     <ClInclude Include="include\renderdoc\renderdoc_app.h" />
     <ClInclude Include="include\stb\stb_image.h" />
-    <ClInclude Include="src\core\ArenaAllocator.h" />
     <ClInclude Include="src\core\BitFlags.h" />
     <ClInclude Include="src\core\JobGraph.h" />
     <ClInclude Include="src\core\PoolAllocator.h" />
@@ -291,11 +291,15 @@
     <ClInclude Include="src\datamodel\objects\DMLight.h" />
     <ClInclude Include="src\datamodel\objects\DMMesh.h" />
     <ClInclude Include="src\datamodel\objects\DMPhysics.h" />
+    <ClInclude Include="src\rendering\core\Buffer.h" />
+    <ClInclude Include="src\rendering\core\d3d11\D3D11Buffer.h" />
+    <ClInclude Include="src\rendering\core\d3d11\D3D11Device.h" />
+    <ClInclude Include="src\rendering\core\d3d11\D3D11Texture.h" />
     <ClInclude Include="src\rendering\core\Device.h" />
     <ClInclude Include="src\rendering\core\RenderSettings.h" />
+    <ClInclude Include="src\rendering\core\Resource.h" />
     <ClInclude Include="src\rendering\pipeline\DrawCall.h" />
     <ClInclude Include="src\rendering\core\RenderPass.h" />
-    <ClInclude Include="src\rendering\pipeline\EnumTypes.h" />
     <ClInclude Include="src\rendering\postfx\PostFXManager.h" />
     <ClInclude Include="src\rendering\resources\MaterialManager.h" />
     <ClInclude Include="src\rendering\scene\SceneListener.h" />

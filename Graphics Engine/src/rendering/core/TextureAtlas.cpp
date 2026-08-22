@@ -36,7 +36,7 @@ TextureAtlas::TextureAtlas(Texture* _texture)
     texture = _texture;
 
     open_regions.push_back(
-        AtlasAllocation(0, 0, texture->width, texture->height));
+        AtlasAllocation(0, 0, texture->getWidth(), texture->getHeight()));
 }
 TextureAtlas::~TextureAtlas() = default;
 

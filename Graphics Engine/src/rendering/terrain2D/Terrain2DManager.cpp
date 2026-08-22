@@ -31,10 +31,7 @@ struct QuadTreeNode
     TerrainChunk data;
     QuadTreeNode* children[4] = {nullptr};
 
-    bool isLeaf() const
-    {
-        return children[0] == nullptr;
-    }
+    bool isLeaf() const { return children[0] == nullptr; }
 };
 
 class Terrain2DManagerImpl
@@ -50,11 +47,9 @@ class Terrain2DManagerImpl
         float skirtDepth = 25.f;
 
         // Heightmap Generation Settings
-        bool viewHeightmap = false;
-        bool useLinearSampling = true;
+        bool invalidateHeightmap = false;
         Vector2 heightMapOrigin = Vector2(0, 0);
         Vector2 heightMapExtents = Vector2(2500, 2500);
-        int heightmapNumSamples = 450;
     } config;
     struct ShaderSettings
     {
@@ -65,19 +60,19 @@ class Terrain2DManagerImpl
     } shaderSettings;
 
     // Settings
-    static constexpr int kMaximumNodes = 5000;
+    static constexpr int kMaximumNodes = 32;
     static constexpr int kMaxQuadTreeDepth = 10;
     static constexpr float kTerrainNodeSize = 25.f;
 
     VisualSystem* mVisualSystem;
     RenderManager* mRenderManager;
 
-    std::unique_ptr<HeightMapGenerator> mHeightMap;
+    std::unique_ptr<HeightMapGenerator> mHeightmapGenerator;
 
     std::shared_ptr<Mesh> mTerrainMesh;
     std::shared_ptr<Material> mTerrainMaterial;
+
     Technique* mTerrainTechnique;
-    std::shared_ptr<Texture> mHeightmapTexture;
 
     // QuadTree
     QuadTreeNode* root = nullptr;
@@ -91,12 +86,17 @@ class Terrain2DManagerImpl
     ~Terrain2DManagerImpl();
 
     void update(const Vector3& cameraPosition);
+    void updatePerform(DeviceContext* context);
+
     void imGui();
     void reset();
 
   private:
     void regenerateMesh();
-    void regenerateHeightmapTexture();
+
+    void setupTerrainMaterial(DeviceContext* context);
+    void invalidateHeightmap();
+    void regenerateHeightmapTexture(DeviceContext* context);
 
     void updateQuadTreeRecursive(QuadTreeNode* node,
                                  const Vector3& cameraPosition,
@@ -128,16 +128,19 @@ void Terrain2DManager::update(const Vector3& cameraPosition)
     mImpl->update(cameraPosition);
 }
 
-void Terrain2DManager::imGui()
+void Terrain2DManager::updatePerform(DeviceContext* context)
 {
-    mImpl->imGui();
+    mImpl->updatePerform(context);
 }
+
+void Terrain2DManager::imGui() { mImpl->imGui(); }
 
 Terrain2DManagerImpl::Terrain2DManagerImpl(VisualSystem* visualSystem)
     : mVisualSystem(visualSystem)
 {
     mRenderManager = mVisualSystem->getRenderManager();
-    mHeightMap = std::make_unique<HeightMapGenerator>();
+    mHeightmapGenerator =
+        std::make_unique<HeightMapGenerator>(mVisualSystem->getDevice());
 
     // Because our terrain is heightmap based, we can use a single mesh and
     // instance draw it for each chunk, reading from heightmap texture for the
@@ -147,7 +150,7 @@ Terrain2DManagerImpl::Terrain2DManagerImpl(VisualSystem* visualSystem)
     mTerrainMaterial =
         visualSystem->getMaterialManager()->createMaterial(materialParams);
     regenerateMesh();
-    regenerateHeightmapTexture();
+    invalidateHeightmap();
 
     reset();
 
@@ -158,6 +161,9 @@ Terrain2DManagerImpl::~Terrain2DManagerImpl() = default;
 
 void Terrain2DManagerImpl::update(const Vector3& cameraPosition)
 {
+    if (!mTerrainTechnique)
+        return;
+
     chunksToRender.clear();
     updateQuadTreeRecursive(root, cameraPosition, 0);
 
@@ -165,8 +171,7 @@ void Terrain2DManagerImpl::update(const Vector3& cameraPosition)
     mTerrainTechnique->uploadPixelCBData(4, &shaderSettings,
                                          sizeof(ShaderSettings));
 
-    const bool render = !chunksToRender.empty() && mTerrainMesh->ready &&
-                        mTerrainMaterial->ready();
+    const bool render = !chunksToRender.empty() && mTerrainMesh->ready;
     if (render)
     {
         if (terrainDrawKey == kInvalidDrawBlockKey)
@@ -207,10 +212,16 @@ void Terrain2DManagerImpl::update(const Vector3& cameraPosition)
     }
 }
 
+void Terrain2DManagerImpl::updatePerform(DeviceContext* context)
+{
+    setupTerrainMaterial(context);
+}
+
 void Terrain2DManagerImpl::imGui()
 {
 #if defined(IMGUI_ENABLED)
     ImGui::Text("# Chunks: %zu", mQuadTreeAllocator.getNumAllocations());
+    ImGui::Text("Pool Pages: %u", mQuadTreeAllocator.getPageCount());
     ImGui::Text("# Leaves: %i", chunksToRender.size());
 
     ImGui::SliderFloat("LOD Attenuation", &config.lodAttenuation, 0.0, 10000.f);
@@ -239,31 +250,19 @@ void Terrain2DManagerImpl::imGui()
         }
     }
 
-    if (ImGui::CollapsingHeader("Height Map Settings"))
+    mHeightmapGenerator->imGui();
+
+    ImGui::SliderFloat2("Heightmap Origin:", &config.heightMapOrigin.x, -500,
+                        500);
+    ImGui::SliderFloat2("Heightmap Extents:", &config.heightMapExtents.x, 10,
+                        5000);
+    if (ImGui::Button("Reset Heightmap"))
     {
-        ImGui::Checkbox("View Heightmap", &config.viewHeightmap);
-        if (config.viewHeightmap)
-        {
-            mHeightmapTexture->displayImGui();
-        }
-
-        ImGui::Checkbox("Use Linear Sampling", &config.useLinearSampling);
-        ImGui::SliderFloat2("Heightmap Origin:", &config.heightMapOrigin.x,
-                            -500, 500);
-        ImGui::SliderFloat2("Heightmap Extents:", &config.heightMapExtents.x,
-                            10, 5000);
-        ImGui::SliderInt("Heightmap Samples:", &config.heightmapNumSamples, 10,
-                         2500);
-
-        if (ImGui::Button("Reset Heightmap"))
-        {
-            regenerateHeightmapTexture();
-        }
+        invalidateHeightmap();
     }
 
     if (ImGui::CollapsingHeader("Noise Settings"))
     {
-        mHeightMap->imGui();
 
         if (ImGui::Button("Reset"))
         {
@@ -387,49 +386,32 @@ void Terrain2DManagerImpl::regenerateMesh()
     mTerrainMesh = mVisualSystem->getResourceManager()->requestMesh(builder);
 }
 
-void Terrain2DManagerImpl::regenerateHeightmapTexture()
+void Terrain2DManagerImpl::setupTerrainMaterial(DeviceContext* context)
 {
-    const int numSamples = config.heightmapNumSamples;
-
-    TextureBuilder builder(numSamples, numSamples, TextureLayout::R32_FLOAT);
-
-    TextureColor texel;
-    auto& height = texel.asType<TextureColor::FloatR32>();
-
-    const Vector2 heightMapPosition =
-        config.heightMapOrigin - config.heightMapExtents / 2;
-    const float distBetweenSamplesInv = 1 / float(numSamples - 1);
-    for (int x = 0; x < numSamples; x++)
+    if (config.invalidateHeightmap)
     {
-        for (int z = 0; z < numSamples; z++)
-        {
-            const float worldX =
-                heightMapPosition.x +
-                x * distBetweenSamplesInv * config.heightMapExtents.x;
-            const float worldZ =
-                heightMapPosition.y +
-                z * distBetweenSamplesInv * config.heightMapExtents.y;
-
-            height.r = mHeightMap->sampleHeight(worldX, worldZ);
-            builder.setColor(x, z, texel);
-        }
+        regenerateHeightmapTexture(context);
+        config.invalidateHeightmap = false;
     }
+}
 
-    TextureRequestParams request;
-    auto& targetSettings = request.targetUseNew();
-    targetSettings.debugName = "Fallback Colormap";
-    targetSettings.editable = false;
-    targetSettings.layout = TextureLayout::R32_FLOAT;
-    auto& dataSettings = request.dataFromBuilder();
-    dataSettings.builder = &builder;
+void Terrain2DManagerImpl::invalidateHeightmap()
+{
+    config.invalidateHeightmap = true;
+}
+
+void Terrain2DManagerImpl::regenerateHeightmapTexture(DeviceContext* context)
+{
+    const Vector2 xzMin =
+        config.heightMapOrigin - config.heightMapExtents / 2.f;
+    const Vector2 xzMax =
+        config.heightMapOrigin + config.heightMapExtents / 2.f;
+    mHeightmapGenerator->generateHeightMap(xzMin, xzMax, context);
 
     ShaderResource resource;
-    mHeightmapTexture =
-        mVisualSystem->getResourceManager()->requestTexture(request);
+    resource.initializeTextureResource(mHeightmapGenerator->getTexture(),
+                                       SamplerType::Sampler_Linear);
     mTerrainTechnique = mTerrainMaterial->getTechnique(RenderPass::kOpaque);
-    SamplerType sampler = config.useLinearSampling ? SamplerType::Sampler_Linear
-                                                   : SamplerType::Sampler_Point;
-    resource.initializeTextureResource(mHeightmapTexture, sampler);
     mTerrainTechnique->bindVertexResource(0, resource);
 }
 
@@ -508,8 +490,6 @@ QuadTreeNode* Terrain2DManagerImpl::allocateNode(const Vector2& position,
 }
 void Terrain2DManagerImpl::destroyNode(QuadTreeNode* node)
 {
-    const size_t index = mQuadTreeAllocator.getIndex(node);
-
     if (!node->isLeaf())
     {
         for (int i = 0; i < 4; i++)

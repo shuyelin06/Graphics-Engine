@@ -25,7 +25,6 @@ class GLTFFile
     GLTFFile(const std::string& path);
 
     Asset* readFromFile(MeshBuilder& mesh_builder,
-                        AtlasBuilder& tex_builder,
                         ID3D11Device* device,
                         ID3D11DeviceContext* context);
 
@@ -36,8 +35,7 @@ class GLTFFile
     //void parseMaterial(const cgltf_material* mat_data,
     //                   MeshBuilder& mesh_builder, Material& material,
     //                   AtlasBuilder& tex_builder);
-    const AtlasAllocation& parseBaseColorTex(const cgltf_texture* tex,
-                                             AtlasBuilder& tex_builder);
+    void parseBaseColorTex(const cgltf_texture* tex);
 };
 
 } // namespace Graphics

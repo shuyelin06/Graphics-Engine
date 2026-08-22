@@ -1,8 +1,16 @@
 #pragma once
 
+#include "Buffer.h"
 #include "Texture.h"
 
 #include <memory>
+
+#include "RenderSettings.h"
+
+#include <Windows.h>
+struct ID3D11Device;
+struct ID3D11DeviceContext;
+struct ID3D11RenderTargetView;
 
 namespace Engine
 {
@@ -10,8 +18,48 @@ namespace Graphics
 {
 class Device;
 class DeviceContext;
-struct DeviceImpl;
-struct DeviceContextImpl;
+
+enum class DepthStencilFlags : uint8_t
+{
+    // Prevents the depth stencil from being bound
+    Depth_Disabled = 0,
+    // Enables the depth stencil and z-testing, but does not update the depth
+    // value. The depth stencil can be read from in the shader while this flag
+    // is set.
+    Depth_TestNoWrite = 1,
+    // Enables the depth stencil and z-testing, and updates the depth value
+    // as well. The depth stencil can not be read from in the shader while set.
+    Depth_TestAndWrite = 2,
+    DepthFlagCount
+};
+
+enum class BlendFlags : uint8_t
+{
+    // Blending is done only off of the source alpha. For example, if srcA =
+    // 0.7,
+    // 70% of the color will be from the shader, and 30% from the render target
+    SrcAlphaOnly = 0,
+    // Blending is done off the source and destination alpha. For example, if
+    // srcA = 0.3,
+    // destA = 0.7, 30% of the color will be from the shader, and 70% from the
+    // render target
+    Blend_UseSrcAndDest = 1,
+    BlendFlagCount,
+    // ...
+    Blend_Default = SrcAlphaOnly
+};
+
+// SamplerSlot Enum:
+// Different samplers the pipeline supports.
+enum class SamplerType : uint8_t
+{
+    Sampler_Point = 0,
+    Sampler_Shadow = 1,
+    Sampler_Linear = 2,
+    // Anisotrophic = 3,
+    // Note: Additional samplers can be added here
+    SamplerCount
+};
 
 void InitializeGraphicsAPI(HWND window,
                            std::unique_ptr<Device>& outDevice,
@@ -19,49 +67,70 @@ void InitializeGraphicsAPI(HWND window,
 
 class DeviceContext
 {
-  private:
-    friend void InitializeGraphicsAPI(HWND window,
-                                      std::unique_ptr<Device>& device,
-                                      std::unique_ptr<DeviceContext>& context);
-
-    std::unique_ptr<DeviceContextImpl> mImpl;
-
   public:
-    DeviceContext();
-    ~DeviceContext();
+    DeviceContext() {};
+    virtual ~DeviceContext() {};
 
-    ID3D11DeviceContext* getContext();
-    ID3D11RenderTargetView* getRenderTarget();
+    // Temporary and should be removed
+    virtual ID3D11DeviceContext* getContext() = 0;
 
-    void loadVertexCB(uint8_t slot, const void* data, size_t bytes);
-    void loadPixelCB(uint8_t slot, const void* data, size_t bytes);
+    // Resources
+    virtual void updateTexture(const std::shared_ptr<Texture>& texture,
+                               uint8_t slice,
+                               const void* src,
+                               size_t bytes) = 0;
+    virtual void generateMips(const std::shared_ptr<Texture>& texture) = 0;
 
-    void present();
+    virtual void clearRenderTarget(const std::shared_ptr<Texture>& texture,
+                                   const float rgba[4]) = 0;
+    virtual void clearDepthStencil(const std::shared_ptr<Texture>& texture) = 0;
+
+    // Rendering:
+    // Set target == null to use the screen space render target
+    virtual void bindRenderTarget(const std::shared_ptr<Texture>& target,
+                                  const std::shared_ptr<Texture>& depth,
+                                  DepthStencilFlags flags,
+                                  BlendFlags blendFlags) = 0;
+
+    // Vertex Shader Options:
+    virtual void loadVertexCB(uint8_t slot, const void* data, size_t bytes) = 0;
+    virtual void bindVertexTexture(uint8_t slot,
+                                   const std::shared_ptr<Texture>& texture,
+                                   SamplerType sampler) = 0;
+
+    // Pixel Shader Options:
+    virtual void loadPixelCB(uint8_t slot, const void* data, size_t bytes) = 0;
+    virtual void bindPixelTexture(uint8_t slot,
+                                  const std::shared_ptr<Texture>& texture,
+                                  SamplerType sampler) = 0;
+
+    virtual void present() = 0;
 };
 
 class Device
 {
-  private:
-    friend void InitializeGraphicsAPI(HWND window,
-                                      std::unique_ptr<Device>& device,
-                                      std::unique_ptr<DeviceContext>& context);
-
-    std::unique_ptr<DeviceImpl> mImpl;
-
   public:
-    Device();
-    ~Device();
+    Device() {};
+    virtual ~Device() {};
 
     // Temporary
-    ID3D11Device* getDevice();
+    virtual ID3D11Device* getDevice() = 0;
 
-    std::shared_ptr<Texture> createTexture(TextureLayout layout,
-                                           TextureUsage usage,
-                                           unsigned int width,
-                                           unsigned int height,
-                                           unsigned int mips,
-                                           const char* debugName,
-                                           bool dynamic = false);
+    virtual std::shared_ptr<Buffer> createBuffer(const char* debugName,
+                                                 BufferType type,
+                                                 size_t byteSize,
+                                                 const void* initData) = 0;
+
+    virtual std::shared_ptr<Texture>
+    createTexture(const char* debugName,
+                  TextureLayout layout,
+                  TextureUsage usage,
+                  uint32_t width,
+                  uint32_t height,
+                  uint16_t slices = 1,
+                  uint8_t mips = 1,
+                  bool dynamic = false,
+                  const void* src = nullptr) = 0;
 };
 
 } // namespace Graphics

@@ -77,7 +77,9 @@ class RenderManagerImpl
     std::unordered_map<DrawBlockKey, DrawBlock> drawBlocks;
 
     // Instance Data
-    PoolAllocator<InstanceData, 4096 * 16 / sizeof(InstanceData)>
+    PoolAllocator<InstanceData,
+                  4096 * 16 / sizeof(InstanceData),
+                  PoolAllocatorPolicy::FixedSize>
         instanceDataPool;
     bool instanceDataDirty;
 
@@ -240,16 +242,18 @@ void RenderManagerImpl::perform()
 
     DeviceContext* context = pipeline->getContext();
 
-    Texture* renderTarget = pipeline->getRenderTargetDest();
-    Texture* depthStencil = pipeline->getDepthStencil();
+    const std::shared_ptr<Texture> renderTarget =
+        pipeline->getRenderTargetDest();
+    const std::shared_ptr<Texture> depthStencil = pipeline->getDepthStencil();
 
     // Bind my atlases
-    const Texture* colormap = resourceManager->getFallbackColormap().get();
-    const Texture* shadowAtlas =
+    const std::shared_ptr<Texture>& colormap =
+        resourceManager->getFallbackColormap();
+    const std::shared_ptr<Texture>& shadowAtlas =
         visualSystem->getLightManager()->getAtlasTexture();
-    pipeline->bindPixelTexture(0, *colormap, SamplerType::Sampler_Point);
-    pipeline->bindPixelTexture(1, *shadowAtlas, SamplerType::Sampler_Shadow);
-    resourceManager->clearDepthStencil(*pipeline->getDepthStencil());
+    context->bindPixelTexture(0, colormap, SamplerType::Sampler_Point);
+    context->bindPixelTexture(1, shadowAtlas, SamplerType::Sampler_Shadow);
+    context->clearDepthStencil(depthStencil);
 
     // Bind my global constant buffers (CB0)
     // Vertex Constant Buffer 0:
@@ -316,19 +320,18 @@ void RenderManagerImpl::perform()
     }
 
     {
-        pipeline->bindRenderTarget(mainView.renderTarget, mainView.depthStencil,
-                                   Depth_TestAndWrite);
-        pipeline->bindBlendSettings(Blend_Default);
+        context->bindRenderTarget(mainView.renderTarget, mainView.depthStencil,
+                                  DepthStencilFlags::Depth_TestAndWrite,
+                                  BlendFlags::Blend_Default);
         executeRenderPass(context, RenderPass::kOpaque, mainView, "Opaque");
     }
 
     {
-        pipeline->bindRenderTarget(mainView.renderTarget, mainView.depthStencil,
-                                   Depth_TestAndWrite);
-        pipeline->bindBlendSettings(Blend_Default);
+        context->bindRenderTarget(mainView.renderTarget, mainView.depthStencil,
+                                  DepthStencilFlags::Depth_TestAndWrite,
+                                  BlendFlags::Blend_Default);
         executeRenderPass(context, RenderPass::kDebug, mainView, "Debug");
     }
-
 }
 
 void RenderManagerImpl::executeRenderPass(DeviceContext* context,
@@ -496,8 +499,8 @@ void RenderManagerImpl::executeRenderPass(DeviceContext* context,
             const auto& vertexResource = technique->getVertexResource(slot);
             if (vertexResource.bound)
             {
-                pipeline->bindVertexTexture(
-                    slot, *vertexResource.textureData.texture,
+                context->bindVertexTexture(
+                    slot, vertexResource.textureData.texture,
                     vertexResource.textureData.sampleState);
             }
         }
@@ -514,8 +517,8 @@ void RenderManagerImpl::executeRenderPass(DeviceContext* context,
             const auto& pixelResource = technique->getPixelResource(slot);
             if (pixelResource.bound)
             {
-                pipeline->bindPixelTexture(
-                    slot, *pixelResource.textureData.texture,
+                context->bindPixelTexture(
+                    slot, pixelResource.textureData.texture,
                     pixelResource.textureData.sampleState);
             }
         }

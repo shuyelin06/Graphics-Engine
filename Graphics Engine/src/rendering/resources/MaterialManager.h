@@ -8,7 +8,6 @@
 #include "math/Compute.h"
 
 #include "rendering/core/Material.h"
-#include "rendering/pipeline/EnumTypes.h"
 
 #include "ResourceManager.h"
 

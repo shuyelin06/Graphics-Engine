@@ -59,8 +59,6 @@ Pipeline::Pipeline(HWND window)
                                           &postprocess_quad);
     }
 
-    initializeSamplers();
-
 #if defined(_DEBUG)
     imGuiInitialize(window);
     imGuiPrepare();
@@ -76,12 +74,6 @@ Pipeline::~Pipeline()
     imGuiShutdown();
 #endif
 
-    for (int i = 0; i < (int)SamplerType::SamplerCount; i++)
-    {
-        if (samplers[i] != nullptr)
-            samplers[i]->Release();
-    }
-
     delete shader_manager;
 }
 
@@ -96,7 +88,6 @@ void Pipeline::initializeTargets(HWND _window)
     GetClientRect(window, &rect);
     const UINT width = rect.right - rect.left;
     const UINT height = rect.bottom - rect.top;
-    viewport = {0.0f, 0.0f, (float)width, (float)height, 0.0f, 1.0f};
 
     // Create my swap chain. This will let me swap between textures for
     // rendering, so the user doesn't see the next frame while it's being
@@ -104,153 +95,34 @@ void Pipeline::initializeTargets(HWND _window)
     InitializeGraphicsAPI(window, device, context);
 
     render_target_src = device->createTexture(
-        TextureLayout::R8G8B8A8_UNORM_SGRB,
+        "Render Target Source", TextureLayout::R8G8B8A8_UNORM_SGRB,
         TextureUsage::RenderTarget | TextureUsage::ShaderResource, width,
-        height, 1, "Render Target Source");
+        height);
     render_target_dest = device->createTexture(
-        TextureLayout::R8G8B8A8_UNORM_SGRB,
+        "Render Target Destination", TextureLayout::R8G8B8A8_UNORM_SGRB,
         TextureUsage::RenderTarget | TextureUsage::ShaderResource, width,
-        height, 1, "Render Target Destination");
+        height);
 
-    depth_stencil = device->createTexture(TextureLayout::R24_UNORM_G8_UINT,
-                                          TextureUsage::DepthStencil |
-                                              TextureUsage::ShaderResource,
-                                          width, height, 1, "Depth Stencil");
-
-    // Create my depth states
-    {
-        D3D11_DEPTH_STENCIL_DESC desc = {};
-
-        depth_states[Depth_Disabled] = nullptr;
-
-        // Enable depth testing
-        desc.DepthEnable = TRUE;
-        // Standard depth test
-        desc.DepthFunc = D3D11_COMPARISON_LESS;
-        // Enable depth writing
-        desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-        // No stencil testing
-        desc.StencilEnable = FALSE;
-
-        result = device->getDevice()->CreateDepthStencilState(
-            &desc, &depth_states[Depth_TestAndWrite]);
-        assert(SUCCEEDED(result));
-
-        // Enable depth testing
-        desc.DepthEnable = TRUE;
-        // Standard depth test
-        desc.DepthFunc = D3D11_COMPARISON_LESS;
-        // Disable depth writing
-        desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-        // No stencil testing
-        desc.StencilEnable = FALSE;
-
-        HRESULT result = device->getDevice()->CreateDepthStencilState(
-            &desc, &depth_states[Depth_TestNoWrite]);
-        assert(SUCCEEDED(result));
-    }
-
-    // Create my blend states
-    {
-        D3D11_BLEND_DESC blend_desc = {};
-
-        blend_desc.RenderTarget[0].BlendEnable = TRUE;
-        blend_desc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-        blend_desc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-        blend_desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-        blend_desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
-        blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
-        blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_MAX;
-        blend_desc.RenderTarget[0].RenderTargetWriteMask =
-            D3D11_COLOR_WRITE_ENABLE_ALL;
-        result = device->getDevice()->CreateBlendState(
-            &blend_desc, &blend_states[Blend_SrcAlphaOnly]);
-        assert(SUCCEEDED(result));
-
-        blend_desc.RenderTarget[0].BlendEnable = TRUE;
-        blend_desc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-        blend_desc.RenderTarget[0].DestBlend = D3D11_BLEND_DEST_ALPHA;
-        blend_desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-        blend_desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
-        blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_DEST_ALPHA;
-        blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_MAX;
-        blend_desc.RenderTarget[0].RenderTargetWriteMask =
-            D3D11_COLOR_WRITE_ENABLE_ALL;
-        result = device->getDevice()->CreateBlendState(
-            &blend_desc, &blend_states[Blend_UseSrcAndDest]);
-        assert(SUCCEEDED(result));
-    }
-}
-
-// InitializeSamplers:
-// Initializes the most commonly used samplers in the pipeline.
-// These samplers will not be rebound over the entire program.
-void Pipeline::initializeSamplers()
-{
-    D3D11_SAMPLER_DESC sampler_desc = {};
-    ID3D11SamplerState* sampler = NULL;
-
-    for (int i = 0; i < (int)SamplerType::SamplerCount; i++)
-        samplers[i] = NULL;
-
-    // Point Sampler: Index 0
-    sampler_desc = {};
-    sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
-    sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-    sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-    sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-
-    device->getDevice()->CreateSamplerState(&sampler_desc, &sampler);
-    assert(sampler != NULL);
-
-    samplers[SamplerType::Sampler_Point] = sampler;
-
-    // Shadow Sampler: Index 1
-    sampler_desc = {};
-    sampler_desc.Filter =
-        D3D11_FILTER_MIN_MAG_MIP_LINEAR; // Linear Filtering for PCF
-    sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
-    sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
-    sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
-    sampler_desc.BorderColor[0] = 0.f;
-    sampler_desc.BorderColor[1] = 0.f;
-    sampler_desc.BorderColor[2] = 0.f;
-    sampler_desc.BorderColor[3] = 0.f;
-    sampler_desc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-    sampler_desc.MinLOD = 0;
-    sampler_desc.MaxLOD = 1.0f;
-
-    device->getDevice()->CreateSamplerState(&sampler_desc, &sampler);
-    assert(sampler != NULL);
-
-    samplers[Sampler_Shadow] = sampler;
-
-    // Bilinear Sampler: Index 2
-    sampler_desc = {};
-    sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-    sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-    sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-    sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-    sampler_desc.MinLOD = 0.0f; // holy moly!!!! this was clamping it wtf
-    sampler_desc.MaxLOD = D3D11_FLOAT32_MAX;
-
-    device->getDevice()->CreateSamplerState(&sampler_desc, &sampler);
-    assert(sampler != NULL);
-
-    samplers[Sampler_Linear] = sampler;
+    depth_stencil = device->createTexture(
+        "Depth Stencil", TextureLayout::R24_UNORM_G8_UINT,
+        TextureUsage::DepthStencil | TextureUsage::ShaderResource, width,
+        height);
 }
 
 Device* Pipeline::getDevice() const { return device.get(); }
 DeviceContext* Pipeline::getContext() const { return context.get(); }
-Texture* Pipeline::getRenderTargetDest() const
+const std::shared_ptr<Texture> Pipeline::getRenderTargetDest() const
 {
-    return render_target_dest.get();
+    return render_target_dest;
 }
-Texture* Pipeline::getRenderTargetSrc() const
+const std::shared_ptr<Texture> Pipeline::getRenderTargetSrc() const
 {
-    return render_target_src.get();
+    return render_target_src;
 }
-Texture* Pipeline::getDepthStencil() const { return depth_stencil.get(); }
+const std::shared_ptr<Texture> Pipeline::getDepthStencil() const
+{
+    return depth_stencil;
+}
 
 // Prepare
 void Pipeline::beginFrame(const uint64_t frame)
@@ -260,8 +132,7 @@ void Pipeline::beginFrame(const uint64_t frame)
     stats = Pipeline::Stats();
 
     const float baseColor[4] = {0.f, 0.f, 0.f, 1.f};
-    context->getContext()->ClearRenderTargetView(
-        render_target_dest->target_view, baseColor);
+    context->clearRenderTarget(render_target_dest, baseColor);
 }
 
 void Pipeline::setVertexTopology(VertexTopology topology)
@@ -311,62 +182,11 @@ void Pipeline::bindPixelShader(const std::string& ps_name)
     }
 }
 
-// Render Target Binding
-void Pipeline::bindRenderTarget(Texture* renderTarget,
-                                Texture* depthStencil,
-                                DepthStencilFlags depthFlags)
-{
-    assert(renderTarget || depthStencil);
-
-    ID3D11RenderTargetView** targetViewPtr = nullptr;
-    ID3D11DepthStencilView* depthView = nullptr;
-
-    D3D11_VIEWPORT viewport = {0.f, 0.f, -1.f, -1.f, 0.f, 1.f};
-
-    if (renderTarget)
-    {
-        assert(renderTarget->target_view);
-        targetViewPtr = &renderTarget->target_view;
-
-        viewport.Width = renderTarget->width;
-        viewport.Height = renderTarget->height;
-    }
-
-    if (depthStencil)
-    {
-        assert(depthStencil->depth_view);
-        ID3D11DepthStencilState* state = depth_states[depthFlags];
-        context->getContext()->OMSetDepthStencilState(state, 0);
-        depthView = depthStencil->depth_view;
-
-        assert(viewport.Width == -1.f || viewport.Width == depthStencil->width);
-        assert(viewport.Height == -1.f ||
-               viewport.Height == depthStencil->height);
-        if (viewport.Width == -1)
-        {
-            viewport.Width = depthStencil->width;
-        }
-        if (viewport.Height == -1)
-        {
-            viewport.Height = depthStencil->height;
-        }
-    }
-
-    context->getContext()->OMSetRenderTargets(1, targetViewPtr, depthView);
-
-    context->getContext()->RSSetViewports(1, &viewport);
-}
-
-void Pipeline::bindBlendSettings(BlendFlags blendFlag)
-{
-    context->getContext()->OMSetBlendState(blend_states[blendFlag], nullptr,
-                                           0xFFFFFFFF);
-}
-
 void Pipeline::bindRenderTarget(TargetFlags f_target,
                                 DepthStencilFlags f_depth,
                                 BlendFlags f_blend)
 {
+    /*
     flag_target = f_target;
     flag_depth = f_depth;
     flag_blend = f_blend;
@@ -403,31 +223,12 @@ void Pipeline::bindRenderTarget(TargetFlags f_target,
     // Handle blend flags
     context->getContext()->OMSetBlendState(blend_states[f_blend], nullptr,
                                            0xFFFFFFFF);
+                                           */
 }
 
 void Pipeline::swapActiveTarget()
 {
     std::swap(render_target_src, render_target_dest);
-}
-
-void Pipeline::bindVertexTexture(uint8_t slot,
-                                 const Texture& texture,
-                                 SamplerType samplerType)
-{
-    context->getContext()->VSSetShaderResources(slot, 1, &texture.shader_view);
-
-    ID3D11SamplerState* state = samplers[samplerType];
-    context->getContext()->VSSetSamplers(slot, 1, &state);
-}
-
-void Pipeline::bindPixelTexture(uint8_t slot,
-                                const Texture& texture,
-                                SamplerType samplerType)
-{
-    context->getContext()->PSSetShaderResources(slot, 1, &texture.shader_view);
-
-    ID3D11SamplerState* sampler = samplers[samplerType];
-    context->getContext()->PSSetSamplers(slot, 1, &sampler);
 }
 
 void Pipeline::drawMesh(const Mesh* mesh,
@@ -510,14 +311,11 @@ void Pipeline::endFrame()
         bindVertexShader("PostProcess");
         bindPixelShader("PostProcess");
 
-        ID3D11RenderTargetView* targetView = context->getRenderTarget();
-        context->getContext()->OMSetRenderTargets(1, &targetView, nullptr);
-        context->getContext()->RSSetViewports(1, &viewport);
-        context->getContext()->OMSetBlendState(blend_states[Blend_SrcAlphaOnly],
-                                               nullptr, 0xFFFFFFFF);
-
-        context->getContext()->PSSetShaderResources(
-            0, 1, &render_target_dest->shader_view);
+        context->bindRenderTarget(nullptr, nullptr,
+                                  DepthStencilFlags::Depth_Disabled,
+                                  BlendFlags::SrcAlphaOnly);
+        context->bindPixelTexture(0, render_target_dest,
+                                  SamplerType::Sampler_Point);
 
         drawPostProcessQuad();
     }

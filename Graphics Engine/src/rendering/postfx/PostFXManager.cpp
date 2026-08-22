@@ -34,12 +34,12 @@ class PostFXManagerImpl
   public:
     PostFXManagerImpl(VisualSystem* visualSystem);
 
-    void render();
+    void render(DeviceContext* context);
 
   private:
     SkyConfig mSkyConfig;
 
-    void renderSky(Pipeline* pipeline);
+    void renderSky(Pipeline* pipeline, DeviceContext* context);
 
     void imGui();
 };
@@ -54,7 +54,7 @@ std::unique_ptr<PostFXManager> PostFXManager::create(VisualSystem* visualSystem)
 PostFXManager::PostFXManager() = default;
 PostFXManager::~PostFXManager() = default;
 
-void PostFXManager::render() { mImpl->render(); }
+void PostFXManager::render(DeviceContext* context) { mImpl->render(context); }
 
 PostFXManagerImpl::PostFXManagerImpl(VisualSystem* visualSystem)
     : mVisualSystem(visualSystem)
@@ -63,17 +63,17 @@ PostFXManagerImpl::PostFXManagerImpl(VisualSystem* visualSystem)
     ImGuiHelper::registerImGuiCallback("Render/PostFX", [this]() { imGui(); });
 }
 
-void PostFXManagerImpl::render()
+void PostFXManagerImpl::render(DeviceContext* context)
 {
     Pipeline* pipeline = mVisualSystem->getPipeline();
 
     if (mSkyConfig.renderSky)
     {
-        renderSky(pipeline);
+        renderSky(pipeline, context);
     }
 }
 
-void PostFXManagerImpl::renderSky(Pipeline* pipeline)
+void PostFXManagerImpl::renderSky(Pipeline* pipeline, DeviceContext* context)
 {
 #if defined(_DEBUG)
     IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Sky Processing");
@@ -81,13 +81,13 @@ void PostFXManagerImpl::renderSky(Pipeline* pipeline)
 
     pipeline->bindVertexShader("PostProcess");
     pipeline->bindPixelShader("Sky");
-    pipeline->bindRenderTarget(Target_SwapTarget, Depth_Disabled,
-                               Blend_Default);
+    pipeline->bindRenderTarget(Target_SwapTarget, DepthStencilFlags::Depth_Disabled,
+                               BlendFlags::Blend_Default);
 
     // Set samplers and texture
-    pipeline->bindPixelTexture(2, *pipeline->getRenderTargetSrc(),
+    context->bindPixelTexture(2, pipeline->getRenderTargetSrc(),
                                SamplerType::Sampler_Point);
-    pipeline->bindPixelTexture(3, *pipeline->getDepthStencil(),
+    context->bindPixelTexture(3, pipeline->getDepthStencil(),
                                SamplerType::Sampler_Point);
 
     {

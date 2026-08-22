@@ -14,9 +14,9 @@ LightManager::LightManager(Device* device, unsigned int atlas_size)
     DMLight::ConnectToCreation([this](Object* obj) { onObjectCreate(obj); });
 
     atlas_texture = device->createTexture(
-        TextureLayout::R24_UNORM_G8_UINT,
+        "Shadow Atlas", TextureLayout::R24_UNORM_G8_UINT,
         TextureUsage::DepthStencil | TextureUsage::ShaderResource, atlas_size,
-        atlas_size, 1, "Shadow Atlas");
+        atlas_size);
 
     // Create my shadow atlas with this texture
     shadow_atlas = new TextureAtlas(atlas_texture.get());
@@ -125,9 +125,9 @@ void LightManager::clusterShadowCasters()
 // --- Getters ---
 // GetShadowAtlas:
 // Returns the shadow atlas.
-const Texture* LightManager::getAtlasTexture(void) const
+const std::shared_ptr<Texture> LightManager::getAtlasTexture(void) const
 {
-    return shadow_atlas->getTexture();
+    return atlas_texture;
 }
 
 // GetLights:
@@ -223,8 +223,8 @@ void LightManager::bindLightData(DeviceContext* context)
 
     LightDataGPU lightData;
     // Needed for normalization of the texture coordinates to [0,1].
-    const float tex_width = (float)shadow_atlas->getTexture()->width;
-    const float tex_height = (float)shadow_atlas->getTexture()->height;
+    const float tex_width = (float)shadow_atlas->getTexture()->getWidth();
+    const float tex_height = (float)shadow_atlas->getTexture()->getHeight();
 
     const int lightCount = lights.size();
     appendData(&lightCount, 4);
@@ -283,7 +283,7 @@ void LightManager::imGui()
     ImGui::Checkbox("Show Shadow Atlas", &show_atlas);
     if (show_atlas)
     {
-        shadow_atlas->getTexture()->displayImGui();
+        shadow_atlas->getTexture()->doImgui();
     }
 #endif
 }

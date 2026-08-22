@@ -37,6 +37,7 @@ class VisualSystem
 
     // Managers
     Device* device;
+    DeviceContext* context;
 
     std::unique_ptr<Pipeline> pipeline;
     std::unique_ptr<ResourceManager> resource_manager;

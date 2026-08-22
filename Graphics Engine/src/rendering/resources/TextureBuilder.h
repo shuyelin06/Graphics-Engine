@@ -40,10 +40,7 @@ struct TextureColor
     TextureColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
     TextureColor(float r);
 
-    template <typename T> T& asType()
-    {
-        return *reinterpret_cast<T*>(data);
-    }
+    template <typename T> T& asType() { return *reinterpret_cast<T*>(data); }
 };
 
 // TextureBuilder Class:
@@ -95,40 +92,6 @@ class TextureBuilder
     getTextureColor(const MipLevel& mipLevel, unsigned int x, unsigned int y);
     bool
     hasTextureColor(const MipLevel& mipLevel, unsigned int x, unsigned int y);
-};
-
-// AtlasBuilder Class:
-// An extended texture builder class, that supports writing to texture atlases.
-// Can be used to build atlases of multiple textures together (reduce the total
-// number of draw calls).
-class AtlasBuilder : private TextureBuilder
-{
-  private:
-    using TextureBuilder::reset;
-
-  protected:
-    TextureAtlas* atlas;
-    const AtlasAllocation* cur_region;
-
-  public:
-    // The constructor here sets the atlas size. This CANNOT be changed
-    // after initialization
-    AtlasBuilder(UINT atlas_width, UINT atlas_height);
-    ~AtlasBuilder();
-
-    // Get the atlas size
-    UINT getAtlasWidth() const;
-    UINT getAtlasHeight() const;
-
-    // Allocate a new region on the atlas
-    const AtlasAllocation& allocateRegion(UINT tex_width, UINT tex_height);
-
-    // Sets the color for a particular pixel relative to the current allocation
-    // region
-    void setColor(UINT x, UINT y, const TextureColor& rgba);
-
-    // Clears the allocation region with an RGBA color
-    void clear(const TextureColor& rgba);
 };
 
 } // namespace Graphics

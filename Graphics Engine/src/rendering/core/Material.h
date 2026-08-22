@@ -9,7 +9,7 @@
 #include "RenderPass.h"
 #include "RenderSettings.h"
 
-#include "rendering/pipeline/EnumTypes.h"
+#include "Device.h"
 
 namespace Engine
 {
@@ -42,12 +42,14 @@ struct ShaderResource
 struct Technique
 {
     std::string vertexShader;
-    std::array<ShaderResource, kVertexResourceMax> vResources;
+    std::array<ShaderResource, kVertexResourceMax> vResources{};
     std::array<std::vector<uint8_t>, kVertexConstantBufferMax> vertexCBuffers;
 
     std::string pixelShader;
-    std::array<ShaderResource, kPixelResourceMax> pResources;
+    std::array<ShaderResource, kPixelResourceMax> pResources{};
     std::array<std::vector<uint8_t>, kPixelConstantBufferMax> pixelCbuffers;
+
+    Technique();
 
     void clearVertexCB(uint8_t slot);
     void uploadVertexCBData(uint8_t slot, const void* src, size_t byteSize);

@@ -9,11 +9,7 @@
 #include "rendering/core/Mesh.h"
 #include "rendering/core/Texture.h"
 
-// Forward Declare so that systems using ResourceManager don't pull in the D3D11
-// implementation
-struct ID3D11Device;
-struct ID3D11DeviceContext;
-struct ID3D11Buffer;
+#include "rendering/core/Device.h"
 
 namespace Engine
 {
@@ -88,7 +84,7 @@ class ResourceManager
 {
   public:
     static std::unique_ptr<ResourceManager>
-    create(ID3D11Device* device, ID3D11DeviceContext* context);
+    create(Device* device, DeviceContext* context);
     ~ResourceManager();
 
     // Initialize System Resources.
@@ -108,11 +104,7 @@ class ResourceManager
 
     // Thread Safe Creation of Resources
     std::shared_ptr<Mesh> requestMesh(const MeshBuilder& mesh_builder);
-    std::shared_ptr<Texture> requestTexture(const TextureRequestParams& params);
-
-    // Not-Thread Safe Creation / Modification of Resources.
-    // Must be done on main thread if called.
-    void clearDepthStencil(const Texture& texture);
+    std::shared_ptr<Texture> requestTexture(const char* path);
 
     // Debug Display
     void imGui();

@@ -4,6 +4,8 @@
 
 #include "math/Vector3.h"
 
+#include "rendering/core/Device.h"
+
 namespace Engine
 {
 using namespace Math;
@@ -18,6 +20,8 @@ class Terrain2DManager
     ~Terrain2DManager();
 
     void update(const Vector3& cameraPosition);
+    void updatePerform(DeviceContext* context);
+
     void imGui();
 
   private:

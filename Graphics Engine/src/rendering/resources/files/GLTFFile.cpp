@@ -49,7 +49,6 @@ ParseAccessor(const cgltf_accessor* accessor,
 }
 
 Asset* GLTFFile::readFromFile(MeshBuilder& mesh_builder,
-                              AtlasBuilder& tex_builder,
                               ID3D11Device* device,
                               ID3D11DeviceContext* context)
 {
@@ -492,8 +491,7 @@ void GLTFFile::parseMaterial(const cgltf_material* mat_data,
 }
 */
 
-const AtlasAllocation& GLTFFile::parseBaseColorTex(const cgltf_texture* tex,
-                                                   AtlasBuilder& tex_builder)
+void GLTFFile::parseBaseColorTex(const cgltf_texture* tex)
 {
     const cgltf_image* image = tex->image;
     const cgltf_buffer_view* view = image->buffer_view;
@@ -511,7 +509,7 @@ const AtlasAllocation& GLTFFile::parseBaseColorTex(const cgltf_texture* tex,
     assert(pixel_data != nullptr);
 
     // Load thes 4 channels into our texture
-    const AtlasAllocation& alloc = tex_builder.allocateRegion(width, height);
+    // const AtlasAllocation& alloc = tex_builder.allocateRegion(width, height);
 
     for (int row = 0; row < height; row++)
     {
@@ -522,14 +520,14 @@ const AtlasAllocation& GLTFFile::parseBaseColorTex(const cgltf_texture* tex,
                 TextureColor(pixel_data[index + 0], pixel_data[index + 1],
                              pixel_data[index + 2], pixel_data[index + 3]);
 
-            tex_builder.setColor(col, row, color);
+            // tex_builder.setColor(col, row, color);
         }
     }
 
     // Free allocated memory
     stbi_image_free(pixel_data);
 
-    return alloc;
+    // return alloc;
 }
 
 } // namespace Graphics

@@ -16,6 +16,20 @@ void ShaderResource::initializeTextureResource(std::shared_ptr<Texture> texture,
     textureData.sampleState = sampleState;
 }
 
+Technique::Technique()
+{
+    for (int i = 0; i < kVertexResourceMax; i++)
+    {
+        vResources[i] = ShaderResource();
+    }
+
+    for (int i = 0; i < kPixelResourceMax; i++)
+    {
+        pResources[i] = ShaderResource();
+    }
+    
+}
+
 void Technique::clearVertexCB(uint8_t slot)
 {
     assert(slot <= kVertexConstantBufferMax);
@@ -233,16 +247,9 @@ MaterialManagerImpl::createMaterial(const TerrainMaterialParams& params)
     technique->vertexShader = "Terrain";
     technique->pixelShader = "Terrain";
 
-    TextureRequestParams request;
-    auto& targetSettings = request.targetUseNew();
-    targetSettings.debugName = "Terrain Colormap";
-    targetSettings.editable = false;
-    targetSettings.layout = TextureLayout::R8G8B8A8_UNORM;
-    auto& dataSettings = request.dataFromFile();
-    dataSettings.path = params.colormap;
-
     ShaderResource colormap{};
-    colormap.initializeTextureResource(resourceManager->requestTexture(request),
+    colormap.initializeTextureResource(
+        resourceManager->requestTexture("terrain/Grass.png"),
                                        SamplerType::Sampler_Linear);
     technique->bindPixelResource(4, colormap);
 
