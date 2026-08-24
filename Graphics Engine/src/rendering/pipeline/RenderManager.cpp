@@ -7,7 +7,6 @@
 #include <d3d11_1.h>
 
 #include "rendering/core/Frustum.h"
-#include "rendering/util/GPUTimer.h"
 
 #include "DrawCall.h"
 #include "rendering/VisualSystem.h"
@@ -410,7 +409,6 @@ void RenderManagerImpl::executeRenderPass(DeviceContext* context,
 
     DebugRenderPassScope renderpass_debug =
         DebugRenderPassScope(mDebugAnnotations[pass], annotation);
-    IGPUTimer gpu_timer = GPUTimer::TrackGPUTime(annotation);
 
     // TODO These just call pipeline methods. Move it to pipeline
     // (i.e. pipeline->draw(VertexTechnique, PixelTechnique).

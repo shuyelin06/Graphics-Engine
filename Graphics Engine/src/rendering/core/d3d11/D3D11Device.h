@@ -4,6 +4,7 @@
 
 #include "rendering/Direct3D11.h"
 
+#include "D3D11PassTracker.h"
 #include "D3D11ShaderCompiler.h"
 
 namespace Engine
@@ -49,6 +50,8 @@ class Direct3D11DeviceContext : public DeviceContext
   private:
     ID3D11DeviceContext* context;
     ID3D11Device* device;
+
+    std::unique_ptr<D3D11PassTracker> queries;
 
     // Shaders
     D3D11ShaderCompiler* shaders = nullptr;
@@ -98,6 +101,12 @@ class Direct3D11DeviceContext : public DeviceContext
     void clearDepthStencil(const std::shared_ptr<Texture>& texture) override;
 
     // Rendering
+    void beginFrame(uint64_t frame) override;
+    void endFrame() override;
+    void beginPass(const char* passName) override;
+    void endPass() override;
+    const PassStats& getPassStats() override;
+
     void bindRenderTarget(const std::shared_ptr<Texture>& target,
                           const std::shared_ptr<Texture>& depth,
                           DepthSettings depthFlags,

@@ -205,6 +205,7 @@
     <ClCompile Include="src\datamodel\SceneGraph.cpp" />
     <ClCompile Include="src\rendering\core\d3d11\D3D11Buffer.cpp" />
     <ClCompile Include="src\rendering\core\d3d11\D3D11Device.cpp" />
+    <ClCompile Include="src\rendering\core\d3d11\D3D11PassTracker.cpp" />
     <ClCompile Include="src\rendering\core\d3d11\D3D11Texture.cpp" />
     <ClCompile Include="src\rendering\ImGuiHelper.cpp" />
     <ClCompile Include="src\rendering\pipeline\RenderManager.cpp" />
@@ -258,7 +259,6 @@
     <ClCompile Include="src\rendering\core\d3d11\D3D11Shader.cpp" />
     <ClCompile Include="src\rendering\core\d3d11\D3D11ShaderCompiler.cpp" />
     <ClCompile Include="src\rendering\util\CPUTimer.cpp" />
-    <ClCompile Include="src\rendering\util\GPUTimer.cpp" />
     <ClCompile Include="src\rendering\core\TextureAtlas.cpp" />
     <ClCompile Include="src\physics\PhysicsSystem.cpp" />
     <ClCompile Include="src\rendering\util\RenderDoc.cpp" />
@@ -294,6 +294,7 @@
     <ClInclude Include="src\rendering\core\Buffer.h" />
     <ClInclude Include="src\rendering\core\d3d11\D3D11Buffer.h" />
     <ClInclude Include="src\rendering\core\d3d11\D3D11Device.h" />
+    <ClInclude Include="src\rendering\core\d3d11\D3D11PassTracker.h" />
     <ClInclude Include="src\rendering\core\d3d11\D3D11Texture.h" />
     <ClInclude Include="src\rendering\core\Device.h" />
     <ClInclude Include="src\rendering\core\Geometry.h" />
@@ -358,7 +359,6 @@
     <ClInclude Include="src\rendering\core\Frustum.h" />
     <ClInclude Include="src\rendering\util\GLBFile.h" />
     <ClInclude Include="src\rendering\resources\files\GLTFFile.h" />
-    <ClInclude Include="src\rendering\util\GPUTimer.h" />
     <ClInclude Include="src\rendering\resources\files\PNGFile.h" />
     <ClInclude Include="src\rendering\core\TextureAtlas.h" />
     <ClInclude Include="src\physics\PhysicsSystem.h" />

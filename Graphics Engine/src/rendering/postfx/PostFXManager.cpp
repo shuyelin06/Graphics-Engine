@@ -6,7 +6,6 @@
 
 #if defined(_DEBUG)
 #include "rendering/util/CPUTimer.h"
-#include "rendering/util/GPUTimer.h"
 #endif
 
 namespace Engine
@@ -75,10 +74,6 @@ void PostFXManagerImpl::render(DeviceContext* context)
 
 void PostFXManagerImpl::renderSky(Pipeline* pipeline, DeviceContext* context)
 {
-#if defined(_DEBUG)
-    IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Sky Processing");
-#endif
-
     context->bindShaderProgram("PostProcess", "Sky");
     pipeline->bindRenderTarget(Target_SwapTarget,
                                DepthSettings::Depth_Disabled,

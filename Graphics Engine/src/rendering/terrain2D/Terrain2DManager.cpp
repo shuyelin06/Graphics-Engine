@@ -87,6 +87,7 @@ class Terrain2DManagerImpl
 
     void update(const Vector3& cameraPosition);
     void updatePerform(DeviceContext* context);
+    void render(DeviceContext* context);
 
     void imGui();
     void reset();
@@ -131,6 +132,11 @@ void Terrain2DManager::update(const Vector3& cameraPosition)
 void Terrain2DManager::updatePerform(DeviceContext* context)
 {
     mImpl->updatePerform(context);
+}
+
+void Terrain2DManager::render(DeviceContext* context)
+{
+    mImpl->render(context);
 }
 
 void Terrain2DManager::imGui() { mImpl->imGui(); }
@@ -215,6 +221,10 @@ void Terrain2DManagerImpl::update(const Vector3& cameraPosition)
 void Terrain2DManagerImpl::updatePerform(DeviceContext* context)
 {
     setupTerrainMaterial(context);
+}
+
+void Terrain2DManagerImpl::render(DeviceContext* context) {
+    
 }
 
 void Terrain2DManagerImpl::imGui()

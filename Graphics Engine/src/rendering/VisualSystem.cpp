@@ -6,7 +6,6 @@
 
 #if defined(_DEBUG)
 #include "util/CPUTimer.h"
-#include "util/GPUTimer.h"
 #endif
 
 namespace Engine
@@ -28,7 +27,8 @@ VisualSystem::VisualSystem(HWND window)
     resource_manager->initializeSystemResources();
     material_manager = MaterialManager::create(resource_manager.get());
 
-    visual_debug = std::make_unique<VisualDebug>(device, resource_manager->getCubeMesh());
+    visual_debug =
+        std::make_unique<VisualDebug>(device, resource_manager->getCubeMesh());
 
     render_manager =
         RenderManager::create(this, context->getContext(), deviceInterface);
@@ -52,16 +52,23 @@ void VisualSystem::render()
 {
     terrain2D->updatePerform(context);
 
+    context->beginFrame(frame++);
+
     pipeline->beginFrame(frame++);
 
 #if defined(_DEBUG)
     {
         ICPUTimer cpu_timer = CPUTimer::TrackCPUTime("CPU Frametime");
-        IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("GPU Frametime");
 #endif
 
+        context->beginPass("Pass 1");
         render_manager->perform();
+        context->endPass();
+
+        context->beginPass("Pass 2");
         visual_debug->render(context);
+        context->endPass();
+
         postfx_manager->render(context);
 
 #if defined(_DEBUG)
@@ -70,6 +77,8 @@ void VisualSystem::render()
 
     // Finish rendering and present
     pipeline->endFrame();
+
+    context->endFrame();
 
     // Finish RenderDoc Capture (if initialized and we are taking one)
     RenderDoc::EndRenderDocCaptureIfCapturing();
@@ -151,6 +160,17 @@ void VisualSystem::doCoreUI()
     if (ImGui::Button("Reload Shaders"))
     {
         device->reloadShaders();
+    }
+
+    if (ImGui::CollapsingHeader("GPU Frametime"))
+    {
+        const PassStats& passStats = context->getPassStats();
+        ImGui::Text("Pass Stats (Smoothed, Frame %zu): %.2f ms Total",
+                    passStats.frame, passStats.totalFrameTime);
+        for (const PassStats::PassInfo& info : passStats.stats)
+        {
+            ImGui::Text("%s %.2f ms", info.name.data(), info.frameTime);
+        }
     }
 #endif
 }

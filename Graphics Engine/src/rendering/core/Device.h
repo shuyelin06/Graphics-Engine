@@ -74,6 +74,19 @@ void InitializeGraphicsAPI(HWND window,
                            std::unique_ptr<Device>& outDevice,
                            std::unique_ptr<DeviceContext>& outContext);
 
+struct PassStats
+{
+    struct PassInfo
+    {
+        std::string_view name;
+        float frameTime;
+    };
+
+    std::vector<PassInfo> stats;
+    float totalFrameTime = 0.f;
+    uint64_t frame = 0;
+};
+
 class DeviceContext
 {
   public:
@@ -98,6 +111,14 @@ class DeviceContext
     virtual void clearDepthStencil(const std::shared_ptr<Texture>& texture) = 0;
 
     // Rendering:
+    virtual void beginFrame(uint64_t frame) = 0;
+    virtual void endFrame() = 0;
+
+    virtual void beginPass(const char* passName) = 0;
+    virtual void endPass() = 0;
+
+    virtual const PassStats& getPassStats() = 0;
+
     // Set target == null to use the screen space render target
     virtual void bindRenderTarget(const std::shared_ptr<Texture>& target,
                                   const std::shared_ptr<Texture>& depth,
@@ -117,9 +138,10 @@ class DeviceContext
                                   const std::shared_ptr<Texture>& texture,
                                   SamplerSettings sampler) = 0;
 
-    virtual void draw(const Geometry* geometry,
-                      uint32_t instanceCount,
-                      VertexTopology toplogy = VertexTopology::TriangleList) = 0;
+    virtual void
+    draw(const Geometry* geometry,
+         uint32_t instanceCount,
+         VertexTopology toplogy = VertexTopology::TriangleList) = 0;
 
     virtual void present() = 0;
 };

@@ -22,6 +22,8 @@ class Terrain2DManager
     void update(const Vector3& cameraPosition);
     void updatePerform(DeviceContext* context);
 
+    void render(DeviceContext* context);
+
     void imGui();
 
   private:

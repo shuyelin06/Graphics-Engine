@@ -31,9 +31,9 @@ class D3D11ShaderCompiler
   private:
     ID3D11Device* device;
 
-    std::unordered_map<std::string, std::unique_ptr<D3D11VertexShader>>
+    std::unordered_map<std::string_view, std::unique_ptr<D3D11VertexShader>>
         vertex_shaders;
-    std::unordered_map<std::string, std::unique_ptr<D3D11PixelShader>>
+    std::unordered_map<std::string_view, std::unique_ptr<D3D11PixelShader>>
         pixel_shaders;
 
     // Used in compilation

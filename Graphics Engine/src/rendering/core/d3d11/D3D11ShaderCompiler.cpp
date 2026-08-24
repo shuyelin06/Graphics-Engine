@@ -33,7 +33,7 @@ struct ShaderConfig
 {
     ShaderType shader_type;
 
-    std::string shader_name; // Name of Shader in Engine
+    std::string_view shader_name; // Name of Shader in Engine
 
     std::string source_file; // Source File
     std::string entry_point; // Entrypoint Name

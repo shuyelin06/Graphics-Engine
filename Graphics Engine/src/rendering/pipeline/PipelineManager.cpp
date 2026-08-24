@@ -8,7 +8,6 @@
 #if defined(_DEBUG)
 #include "../ImGui.h"
 #include "../util/CPUTimer.h"
-#include "../util/GPUTimer.h"
 #endif
 
 namespace Engine
@@ -107,7 +106,6 @@ const std::shared_ptr<Texture> Pipeline::getDepthStencil() const
 void Pipeline::beginFrame(const uint64_t frame)
 {
     // Clear the the target destination color
-    GPUTimer::BeginFrame(frame);
     stats = Pipeline::Stats();
 
     const float baseColor[4] = {0.f, 0.f, 0.f, 1.f};
@@ -177,10 +175,6 @@ void Pipeline::endFrame()
     // Execute a shader to transfer the pixel data from our
     // current dest render target to the screen target.
     {
-#if defined(_DEBUG)
-        IGPUTimer gpu_timer = GPUTimer::TrackGPUTime("Render Finish Pass");
-#endif
-
         context->bindShaderProgram("PostProcess", "PostProcess");
 
         context->bindRenderTarget(nullptr, nullptr,
@@ -193,7 +187,6 @@ void Pipeline::endFrame()
     }
 
 #if defined(_DEBUG)
-    GPUTimer::EndFrame();
     imGuiFinish();
 #endif
 
@@ -221,8 +214,7 @@ void Pipeline::imGuiInitialize(HWND window)
     ImGui_ImplWin32_Init(window);
     ImGui_ImplDX11_Init(device->getDevice(), context->getContext());
 
-    // Create GPU + CPU Timers
-    GPUTimer::Initialize(device->getDevice(), context->getContext());
+    // Create CPU Timers
     CPUTimer::Initialize();
 }
 
@@ -246,9 +238,6 @@ void Pipeline::imGuiFinish()
     {
         ImGui::SeparatorText("CPU Times:");
         CPUTimer::DisplayCPUTimes();
-
-        ImGui::SeparatorText("GPU Times:");
-        GPUTimer::DisplayGPUTimes();
 
         ImGui::EndMenu();
     }

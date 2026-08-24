@@ -126,6 +126,8 @@ Direct3D11DeviceContext::Direct3D11DeviceContext(ID3D11DeviceContext* context,
         vb_strides[i] = VertexLayout::VertexStreamStride((VertexDataStream)i);
     }
 
+    queries = std::make_unique<D3D11PassTracker>(device);
+
     initializeDepthStates();
     initializeBlendStates();
     initializeSamplers();
@@ -309,6 +311,22 @@ void Direct3D11DeviceContext::clearDepthStencil(
     assert(tex->getDepthView());
     context->ClearDepthStencilView(
         tex->getDepthView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0);
+}
+
+void Direct3D11DeviceContext::beginFrame(uint64_t frame)
+{
+    queries->beginFrame(frame, context);
+}
+void Direct3D11DeviceContext::endFrame() { queries->endFrame(context); }
+void Direct3D11DeviceContext::beginPass(const char* passName)
+{
+    queries->beginPass(passName, device, context);
+}
+void Direct3D11DeviceContext::endPass() { queries->endPass(context); }
+
+const PassStats& Direct3D11DeviceContext::getPassStats()
+{
+    return queries->getPassStats();
 }
 
 void Direct3D11DeviceContext::bindRenderTarget(
@@ -510,8 +528,8 @@ void Direct3D11DeviceContext::draw(const Geometry* geometry,
     switch (vertexTopology)
     {
     case VertexTopology::TriangleList:
-         context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-         break;
+        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        break;
     case VertexTopology::LineList:
         context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
         break;
