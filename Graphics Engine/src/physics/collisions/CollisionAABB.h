@@ -5,7 +5,7 @@
 #include "math/Vector3.h"
 
 #if defined(_DEBUG)
-#define DRAW_AABB_EXTENTS
+// #define DRAW_AABB_EXTENTS
 #include "math/Color.h"
 #endif
 

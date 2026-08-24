@@ -28,6 +28,8 @@ VisualSystem::VisualSystem(HWND window)
     resource_manager->initializeSystemResources();
     material_manager = MaterialManager::create(resource_manager.get());
 
+    visual_debug = std::make_unique<VisualDebug>(device, resource_manager->getCubeMesh());
+
     render_manager =
         RenderManager::create(this, context->getContext(), deviceInterface);
     postfx_manager = PostFXManager::create(this);
@@ -36,9 +38,10 @@ VisualSystem::VisualSystem(HWND window)
     scene_listener = SceneListener::create(this);
     scene_manager = SceneManager::create(this);
 
-    light_manager = new LightManager(device, 4096);
+    light_manager = new LightManager(this, device, 4096);
     terrain2D = Terrain2DManager::create(this);
 
+    ImGuiHelper::registerImGuiCallback("Render/Core", [this]() { doCoreUI(); });
     ImGuiHelper::registerImGuiCallback("Render/Renderdoc",
                                        [this]() { doRenderDocUI(); });
 }
@@ -58,6 +61,7 @@ void VisualSystem::render()
 #endif
 
         render_manager->perform();
+        visual_debug->render(context);
         postfx_manager->render(context);
 
 #if defined(_DEBUG)
@@ -140,6 +144,16 @@ RenderManager* VisualSystem::getRenderManager() const
 LightManager* VisualSystem::getLightManager() const { return light_manager; }
 
 Pipeline* VisualSystem::getPipeline() const { return pipeline.get(); }
+
+void VisualSystem::doCoreUI()
+{
+#if defined(IMGUI_ENABLED)
+    if (ImGui::Button("Reload Shaders"))
+    {
+        device->reloadShaders();
+    }
+#endif
+}
 
 void VisualSystem::doRenderDocUI()
 {

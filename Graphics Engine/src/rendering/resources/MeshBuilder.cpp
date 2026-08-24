@@ -248,67 +248,6 @@ void MeshBuilder::addCube(const Vector3& center,
     }
 }
 
-// AddTube:
-// Creates a tube between start and end.
-void MeshBuilder::addTube(const Vector3& start,
-                          const Vector3& end,
-                          float radius,
-                          int num_vertices)
-{
-    assert(num_vertices >= 3);
-
-    // Find the vector from the start to the end. Based on this, we'll create 2
-    // perpendicular vectors that'll create a plane. We'll use this plane to
-    // generate our points.
-    const Vector3 direction = (end - start).unit();
-
-    const Vector3 perp_x = direction.orthogonal().unit();
-    const Vector3 perp_y = direction.cross(perp_x).unit();
-
-    // Now, generate the points at each cap of this tube
-    const int start_index = addVertex(start);
-    for (int i = 0; i < num_vertices; i++)
-    { // Bottom of the tube
-        const float angle = 2 * PI / num_vertices * i;
-
-        const float x = cosf(angle);
-        const float y = sinf(angle);
-
-        const Vector3 point = start + perp_x * x + perp_y * y;
-        addVertex(point);
-    }
-
-    const int end_index = addVertex(end);
-    for (int i = 0; i < num_vertices; i++)
-    { // Top of the tube
-        const float angle = 2 * PI / num_vertices * i;
-
-        const float x = cosf(angle);
-        const float y = sinf(angle);
-
-        const Vector3 point = end + perp_x * x + perp_y * y;
-        addVertex(point);
-    }
-
-    // Now, connect the points.
-    for (int i = 1; i <= num_vertices; i++)
-    {
-        const int bottom_i1 = start_index + i;
-        const int bottom_i2 =
-            (i != num_vertices) ? bottom_i1 + 1 : start_index + 1;
-        const int top_i1 = end_index + i;
-        const int top_i2 = (i != num_vertices) ? top_i1 + 1 : end_index + 1;
-
-        // Connect the points to form the shaft
-        addTriangle(bottom_i1, bottom_i2, top_i1);
-        addTriangle(bottom_i2, top_i2, top_i1);
-
-        // Connect the points to form the cap
-        addTriangle(start_index, bottom_i2, bottom_i1);
-        addTriangle(end_index, top_i2, top_i1);
-    }
-}
-
 // RegenerateNormals:
 // Discard the current normals for the mesh and regenerate them
 void MeshBuilder::regenerateNormals()

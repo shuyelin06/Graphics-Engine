@@ -225,7 +225,7 @@ int WINAPI wWinMain(HINSTANCE hInstance,
         }
 #endif
 
-        VisualDebug::DrawPoint(Vector3(0, 0, 0), 2.5f);
+        //VisualDebug::DrawPoint(Vector3(0, 0, 0), 2.5f);
         // Sync datamodel components with the engine systems
         light->getTransform().offsetRotation(Vector3(0, 1, 0), 0.01f);
 

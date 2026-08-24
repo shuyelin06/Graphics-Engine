@@ -1,3 +1,5 @@
+#include "V_Common.hlsli"
+
 // 8 Floats / Point * 4 Bytes / Float 
 // = 32 Bytes / Point
 struct PointData
@@ -15,12 +17,6 @@ cbuffer CB0 : register(b2)
 {
     // Stores data for each point
     PointData points[2048];
-}
-
-cbuffer CB1 : register(b1)
-{
-    float4x4 m_view;
-    float4x4 m_projection;
 }
 
 struct VS_INPUT
@@ -53,9 +49,7 @@ PS_INPUT vs_main(VS_INPUT input)
     
     // Transform to camera space
     float4 pos = float4(input.PosXYZ_TexU.xyz, 1.0f);
-    pos = mul(m_view, pos);
-    pos = mul(m_projection, pos);
-    
+    pos = mul(m_world_to_screen, pos);
     output.position_clip = pos;
     
     // Pass color to pixel shader

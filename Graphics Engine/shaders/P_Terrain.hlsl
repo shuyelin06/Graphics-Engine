@@ -69,6 +69,6 @@ float4 psterrain_main(PS_IN input) : SV_TARGET
     float3 direction = normalize(float3(0.5f, -0.5f, 0.5f));
 
     float3 color = triplanarSampleColormap(input.world_position, normal);
-    
+
     return float4(color, 1.f);
 }

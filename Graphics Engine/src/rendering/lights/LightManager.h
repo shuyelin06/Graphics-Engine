@@ -18,6 +18,8 @@ using namespace Datamodel;
 
 namespace Graphics
 {
+class VisualSystem;
+
 // ShadowMapQuality:
 // Qualitites that are available for defining the lights with
 enum ShadowMapQuality
@@ -59,6 +61,8 @@ class IConstantBuffer;
 class LightManager
 {
   private:
+    VisualSystem* visualSystem;
+
     std::shared_ptr<Texture> atlas_texture;
     TextureAtlas* shadow_atlas;
     std::vector<ShadowLight*> shadow_lights;
@@ -78,7 +82,9 @@ class LightManager
     std::vector<ShadowCaster> shadow_casters;
 
   public:
-    LightManager(Device* device, unsigned int atlas_size);
+    LightManager(VisualSystem* visualSystem,
+                 Device* device,
+                 unsigned int atlas_size);
 
     // Datamodel Handling
     void pullDatamodelData();

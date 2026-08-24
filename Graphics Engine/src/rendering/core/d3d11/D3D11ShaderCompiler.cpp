@@ -46,6 +46,9 @@ struct ShaderConfig
 
 void D3D11ShaderCompiler::initializeShaders()
 {
+    vertex_shaders.clear();
+    pixel_shaders.clear();
+
     const std::vector<ShaderConfig> shaders = {
         // DebugPoint:
         // Uses instancing to draw colored points in the scene. Only
@@ -69,7 +72,7 @@ void D3D11ShaderCompiler::initializeShaders()
          "DebugLine",
          "misc/DebugLineRenderer.hlsl",
          "vs_main",
-         {DEBUG_LINE},
+         {PosXYZ_TexU, ColorRGBA},
          {}},
         {Pixel, "DebugLine", "misc/DebugLineRenderer.hlsl", "ps_main"},
         // ShadowMap Shader:
@@ -190,7 +193,7 @@ D3D11VertexShader* D3D11ShaderCompiler::getVertexShader(const char* name)
 {
     auto iter = vertex_shaders.find(name);
     if (iter != vertex_shaders.end())
-        return iter->second;
+        return iter->second.get();
     else
         return nullptr;
 }
@@ -202,7 +205,7 @@ D3D11PixelShader* D3D11ShaderCompiler::getPixelShader(const char* name)
 {
     auto iter = pixel_shaders.find(name);
     if (iter != pixel_shaders.end())
-        return iter->second;
+        return iter->second.get();
     else
         return nullptr;
 }
@@ -405,21 +408,6 @@ void D3D11ShaderCompiler::createVertexShader(const ShaderConfig& config)
                     D3D11_INPUT_PER_VERTEX_DATA,
                     0};
             break;
-        // Debug Line:
-        // A buffer of positions and colors, used for rendering lines
-        case DEBUG_LINE: {
-            desc = {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,
-                    DEBUG_LINE, 0, D3D11_INPUT_PER_VERTEX_DATA,
-                    0};
-            input_desc.push_back(desc);
-            desc = {"COLOR",
-                    0,
-                    DXGI_FORMAT_R32G32B32_FLOAT,
-                    DEBUG_LINE,
-                    D3D11_APPEND_ALIGNED_ELEMENT,
-                    D3D11_INPUT_PER_VERTEX_DATA,
-                    0};
-        }
         }
 
         input_desc.push_back(desc);
@@ -439,13 +427,8 @@ void D3D11ShaderCompiler::createVertexShader(const ShaderConfig& config)
     shader_blob->Release(); // Free shader blob memory
 
     // Create my vertex shader
-    D3D11VertexShader* v_shader =
-        new D3D11VertexShader(vertexShader, inputLayout);
-    for (const VertexDataStream& stream : config.input_layout)
-        if (stream < BINDABLE_STREAM_COUNT)
-            v_shader->vertexLayout.addVertexStream(stream);
-
-    vertex_shaders[config.shader_name] = v_shader;
+    vertex_shaders[config.shader_name] =
+        std::make_unique<D3D11VertexShader>(vertexShader, inputLayout);
 }
 
 // CreatePixelShader:
@@ -469,8 +452,8 @@ void D3D11ShaderCompiler::createPixelShader(const ShaderConfig& config)
     // Free shader blob memory
     shader_blob->Release();
 
-    D3D11PixelShader* p_shader = new D3D11PixelShader(pixelShader);
-    pixel_shaders[config.shader_name] = p_shader;
+    pixel_shaders[config.shader_name] =
+        std::make_unique<D3D11PixelShader>(pixelShader);
 }
 
 } // namespace Graphics

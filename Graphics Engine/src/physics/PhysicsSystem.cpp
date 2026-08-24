@@ -128,7 +128,7 @@ void PhysicsSystem::update()
 
     // DEBUG:
 #if defined(_DEBUG)
-    broadphase_tree.debugDrawTree();
+    // broadphase_tree.debugDrawTree();
 #endif
 
     // Collision Test:

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -30,8 +31,10 @@ class D3D11ShaderCompiler
   private:
     ID3D11Device* device;
 
-    std::unordered_map<std::string, D3D11VertexShader*> vertex_shaders;
-    std::unordered_map<std::string, D3D11PixelShader*> pixel_shaders;
+    std::unordered_map<std::string, std::unique_ptr<D3D11VertexShader>>
+        vertex_shaders;
+    std::unordered_map<std::string, std::unique_ptr<D3D11PixelShader>>
+        pixel_shaders;
 
     // Used in compilation
     std::vector<D3D_SHADER_MACRO> shader_macros;

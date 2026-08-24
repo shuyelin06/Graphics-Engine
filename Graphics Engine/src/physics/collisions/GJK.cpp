@@ -258,11 +258,11 @@ Vector3 GJKSolver::penetrationVector()
             const Matrix3 m_rotation = rotation.rotationMatrix3();
             const Vector3 direction = m_rotation * Vector3::PositiveZ();
 
-            Graphics::VisualDebug::DrawLine(Vector3(), direction * 3,
-                                            Color::White());
+            //Graphics::VisualDebug::DrawLine(Vector3(), direction * 3,
+            //                                Color::White());
 
             const Vector3 support_point = querySupports(direction);
-            Graphics::VisualDebug::DrawPoint(support_point, 1.25f);
+            //Graphics::VisualDebug::DrawPoint(support_point, 1.25f);
 
             if (support_point.dot(direction) < distance)
             {

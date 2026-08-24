@@ -97,10 +97,6 @@ class MeshBuilder
     // the builder. Unit cube centered around the origin
     void addTriangle(const Vector3& a, const Vector3& b, const Vector3& c);
     void addCube(const Vector3& center, const Quaternion& rotation, float size);
-    void addTube(const Vector3& start,
-                 const Vector3& end,
-                 float radius,
-                 int num_vertices);
 
     // Discard the current normals for the mesh and regenerate them
     void regenerateNormals();

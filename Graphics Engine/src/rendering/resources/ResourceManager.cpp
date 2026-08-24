@@ -105,6 +105,7 @@ class ResourceManagerImpl
 
     // Get Resources
     std::shared_ptr<Texture> getFallbackColormap() const;
+    std::shared_ptr<Geometry> getCubeMesh() const;
 
     // Create Resources
     std::shared_ptr<Geometry>
@@ -150,6 +151,10 @@ void ResourceManager::updatePerform() { mImpl->updatePerform(); }
 std::shared_ptr<Texture> ResourceManager::getFallbackColormap() const
 {
     return mImpl->getFallbackColormap();
+}
+std::shared_ptr<Geometry> ResourceManager::getCubeMesh() const
+{
+    return mImpl->getCubeMesh();
 }
 
 std::shared_ptr<Geometry>
@@ -209,6 +214,16 @@ void ResourceManagerImpl::updatePerform()
     {
         pool->cleanAndCompact();
         pool->updateGPUResources(context);
+
+        // TEmp
+        for (auto meshWeak : pool->meshes)
+        {
+            std::shared_ptr<Geometry> meshStrong = meshWeak.lock();
+            if (meshStrong)
+            {
+                meshStrong->ready = true;
+            }
+        }
     }
 }
 
@@ -216,6 +231,10 @@ void ResourceManagerImpl::updatePerform()
 std::shared_ptr<Texture> ResourceManagerImpl::getFallbackColormap() const
 {
     return fallbackColormap;
+}
+std::shared_ptr<Geometry> ResourceManagerImpl::getCubeMesh() const
+{
+    return cubeMesh;
 }
 
 std::shared_ptr<Geometry>
@@ -574,11 +593,6 @@ void ResourceManagerImpl::processMeshJob(const MeshBuildingJob& job)
     // Update my mesh pool
     pool->vertex_size += job.vertex_data.size();
     pool->index_size += job.index_data.size() * 3;
-
-    // Upload to GPU
-    pool->updateGPUResources(context);
-
-    mesh->ready = true;
 }
 
 // System Resources

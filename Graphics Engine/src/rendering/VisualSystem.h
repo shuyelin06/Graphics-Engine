@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include "VisualDebug.h"
 #include "core/Device.h"
 #include "lights/LightManager.h"
 #include "pipeline/PipelineManager.h"
@@ -24,6 +25,7 @@ class SceneManager;
 class ResourceManager;
 class MaterialManager;
 class PostFXManager;
+class VisualDebug;
 
 // VisualSystem Class:
 // Provides an interface for the application's graphics.
@@ -40,6 +42,7 @@ class VisualSystem
     DeviceContext* context;
 
     std::unique_ptr<Pipeline> pipeline;
+    std::unique_ptr<VisualDebug> visual_debug;
     std::unique_ptr<ResourceManager> resource_manager;
     std::unique_ptr<MaterialManager> material_manager;
     std::unique_ptr<RenderManager> render_manager;
@@ -65,7 +68,9 @@ class VisualSystem
     RenderManager* getRenderManager() const;
     LightManager* getLightManager() const;
     Pipeline* getPipeline() const;
+    VisualDebug* getVisualDebug() const { return visual_debug.get(); };
 
+    void doCoreUI();
     void doRenderDocUI();
 };
 } // namespace Graphics

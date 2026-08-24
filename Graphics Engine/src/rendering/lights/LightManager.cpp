@@ -4,12 +4,17 @@
 #include "LightDataGPU.h"
 #include "rendering/VisualDebug.h"
 
+#include "rendering/VisualSystem.h"
+
 namespace Engine
 {
 namespace Graphics
 {
-LightManager::LightManager(Device* device, unsigned int atlas_size)
-    : shadow_lights()
+LightManager::LightManager(VisualSystem* visualSystem,
+                           Device* device,
+                           unsigned int atlas_size)
+    : visualSystem(visualSystem)
+    , shadow_lights()
 {
     DMLight::ConnectToCreation([this](Object* obj) { onObjectCreate(obj); });
 
@@ -272,7 +277,7 @@ void LightManager::imGui()
     {
         for (auto& light : shadow_lights)
         {
-            VisualDebug::DrawFrustum(
+            visualSystem->getVisualDebug()->drawFrustum(
                 (light->getFrustumMatrix() * light->getWorldMatrix().inverse())
                     .inverse(),
                 Color::Green());

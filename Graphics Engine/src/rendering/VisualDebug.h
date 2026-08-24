@@ -6,9 +6,7 @@
 #include "math/Matrix4.h"
 #include "math/Vector3.h"
 
-#if defined(_DEBUG)
-#define ENABLE_DEBUG_DRAWING
-#endif
+#include "rendering/core/Device.h"
 
 namespace Engine
 {
@@ -28,45 +26,41 @@ struct PointData
     float padding;
 };
 
-// LineData Struct:
-// Contains data for a line to be rendered (for debugging)
-// This data is loaded into a vertex buffer with a line list format
-struct LinePoint
-{
-    Vector3 point;
-    Color color;
-};
-
 // VisualDebug Class:
 // Contains methods that can be called statically
 // for convenient debugging purposes
 // Note: All debug rendering data is cleared after every frame
 class VisualDebug
 {
-    friend class VisualSystem;
-
   private:
-#if defined(ENABLE_DEBUG_DRAWING)
-    static std::vector<PointData> points;
-    static std::vector<LinePoint> lines;
-#endif
+    std::vector<PointData> points;
+    std::shared_ptr<Geometry> pointMesh;
+
+    std::vector<Vector4> linePositions;
+    std::vector<Vector4> lineColors;
+    std::shared_ptr<Buffer> linePositionBuffer;
+    std::shared_ptr<Buffer> lineColorBuffer;
 
   public:
-    // Clear all debug rendering data
-    static void Clear();
+    VisualDebug(Device* device, std::shared_ptr<Geometry> pointMesh);
+    ~VisualDebug();
+
+    void render(DeviceContext* context);
 
     // Quick and dirty rendering in 3D space
-    static bool
-    DrawPoint(const Vector3& position, float scale, const Color& color);
-    static bool DrawPoint(const Vector3& position, float scale);
-    static bool
-    DrawLine(const Vector3& p1, const Vector3& p2, const Color& rgb);
-    static bool DrawLine(const Vector3& p1, const Vector3& p2);
+    bool drawPoint(const Vector3& position,
+                   float scale,
+                   const Color& rgb = Color::Red());
 
-    static void DrawBox(const Vector3& box_min, const Vector3& box_max);
+    bool drawLine(const Vector3& p1,
+                  const Vector3& p2,
+                  const Color& rgb = Color::Red());
+    void drawBox(const Vector3& box_min, const Vector3& box_max);
+    void drawFrustum(const Matrix4& frustumMatrix, const Color& rgb);
 
-    // Rendering for specific features
-    static void DrawFrustum(const Matrix4& frustumMatrix, const Color& rgb);
+  private:
+    void renderLines(DeviceContext* context);
+    void renderPoints(DeviceContext* context);
 };
 } // namespace Graphics
 } // namespace Engine

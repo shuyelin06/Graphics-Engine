@@ -61,18 +61,24 @@ void InitializeGraphicsAPI(HWND window,
     // Free frame buffer (no longer needed)
     texture->Release();
 
-    outDevice = std::make_unique<Direct3D11Device>(device);
+    std::unique_ptr<Direct3D11Device> d3dDevice =
+        std::make_unique<Direct3D11Device>(device);
     outContext = std::make_unique<Direct3D11DeviceContext>(
-        context, device, swapchain, target, viewport);
+        context, device, swapchain, target, viewport, d3dDevice->getShaders());
+    outDevice = std::move(d3dDevice);
 }
 
 Direct3D11Device::Direct3D11Device(ID3D11Device* device)
     : device(device)
 {
+    shaders = std::make_unique<D3D11ShaderCompiler>(device);
+    shaders->initializeShaders();
 }
 Direct3D11Device::~Direct3D11Device() { device->Release(); }
 
 ID3D11Device* Direct3D11Device::getDevice() { return device; }
+
+void Direct3D11Device::reloadShaders() { shaders->initializeShaders(); }
 
 std::shared_ptr<Buffer> Direct3D11Device::createBuffer(const char* debugName,
                                                        BufferType type,
@@ -102,12 +108,14 @@ Direct3D11DeviceContext::Direct3D11DeviceContext(ID3D11DeviceContext* context,
                                                  ID3D11Device* device,
                                                  IDXGISwapChain* swapchain,
                                                  ID3D11RenderTargetView* target,
-                                                 D3D11_VIEWPORT viewport)
+                                                 D3D11_VIEWPORT viewport,
+                                                 D3D11ShaderCompiler* shaders)
     : context(context)
     , device(device)
     , swapchain(swapchain)
     , screenTarget(target)
     , screenViewport(viewport)
+    , shaders(shaders)
 {
     memset(vb_buffers, 0, sizeof(ID3D11Buffer*) * BINDABLE_STREAM_COUNT);
     memset(vb_strides, 0, sizeof(UINT) * BINDABLE_STREAM_COUNT);
@@ -118,8 +126,6 @@ Direct3D11DeviceContext::Direct3D11DeviceContext(ID3D11DeviceContext* context,
         vb_strides[i] = VertexLayout::VertexStreamStride((VertexDataStream)i);
     }
 
-    shaderManager = std::make_unique<D3D11ShaderCompiler>(device);
-    shaderManager->initializeShaders();
     initializeDepthStates();
     initializeBlendStates();
     initializeSamplers();
@@ -265,6 +271,7 @@ void Direct3D11DeviceContext::updateBuffer(
     const std::shared_ptr<Buffer>& buffer, const void* src, size_t bytes)
 {
     D3D11Buffer* buf = reinterpret_cast<D3D11Buffer*>(buffer.get());
+    assert(buf);
     buf->upload(context, src, bytes);
 }
 
@@ -275,6 +282,7 @@ void Direct3D11DeviceContext::updateTexture(
     size_t bytes)
 {
     D3D11Texture* tex = reinterpret_cast<D3D11Texture*>(texture.get());
+    assert(tex);
     tex->update(context, slice, initData, bytes);
 }
 
@@ -364,8 +372,8 @@ void Direct3D11DeviceContext::bindRenderTarget(
 
 void Direct3D11DeviceContext::bindShaderProgram(const char* vs, const char* ps)
 {
-    D3D11VertexShader* vsShader = shaderManager->getVertexShader(vs);
-    D3D11PixelShader* psShader = shaderManager->getPixelShader(ps);
+    D3D11VertexShader* vsShader = shaders->getVertexShader(vs);
+    D3D11PixelShader* psShader = shaders->getPixelShader(ps);
 
     if (vsActive != vsShader)
     {
@@ -475,7 +483,8 @@ void Direct3D11DeviceContext::bindPixelTexture(
 }
 
 void Direct3D11DeviceContext::draw(const Geometry* geometry,
-                                   uint32_t instanceCount)
+                                   uint32_t instanceCount,
+                                   VertexTopology vertexTopology)
 {
     bool invalidateVertexBindings = false;
     for (int i = 0; i < BINDABLE_STREAM_COUNT; i++)
@@ -496,6 +505,18 @@ void Direct3D11DeviceContext::draw(const Geometry* geometry,
     {
         context->IASetVertexBuffers(0, BINDABLE_STREAM_COUNT, vb_buffers,
                                     vb_strides, vb_offsets);
+    }
+
+    switch (vertexTopology)
+    {
+    case VertexTopology::TriangleList:
+         context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+         break;
+    case VertexTopology::LineList:
+        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+        break;
+    default:
+        assert(false);
     }
 
     // Draw with Index Buffer

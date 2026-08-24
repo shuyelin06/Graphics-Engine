@@ -475,6 +475,9 @@ void Terrain2DManagerImpl::updateQuadTreeRecursive(
 
     if (node->isLeaf())
     {
+        Vector3 pos =
+            Vector3(node->data.position.x, 50.f, node->data.position.y);
+        mVisualSystem->getVisualDebug()->drawPoint(pos, 10.f);
         chunksToRender.push_back(node->data);
     }
 }

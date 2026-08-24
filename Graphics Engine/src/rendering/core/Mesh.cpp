@@ -153,7 +153,7 @@ void MeshPool::updateGPUResources(DeviceContext* context)
 
     // Copy index buffer to the GPU
     context->updateBuffer(ibuffer, cpu_ibuffer.get(),
-                          index_capacity * 3 * sizeof(UINT));
+                          index_capacity * sizeof(UINT));
 
     // Copy vertex data to the GPU
     for (int i = 0; i < BINDABLE_STREAM_COUNT; i++)

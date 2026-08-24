@@ -20,6 +20,14 @@ namespace Graphics
 class Device;
 class DeviceContext;
 
+// VertexTopology Enum:
+// Specifies how the vertices are arranged.
+enum class VertexTopology : uint8_t
+{
+    TriangleList = 0,
+    LineList = 1
+};
+
 enum class DepthSettings : uint8_t
 {
     // Prevents the depth stencil from being bound
@@ -110,7 +118,8 @@ class DeviceContext
                                   SamplerSettings sampler) = 0;
 
     virtual void draw(const Geometry* geometry,
-                      uint32_t instanceCount) = 0;
+                      uint32_t instanceCount,
+                      VertexTopology toplogy = VertexTopology::TriangleList) = 0;
 
     virtual void present() = 0;
 };
@@ -123,6 +132,8 @@ class Device
 
     // Temporary
     virtual ID3D11Device* getDevice() = 0;
+
+    virtual void reloadShaders() = 0;
 
     virtual std::shared_ptr<Buffer> createBuffer(const char* debugName,
                                                  BufferType type,

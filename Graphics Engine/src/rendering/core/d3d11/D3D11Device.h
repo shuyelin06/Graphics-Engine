@@ -15,11 +15,17 @@ class Direct3D11Device : public Device
   private:
     ID3D11Device* device;
 
+    std::unique_ptr<D3D11ShaderCompiler> shaders;
+
   public:
     Direct3D11Device(ID3D11Device* device);
     ~Direct3D11Device();
 
+    D3D11ShaderCompiler* getShaders() { return shaders.get(); }
+
     ID3D11Device* getDevice() override;
+
+    void reloadShaders() override;
 
     std::shared_ptr<Buffer> createBuffer(const char* debugName,
                                          BufferType type,
@@ -45,7 +51,7 @@ class Direct3D11DeviceContext : public DeviceContext
     ID3D11Device* device;
 
     // Shaders
-    std::unique_ptr<D3D11ShaderCompiler> shaderManager;
+    D3D11ShaderCompiler* shaders = nullptr;
     D3D11VertexShader* vsActive = nullptr;
     D3D11PixelShader* psActive = nullptr;
 
@@ -70,7 +76,8 @@ class Direct3D11DeviceContext : public DeviceContext
                             ID3D11Device* device,
                             IDXGISwapChain* swapchain,
                             ID3D11RenderTargetView* target,
-                            D3D11_VIEWPORT viewport);
+                            D3D11_VIEWPORT viewport,
+                            D3D11ShaderCompiler* shaders);
     ~Direct3D11DeviceContext();
 
     // Temporary and should be removed
@@ -109,7 +116,9 @@ class Direct3D11DeviceContext : public DeviceContext
                           const std::shared_ptr<Texture>& texture,
                           SamplerSettings sampler) override;
 
-    void draw(const Geometry* geometry, uint32_t instanceCount) override;
+    void draw(const Geometry* geometry,
+              uint32_t instanceCount,
+              VertexTopology toplogy) override;
 
     void present() override;
 

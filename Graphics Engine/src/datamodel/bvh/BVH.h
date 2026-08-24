@@ -1,7 +1,7 @@
 #pragma once
 #pragma once
 
-#define DEBUG_BVH
+// #define DEBUG_BVH
 
 // On raycast, flags what nodes and triangles
 // the ray has intersected and displays them in green.

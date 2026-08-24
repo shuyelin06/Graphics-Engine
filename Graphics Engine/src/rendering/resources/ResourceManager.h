@@ -38,6 +38,7 @@ class ResourceManager
 
     // System Resources
     std::shared_ptr<Texture> getFallbackColormap() const;
+    std::shared_ptr<Geometry> getCubeMesh() const;
 
     // Create Resources
     std::shared_ptr<Geometry> LoadMeshFromFile(const std::string& relative_path);

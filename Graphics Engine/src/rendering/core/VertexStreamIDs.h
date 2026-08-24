@@ -39,8 +39,6 @@ enum VertexDataStream : uint16_t
     INSTANCE_ID = BINDABLE_STREAM_COUNT,
     // VERTEX_ID: Used for vertex pulling
     VERTEX_ID,
-    // Position + RGB Color; Debug Line Rendering
-    DEBUG_LINE,
 };
 
 class VertexLayout

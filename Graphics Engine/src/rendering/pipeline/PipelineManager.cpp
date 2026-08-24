@@ -114,25 +114,6 @@ void Pipeline::beginFrame(const uint64_t frame)
     context->clearRenderTarget(render_target_dest, baseColor);
 }
 
-void Pipeline::setVertexTopology(VertexTopology topology)
-{
-    switch (topology)
-    {
-    case VertexTopology::TriangleList:
-        context->getContext()->IASetPrimitiveTopology(
-            D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        break;
-
-    case VertexTopology::LineList:
-        context->getContext()->IASetPrimitiveTopology(
-            D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-        break;
-
-    default:
-        assert(false);
-    }
-}
-
 void Pipeline::bindRenderTarget(TargetFlags f_target,
                                 DepthSettings f_depth,
                                 BlendSettings f_blend)

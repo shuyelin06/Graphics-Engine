@@ -10,21 +10,11 @@
 
 #include "StructuredBuffer.h"
 
-#define INDEX_LIST_START 0
-#define INDEX_LIST_END -1
-
 namespace Engine
 {
 namespace Graphics
 {
-// VertexTopology Enum:
-// Specifies how the vertices are arranged.
-enum class VertexTopology : uint8_t
-{
-    TriangleList = 0,
-    LineList = 1,
-    _Count_,
-};
+
 
 // Render Target Bind Flags:
 // Flags for setting the render target.
@@ -77,9 +67,6 @@ class Pipeline
 
     // Prepare
     void beginFrame(const uint64_t frame);
-
-    // Vertex Technique API
-    void setVertexTopology(VertexTopology topology);
 
     // Pixel Technique API
     void bindRenderTarget(TargetFlags, DepthSettings, BlendSettings);
