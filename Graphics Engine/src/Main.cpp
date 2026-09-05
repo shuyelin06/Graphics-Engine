@@ -223,6 +223,8 @@ int WINAPI wWinMain(HINSTANCE hInstance,
             ImGui::Text("Pending Jobs: %i", ThreadPool::GetNumberPendingJobs());
             ImGui::Text("Active Workers: %i",
                         ThreadPool::GetNumberActiveWorkers());
+
+            ImGui::EndMenu();
         }
 #endif
 

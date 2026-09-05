@@ -35,6 +35,10 @@ static std::vector<std::string> splitPath(const std::string& path)
     return tokens;
 }
 
+void InitializeImGui() {}
+
+void ShutdownImGui() {}
+
 void RegisterImGuiCallback(const std::string& path,
                            std::function<void(void)> callback)
 {
@@ -81,7 +85,7 @@ static void traverseNodeHierarchy(ImGuiNode* node)
     }
 }
 
-static void renderImGui()
+void RenderImGui()
 {
     traverseNodeHierarchy(&root);
 
@@ -116,26 +120,5 @@ static void renderImGui()
     }
 }
 #endif
-
-void StartImguiFrame()
-{
-#if defined(IMGUI_ENABLED)
-    ImGui_ImplDX11_NewFrame();
-    ImGui_ImplWin32_NewFrame();
-    ImGui::NewFrame();
-    ImGui::BeginMainMenuBar();
-
-    ImGuiHelper::renderImGui();
-#endif
-}
-
-void EndImGuiFrame()
-{
-#if defined(IMGUI_ENABLED)
-    ImGui::EndMainMenuBar();
-    ImGui::Render();
-    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-#endif
-}
 
 } // namespace ImGuiHelper

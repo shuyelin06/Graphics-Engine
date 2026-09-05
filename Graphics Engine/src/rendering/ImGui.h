@@ -9,8 +9,7 @@ namespace ImGuiHelper
 {
 void RegisterImGuiCallback(const std::string& path,
                            std::function<void(void)> callback);
-void StartImguiFrame();
-void EndImGuiFrame();
+void RenderImGui();
 } // namespace ImGuiHelper
 
 // Includes the libraries necessary for using ImGui in
@@ -18,8 +17,6 @@ void EndImGuiFrame();
 #if defined(IMGUI_ENABLED)
 
 #include "imgui/imgui.h"
-#include "imgui/imgui_impl_dx11.h"
-#include "imgui/imgui_impl_win32.h"
 
 // Converts the Vector3 address into a type ImGui accepts
 #define Vec3ImGuiAddr(vec3) static_cast<float*>(&vec3.x)

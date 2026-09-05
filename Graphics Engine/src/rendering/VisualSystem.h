@@ -14,6 +14,9 @@
 #include "scene/SceneManager.h"
 #include "terrain2D/Terrain2DManager.h"
 
+struct ID3D11Device;
+struct ID3D11DeviceContext;
+
 namespace Engine
 {
 using namespace Datamodel;

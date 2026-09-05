@@ -42,7 +42,6 @@ Pipeline::Pipeline(HWND window)
 
 #if defined(_DEBUG)
     imGuiInitialize(window);
-    imGuiPrepare();
 #endif
 
     ImGuiHelper::RegisterImGuiCallback("Render/Pipeline",
@@ -193,31 +192,6 @@ void Pipeline::endFrame()
 // Initializes the ImGui menu and associated data.
 void Pipeline::imGuiInitialize(HWND window)
 {
-    // Initialize ImGui
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |=
-        ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-    io.ConfigFlags |=
-        ImGuiConfigFlags_NavEnableGamepad; // Enable Gamepad Controls
-
-    ImGui_ImplWin32_Init(window);
-    ImGui_ImplDX11_Init(device->getDevice(), context->getContext());
-}
-
-// ImGuiPrepare:
-// Creates a new frame for the ImGui system and begin tracking GPU time
-// for the current frame
-void Pipeline::imGuiPrepare()
-{
-
-}
-
-// ImGuiFinish:
-// Finish and present the ImGui window
-void Pipeline::imGuiFinish()
-{
     
 }
 
@@ -225,9 +199,7 @@ void Pipeline::imGuiFinish()
 // Shut down the ImGui system
 void Pipeline::imGuiShutdown()
 {
-    ImGui_ImplDX11_Shutdown();
-    ImGui_ImplWin32_Shutdown();
-    ImGui::DestroyContext();
+    
 }
 #endif
 

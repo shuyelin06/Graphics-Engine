@@ -1,10 +1,7 @@
 #include "VisualSystem.h"
 
-#include "Direct3D11.h"
-
-#include "util/RenderDoc.h"
-
 #include "util/Profiling.h"
+#include "util/RenderDoc.h"
 
 namespace Engine
 {
@@ -44,7 +41,6 @@ VisualSystem::VisualSystem(HWND window)
                                        [this]() { doRenderDocUI(); });
     ImGuiHelper::RegisterImGuiCallback("Profiler",
                                        []() { Profiling::DoProfilerImgui(); });
-    ImGuiHelper::StartImguiFrame();
 }
 
 // Render:
@@ -90,9 +86,6 @@ void VisualSystem::endRenderFrame()
     pipeline->endFrame();
     context->endFrame();
 
-    // Finish ImGui rendering
-    ImGuiHelper::EndImGuiFrame();
-
     // Swapchain present
     // Finished presenting so finish
     // RenderDoc Capture (if initialized and we are taking one)
@@ -100,7 +93,6 @@ void VisualSystem::endRenderFrame()
     RenderDoc::EndRenderDocCaptureIfCapturing();
 
     // Start next frame
-    ImGuiHelper::StartImguiFrame();
     PROFILE_RESET();
 }
 

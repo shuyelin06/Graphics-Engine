@@ -6,10 +6,36 @@
 #include "D3D11Shader.h"
 #include "D3D11Texture.h"
 
+#include "rendering/ImGui.h"
+
+#if defined(IMGUI_ENABLED)
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_dx11.h"
+#include "imgui/imgui_impl_win32.h"
+#endif
+
 namespace Engine
 {
 namespace Graphics
 {
+#if defined(IMGUI_ENABLED)
+static void StartImGuiFrame()
+{
+    ImGui_ImplDX11_NewFrame();
+    ImGui_ImplWin32_NewFrame();
+    ImGui::NewFrame();
+    ImGui::BeginMainMenuBar();
+
+    ImGuiHelper::RenderImGui();
+}
+static void EndImGuiFrame()
+{
+    ImGui::EndMainMenuBar();
+    ImGui::Render();
+    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+}
+#endif
+
 void InitializeGraphicsAPI(HWND window,
                            std::unique_ptr<Device>& outDevice,
                            std::unique_ptr<DeviceContext>& outContext)
@@ -66,6 +92,22 @@ void InitializeGraphicsAPI(HWND window,
     outContext = std::make_unique<Direct3D11DeviceContext>(
         context, device, swapchain, target, viewport, d3dDevice->getShaders());
     outDevice = std::move(d3dDevice);
+
+    // Initialize ImGui
+#if defined(IMGUI_ENABLED)
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |=
+        ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+    io.ConfigFlags |=
+        ImGuiConfigFlags_NavEnableGamepad; // Enable Gamepad Controls
+
+    ImGui_ImplWin32_Init(window);
+    ImGui_ImplDX11_Init(device, context);
+
+    StartImGuiFrame();
+#endif
 }
 
 Direct3D11Device::Direct3D11Device(ID3D11Device* device)
@@ -148,6 +190,12 @@ Direct3D11DeviceContext ::~Direct3D11DeviceContext()
         if (pixelCB[slot])
             pixelCB[slot]->Release();
     }
+
+#if defined(IMGUI_ENABLED)
+    ImGui_ImplDX11_Shutdown();
+    ImGui_ImplWin32_Shutdown();
+    ImGui::DestroyContext();
+#endif
 }
 
 void Direct3D11DeviceContext::initializeDepthStates()
@@ -558,6 +606,10 @@ void Direct3D11DeviceContext::draw(const Geometry* geometry,
 
 void Direct3D11DeviceContext::present()
 {
+#if defined(IMGUI_ENABLED)
+    EndImGuiFrame();
+#endif
+
     HRESULT result = swapchain->Present(1, 0);
     if (result == DXGI_ERROR_DEVICE_REMOVED ||
         result == DXGI_ERROR_DEVICE_RESET)
@@ -565,6 +617,10 @@ void Direct3D11DeviceContext::present()
         result = device->GetDeviceRemovedReason();
     }
     assert(SUCCEEDED(result));
+
+#if defined(IMGUI_ENABLED)
+    StartImGuiFrame();
+#endif
 }
 
 } // namespace Graphics

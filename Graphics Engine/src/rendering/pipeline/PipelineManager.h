@@ -15,7 +15,6 @@ namespace Engine
 namespace Graphics
 {
 
-
 // Render Target Bind Flags:
 // Flags for setting the render target.
 enum TargetFlags
@@ -89,9 +88,6 @@ class Pipeline
 #if defined(_DEBUG)
     // ImGui Display
     void imGuiInitialize(HWND window);
-
-    void imGuiPrepare();
-    void imGuiFinish();
 
     void imGuiShutdown();
 #endif
