@@ -160,7 +160,7 @@ Terrain2DManagerImpl::Terrain2DManagerImpl(VisualSystem* visualSystem)
 
     reset();
 
-    ImGuiHelper::registerImGuiCallback("Render/Terrain2D",
+    ImGuiHelper::RegisterImGuiCallback("Render/Terrain2D",
                                        [this]() { imGui(); });
 }
 Terrain2DManagerImpl::~Terrain2DManagerImpl() = default;

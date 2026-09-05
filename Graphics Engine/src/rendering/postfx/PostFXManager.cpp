@@ -4,10 +4,6 @@
 
 #include "rendering/ImGui.h"
 
-#if defined(_DEBUG)
-#include "rendering/util/CPUTimer.h"
-#endif
-
 namespace Engine
 {
 namespace Graphics
@@ -59,7 +55,7 @@ PostFXManagerImpl::PostFXManagerImpl(VisualSystem* visualSystem)
     : mVisualSystem(visualSystem)
 {
 
-    ImGuiHelper::registerImGuiCallback("Render/PostFX", [this]() { imGui(); });
+    ImGuiHelper::RegisterImGuiCallback("Render/PostFX", [this]() { imGui(); });
 }
 
 void PostFXManagerImpl::render(DeviceContext* context)

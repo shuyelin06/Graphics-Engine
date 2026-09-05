@@ -5,9 +5,10 @@
 #include "../core/Mesh.h"
 #include "math/Vector4.h"
 
+#include "util/Profiling.h"
+
 #if defined(_DEBUG)
 #include "../ImGui.h"
-#include "../util/CPUTimer.h"
 #endif
 
 namespace Engine
@@ -44,7 +45,7 @@ Pipeline::Pipeline(HWND window)
     imGuiPrepare();
 #endif
 
-    ImGuiHelper::registerImGuiCallback("Render/Pipeline",
+    ImGuiHelper::RegisterImGuiCallback("Render/Pipeline",
                                        [this]() { imGui(); });
 }
 
@@ -185,16 +186,6 @@ void Pipeline::endFrame()
 
         drawPostProcessQuad();
     }
-
-#if defined(_DEBUG)
-    imGuiFinish();
-#endif
-
-    context->present();
-
-#if defined(_DEBUG)
-    imGuiPrepare();
-#endif
 }
 
 #if defined(_DEBUG) // ImGui
@@ -213,9 +204,6 @@ void Pipeline::imGuiInitialize(HWND window)
 
     ImGui_ImplWin32_Init(window);
     ImGui_ImplDX11_Init(device->getDevice(), context->getContext());
-
-    // Create CPU Timers
-    CPUTimer::Initialize();
 }
 
 // ImGuiPrepare:
@@ -223,30 +211,14 @@ void Pipeline::imGuiInitialize(HWND window)
 // for the current frame
 void Pipeline::imGuiPrepare()
 {
-    // Start the Dear ImGui frame
-    ImGui_ImplDX11_NewFrame();
-    ImGui_ImplWin32_NewFrame();
-    ImGui::NewFrame();
-    ImGui::BeginMainMenuBar();
+
 }
 
 // ImGuiFinish:
 // Finish and present the ImGui window
 void Pipeline::imGuiFinish()
 {
-    if (ImGui::BeginMenu("CPU / GPU Runtime"))
-    {
-        ImGui::SeparatorText("CPU Times:");
-        CPUTimer::DisplayCPUTimes();
-
-        ImGui::EndMenu();
-    }
-
-    ImGui::EndMainMenuBar();
-
-    // Finish the ImGui Frame
-    ImGui::Render();
-    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+    
 }
 
 // ImGuiShutDown:

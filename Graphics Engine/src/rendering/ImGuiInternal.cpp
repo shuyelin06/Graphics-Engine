@@ -35,7 +35,7 @@ static std::vector<std::string> splitPath(const std::string& path)
     return tokens;
 }
 
-void registerImGuiCallback(const std::string& path,
+void RegisterImGuiCallback(const std::string& path,
                            std::function<void(void)> callback)
 {
 #if defined(IMGUI_ENABLED)
@@ -52,9 +52,9 @@ void registerImGuiCallback(const std::string& path,
 #endif
 }
 
+#if defined(IMGUI_ENABLED)
 static void traverseNodeHierarchy(ImGuiNode* node)
 {
-#if defined(IMGUI_ENABLED)
     for (auto& [name, child] : node->children)
     {
         if (child.callback != nullptr)
@@ -79,12 +79,10 @@ static void traverseNodeHierarchy(ImGuiNode* node)
             }
         }
     }
-#endif
 }
 
-void renderImGui()
+static void renderImGui()
 {
-#if defined(IMGUI_ENABLED)
     traverseNodeHierarchy(&root);
 
     std::vector<ImGuiNode*>::iterator iter = activeNodes.begin();
@@ -116,6 +114,27 @@ void renderImGui()
             ++iter;
         }
     }
+}
+#endif
+
+void StartImguiFrame()
+{
+#if defined(IMGUI_ENABLED)
+    ImGui_ImplDX11_NewFrame();
+    ImGui_ImplWin32_NewFrame();
+    ImGui::NewFrame();
+    ImGui::BeginMainMenuBar();
+
+    ImGuiHelper::renderImGui();
+#endif
+}
+
+void EndImGuiFrame()
+{
+#if defined(IMGUI_ENABLED)
+    ImGui::EndMainMenuBar();
+    ImGui::Render();
+    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 #endif
 }
 

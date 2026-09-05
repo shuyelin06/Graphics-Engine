@@ -182,7 +182,7 @@ ResourceManagerImpl::ResourceManagerImpl(Device* device, DeviceContext* context)
 {
     assert(device && context);
 
-    ImGuiHelper::registerImGuiCallback("Render/Resources",
+    ImGuiHelper::RegisterImGuiCallback("Render/Resources",
                                        [this]() { imGui(); });
 
     debugState = std::make_unique<DebugState>();

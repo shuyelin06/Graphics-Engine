@@ -60,15 +60,21 @@ class VisualSystem
     void renderPrepare();
     void render();
 
-    Device* getDevice() const;
-    ResourceManager* getResourceManager() const;
-    MaterialManager* getMaterialManager() const;
-    SceneListener* getSceneListener() const;
-    SceneManager* getSceneManager() const;
-    RenderManager* getRenderManager() const;
-    LightManager* getLightManager() const;
-    Pipeline* getPipeline() const;
+    // clang-format off
+    Device* getDevice() const { return device; }
+    ResourceManager* getResourceManager() const { return resource_manager.get(); }
+    MaterialManager* getMaterialManager() const { return material_manager.get(); }
+    SceneListener* getSceneListener() const { return scene_listener.get(); }
+    SceneManager* getSceneManager() const { return scene_manager.get(); }
+    RenderManager* getRenderManager() const { return render_manager.get(); }
+    LightManager* getLightManager() const { return light_manager; }
+    Pipeline* getPipeline() const { return pipeline.get(); }
     VisualDebug* getVisualDebug() const { return visual_debug.get(); };
+    // clang-format on
+
+  private:
+    void beginRenderFrame();
+    void endRenderFrame();
 
     void doCoreUI();
     void doRenderDocUI();

@@ -8,8 +8,6 @@
 #include "PhysicsObject.h"
 #include "PhysicsTerrain.h"
 
-#include "utility/Stopwatch.h"
-
 namespace Engine
 {
 namespace Physics
@@ -19,10 +17,6 @@ namespace Physics
 class PhysicsSystem
 {
   private:
-    // Track delta time
-    Utility::Stopwatch stopwatch;
-    float delta_time;
-
     // Dynamic AABB tree for the collision broad-phase
     AABBTree broadphase_tree;
 

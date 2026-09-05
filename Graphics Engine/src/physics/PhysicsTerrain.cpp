@@ -1,10 +1,6 @@
 #include "PhysicsTerrain.h"
 
 /*
-#if defined(_DEBUG)
-#include "rendering/util/CPUTimer.h"
-#endif
-
 namespace Engine {
 namespace Physics {
 PhysicsTerrainCallback::PhysicsTerrainCallback() = default;

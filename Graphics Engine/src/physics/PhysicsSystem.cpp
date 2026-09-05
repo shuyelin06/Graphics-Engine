@@ -5,18 +5,13 @@
 
 namespace Engine
 {
-using namespace Utility;
-
 namespace Physics
 {
 // Constructor:
 // Initializes relevant fields
 PhysicsSystem::PhysicsSystem()
     : broadphase_tree(0.2f)
-    , stopwatch()
 {
-    stopwatch.Reset();
-
     DMPhysics::ConnectToCreation([this](Object* obj) { onObjectCreate(obj); });
 
     // terrain = nullptr;
@@ -93,11 +88,6 @@ void PhysicsSystem::pullDatamodelData()
 
     // if (terrain != nullptr)
     //  terrain->pullTerrainBVHs();
-
-    // Determine the amount of time that has elapsed since the last
-    // update() call.
-    delta_time = stopwatch.Duration();
-    stopwatch.Reset();
 }
 
 // Update:
@@ -153,8 +143,8 @@ void PhysicsSystem::update()
     // Apply acceleration and velocity to all objects
     for (PhysicsObject* object : objects)
     {
-        object->applyAcceleration(delta_time);
-        object->applyVelocity(delta_time);
+        object->applyAcceleration(1 / 60.f);
+        object->applyVelocity(1 / 60.f);
     }
 }
 

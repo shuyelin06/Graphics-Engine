@@ -4,9 +4,7 @@
 
 #include "util/RenderDoc.h"
 
-#if defined(_DEBUG)
-#include "util/CPUTimer.h"
-#endif
+#include "util/Profiling.h"
 
 namespace Engine
 {
@@ -41,59 +39,73 @@ VisualSystem::VisualSystem(HWND window)
     light_manager = new LightManager(this, device, 4096);
     terrain2D = Terrain2DManager::create(this);
 
-    ImGuiHelper::registerImGuiCallback("Render/Core", [this]() { doCoreUI(); });
-    ImGuiHelper::registerImGuiCallback("Render/Renderdoc",
+    ImGuiHelper::RegisterImGuiCallback("Render/Core", [this]() { doCoreUI(); });
+    ImGuiHelper::RegisterImGuiCallback("Render/Renderdoc",
                                        [this]() { doRenderDocUI(); });
+    ImGuiHelper::RegisterImGuiCallback("Profiler",
+                                       []() { Profiling::DoProfilerImgui(); });
+    ImGuiHelper::StartImguiFrame();
 }
 
 // Render:
 // Renders the entire scene to the screen.
 void VisualSystem::render()
 {
-    terrain2D->updatePerform(context);
-
-    context->beginFrame(frame++);
-
-    pipeline->beginFrame(frame++);
-
-#if defined(_DEBUG)
     {
-        ICPUTimer cpu_timer = CPUTimer::TrackCPUTime("CPU Frametime");
-#endif
+        PROFILE_SCOPE("TEST");
 
-        context->beginPass("Pass 1");
-        render_manager->perform();
-        context->endPass();
+        terrain2D->updatePerform(context);
 
-        context->beginPass("Pass 2");
-        visual_debug->render(context);
-        context->endPass();
+        beginRenderFrame();
+
+        {
+            PROFILE_SCOPE("Render Manager");
+            context->beginPass("Pass 1");
+            render_manager->perform();
+            context->endPass();
+        }
+
+        {
+            PROFILE_SCOPE("Debug Render");
+            context->beginPass("Debug Render");
+            visual_debug->render(context);
+            context->endPass();
+        }
 
         postfx_manager->render(context);
-
-#if defined(_DEBUG)
     }
-#endif
 
-    // Finish rendering and present
+    endRenderFrame();
+}
+
+void VisualSystem::beginRenderFrame()
+{
+    frame++;
+    context->beginFrame(frame);
+    pipeline->beginFrame(frame);
+}
+
+void VisualSystem::endRenderFrame()
+{
     pipeline->endFrame();
-
     context->endFrame();
 
-    // Finish RenderDoc Capture (if initialized and we are taking one)
+    // Finish ImGui rendering
+    ImGuiHelper::EndImGuiFrame();
+
+    // Swapchain present
+    // Finished presenting so finish
+    // RenderDoc Capture (if initialized and we are taking one)
+    context->present();
     RenderDoc::EndRenderDocCaptureIfCapturing();
+
+    // Start next frame
+    ImGuiHelper::StartImguiFrame();
+    PROFILE_RESET();
 }
 
 void VisualSystem::renderPrepare()
 {
-#if defined(_DEBUG)
-    ICPUTimer cpu_timer = CPUTimer::TrackCPUTime("Render Prepare");
-#endif
-
-#if defined(IMGUI_ENABLED)
-    ImGuiHelper::renderImGui();
-#endif
-
     // Parse all datamodel update packets since the last frame and update my
     // rendering systems.
     scene_listener->update();
@@ -128,31 +140,6 @@ void VisualSystem::renderPrepare()
     mainView.depthStencil = pipeline->getDepthStencil();
     render_manager->setMainView(mainView);
 }
-
-Device* VisualSystem::getDevice() const { return device; }
-ResourceManager* VisualSystem::getResourceManager() const
-{
-    return resource_manager.get();
-}
-MaterialManager* VisualSystem::getMaterialManager() const
-{
-    return material_manager.get();
-}
-SceneListener* VisualSystem::getSceneListener() const
-{
-    return scene_listener.get();
-}
-SceneManager* VisualSystem::getSceneManager() const
-{
-    return scene_manager.get();
-}
-RenderManager* VisualSystem::getRenderManager() const
-{
-    return render_manager.get();
-}
-LightManager* VisualSystem::getLightManager() const { return light_manager; }
-
-Pipeline* VisualSystem::getPipeline() const { return pipeline.get(); }
 
 void VisualSystem::doCoreUI()
 {

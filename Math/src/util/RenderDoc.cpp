@@ -1,10 +1,13 @@
-#include "RenderDoc.h"
+#include "include/util/RenderDoc.h"
 
-// Comment this in to enable RenderDoc
-#define ENABLE_RENDER_DOC
+#include "src/dependencies/UIBridge.h"
 
-#ifdef ENABLE_RENDER_DOC
-#include "renderdoc/renderdoc_app.h"
+#if defined(ENABLE_RENDER_DOC) && defined(UTILITY_IMGUI_ENABLED)
+#define RENDERDOC_TOGGLE 1
+#endif
+
+#ifdef RENDERDOC_TOGGLE
+#include "src/dependencies/external/renderdoc_app.h"
 #include <windows.h>
 
 // API Handle
@@ -14,15 +17,11 @@ constexpr const char* RenderDocDLLPath =
     "C:\\Program Files\\RenderDoc\\renderdoc.dll";
 #endif
 
-namespace Engine
-{
-namespace Graphics
-{
 namespace RenderDoc
 {
 void InitializeRenderDoc()
 {
-#ifdef ENABLE_RENDER_DOC
+#ifdef RENDERDOC_TOGGLE
     // Attempt to fetch the renderdoc DLL if it is already loaded
     // If it doesn't exist, try to load the DLL
     HMODULE mod = GetModuleHandleA(RenderDocDLL);
@@ -62,7 +61,7 @@ void InitializeRenderDoc()
 }
 bool IsRenderDocInitialized()
 {
-#ifdef ENABLE_RENDER_DOC
+#ifdef RENDERDOC_TOGGLE
     return rdoc_api != nullptr;
 #else
     return false;
@@ -70,14 +69,14 @@ bool IsRenderDocInitialized()
 }
 void StartRenderDocCapture()
 {
-#ifdef ENABLE_RENDER_DOC
+#ifdef RENDERDOC_TOGGLE
     if (rdoc_api)
         rdoc_api->StartFrameCapture(nullptr, nullptr);
 #endif
 }
 void EndRenderDocCaptureIfCapturing()
 {
-#ifdef ENABLE_RENDER_DOC
+#ifdef RENDERDOC_TOGGLE
     if (rdoc_api && rdoc_api->IsFrameCapturing())
     {
         rdoc_api->EndFrameCapture(nullptr, nullptr);
@@ -93,5 +92,3 @@ void EndRenderDocCaptureIfCapturing()
 }
 
 } // namespace RenderDoc
-} // namespace Graphics
-} // namespace Engine

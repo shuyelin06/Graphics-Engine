@@ -42,11 +42,12 @@
 #include "datamodel/objects/DMMesh.h"
 
 #include "rendering/VisualDebug.h"
-#include "utility/Stopwatch.h"
 
-#include "rendering/util/RenderDoc.h"
+#include "util/RenderDoc.h"
 
 #include "core/JobGraph.h"
+
+#include "util/Profiling.h"
 
 // --- TEST
 
@@ -72,7 +73,7 @@ int WINAPI wWinMain(HINSTANCE hInstance,
                     int nCmdShow)
 {
     // Initialize RenderDoc (if enabled)
-    Engine::Graphics::RenderDoc::InitializeRenderDoc();
+    RenderDoc::InitializeRenderDoc();
 
     // Create a Window Class with the OS
     const wchar_t CLASS_NAME[] = L"Main";

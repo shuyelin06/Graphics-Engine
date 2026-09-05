@@ -1,6 +1,6 @@
 #include "Compute.h"
 
-#include "external/md5.h"
+#include "src/dependencies/external/md5.h"
 
 #include <assert.h>
 #include <math.h>

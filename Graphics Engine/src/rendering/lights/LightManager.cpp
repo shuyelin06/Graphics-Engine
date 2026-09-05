@@ -29,7 +29,7 @@ LightManager::LightManager(VisualSystem* visualSystem,
     // Create sun light
     createSunLight(QUALITY_5);
 
-    ImGuiHelper::registerImGuiCallback("Render/Lighting",
+    ImGuiHelper::RegisterImGuiCallback("Render/Lighting",
                                        [this]() { imGui(); });
 }
 

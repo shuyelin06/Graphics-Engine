@@ -7,9 +7,10 @@
 
 namespace ImGuiHelper
 {
-void registerImGuiCallback(const std::string& path,
+void RegisterImGuiCallback(const std::string& path,
                            std::function<void(void)> callback);
-void renderImGui();
+void StartImguiFrame();
+void EndImGuiFrame();
 } // namespace ImGuiHelper
 
 // Includes the libraries necessary for using ImGui in

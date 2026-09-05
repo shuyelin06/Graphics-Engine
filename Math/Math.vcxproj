@@ -32,6 +32,7 @@
     <ProjectGuid>{bcad216c-5716-4996-b595-b57030cf70d7}</ProjectGuid>
     <RootNamespace>Math</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>Utility</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -140,7 +141,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions);ENABLE_GLOBAL_IMGUI</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -163,7 +164,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions);ENABLE_GLOBAL_IMGUI</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -182,9 +183,11 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Test|x64'">
     <ClCompile>
       <AdditionalIncludeDirectories>C:\Users\Joshua Lin\Documents\Git\Graphics-Engine\Math;C:\Users\Joshua Lin\Documents\Git\Graphics-Engine\Math\include\math;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>;ENABLE_GLOBAL_IMGUI</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\dependencies\external\imconfig.h" />
     <ClInclude Include="include\math\AABB.h" />
     <ClInclude Include="include\math\CFrame.h" />
     <ClInclude Include="include\math\Color.h" />
@@ -203,27 +206,34 @@
     <ClInclude Include="include\math\Vector2.h" />
     <ClInclude Include="include\math\Vector3.h" />
     <ClInclude Include="include\math\Vector4.h" />
-    <ClInclude Include="src\external\md5.h" />
+    <ClInclude Include="src\dependencies\UIBridge.h" />
+    <ClInclude Include="src\dependencies\external\imgui.h" />
+    <ClInclude Include="include\util\RenderDoc.h" />
+    <ClInclude Include="src\dependencies\external\md5.h" />
+    <ClInclude Include="include\util\Profiling.h" />
+    <ClInclude Include="src\dependencies\external\renderdoc_app.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\AABB.cpp" />
-    <ClCompile Include="src\CFrame.cpp" />
-    <ClCompile Include="src\Color.cpp" />
-    <ClCompile Include="src\Compute.cpp" />
-    <ClCompile Include="src\ConvexHull.cpp" />
-    <ClCompile Include="src\Matrix3.cpp" />
-    <ClCompile Include="src\Matrix4.cpp" />
-    <ClCompile Include="src\external\md5.cpp" />
-    <ClCompile Include="src\OBB.cpp" />
-    <ClCompile Include="src\PerlinNoise.cpp" />
-    <ClCompile Include="src\Plane.cpp" />
-    <ClCompile Include="src\Quaternion.cpp" />
-    <ClCompile Include="src\QuickHull.cpp" />
-    <ClCompile Include="src\Transform.cpp" />
-    <ClCompile Include="src\Triangle.cpp" />
-    <ClCompile Include="src\Vector2.cpp" />
-    <ClCompile Include="src\Vector3.cpp" />
-    <ClCompile Include="src\Vector4.cpp" />
+    <ClCompile Include="src\math\AABB.cpp" />
+    <ClCompile Include="src\math\CFrame.cpp" />
+    <ClCompile Include="src\math\Color.cpp" />
+    <ClCompile Include="src\math\Compute.cpp" />
+    <ClCompile Include="src\math\ConvexHull.cpp" />
+    <ClCompile Include="src\math\Matrix3.cpp" />
+    <ClCompile Include="src\math\Matrix4.cpp" />
+    <ClCompile Include="src\dependencies\external\md5.cpp" />
+    <ClCompile Include="src\math\OBB.cpp" />
+    <ClCompile Include="src\math\PerlinNoise.cpp" />
+    <ClCompile Include="src\math\Plane.cpp" />
+    <ClCompile Include="src\math\Quaternion.cpp" />
+    <ClCompile Include="src\math\QuickHull.cpp" />
+    <ClCompile Include="src\math\Transform.cpp" />
+    <ClCompile Include="src\math\Triangle.cpp" />
+    <ClCompile Include="src\util\Profiling.cpp" />
+    <ClCompile Include="src\util\RenderDoc.cpp" />
+    <ClCompile Include="src\math\Vector2.cpp" />
+    <ClCompile Include="src\math\Vector3.cpp" />
+    <ClCompile Include="src\math\Vector4.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
