@@ -26,6 +26,7 @@ TextureColor::TextureColor(float r)
     f.r = r;
 }
 
+TextureBuilder::TextureBuilder() { reset(0, 0, TextureLayout::UNKNOWN); }
 TextureBuilder::TextureBuilder(UINT width,
                                UINT height,
                                TextureLayout layout,
@@ -36,10 +37,6 @@ TextureBuilder::TextureBuilder(UINT width,
 
 TextureBuilder::~TextureBuilder() = default;
 
-const std::vector<uint8_t>& TextureBuilder::getData() const
-{
-    return data;
-}
 unsigned int TextureBuilder::getWidth(unsigned int mip) const
 {
     return mips[mip].width;
@@ -48,14 +45,8 @@ unsigned int TextureBuilder::getHeight(unsigned int mip) const
 {
     return mips[mip].height;
 }
-unsigned int TextureBuilder::getNumMips() const
-{
-    return mips.size();
-}
-TextureLayout TextureBuilder::getLayout() const
-{
-    return layout;
-}
+unsigned int TextureBuilder::getNumMips() const { return mips.size(); }
+TextureLayout TextureBuilder::getLayout() const { return layout; }
 
 void TextureBuilder::generateMips()
 {
@@ -67,17 +58,17 @@ void TextureBuilder::generateMips()
     assert(!mips.empty());
     const MipLevel& mip0 = mips[0];
     const unsigned int totalMips =
-        floor(log2f(max(mip0.width, mip0.height))) + 1;
+        Math::computeMipCount(mip0.width, mip0.height);
 
     // Allocate space for each mip
     mips.resize(totalMips);
 
-    size_t bufferSize = computeMipByteSize(mips[0]);
+    size_t bufferSize = computeMipLevelByteSize(mips[0]);
     for (int i = 1; i < mips.size(); i++)
     {
         mips[i].width = max(1, mips[i - 1].width / 2);
         mips[i].height = max(1, mips[i - 1].height / 2);
-        bufferSize += computeMipByteSize(mips[i]);
+        bufferSize += computeMipLevelByteSize(mips[i]);
     }
 
     // Figure out the mip data locations after resizing in case resizing causes
@@ -86,7 +77,7 @@ void TextureBuilder::generateMips()
     mips[0].data = data.data();
     for (int i = 1; i < mips.size(); i++)
     {
-        mips[i].data = mips[i - 1].data + computeMipByteSize(mips[i - 1]);
+        mips[i].data = mips[i - 1].data + computeMipLevelByteSize(mips[i - 1]);
     }
 
     // Each mip is the 2x2 average of the previous
@@ -151,10 +142,7 @@ void TextureBuilder::setColor(UINT x, UINT y, const TextureColor& rgba)
 
 // Clear:
 // Clears the texture, setting all of the RGBA pixels to a particular color.
-void TextureBuilder::clear()
-{
-    memset(data.data(), 0, data.size());
-}
+void TextureBuilder::clear() { memset(data.data(), 0, data.size()); }
 
 // Reset:
 // Resets the builder
@@ -169,13 +157,13 @@ void TextureBuilder::reset(unsigned int width,
     mips[0].width = width;
     mips[0].height = height;
 
-    data.resize(computeMipByteSize(mips[0]));
+    data.resize(computeMipLevelByteSize(mips[0]));
     mips[0].data = data.data();
 
     clear();
 }
 
-size_t TextureBuilder::computeMipByteSize(const MipLevel& mipLevel)
+size_t TextureBuilder::computeMipLevelByteSize(const MipLevel& mipLevel)
 {
     return TextureLayoutByteSize(layout) * mipLevel.width * mipLevel.height;
 }

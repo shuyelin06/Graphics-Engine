@@ -9,6 +9,7 @@
 #include "RenderSettings.h"
 
 #include <Windows.h>
+
 struct ID3D11Device;
 struct ID3D11DeviceContext;
 struct ID3D11RenderTargetView;
@@ -101,7 +102,8 @@ class DeviceContext
                               const void* src,
                               size_t bytes) = 0;
     virtual void updateTexture(const std::shared_ptr<Texture>& texture,
-                               uint8_t slice,
+                               uint8_t targetSlice,
+                               uint8_t targetMip,
                                const void* src,
                                size_t bytes) = 0;
     virtual void generateMips(const std::shared_ptr<Texture>& texture) = 0;

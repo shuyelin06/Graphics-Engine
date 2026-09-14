@@ -7,13 +7,17 @@
 #include "math/Vector2.h"
 
 #include "rendering/VisualSystem.h"
+#include "rendering/core/Device.h"
 #include "rendering/pipeline/RenderManager.h"
 #include "rendering/resources/MaterialManager.h"
 #include "rendering/resources/ResourceManager.h"
 
 #include "rendering/ImGui.h"
+#include "util/Profiling.h"
 
 #include "HeightMapGenerator.h"
+#include "TerrainMaterialStore.h"
+#include "TerrainUtil.h"
 
 namespace Engine
 {
@@ -29,6 +33,7 @@ struct TerrainChunk
 struct QuadTreeNode
 {
     TerrainChunk data;
+    DrawBlockKey blockKey = kInvalidDrawBlockKey;
     QuadTreeNode* children[4] = {nullptr};
 
     bool isLeaf() const { return children[0] == nullptr; }
@@ -40,11 +45,6 @@ class Terrain2DManagerImpl
     struct Config
     {
         float lodAttenuation = 1000.f;
-
-        // Mesh Generation Settings
-        int terrainMeshSampleCount = 15;
-        bool generateSkirt = true;
-        float skirtDepth = 25.f;
 
         // Heightmap Generation Settings
         bool invalidateHeightmap = false;
@@ -68,6 +68,7 @@ class Terrain2DManagerImpl
     RenderManager* mRenderManager;
 
     std::unique_ptr<HeightMapGenerator> mHeightmapGenerator;
+    std::unique_ptr<TerrainMaterialStore> mMaterialStore;
 
     std::shared_ptr<Geometry> mTerrainMesh;
     std::shared_ptr<Material> mTerrainMaterial;
@@ -78,30 +79,33 @@ class Terrain2DManagerImpl
     QuadTreeNode* root = nullptr;
     PoolAllocator<QuadTreeNode, kMaximumNodes> mQuadTreeAllocator;
 
-    DrawBlockKey terrainDrawKey = kInvalidDrawBlockKey;
     std::vector<TerrainChunk> chunksToRender;
 
   public:
     Terrain2DManagerImpl(VisualSystem* visualSystem);
     ~Terrain2DManagerImpl();
 
-    void update(const Vector3& cameraPosition);
-    void updatePerform(DeviceContext* context);
-    void render(DeviceContext* context);
+    void updatePerform(const Vector3& cameraPosition, DeviceContext* context);
 
     void imGui();
     void reset();
 
   private:
-    void regenerateMesh();
+    void setupTerrainMesh(int numSamples, float skirtDepth);
+    void setupTerrainMaterial();
 
-    void setupTerrainMaterial(DeviceContext* context);
+    void updateIdealQuadTreeLOD(QuadTreeNode* node,
+                                const Vector3& cameraPosition,
+                                int depth);
+
+    void selectReadyQuadTreeNodes();
+    bool nodeReadyCheck(QuadTreeNode* node);
+    void selectReadyQuadTreeNodesHelper(QuadTreeNode* node);
+
+    void submitTerrainForRendering();
+
     void invalidateHeightmap();
     void regenerateHeightmapTexture(DeviceContext* context);
-
-    void updateQuadTreeRecursive(QuadTreeNode* node,
-                                 const Vector3& cameraPosition,
-                                 int depth);
 
     uint8_t computeIdealLOD(QuadTreeNode* node, const Vector3& cameraPosition);
 
@@ -124,19 +128,10 @@ Terrain2DManager::create(VisualSystem* visualSystem)
 Terrain2DManager::Terrain2DManager() = default;
 Terrain2DManager::~Terrain2DManager() = default;
 
-void Terrain2DManager::update(const Vector3& cameraPosition)
+void Terrain2DManager::updatePerform(const Vector3& cameraPosition,
+                                     DeviceContext* context)
 {
-    mImpl->update(cameraPosition);
-}
-
-void Terrain2DManager::updatePerform(DeviceContext* context)
-{
-    mImpl->updatePerform(context);
-}
-
-void Terrain2DManager::render(DeviceContext* context)
-{
-    mImpl->render(context);
+    mImpl->updatePerform(cameraPosition, context);
 }
 
 void Terrain2DManager::imGui() { mImpl->imGui(); }
@@ -147,15 +142,19 @@ Terrain2DManagerImpl::Terrain2DManagerImpl(VisualSystem* visualSystem)
     mRenderManager = mVisualSystem->getRenderManager();
     mHeightmapGenerator =
         std::make_unique<HeightMapGenerator>(mVisualSystem->getDevice());
+    mMaterialStore = std::make_unique<TerrainMaterialStore>(
+        mVisualSystem->getDevice(), mVisualSystem->getResourceManager());
+
+    mMaterialStore->initializeMaterials();
 
     // Because our terrain is heightmap based, we can use a single mesh and
     // instance draw it for each chunk, reading from heightmap texture for the
     // height.
-    MaterialManager::TerrainMaterialParams materialParams{};
-    materialParams.colormap = "terrain/Grass.png";
-    mTerrainMaterial =
-        visualSystem->getMaterialManager()->createMaterial(materialParams);
-    regenerateMesh();
+    constexpr int kMeshSampleCount = 15;
+    constexpr float kMeshSkirtDepth = 25.f;
+    setupTerrainMesh(kMeshSampleCount, kMeshSkirtDepth);
+    setupTerrainMaterial();
+
     invalidateHeightmap();
 
     reset();
@@ -165,66 +164,44 @@ Terrain2DManagerImpl::Terrain2DManagerImpl(VisualSystem* visualSystem)
 }
 Terrain2DManagerImpl::~Terrain2DManagerImpl() = default;
 
-void Terrain2DManagerImpl::update(const Vector3& cameraPosition)
+void Terrain2DManagerImpl::setupTerrainMesh(int numSamples, float skirtDepth)
 {
-    if (!mTerrainTechnique)
-        return;
-
-    chunksToRender.clear();
-    updateQuadTreeRecursive(root, cameraPosition, 0);
-
-    mTerrainTechnique->clearPixelCB(4);
-    mTerrainTechnique->uploadPixelCBData(4, &shaderSettings,
-                                         sizeof(ShaderSettings));
-
-    const bool render = !chunksToRender.empty() && mTerrainMesh->ready;
-    if (render)
-    {
-        if (terrainDrawKey == kInvalidDrawBlockKey)
-        {
-            DrawBlock block;
-            block.initialize(AABB(), mTerrainMesh.get(),
-                             mTerrainMaterial.get());
-            block.numInstances = chunksToRender.size();
-            terrainDrawKey = mRenderManager->addDrawBlock(block);
-        }
-        else
-        {
-            mRenderManager->updateInstanceData(terrainDrawKey, InstanceData(),
-                                               chunksToRender.size());
-        }
-
-        mTerrainTechnique->clearVertexCB(kTerrainChunkSlot);
-
-        const Vector2 heightMapPosition =
-            config.heightMapOrigin - config.heightMapExtents / 2;
-        mTerrainTechnique->uploadVertexCBData(
-            kTerrainChunkSlot, &heightMapPosition, sizeof(Vector2));
-        mTerrainTechnique->uploadVertexCBData(
-            kTerrainChunkSlot, &config.heightMapExtents, sizeof(Vector2));
-
-        mTerrainTechnique->uploadVertexCBData(
-            kTerrainChunkSlot, chunksToRender.data(),
-            chunksToRender.size() * sizeof(TerrainChunk));
-        static_assert(sizeof(TerrainChunk) == sizeof(float) * 4);
-    }
-    else
-    {
-        if (terrainDrawKey != kInvalidDrawBlockKey)
-        {
-            mRenderManager->removeDrawBlock(terrainDrawKey);
-            terrainDrawKey = kInvalidDrawBlockKey;
-        }
-    }
+    MeshBuilder builder;
+    generateTerrainPlaneMesh(builder, numSamples, skirtDepth);
+    mTerrainMesh = mVisualSystem->getResourceManager()->requestMesh(builder);
 }
 
-void Terrain2DManagerImpl::updatePerform(DeviceContext* context)
+void Terrain2DManagerImpl::setupTerrainMaterial()
 {
-    setupTerrainMaterial(context);
+    mTerrainMaterial = std::make_shared<Material>();
+
+    Technique* technique = mTerrainMaterial->setTechnique(RenderPass::kOpaque);
+    technique->vertexShader = "Terrain";
+    technique->pixelShader = "Terrain";
+
+    ShaderResource colormap{};
+    colormap.initializeTextureResource(mMaterialStore->getAlbedoArray(),
+                                       SamplerSettings::Linear);
+    technique->bindPixelResource(4, colormap);
 }
 
-void Terrain2DManagerImpl::render(DeviceContext* context) {
-    
+void Terrain2DManagerImpl::updatePerform(const Vector3& cameraPosition,
+                                         DeviceContext* context)
+{
+    PROFILE_SCOPE("Terrain::updatePerform");
+
+    // Stream in terrain materials that are needed
+    mMaterialStore->streamMaterials(context);
+
+    if (config.invalidateHeightmap)
+    {
+        regenerateHeightmapTexture(context);
+        config.invalidateHeightmap = false;
+    }
+
+    updateIdealQuadTreeLOD(root, cameraPosition, 0);
+    selectReadyQuadTreeNodes();
+    submitTerrainForRendering();
 }
 
 void Terrain2DManagerImpl::imGui()
@@ -245,18 +222,14 @@ void Terrain2DManagerImpl::imGui()
 
     if (ImGui::CollapsingHeader("Terrain Mesh"))
     {
-        ImGui::SliderInt("# Terrain Mesh Samples: %i",
-                         &config.terrainMeshSampleCount, 2, 25);
-        ImGui::Checkbox("Generate Skirt", &config.generateSkirt);
-        if (config.generateSkirt)
-        {
-            ImGui::SliderFloat("Terrain Skirt Depth:", &config.skirtDepth, 0.f,
-                               50.f);
-        }
+        static int meshSampleCount = 15;
+        static float meshSkirtDepth = 25.f;
+        ImGui::SliderInt("# Terrain Mesh Samples: %i", &meshSampleCount, 2, 25);
+        ImGui::SliderFloat("Terrain Skirt Depth:", &meshSkirtDepth, 0.f, 50.f);
 
         if (ImGui::Button("Reset Terrain Mesh"))
         {
-            regenerateMesh();
+            setupTerrainMesh(meshSampleCount, meshSkirtDepth);
         }
     }
 
@@ -293,116 +266,6 @@ void Terrain2DManagerImpl::reset()
     const float rootSize = kTerrainNodeSize * (1 << kMaxQuadTreeDepth);
     root = allocateNode(Vector2(-rootSize / 2, -rootSize / 2),
                         Vector2(rootSize, rootSize));
-}
-
-void Terrain2DManagerImpl::regenerateMesh()
-{
-    const int numSamples = config.terrainMeshSampleCount;
-
-    // Must be at least 2 so we can create a flat square.
-    assert(numSamples >= 2);
-
-    // Generate a very simple mesh within bounds
-    // x,z in [0,1]
-    // y = 0
-    // TODO Add skirts for y < 0 so it's harder to see the gap between LODs
-    MeshBuilder builder;
-
-    builder.reset();
-    builder.addLayout(PosXYZ_TexU);
-
-    // Generate a grid of points in the order of
-    // 6 7 8...
-    // 3 4 5
-    // 0 1 2
-    // Bottom left corner is (x,z) = (0,0). Right is +x, Up is +z.
-    const float sampleDistanceInv = 1 / float(numSamples - 1);
-    for (int sampleX = 0; sampleX < numSamples; sampleX++)
-    {
-        for (int sampleZ = 0; sampleZ < numSamples; sampleZ++)
-        {
-            const float x = sampleX * sampleDistanceInv;
-            const float y = 0.f;
-            const float z = sampleZ * sampleDistanceInv;
-            builder.addVertex(Vector3(x, y, z));
-        }
-    }
-
-    // Connect my points together. For a given quad in the grid, a,b,c,d
-    // reference indices as so
-    // d c
-    // a b
-    for (int indexX = 0; indexX < numSamples - 1; indexX++)
-    {
-        for (int indexZ = 0; indexZ < numSamples - 1; indexZ++)
-        {
-            const unsigned int a = indexZ + indexX * numSamples;
-            const unsigned int b = indexZ + (indexX + 1) * numSamples;
-            const unsigned int c = (indexZ + 1) + (indexX + 1) * numSamples;
-            const unsigned int d = (indexZ + 1) + indexX * numSamples;
-            builder.addTriangle(a, d, b);
-            builder.addTriangle(c, b, d);
-        }
-    }
-
-    // Generate a skirt. This is a set of vertices that protrude downwards from
-    // the edges of the terrain mesh. Skirts are a cheap and simple way to hide
-    // the LOD transitions.
-    if (config.generateSkirt)
-    {
-        const unsigned int skirtIndexStart = builder.getVertices().size();
-
-        std::vector<unsigned int> borderIndices;
-        auto generateSkirtVertices = [&builder, &borderIndices, &numSamples,
-                                      this](unsigned int startX,
-                                            unsigned int startZ, int offsetX,
-                                            int offsetZ) {
-            for (int i = 0; i < numSamples; i++)
-            {
-                const unsigned int indexX = startX + offsetX * i;
-                const unsigned int indexZ = startZ + offsetZ * i;
-
-                const unsigned int vertexIndex = indexZ + indexX * numSamples;
-                borderIndices.push_back(vertexIndex);
-
-                const Vector3 skirtVertex =
-                    builder.getVertex(vertexIndex).position +
-                    Vector3(0, -config.skirtDepth, 0);
-                builder.addVertex(skirtVertex);
-            }
-        };
-
-        // Walk the grid border counter-clockwise and generate the skirt
-        // vertices
-        generateSkirtVertices(0, 0, 1, 0);
-        generateSkirtVertices(numSamples - 1, 0, 0, 1);
-        generateSkirtVertices(numSamples - 1, numSamples - 1, -1, 0);
-        generateSkirtVertices(0, numSamples - 1, 0, -1);
-
-        assert(builder.getVertices().size() - skirtIndexStart ==
-               borderIndices.size());
-        for (int i = 0; i < borderIndices.size() - 1; i++)
-        {
-            unsigned int a = borderIndices[i];
-            unsigned int b = borderIndices[i + 1];
-            unsigned int c = skirtIndexStart + i + 1;
-            unsigned int d = skirtIndexStart + i;
-
-            builder.addTriangle(a, b, d);
-            builder.addTriangle(c, d, b);
-        };
-    }
-
-    mTerrainMesh = mVisualSystem->getResourceManager()->requestMesh(builder);
-}
-
-void Terrain2DManagerImpl::setupTerrainMaterial(DeviceContext* context)
-{
-    if (config.invalidateHeightmap)
-    {
-        regenerateHeightmapTexture(context);
-        config.invalidateHeightmap = false;
-    }
 }
 
 void Terrain2DManagerImpl::invalidateHeightmap()
@@ -450,8 +313,9 @@ uint8_t Terrain2DManagerImpl::computeIdealLOD(QuadTreeNode* node,
         return lod;
 }
 
-void Terrain2DManagerImpl::updateQuadTreeRecursive(
-    QuadTreeNode* node, const Vector3& cameraPosition, int depth)
+void Terrain2DManagerImpl::updateIdealQuadTreeLOD(QuadTreeNode* node,
+                                                  const Vector3& cameraPosition,
+                                                  int depth)
 {
     const uint8_t idealLOD = computeIdealLOD(node, cameraPosition);
     if (node->isLeaf())
@@ -462,8 +326,8 @@ void Terrain2DManagerImpl::updateQuadTreeRecursive(
 
             for (int i = 0; i < 4; i++)
             {
-                updateQuadTreeRecursive(node->children[i], cameraPosition,
-                                        depth + 1);
+                updateIdealQuadTreeLOD(node->children[i], cameraPosition,
+                                       depth + 1);
             }
         }
     }
@@ -477,18 +341,102 @@ void Terrain2DManagerImpl::updateQuadTreeRecursive(
         {
             for (int i = 0; i < 4; i++)
             {
-                updateQuadTreeRecursive(node->children[i], cameraPosition,
-                                        depth + 1);
+                updateIdealQuadTreeLOD(node->children[i], cameraPosition,
+                                       depth + 1);
             }
         }
     }
+}
+
+void Terrain2DManagerImpl::selectReadyQuadTreeNodes()
+{
+    chunksToRender.clear();
+
+    if (nodeReadyCheck(root))
+    {
+        selectReadyQuadTreeNodesHelper(root);
+    }
+}
+
+bool Terrain2DManagerImpl::nodeReadyCheck(QuadTreeNode* node)
+{
+    return node != nullptr;
+}
+
+void Terrain2DManagerImpl::selectReadyQuadTreeNodesHelper(QuadTreeNode* node)
+{
+    bool submitForDrawing = false;
+    assert(nodeReadyCheck(node));
 
     if (node->isLeaf())
     {
-        Vector3 pos =
-            Vector3(node->data.position.x, 50.f, node->data.position.y);
-        mVisualSystem->getVisualDebug()->drawPoint(pos, 10.f);
+        submitForDrawing = true;
+    }
+    else
+    {
+        bool childrenReady = true;
+        for (int i = 0; i < 4; i++)
+        {
+            childrenReady = childrenReady && nodeReadyCheck(node->children[i]);
+        }
+        submitForDrawing = !childrenReady;
+    }
+
+    DrawBlockKey& drawBlockKey = node->blockKey;
+    if (submitForDrawing)
+    {
+        if (drawBlockKey == kInvalidDrawBlockKey)
+        {
+            DrawBlock drawBlock;
+            drawBlock.initialize(mTerrainMesh, mTerrainMaterial);
+            drawBlockKey =
+                mVisualSystem->getRenderManager()->addDrawBlock(drawBlock);
+
+            Vector3 pos =
+                Vector3(node->data.position.x, 50.f, node->data.position.y);
+            mVisualSystem->getVisualDebug()->drawPoint(pos, 10.f);
+        }
+
         chunksToRender.push_back(node->data);
+    }
+    else
+    {
+        if (drawBlockKey != kInvalidDrawBlockKey)
+        {
+            mVisualSystem->getRenderManager()->removeDrawBlock(drawBlockKey);
+            drawBlockKey = kInvalidDrawBlockKey;
+        }
+
+        for (int i = 0; i < 4; i++)
+            selectReadyQuadTreeNodesHelper(node->children[i]);
+    }
+}
+
+void Terrain2DManagerImpl::submitTerrainForRendering()
+{
+    if (!mTerrainTechnique)
+        return;
+
+    mTerrainTechnique->clearPixelCB(4);
+    mTerrainTechnique->uploadPixelCBData(4, &shaderSettings,
+                                         sizeof(ShaderSettings));
+
+    const bool render = !chunksToRender.empty() && mTerrainMesh->ready;
+    if (render)
+    {
+        mTerrainTechnique->clearVertexCB(kTerrainChunkSlot);
+
+        const Vector2 heightMapPosition =
+            config.heightMapOrigin - config.heightMapExtents / 2;
+        mTerrainTechnique->uploadVertexCBData(
+            kTerrainChunkSlot, &heightMapPosition, sizeof(Vector2));
+        mTerrainTechnique->uploadVertexCBData(
+            kTerrainChunkSlot, &config.heightMapExtents, sizeof(Vector2));
+
+        mTerrainTechnique->uploadVertexCBData(
+            kTerrainChunkSlot, chunksToRender.data(),
+            chunksToRender.size() * sizeof(TerrainChunk));
+        static_assert(sizeof(TerrainChunk) == sizeof(float) * 4);
     }
 }
 

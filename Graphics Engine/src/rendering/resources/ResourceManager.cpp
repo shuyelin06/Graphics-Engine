@@ -38,7 +38,7 @@ using namespace Math;
 
 namespace Graphics
 {
-static const std::string RESOURCE_FOLDER = "data/";
+static const std::string_view RESOURCE_FOLDER = "data/";
 
 enum class BuildJobStatus : uint8_t
 {
@@ -113,21 +113,23 @@ class ResourceManagerImpl
 
     std::shared_ptr<Geometry> requestMesh(const MeshBuilder& mesh_builder);
     std::shared_ptr<Texture> requestTexture(const char* path);
+    bool streamTextureData(DeviceContext* context,
+                           std::string_view path,
+                           std::shared_ptr<Texture>& target,
+                           uint8_t slice);
 
     // Debug Display
     void imGui();
 
   private:
+    bool loadTextureBuilder(std::string_view path, TextureBuilder& builder);
+
     void processMeshJob(const MeshBuildingJob& job);
 
     // System Asset Generation
     void LoadCubeMesh();
 
     void LoadFallbackColormap();
-
-    bool WriteTextureToPNG(ID3D11Texture2D* texture,
-                           std::string path,
-                           std::string file);
 };
 
 std::unique_ptr<ResourceManager> ResourceManager::create(Device* device,
@@ -171,6 +173,13 @@ ResourceManager::requestMesh(const MeshBuilder& mesh_builder)
 std::shared_ptr<Texture> ResourceManager::requestTexture(const char* path)
 {
     return mImpl->requestTexture(path);
+}
+bool ResourceManager::streamTextureData(DeviceContext* context,
+                                        std::string_view path,
+                                        std::shared_ptr<Texture>& target,
+                                        uint8_t slice)
+{
+    return mImpl->streamTextureData(context, path, target, slice);
 }
 
 // Debug Display
@@ -243,7 +252,7 @@ ResourceManagerImpl::LoadMeshFromFile(const std::string& relative_path)
     if (relative_path.empty())
         return nullptr;
 
-    const std::string full_path = RESOURCE_FOLDER + relative_path;
+    const std::string full_path = std::string(RESOURCE_FOLDER) + relative_path;
 
     // Matches to find the file name and extension separately.
     // (?:.+/)* matches the path but does not put it in a capture group.
@@ -315,41 +324,88 @@ ResourceManagerImpl::requestMesh(const MeshBuilder& mesh_builder)
 
 std::shared_ptr<Texture> ResourceManagerImpl::requestTexture(const char* path)
 {
-    const std::string pathStr = RESOURCE_FOLDER + path;
-
-    // Matches to find the file name and extension separately.
-    // (?:.+/)* matches the path but does not put it in a capture group.
-    std::regex name_pattern("(?:.+/)*([a-zA-Z0-9]+)\\.([a-zA-Z]+)");
-    smatch match;
-    regex_search(pathStr, match, name_pattern);
+    TextureBuilder builder;
+    bool loadSuccess = loadTextureBuilder(path, builder);
 
     std::shared_ptr<Texture> texture = nullptr;
 
-    bool success = false;
-    if (match.size() == 3)
+    if (loadSuccess)
     {
-        // If name is ever needed:
-        // const std::string name = match[1];
-        const std::string extension = match[2];
+        const TextureBuilder::MipLevel& mipLevel = builder.getMipLevel(0);
+        texture = device->createTexture(
+            "", builder.getLayout(),
+            TextureUsage::ShaderResource | TextureUsage::RenderTarget,
+            mipLevel.width, mipLevel.height, 1, 1, false, mipLevel.data);
+        context->generateMips(texture);
+    }
 
-        FileReader reader = FileReader(pathStr);
-        if (reader.readFileData())
+    return texture;
+}
+
+bool ResourceManagerImpl::streamTextureData(DeviceContext* context,
+                                            std::string_view path,
+                                            std::shared_ptr<Texture>& target,
+                                            uint8_t slice)
+{
+    assert(slice < target->getArraySlices());
+    if (slice >= target->getArraySlices())
+        return false;
+
+    TextureBuilder builder;
+    loadTextureBuilder(path, builder);
+
+    // TODO: Implement upscaling and downscaling
+    assert(target->getWidth() == builder.getWidth() &&
+           target->getHeight() == builder.getHeight());
+    builder.generateMips();
+
+    for (int mip = 0; mip < builder.getNumMips(); mip++)
+    {
+        const TextureBuilder::MipLevel& mipLevel = builder.getMipLevel(mip);
+        const size_t byteSize = builder.computeMipLevelByteSize(mipLevel);
+        context->updateTexture(target, slice, mip, mipLevel.data, byteSize);
+    }
+
+    return true;
+}
+
+bool ResourceManagerImpl::loadTextureBuilder(std::string_view path,
+                                             TextureBuilder& builder)
+{
+    // Matches to find the file name and extension separately.
+    // (?:.+/)* matches the path but does not put it in a capture group.
+    // Group 0: Parent Path
+    // Group 1: File Name
+    // Group 2: Extension
+    const std::string fullPath = std::string(RESOURCE_FOLDER) + path.data();
+    std::regex regexPattern("(?:.+/)*([a-zA-Z0-9]+)\\.([a-zA-Z]+)");
+    smatch regexMatch;
+    regex_search(fullPath, regexMatch, regexPattern);
+
+    const bool parsingSuccess = (regexMatch.size() == 3);
+    bool loadSuccess = false;
+    if (parsingSuccess)
+    {
+        const std::string fileName = regexMatch[1];
+        const std::string extension = regexMatch[2];
+
+        FileReader reader = FileReader(fullPath);
+        if (extension == "png")
         {
-            if (extension == "png")
+            if (reader.readFileData())
             {
-                TextureBuilder builder = PNGFile::ReadPNGData(reader.getData());
-                texture = device->createTexture(
-                    "", builder.getLayout(),
-                    TextureUsage::ShaderResource | TextureUsage::RenderTarget,
-                    builder.getWidth(), builder.getHeight(), 1, 1, false,
-                    builder.getData().data());
-                context->generateMips(texture);
-                success = true;
+                loadSuccess = PNGFile::ReadPNGData(PNGFile::DataType::kAlbedo,
+                                                   reader.getData(), builder);
             }
         }
     }
 
-    return texture;
+    if (loadSuccess)
+    {
+        builder.generateMips();
+    }
+
+    return loadSuccess;
 }
 
 // Debug Display
@@ -482,17 +538,6 @@ void ResourceManagerImpl::imGui()
         }
     }
 #endif
-}
-
-// WriteTextureToPNG:
-// Uses the PNGFile interface to write a texture to a PNG file
-bool ResourceManagerImpl::WriteTextureToPNG(ID3D11Texture2D* texture,
-                                            std::string path,
-                                            std::string file)
-{
-    PNGFile png_file = PNGFile(path + file);
-    return png_file.writePNGData(device->getDevice(), context->getContext(),
-                                 texture);
 }
 
 void ResourceManagerImpl::processMeshJob(const MeshBuildingJob& job)

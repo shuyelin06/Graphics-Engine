@@ -50,6 +50,7 @@ class D3D11Texture : public Texture
 
     void update(ID3D11DeviceContext* context,
                 uint8_t slice,
+                uint8_t mip,
                 const void* initData,
                 size_t bytes);
 

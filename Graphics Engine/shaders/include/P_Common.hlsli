@@ -35,7 +35,7 @@ cbuffer CB0_GLOBAL_DATA : register(b0)
 // --- Utility Functions ---
 // Given (u,v) derivatives and a texture they are sampling from, returns the ideal
 // mip.
-float computeMipFromDerivatives(Texture2D tex, float2 dx, float2 dy)
+float computeMipFromDerivatives(Texture2DArray tex, float2 dx, float2 dy)
 {
     // Get the texture information. This will tell us
     // 1) The dimensions of the texture so we can convert (u,v) derivatives
@@ -43,8 +43,9 @@ float computeMipFromDerivatives(Texture2D tex, float2 dx, float2 dy)
     // 2) The number of mips so we know what to clamp the output to
     uint textureWidth;
     uint textureHeight;
+    uint textureSlices;
     uint textureMips;
-    tex.GetDimensions(0, textureWidth, textureHeight, textureMips);
+    tex.GetDimensions(0, textureWidth, textureHeight, textureSlices, textureMips);
 
     // Convert UV coordinates to texture texels; change in texture texels.
     // The greatest texel change in either u or v direction tells us how many mips we need,

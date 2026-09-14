@@ -187,6 +187,8 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="include\core\DynamicBitset.h" />
+    <ClInclude Include="include\core\SlotMap.h" />
     <ClInclude Include="src\dependencies\external\imconfig.h" />
     <ClInclude Include="include\math\AABB.h" />
     <ClInclude Include="include\math\CFrame.h" />
@@ -214,6 +216,7 @@
     <ClInclude Include="src\dependencies\external\renderdoc_app.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\core\DynamicBitset.cpp" />
     <ClCompile Include="src\math\AABB.cpp" />
     <ClCompile Include="src\math\CFrame.cpp" />
     <ClCompile Include="src\math\Color.cpp" />

@@ -12,7 +12,7 @@ namespace Engine
 namespace Graphics
 {
 static constexpr int kHeightMapSampleCount = 256;
-static constexpr int kHeightMapSliceCount = 256;
+static constexpr int kHeightMapSliceCount = 1;
 
 HeightMapGenerator::HeightMapGenerator(Device* device)
     : mNoise()
@@ -67,8 +67,10 @@ void HeightMapGenerator::generateHeightMap(Vector2 xzMin,
     }
 
     assert(mHeightmap);
-    context->updateTexture(mHeightmap, 0, builder.getData().data(),
-                           builder.getData().size());
+
+    const TextureBuilder::MipLevel& mipLevel = builder.getMipLevel(0);
+    const size_t byteSize = builder.computeMipLevelByteSize(mipLevel);
+    context->updateTexture(mHeightmap, 0, 0, mipLevel.data, byteSize);
 }
 
 void HeightMapGenerator::imGui()

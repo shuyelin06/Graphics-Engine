@@ -76,21 +76,6 @@ class Pipeline
     void endFrame();
 
     void swapActiveTarget();
-
-  private:
-    struct Stats
-    {
-        uint32_t numDraws = 0;
-    };
-    Stats stats;
-    void imGui();
-
-#if defined(_DEBUG)
-    // ImGui Display
-    void imGuiInitialize(HWND window);
-
-    void imGuiShutdown();
-#endif
 };
 
 } // namespace Graphics

@@ -26,6 +26,9 @@ struct VS_OUT
     float4 position_clip : SV_POSITION;
     float3 world_position : POSITION;
     float3 normal : NORMAL;
+    
+    nointerpolation uint4 materialID : TEXCOORD0;
+    float4 materialWeights : TEXCOORD1;
 };
 
 float3 calculateTerrainNormal(float2 uv)
@@ -69,6 +72,9 @@ VS_OUT vsterrain_main(VS_IN input)
     output.world_position = worldPosition;
     output.normal = normal;
     output.position_clip = clipPosition;
+    
+    output.materialID = uint4(0, 0, 0, 0);
+    output.materialWeights = float4(1.f, 0, 0, 0);
     
     return output;
 }

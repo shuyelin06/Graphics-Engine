@@ -147,8 +147,7 @@ void SceneManagerImpl::processDirtyMeshes()
                     assert(mesh.blockKey == kInvalidDrawBlockKey);
 
                     DrawBlock drawBlock;
-                    drawBlock.initialize(AABB(), mesh.mesh.get(),
-                                         mesh.material.get());
+                    drawBlock.initialize(mesh.mesh, mesh.material);
                     mesh.blockKey = renderManager->addDrawBlock(drawBlock);
                     renderManager->updateInstanceData(mesh.blockKey,
                                                       mesh.instanceData);

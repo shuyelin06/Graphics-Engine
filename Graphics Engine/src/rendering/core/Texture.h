@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "core/BitFlags.h"
+#include "math/Compute.h"
 
 #include "Resource.h"
 

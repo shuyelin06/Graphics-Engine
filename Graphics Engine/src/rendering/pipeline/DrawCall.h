@@ -30,7 +30,7 @@ struct InstanceData
 // when sorting draw calls. We do not want a separate sorting key as
 // that would be inefficient.
 using InstanceDataKey = uint32_t;
-inline constexpr InstanceDataKey kInvalidInstanceDataKey = 0xFFFF;
+inline constexpr InstanceDataKey kIdentityInstanceDataKey = 0;
 
 struct DrawCall
 {
@@ -41,11 +41,29 @@ struct DrawCall
     const Technique* technique = nullptr;
 
     // Index of the Draw Call's instance data in the global
-    // instance data cbuffer.
-    uint32_t instanceDataIndex = kInvalidInstanceDataKey;
-    uint16_t numInstances = 1;
+    // instance data cbuffer. Default identity
+    uint32_t instanceDataIndex = kIdentityInstanceDataKey;
 
     DrawCall() = default;
+
+    // Comparison is used to sort draw calls for batching
+    // Sorting done in this order:
+    // 1) Depth first, for correctness during alpha blending
+    // 2) Technique next, to minimize rebindings of shader resources
+    // 3) Mesh last, to minimize rebindings of vertex / index buffers
+    bool operator<(const DrawCall& other) const
+    {
+        if (depth != other.depth) // Back to front
+            return depth > other.depth;
+        else if (technique != other.technique)
+            return technique < other.technique;
+        return mesh < other.mesh;
+    }
+    bool operator==(const DrawCall& other) const
+    {
+        return depth == other.depth && mesh == other.mesh &&
+               technique == other.technique;
+    }
 };
 
 } // namespace Graphics

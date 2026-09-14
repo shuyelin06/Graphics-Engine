@@ -240,6 +240,12 @@
     <ClCompile Include="src\rendering\core\d3d11\D3D11PassTracker.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\rendering\terrain2D\TerrainMaterialStore.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rendering\terrain2D\TerrainUtil.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\rendering\VisualSystem.h">
@@ -525,6 +531,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\core\d3d11\D3D11PassTracker.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rendering\terrain2D\TerrainMaterialStore.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rendering\terrain2D\TerrainUtil.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

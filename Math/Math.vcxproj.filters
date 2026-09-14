@@ -90,6 +90,12 @@
     <ClInclude Include="src\dependencies\external\renderdoc_app.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\core\SlotMap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\core\DynamicBitset.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\math\AABB.cpp">
@@ -150,6 +156,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\util\RenderDoc.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\DynamicBitset.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

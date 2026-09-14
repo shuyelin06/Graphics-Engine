@@ -41,11 +41,16 @@ class ResourceManager
     std::shared_ptr<Geometry> getCubeMesh() const;
 
     // Create Resources
-    std::shared_ptr<Geometry> LoadMeshFromFile(const std::string& relative_path);
+    std::shared_ptr<Geometry>
+    LoadMeshFromFile(const std::string& relative_path);
 
     // Thread Safe Creation of Resources
     std::shared_ptr<Geometry> requestMesh(const MeshBuilder& mesh_builder);
     std::shared_ptr<Texture> requestTexture(const char* path);
+    bool streamTextureData(DeviceContext* context,
+                           std::string_view path,
+                           std::shared_ptr<Texture>& target,
+                           uint8_t slice);
 
     // Debug Display
     void imGui();

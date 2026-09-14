@@ -250,6 +250,8 @@
     <ClCompile Include="include\imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="include\imgui\imgui_tables.cpp" />
     <ClCompile Include="include\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="src\rendering\terrain2D\TerrainMaterialStore.cpp" />
+    <ClCompile Include="src\rendering\terrain2D\TerrainUtil.cpp" />
     <ClCompile Include="src\rendering\util\MarchingCube.cpp" />
     <ClCompile Include="src\rendering\lights\SunLight.cpp" />
     <ClCompile Include="src\rendering\core\Frustum.cpp" />
@@ -303,6 +305,7 @@
     <ClInclude Include="src\rendering\scene\SceneListener.h" />
     <ClInclude Include="src\rendering\scene\SceneManager.h" />
     <ClInclude Include="src\rendering\terrain2D\HeightMapGenerator.h" />
+    <ClInclude Include="src\rendering\terrain2D\TerrainMaterialStore.h" />
     <ClInclude Include="src\rendering\terrain2D\Terrain2DManager.h" />
     <ClInclude Include="src\datamodel\terrain\TerrainConfig.h" />
     <ClInclude Include="src\GlobalConfig.h" />
@@ -313,6 +316,7 @@
     <ClInclude Include="src\rendering\pipeline\StructuredBuffer.h" />
     <ClInclude Include="src\rendering\resources\files\FileReader.h" />
     <ClInclude Include="src\datamodel\SceneGraph.h" />
+    <ClInclude Include="src\rendering\terrain2D\TerrainUtil.h" />
     <ClInclude Include="src\rendering\util\MarchingCube.h" />
     <ClInclude Include="src\datamodel\terrain\Terrain.h" />
     <ClInclude Include="src\input\InputFrame.h" />

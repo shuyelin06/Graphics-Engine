@@ -6,6 +6,9 @@
 #define DefineTex2D(name, reg) \
     Texture2D name : register(t##reg); \
     SamplerState name##_sampler : register(s##reg);
+#define DefineTex2DArray(name, reg) \
+    Texture2DArray name : register(t##reg); \
+    SamplerState name##_sampler : register(s##reg);
 
 // Pixel Shader only. Computes mip automatically
 #define SampleTex2D(name, uv) \
@@ -13,3 +16,5 @@
 // Any Shader
 #define SampleTex2DLevel(name, uv, mip, offset) \
     name.SampleLevel(name##_sampler, uv, mip, offset)
+#define SampleTex2DArrayLevel(name, uvw, mip, offset) \
+    name.SampleLevel(name##_sampler, uvw, mip, offset)

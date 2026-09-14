@@ -91,7 +91,8 @@ class Direct3D11DeviceContext : public DeviceContext
                       const void* src,
                       size_t bytes) override;
     void updateTexture(const std::shared_ptr<Texture>& texture,
-                       uint8_t slice,
+                       uint8_t targetSlice,
+                       uint8_t targetMip,
                        const void* src,
                        size_t bytes) override;
     void generateMips(const std::shared_ptr<Texture>& texture) override;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 
 #include "Vector3.h"
 
@@ -15,6 +16,9 @@ namespace Math
 // Class Compute
 // Provides some utility math functions for use
 // throughout the program
+uint32_t computeSizeOfMip(uint8_t mip, uint32_t originalTexelSize);
+uint32_t
+computeMipCount(uint32_t texelWidth, uint32_t texelHeight);
 
 // Performs a modulus that properly wraps around for negatives.
 // For example, 7 % 5 = 2, and -2 % 5 = 3.

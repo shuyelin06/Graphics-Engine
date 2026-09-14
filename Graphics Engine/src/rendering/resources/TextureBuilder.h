@@ -49,9 +49,7 @@ struct TextureColor
 // The texture builder only supports the building of 8-bit RGBA channels.
 class TextureBuilder
 {
-    friend class ResourceManagerImpl;
-
-  protected:
+  public:
     struct MipLevel
     {
         uint8_t* data; // Pointer to the data vector
@@ -59,18 +57,16 @@ class TextureBuilder
         unsigned int height = 0;
     };
 
-    std::vector<uint8_t> data;
-    std::vector<MipLevel> mips;
-    TextureLayout layout;
-
-  public:
+    TextureBuilder();
     TextureBuilder(UINT width,
                    UINT height,
                    TextureLayout layout,
                    unsigned int numMips = 1);
     ~TextureBuilder();
 
-    const std::vector<uint8_t>& getData() const;
+    const MipLevel& getMipLevel(uint8_t mip = 0) const { return mips[mip]; }
+    size_t computeMipLevelByteSize(const MipLevel& mipLevel);
+
     unsigned int getWidth(unsigned int mip = 0) const;
     unsigned int getHeight(unsigned int mip = 0) const;
     unsigned int getNumMips() const;
@@ -86,7 +82,9 @@ class TextureBuilder
     void reset(unsigned int width, unsigned int height, TextureLayout layout);
 
   private:
-    size_t computeMipByteSize(const MipLevel& mipLevel);
+    std::vector<uint8_t> data;
+    std::vector<MipLevel> mips;
+    TextureLayout layout;
 
     TextureColor&
     getTextureColor(const MipLevel& mipLevel, unsigned int x, unsigned int y);

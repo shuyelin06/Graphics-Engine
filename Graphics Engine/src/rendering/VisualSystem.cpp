@@ -50,7 +50,8 @@ void VisualSystem::render()
     {
         PROFILE_SCOPE("TEST");
 
-        terrain2D->updatePerform(context);
+        terrain2D->updatePerform(scene_manager->getMainCamera()->getPosition(),
+                                 context);
 
         beginRenderFrame();
 
@@ -105,7 +106,6 @@ void VisualSystem::renderPrepare()
     scene_manager->update();
 
     light_manager->pullDatamodelData();
-    terrain2D->update(scene_manager->getMainCamera()->getPosition());
 
     // Prepare managers for data
     light_manager->updateSunDirection(Vector3(0, -1, 0));

@@ -61,17 +61,13 @@ inline constexpr DrawBlockKey kInvalidDrawBlockKey = 0xFFFF;
 
 struct DrawBlock
 {
-    AABB extents{};
-
-    Geometry* mesh = nullptr;
-    Material* material = nullptr;
-
-    InstanceData* instanceData = nullptr;
-    int numInstances = 1;
+    std::shared_ptr<Geometry> mesh = nullptr;
+    std::shared_ptr<Material> material = nullptr;
 
     DrawBlock();
 
-    void initialize(AABB _extents, Geometry* mesh, Material* material);
+    void initialize(std::shared_ptr<Geometry>& mesh,
+                    std::shared_ptr<Material>& material);
 };
 
 // TODO:
@@ -89,8 +85,7 @@ class RenderManager
 
     DrawBlockKey addDrawBlock(const DrawBlock& block);
     void updateInstanceData(const DrawBlockKey key,
-                            InstanceData instanceData,
-                            int numInstances = 1);
+                            InstanceData instanceData);
     void removeDrawBlock(const DrawBlockKey key);
 
     void setMainView(const RenderView& view);

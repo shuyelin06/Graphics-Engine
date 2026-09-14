@@ -1,5 +1,7 @@
 #include "D3D11Texture.h"
 
+#include "math/Compute.h"
+
 namespace Engine
 {
 namespace Graphics
@@ -170,20 +172,30 @@ D3D11Texture::~D3D11Texture()
 }
 
 void D3D11Texture::update(ID3D11DeviceContext* context,
-                          uint8_t slice,
+                          uint8_t targetSlice,
+                          uint8_t targetMip,
                           const void* initData,
                           size_t bytes)
 {
-    const size_t rowPitch = TextureLayoutByteSize(layout) * width;
-    const size_t depthPitch = rowPitch * height;
-    assert(bytes == depthPitch);
+    assert(targetMip < mips && "Out of bounds mip");
+    assert(targetSlice < slices && "Out of bounds slice");
+
+    const size_t rowPitch = TextureLayoutByteSize(layout) *
+                            Math::computeSizeOfMip(targetMip, width);
+    const size_t depthPitch =
+        rowPitch * Math::computeSizeOfMip(targetMip, height);
+    assert(bytes == depthPitch && "Byte mismatch");
 
     if (dynamic)
     {
+        assert(targetMip == 0 && "Dynamic updates of non 0 mips unsupported");
+        assert(targetSlice == 0 &&
+               "Dynamic updates of texture arrays unsupported");
+
         // Write to my texture using Map / Unmap.
         D3D11_MAPPED_SUBRESOURCE sr;
         HRESULT result =
-            context->Map(texture, slice, D3D11_MAP_WRITE_DISCARD, 0, &sr);
+            context->Map(texture, targetSlice, D3D11_MAP_WRITE_DISCARD, 0, &sr);
         assert(SUCCEEDED(result));
         assert(sr.RowPitch == rowPitch && sr.DepthPitch == depthPitch);
 
@@ -201,8 +213,11 @@ void D3D11Texture::update(ID3D11DeviceContext* context,
     }
     else
     {
-        context->UpdateSubresource(texture, slice, nullptr, initData, rowPitch,
-                                   depthPitch);
+        // A subresource is a mip of a texture slice. We need to compute the index of the specific subresource we want.
+        const UINT subresourceIndex =
+            D3D11CalcSubresource(targetMip, targetSlice, mips);
+        context->UpdateSubresource(texture, subresourceIndex, nullptr, initData,
+                                   rowPitch, depthPitch);
     }
 }
 

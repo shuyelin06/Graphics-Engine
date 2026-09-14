@@ -1,10 +1,7 @@
 #include "RenderManager.h"
 
 #include "core/PoolAllocator.h"
-
-#include "d3d11.h"
-#include "rendering/Direct3D11.h"
-#include <d3d11_1.h>
+#include "core/Slotmap.h"
 
 #include "rendering/core/Frustum.h"
 
@@ -19,34 +16,32 @@ namespace Engine
 {
 namespace Graphics
 {
-// DebugRenderPassScope:
-// Responsible for RenderDoc annotations when executing a Render Pass.
-// Created at the beginning of the pass, and automatically ends the
-// event on destruction
-class DebugRenderPassScope
-{
-    ID3DUserDefinedAnnotation* annotation;
-
-  public:
-    DebugRenderPassScope(ID3DUserDefinedAnnotation* target_annotation,
-                         const std::string& name)
-    {
-        annotation = target_annotation;
-
-        const std::wstring wstring = std::wstring(name.begin(), name.end());
-        annotation->BeginEvent(wstring.c_str());
-    }
-    ~DebugRenderPassScope() { annotation->EndEvent(); }
-};
-
 DrawBlock::DrawBlock() = default;
 
-void DrawBlock::initialize(AABB _extents, Geometry* _mesh, Material* _material)
+void DrawBlock::initialize(std::shared_ptr<Geometry>& _mesh,
+                           std::shared_ptr<Material>& _material)
 {
-    extents = _extents;
     mesh = _mesh;
     material = _material;
 }
+
+struct DrawBlockImpl
+{
+    std::shared_ptr<Geometry> mesh = nullptr;
+    std::shared_ptr<Material> material = nullptr;
+
+    AABB extents{};
+
+    // If nullptr, draws with the identity instance handle (0)
+    InstanceData* instanceData = nullptr;
+
+    DrawBlockImpl() = default;
+    DrawBlockImpl(const DrawBlock& drawBlock)
+        : mesh(drawBlock.mesh)
+        , material(drawBlock.material)
+    {
+    }
+};
 
 struct GlobalPixelShaderData
 {
@@ -68,19 +63,14 @@ class RenderManagerImpl
     ID3D11Device* device;
     VisualSystem* visualSystem;
 
-    std::array<ID3DUserDefinedAnnotation*, RenderPass::_Count_>
-        mDebugAnnotations;
-
     // TODO: Octree + Culling
-    DrawBlockKey counter = 0;
-    std::unordered_map<DrawBlockKey, DrawBlock> drawBlocks;
+    SlotMap<DrawBlockImpl> drawBlocks;
 
     // Instance Data
     PoolAllocator<InstanceData,
                   4096 * 16 / sizeof(InstanceData),
                   PoolAllocatorPolicy::FixedSize>
         instanceDataPool;
-    bool instanceDataDirty;
 
     // Constant Buffer Data
     RenderView mainView;
@@ -95,9 +85,7 @@ class RenderManagerImpl
 
     // TODO: This should be thread safe.
     DrawBlockKey addDrawBlock(const DrawBlock& block);
-    void updateInstanceData(const DrawBlockKey key,
-                            InstanceData instanceData,
-                            int numInstances);
+    void updateInstanceData(const DrawBlockKey key, InstanceData instanceData);
     void removeDrawBlock(const DrawBlockKey);
 
     void setMainView(const RenderView& view);
@@ -110,6 +98,13 @@ class RenderManagerImpl
                            RenderPass pass,
                            const RenderView& view,
                            const std::string& annotation);
+    void buildVisibleSet(const RenderView& view,
+                         std::vector<DrawBlockKey>& visibleBlocks);
+    void buildRenderPass(RenderPass pass,
+                         const std::vector<DrawBlockKey>& visibleBlocks,
+                         std::vector<DrawCall>& drawCalls);
+    void renderDrawCalls(DeviceContext* context,
+                         const std::vector<DrawCall>& drawCalls);
 };
 
 RenderManager::RenderManager() = default;
@@ -121,10 +116,9 @@ DrawBlockKey RenderManager::addDrawBlock(const DrawBlock& block)
 }
 
 void RenderManager::updateInstanceData(const DrawBlockKey key,
-                                       InstanceData instanceData,
-                                       int numInstances)
+                                       InstanceData instanceData)
 {
-    return mImpl->updateInstanceData(key, instanceData, numInstances);
+    return mImpl->updateInstanceData(key, instanceData);
 }
 
 void RenderManager::removeDrawBlock(const DrawBlockKey key)
@@ -158,35 +152,25 @@ RenderManagerImpl::RenderManagerImpl(VisualSystem* _visualSystem,
     , context(_context)
     , device(_device)
 {
-    for (int pass = 0; pass < RenderPass::_Count_; pass++)
-    {
-        context->QueryInterface(IID_PPV_ARGS(&mDebugAnnotations[pass]));
-    }
-
     // Allocate index 0 of the InstanceData pool for the identity Instance
     InstanceData* identity = instanceDataPool.allocate();
-    assert(instanceDataPool.getIndex(identity) == 0);
+    assert(instanceDataPool.getIndex(identity) == kIdentityInstanceDataKey);
     *identity = InstanceData();
-
-    instanceDataDirty = false;
-
-    counter = 0;
 }
 RenderManagerImpl::~RenderManagerImpl() = default;
 
 DrawBlockKey RenderManagerImpl::addDrawBlock(const DrawBlock& block)
 {
-    const DrawBlockKey key = counter++;
-    drawBlocks[key] = block;
+    const DrawBlockKey key = drawBlocks.allocate();
+    drawBlocks.get(key) = DrawBlockImpl(block);
     return key;
 }
 
 void RenderManagerImpl::updateInstanceData(const DrawBlockKey key,
-                                           InstanceData instanceData,
-                                           int numInstances)
+                                           InstanceData instanceData)
 {
     assert(drawBlocks.contains(key));
-    auto& drawBlock = drawBlocks[key];
+    auto& drawBlock = drawBlocks.get(key);
 
     if (drawBlock.instanceData)
     {
@@ -199,7 +183,6 @@ void RenderManagerImpl::updateInstanceData(const DrawBlockKey key,
         0;
     if (!isIdentityInstance)
     {
-        instanceDataDirty = true;
         drawBlock.instanceData = instanceDataPool.allocate();
         *drawBlock.instanceData = instanceData;
     }
@@ -207,21 +190,19 @@ void RenderManagerImpl::updateInstanceData(const DrawBlockKey key,
     {
         drawBlock.instanceData == nullptr;
     }
-
-    drawBlock.numInstances = numInstances;
 }
 
 void RenderManagerImpl::removeDrawBlock(const DrawBlockKey key)
 {
     assert(drawBlocks.contains(key));
 
-    auto& drawBlock = drawBlocks[key];
+    auto& drawBlock = drawBlocks.get(key);
     if (drawBlock.instanceData)
     {
         instanceDataPool.free(drawBlock.instanceData);
     }
 
-    drawBlocks.erase(key);
+    drawBlocks.destroy(key);
 }
 
 void RenderManagerImpl::setMainView(const RenderView& view) { mainView = view; }
@@ -338,151 +319,119 @@ void RenderManagerImpl::executeRenderPass(DeviceContext* context,
                                           const RenderView& view,
                                           const std::string& annotation)
 {
-    Pipeline* pipeline = visualSystem->getPipeline();
+    std::vector<DrawBlockKey> visibleBlocks;
+    std::vector<DrawCall> drawCalls;
+    // TODO Visible Set building can be reused for a single view
+    buildVisibleSet(view, visibleBlocks);
+    buildRenderPass(pass, visibleBlocks, drawCalls);
+    renderDrawCalls(context, drawCalls);
+}
+
+void RenderManagerImpl::buildVisibleSet(
+    const RenderView& view, std::vector<DrawBlockKey>& visibleBlocks)
+{
+    visibleBlocks.clear();
 
     const Frustum viewFrustum =
         Frustum(view.mLocalToFrustum * view.mWorldToLocal);
 
-    // Query my draw blocks
-    // TODO This is quite inefficient. We should move this to a job or something
-    // later.
-    std::vector<DrawCall> drawCallsEx;
-    for (const auto& pair : drawBlocks)
+    auto iter = drawBlocks.begin();
+    while (iter != drawBlocks.end())
     {
-        const DrawBlock& drawBlock = pair.second;
+        const DrawBlockKey key = iter.handle();
+        const DrawBlockImpl& drawBlock = *iter;
+
+        bool isVisible = true;
+        // Frustum Culling Check
+        if (drawBlock.extents != AABB() && drawBlock.instanceData)
+        {
+            const Matrix4 localToWorld = drawBlock.instanceData->mLocalToWorld;
+            const OBB obb = OBB(drawBlock.extents, localToWorld);
+            isVisible = viewFrustum.intersectsOBB(obb);
+        }
+
+        if (isVisible)
+        {
+            visibleBlocks.push_back(key);
+        }
+
+        ++iter;
+    }
+}
+
+void RenderManagerImpl::buildRenderPass(
+    RenderPass pass,
+    const std::vector<DrawBlockKey>& visibleBlocks,
+    std::vector<DrawCall>& drawCalls)
+{
+    drawCalls.clear();
+
+    for (const DrawBlockKey& visibleBlockKey : visibleBlocks)
+    {
+        const DrawBlockImpl& drawBlock = drawBlocks.get(visibleBlockKey);
         const Technique* technique = drawBlock.material->getTechnique(pass);
 
         if (technique != nullptr)
         {
-            bool frustumCull = false;
-            if (drawBlock.extents != AABB())
+            DrawCall call;
+            call.mesh = drawBlock.mesh.get();
+            call.technique = technique;
+            if (drawBlock.instanceData)
             {
-                // TODO Investigate. Frustum Culling doesn't work and is needed.
-                Matrix4 localToWorld = Matrix4::Identity();
-                if (drawBlock.instanceData)
-                {
-                    localToWorld = drawBlock.instanceData->mLocalToWorld;
-                }
-                OBB obb = OBB(drawBlock.extents, localToWorld);
-                frustumCull = !viewFrustum.intersectsOBB(obb);
+                call.instanceDataIndex =
+                    instanceDataPool.getIndex(drawBlock.instanceData);
             }
-
-            if (!frustumCull)
-            {
-                DrawCall call;
-                call.mesh = drawBlock.mesh;
-                call.technique = technique;
-                call.numInstances = drawBlock.numInstances;
-                if (drawBlock.instanceData)
-                {
-                    call.instanceDataIndex =
-                        instanceDataPool.getIndex(drawBlock.instanceData);
-                }
-                drawCallsEx.push_back(call);
-            }
+            drawCalls.push_back(call);
         }
     }
-    std::sort(drawCallsEx.begin(), drawCallsEx.end(),
-              [](const DrawCall& a, const DrawCall& b) {
-                  // Depth back to front
-                  if (a.depth != b.depth)
-                  {
-                      return a.depth > b.depth;
-                  }
-                  // Technique in any order
-                  else if (a.technique != b.technique)
-                  {
-                      return a.technique < b.technique;
-                  }
-                  // Sort by mesh pool since that causes rebindings.
-                  // Less than technique, but still meaningful.
-                  else if (a.mesh != b.mesh)
-                  {
-                      return a.mesh < b.mesh;
-                  }
-                  // Finally, sort by mesh pointer. Having the same mesh means
-                  // we can do an instanced draw call.
-                  // Even so, multiple meshes in the same pool minimizes the
-                  // number of bindings we need to do.
-                  return a.mesh < b.mesh;
-              });
 
-    DebugRenderPassScope renderpass_debug =
-        DebugRenderPassScope(mDebugAnnotations[pass], annotation);
+    std::sort(drawCalls.begin(), drawCalls.end(),
+              [](const DrawCall& a, const DrawCall& b) { return a < b; });
+}
 
-    // TODO These just call pipeline methods. Move it to pipeline
-    // (i.e. pipeline->draw(VertexTechnique, PixelTechnique).
-    // TODO ResourceManager needs to enforce lifetime of the pointer
-    // resources
+void RenderManagerImpl::renderDrawCalls(DeviceContext* context,
+                                        const std::vector<DrawCall>& drawCalls)
+{
+    Pipeline* pipeline = visualSystem->getPipeline();
+
+    DrawCall drawCallBatch{};
     std::vector<InstanceDataKey> instanceDataIndices;
-    int numInstances = 0;
+
+    auto batchDrawCall = [&drawCallBatch,
+                          &instanceDataIndices](const DrawCall& draw) {
+        if (drawCallBatch == draw)
+        {
+            instanceDataIndices.push_back(draw.instanceDataIndex);
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    };
 
     size_t tail = 0;
 
     bool stop = false;
-    while (tail < drawCallsEx.size())
+    while (tail < drawCalls.size())
     {
-        // TODO add to instance data handle vector to upload.
-        // Support multiple numInstances :)
-        // Hook into terrain so we can render multiple chunks in one instanced
-        // draw
         instanceDataIndices.clear();
-        numInstances = 0;
 
-        size_t head = tail;
-        const DrawCall& baseDrawCall = drawCallsEx[head];
+        // Begin draw call batch. Take the first draw call in my list
+        drawCallBatch = drawCalls[tail];
+        batchDrawCall(drawCallBatch);
+        ++tail;
 
-        // Check if we can batch.
-        // We can only batch if everything is equal except for the instance
-        // data handle.
-        // If the handle is invalid we map it to 0, the identity instance
-        auto commitDrawCallToBatch =
-            [&numInstances, &instanceDataIndices](const DrawCall& draw) {
-                const InstanceDataKey instanceDataHandle =
-                    draw.instanceDataIndex != kInvalidDrawBlockKey
-                        ? draw.instanceDataIndex
-                        : 0;
-
-                numInstances += draw.numInstances;
-                for (int i = 0; i < draw.numInstances; i++)
-                {
-                    instanceDataIndices.push_back(instanceDataHandle);
-                }
-            };
-
-        // Move to lambda
-        commitDrawCallToBatch(baseDrawCall);
-
-        bool stop = false;
-        while (!stop && tail + 1 < drawCallsEx.size())
+        // Attempt to batch subsequent draw calls with this one
+        // While batchDrawCall returns true, we are batching.
+        while (tail < drawCalls.size() && batchDrawCall(drawCalls[tail]))
         {
-            const DrawCall& nextDrawCall = drawCallsEx[tail + 1];
-
-            bool batchNext = true;
-            batchNext = batchNext && nextDrawCall.instanceDataIndex !=
-                                         kInvalidInstanceDataKey;
-            batchNext = batchNext && (baseDrawCall.depth == nextDrawCall.depth);
-            batchNext =
-                batchNext && (baseDrawCall.technique == nextDrawCall.technique);
-            batchNext = batchNext && (baseDrawCall.mesh == nextDrawCall.mesh);
-            batchNext = batchNext && (baseDrawCall.mesh == nextDrawCall.mesh);
-
-            if (batchNext)
-            {
-                commitDrawCallToBatch(nextDrawCall);
-                tail++;
-            }
-            else
-            {
-                stop = true;
-            }
+            ++tail;
         }
 
-        // Bind everything
-        // TODO Shader Resources
-
-        const Geometry* mesh = baseDrawCall.mesh;
-        const Technique* technique = baseDrawCall.technique;
+        // Execute draw call batch
+        const Geometry* mesh = drawCallBatch.mesh;
+        const Technique* technique = drawCallBatch.technique;
 
         context->bindShaderProgram(technique->vertexShader.c_str(),
                                    technique->pixelShader.c_str());
@@ -520,18 +469,10 @@ void RenderManagerImpl::executeRenderPass(DeviceContext* context,
             }
         }
 
-        // 2 Paths:
-        // - Instanced Draw Call. We upload the instance handles into Cb4.
-        // - Non-Instanced Draw Call. We still do the instanced draw call
-        // API, but do not touch CB4.
-
-        {
-            context->loadVertexCB(4, instanceDataIndices.data(),
-                                  sizeof(InstanceDataKey) *
-                                      instanceDataIndices.size());
-        }
-
-        context->draw(mesh, numInstances);
+        context->loadVertexCB(4, instanceDataIndices.data(),
+                              sizeof(InstanceDataKey) *
+                                  instanceDataIndices.size());
+        context->draw(mesh, instanceDataIndices.size());
 
         tail++;
     }

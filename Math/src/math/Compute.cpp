@@ -16,6 +16,15 @@ namespace Engine
 namespace Math
 {
 
+uint32_t computeSizeOfMip(uint8_t mip, uint32_t originalTexelSize)
+{
+    return originalTexelSize >> mip;
+}
+uint32_t computeMipCount(uint32_t texelWidth, uint32_t texelHeight)
+{
+    return floor(log2f(std::max(texelWidth, texelHeight))) + 1;
+}
+
 // Modulus:
 // Performs a modulus that properly wraps around for negatives.
 // For example, 7 % 5 = 2, and -2 % 5 = 3.

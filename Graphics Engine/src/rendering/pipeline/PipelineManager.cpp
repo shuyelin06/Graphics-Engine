@@ -40,19 +40,10 @@ Pipeline::Pipeline(HWND window)
         postprocessQuad->indexCount = 6;
     }
 
-#if defined(_DEBUG)
-    imGuiInitialize(window);
-#endif
-
-    ImGuiHelper::RegisterImGuiCallback("Render/Pipeline",
-                                       [this]() { imGui(); });
 }
 
 Pipeline::~Pipeline()
 {
-#if defined(_DEBUG)
-    imGuiShutdown();
-#endif
 }
 
 void Pipeline::initializeTargets(HWND _window)
@@ -106,8 +97,6 @@ const std::shared_ptr<Texture> Pipeline::getDepthStencil() const
 void Pipeline::beginFrame(const uint64_t frame)
 {
     // Clear the the target destination color
-    stats = Pipeline::Stats();
-
     const float baseColor[4] = {0.f, 0.f, 0.f, 1.f};
     context->clearRenderTarget(render_target_dest, baseColor);
 }
@@ -185,29 +174,6 @@ void Pipeline::endFrame()
 
         drawPostProcessQuad();
     }
-}
-
-#if defined(_DEBUG) // ImGui
-// ImGui Initialize:
-// Initializes the ImGui menu and associated data.
-void Pipeline::imGuiInitialize(HWND window)
-{
-    
-}
-
-// ImGuiShutDown:
-// Shut down the ImGui system
-void Pipeline::imGuiShutdown()
-{
-    
-}
-#endif
-
-void Pipeline::imGui()
-{
-#if defined(IMGUI_ENABLED)
-    ImGui::Text("Draw Call Count: %zu", stats.numDraws);
-#endif
 }
 
 } // namespace Graphics

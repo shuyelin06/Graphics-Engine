@@ -11,7 +11,7 @@
 // scope for the profiler tool to automatically profile the scope.
 // Some key notes:
 // 1) Scopes are stored per thread. For now only the main thread scopes are reported.
-// 2) Every invocation of a function
+// 2) Every invocation of a function generates its own scope
 // TODO Add profiling for other threads
 namespace Profiling
 {

@@ -4,13 +4,12 @@
 
 #include "math/Vector3.h"
 
-#include "rendering/core/Device.h"
-
 namespace Engine
 {
 using namespace Math;
 namespace Graphics
 {
+class DeviceContext;
 class VisualSystem;
 class Terrain2DManagerImpl;
 class Terrain2DManager
@@ -19,10 +18,7 @@ class Terrain2DManager
     static std::unique_ptr<Terrain2DManager> create(VisualSystem* visualSystem);
     ~Terrain2DManager();
 
-    void update(const Vector3& cameraPosition);
-    void updatePerform(DeviceContext* context);
-
-    void render(DeviceContext* context);
+    void updatePerform(const Vector3& cameraPosition, DeviceContext* context);
 
     void imGui();
 

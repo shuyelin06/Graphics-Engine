@@ -13,9 +13,12 @@ struct PS_IN
     float4 position_clip : SV_POSITION;
     float3 world_position : POSITION;
     float3 normal : NORMAL;
+    
+    uint4 materialID : TEXCOORD0;
+    float4 materialWeights : TEXCOORD1;
 };
 
-DefineTex2D(TerrainColormap, 4);
+DefineTex2DArray(TerrainColormap, 4);
 
 cbuffer TerrainData : register(b4)
 {
@@ -49,9 +52,9 @@ float3 triplanarSampleColormap(float3 position, float3 normal)
     float2 yUV = uvScaling * position.xz;
     float2 zUV = uvScaling * position.xy;
 
-    float3 xSample = SampleTex2DLevel(TerrainColormap, xUV, computeMipFromDerivatives(TerrainColormap, xUVdx, xUVdy), float2(0,0));
-    float3 ySample = SampleTex2DLevel(TerrainColormap, yUV, computeMipFromDerivatives(TerrainColormap, yUVdx, yUVdy), float2(0,0));
-    float3 zSample = SampleTex2DLevel(TerrainColormap, zUV, computeMipFromDerivatives(TerrainColormap, zUVdx, zUVdy), float2(0,0));
+    float3 xSample = SampleTex2DArrayLevel(TerrainColormap, float3(xUV, 0), computeMipFromDerivatives(TerrainColormap, xUVdx, xUVdy), float2(0,0));
+    float3 ySample = SampleTex2DArrayLevel(TerrainColormap, float3(yUV, 0), computeMipFromDerivatives(TerrainColormap, yUVdx, yUVdy), float2(0,0));
+    float3 zSample = SampleTex2DArrayLevel(TerrainColormap, float3(zUV, 0), computeMipFromDerivatives(TerrainColormap, zUVdx, zUVdy), float2(0,0));
     
     float3 weights = abs(normal);
     weights = pow(weights, 1);
@@ -66,8 +69,6 @@ float3 triplanarSampleColormap(float3 position, float3 normal)
 float4 psterrain_main(PS_IN input) : SV_TARGET
 {
     float3 normal = normalize(input.normal);
-    float3 direction = normalize(float3(0.5f, -0.5f, 0.5f));
-
     float3 color = triplanarSampleColormap(input.world_position, normal);
 
     return float4(color, 1.f);

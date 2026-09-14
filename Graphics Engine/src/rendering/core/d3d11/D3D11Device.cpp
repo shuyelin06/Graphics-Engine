@@ -327,13 +327,14 @@ void Direct3D11DeviceContext::updateBuffer(
 
 void Direct3D11DeviceContext::updateTexture(
     const std::shared_ptr<Texture>& texture,
-    uint8_t slice,
+    uint8_t targetSlice,
+    uint8_t targetMip,
     const void* initData,
     size_t bytes)
 {
     D3D11Texture* tex = reinterpret_cast<D3D11Texture*>(texture.get());
     assert(tex);
-    tex->update(context, slice, initData, bytes);
+    tex->update(context, targetSlice, targetMip, initData, bytes);
 }
 
 void Direct3D11DeviceContext::generateMips(
