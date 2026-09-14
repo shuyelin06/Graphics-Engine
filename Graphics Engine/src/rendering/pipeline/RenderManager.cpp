@@ -1,16 +1,17 @@
 #include "RenderManager.h"
 
+#include <algorithm>
+#include <assert.h>
+#include <vector>
+
 #include "core/PoolAllocator.h"
 #include "core/Slotmap.h"
+#include "util/Profiling.h"
 
 #include "rendering/core/Frustum.h"
 
 #include "DrawCall.h"
 #include "rendering/VisualSystem.h"
-
-#include <algorithm>
-#include <assert.h>
-#include <vector>
 
 namespace Engine
 {
@@ -59,6 +60,7 @@ struct GlobalPixelShaderData
 
 class RenderManagerImpl
 {
+  private:
     ID3D11DeviceContext* context;
     ID3D11Device* device;
     VisualSystem* visualSystem;
@@ -93,11 +95,9 @@ class RenderManagerImpl
 
     void perform();
 
+    void doImGui();
+
   private:
-    void executeRenderPass(DeviceContext* context,
-                           RenderPass pass,
-                           const RenderView& view,
-                           const std::string& annotation);
     void buildVisibleSet(const RenderView& view,
                          std::vector<DrawBlockKey>& visibleBlocks);
     void buildRenderPass(RenderPass pass,
@@ -299,37 +299,40 @@ void RenderManagerImpl::perform()
         */
     }
 
+    // Render!
+    // Rendering is done in a few stages. These can be moved to async jobs later per view.
+    // 1) Visible Set Building: Iterate draw block set and cull those that are not visible.
+    // 2) Render Pass Building: Generate draw calls from visible blocks according to the render pass needed
+    // 3) Render: Execute draw calls, batching where possible
+    std::vector<DrawBlockKey> visibleBlocksMain;
+    buildVisibleSet(mainView, visibleBlocksMain);
+
     {
+        PROFILE_SCOPE("Opaque Pass");
         context->bindRenderTarget(mainView.renderTarget, mainView.depthStencil,
                                   DepthSettings::Depth_TestAndWrite,
                                   BlendSettings::Blend_Default);
-        executeRenderPass(context, RenderPass::kOpaque, mainView, "Opaque");
+        std::vector<DrawCall> drawCalls;
+        buildRenderPass(RenderPass::kOpaque, visibleBlocksMain, drawCalls);
+        renderDrawCalls(context, drawCalls);
     }
 
     {
+        PROFILE_SCOPE("Debug Pass")
         context->bindRenderTarget(mainView.renderTarget, mainView.depthStencil,
                                   DepthSettings::Depth_TestAndWrite,
                                   BlendSettings::Blend_Default);
-        executeRenderPass(context, RenderPass::kDebug, mainView, "Debug");
+        std::vector<DrawCall> drawCalls;
+        buildRenderPass(RenderPass::kDebug, visibleBlocksMain, drawCalls);
+        renderDrawCalls(context, drawCalls);
     }
-}
-
-void RenderManagerImpl::executeRenderPass(DeviceContext* context,
-                                          RenderPass pass,
-                                          const RenderView& view,
-                                          const std::string& annotation)
-{
-    std::vector<DrawBlockKey> visibleBlocks;
-    std::vector<DrawCall> drawCalls;
-    // TODO Visible Set building can be reused for a single view
-    buildVisibleSet(view, visibleBlocks);
-    buildRenderPass(pass, visibleBlocks, drawCalls);
-    renderDrawCalls(context, drawCalls);
 }
 
 void RenderManagerImpl::buildVisibleSet(
     const RenderView& view, std::vector<DrawBlockKey>& visibleBlocks)
 {
+    PROFILE_SCOPE("RenderManager::buildVisibleSet");
+
     visibleBlocks.clear();
 
     const Frustum viewFrustum =
@@ -364,6 +367,8 @@ void RenderManagerImpl::buildRenderPass(
     const std::vector<DrawBlockKey>& visibleBlocks,
     std::vector<DrawCall>& drawCalls)
 {
+    PROFILE_SCOPE("RenderManager::buildRenderPass");
+
     drawCalls.clear();
 
     for (const DrawBlockKey& visibleBlockKey : visibleBlocks)
@@ -392,6 +397,8 @@ void RenderManagerImpl::buildRenderPass(
 void RenderManagerImpl::renderDrawCalls(DeviceContext* context,
                                         const std::vector<DrawCall>& drawCalls)
 {
+    PROFILE_SCOPE("RenderManager::renderDrawCalls");
+
     Pipeline* pipeline = visualSystem->getPipeline();
 
     DrawCall drawCallBatch{};
@@ -476,6 +483,13 @@ void RenderManagerImpl::renderDrawCalls(DeviceContext* context,
 
         tail++;
     }
+}
+
+void RenderManagerImpl::doImGui()
+{
+#if defined(IMGUI_ENABLED)
+
+#endif
 }
 
 /*

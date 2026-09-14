@@ -59,6 +59,7 @@ struct DrawCall
             return technique < other.technique;
         return mesh < other.mesh;
     }
+    // Equality operator for batching
     bool operator==(const DrawCall& other) const
     {
         return depth == other.depth && mesh == other.mesh &&
