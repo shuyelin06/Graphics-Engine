@@ -7,7 +7,7 @@
 #include <assert.h>
 #include <optional>
 
-constexpr bool ALLOW_CACHING = false;
+constexpr bool ALLOW_CACHING = true;
 
 namespace Engine
 {

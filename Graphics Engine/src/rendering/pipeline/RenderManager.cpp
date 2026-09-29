@@ -93,7 +93,7 @@ class RenderManagerImpl
     void setMainView(const RenderView& view);
     void setShadowViews(const RenderView* viewArr, uint32_t count);
 
-    void perform();
+    void perform(DeviceContext* context);
 
     void doImGui();
 
@@ -131,7 +131,7 @@ void RenderManager::setMainView(const RenderView& view)
     mImpl->setMainView(view);
 }
 
-void RenderManager::perform() { mImpl->perform(); }
+void RenderManager::perform(DeviceContext* context) { mImpl->perform(context); }
 
 std::unique_ptr<RenderManager>
 RenderManager::create(VisualSystem* visual_system,
@@ -215,16 +215,14 @@ void RenderManagerImpl::setMainView(const RenderView& view) { mainView = view; }
 // CB2 is the draw call buffer. It is set once per draw call.
 // CB3 is the instance buffer. It stores instance data.
 // Other constant buffers are unallocated and can be used for whatever.
-void RenderManagerImpl::perform()
+void RenderManagerImpl::perform(DeviceContext* context)
 {
-    Pipeline* pipeline = visualSystem->getPipeline();
     ResourceManager* resourceManager = visualSystem->getResourceManager();
 
-    DeviceContext* context = pipeline->getContext();
-
     const std::shared_ptr<Texture> renderTarget =
-        pipeline->getRenderTargetDest();
-    const std::shared_ptr<Texture> depthStencil = pipeline->getDepthStencil();
+        visualSystem->getMainRenderTargets()->render_target_dest;
+    const std::shared_ptr<Texture> depthStencil =
+        visualSystem->getMainRenderTargets()->depth_stencil;
 
     // Bind my atlases
     const std::shared_ptr<Texture>& colormap =
@@ -398,8 +396,6 @@ void RenderManagerImpl::renderDrawCalls(DeviceContext* context,
                                         const std::vector<DrawCall>& drawCalls)
 {
     PROFILE_SCOPE("RenderManager::renderDrawCalls");
-
-    Pipeline* pipeline = visualSystem->getPipeline();
 
     DrawCall drawCallBatch{};
     std::vector<InstanceDataKey> instanceDataIndices;

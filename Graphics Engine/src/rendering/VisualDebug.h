@@ -7,6 +7,7 @@
 #include "math/Vector3.h"
 
 #include "rendering/core/Device.h"
+#include "rendering/core/Geometry.h"
 
 namespace Engine
 {

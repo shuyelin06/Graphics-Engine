@@ -5,7 +5,6 @@
 #include "VisualDebug.h"
 #include "core/Device.h"
 #include "lights/LightManager.h"
-#include "pipeline/PipelineManager.h"
 #include "pipeline/RenderManager.h"
 #include "postfx/PostFXManager.h"
 #include "resources/MaterialManager.h"
@@ -23,12 +22,27 @@ using namespace Datamodel;
 
 namespace Graphics
 {
+class Texture;
+
 class SceneListener;
 class SceneManager;
 class ResourceManager;
 class MaterialManager;
 class PostFXManager;
 class VisualDebug;
+
+struct MainRenderTargets
+{
+    std::shared_ptr<Texture> render_target_dest = nullptr;
+    std::shared_ptr<Texture> render_target_src = nullptr;
+
+    std::shared_ptr<Texture> depth_stencil = nullptr;
+
+    inline void swapActiveRenderTarget()
+    {
+        std::swap(render_target_dest, render_target_src);
+    }
+};
 
 // VisualSystem Class:
 // Provides an interface for the application's graphics.
@@ -41,10 +55,11 @@ class VisualSystem
     uint64_t frame;
 
     // Managers
-    Device* device;
-    DeviceContext* context;
+    std::unique_ptr<Device> device;
+    std::unique_ptr<DeviceContext> context;
 
-    std::unique_ptr<Pipeline> pipeline;
+    std::unique_ptr<MainRenderTargets> render_targets;
+
     std::unique_ptr<VisualDebug> visual_debug;
     std::unique_ptr<ResourceManager> resource_manager;
     std::unique_ptr<MaterialManager> material_manager;
@@ -61,18 +76,18 @@ class VisualSystem
 
     // Call these functions to render the scene. Renders an entire scene
     void renderPrepare();
-    void render();
+    void renderPerform();
 
     // clang-format off
-    Device* getDevice() const { return device; }
+    Device* getDevice() const { return device.get(); }
     ResourceManager* getResourceManager() const { return resource_manager.get(); }
     MaterialManager* getMaterialManager() const { return material_manager.get(); }
     SceneListener* getSceneListener() const { return scene_listener.get(); }
     SceneManager* getSceneManager() const { return scene_manager.get(); }
     RenderManager* getRenderManager() const { return render_manager.get(); }
     LightManager* getLightManager() const { return light_manager; }
-    Pipeline* getPipeline() const { return pipeline.get(); }
     VisualDebug* getVisualDebug() const { return visual_debug.get(); };
+    MainRenderTargets* getMainRenderTargets() const { return render_targets.get(); }
     // clang-format on
 
   private:

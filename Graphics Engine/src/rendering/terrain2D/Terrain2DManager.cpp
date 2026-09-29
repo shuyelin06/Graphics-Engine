@@ -323,12 +323,8 @@ void Terrain2DManagerImpl::updateIdealQuadTreeLOD(QuadTreeNode* node,
         if (idealLOD > depth)
         {
             divideNode(*node);
-
-            for (int i = 0; i < 4; i++)
-            {
-                updateIdealQuadTreeLOD(node->children[i], cameraPosition,
-                                       depth + 1);
-            }
+            for (QuadTreeNode* child : node->children)
+                updateIdealQuadTreeLOD(child, cameraPosition, depth + 1);
         }
     }
     else
@@ -339,11 +335,8 @@ void Terrain2DManagerImpl::updateIdealQuadTreeLOD(QuadTreeNode* node,
         }
         else
         {
-            for (int i = 0; i < 4; i++)
-            {
-                updateIdealQuadTreeLOD(node->children[i], cameraPosition,
-                                       depth + 1);
-            }
+            for (QuadTreeNode* child : node->children)
+                updateIdealQuadTreeLOD(child, cameraPosition, depth + 1);
         }
     }
 }
@@ -375,10 +368,8 @@ void Terrain2DManagerImpl::selectReadyQuadTreeNodesHelper(QuadTreeNode* node)
     else
     {
         bool childrenReady = true;
-        for (int i = 0; i < 4; i++)
-        {
-            childrenReady = childrenReady && nodeReadyCheck(node->children[i]);
-        }
+        for (QuadTreeNode* child : node->children)
+            childrenReady = childrenReady && nodeReadyCheck(child);
         submitForDrawing = !childrenReady;
     }
 

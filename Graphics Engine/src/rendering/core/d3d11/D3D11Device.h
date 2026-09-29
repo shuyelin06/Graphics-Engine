@@ -130,8 +130,6 @@ class Direct3D11DeviceContext : public DeviceContext
               uint32_t instanceCount,
               VertexTopology toplogy) override;
 
-    void present() override;
-
   private:
     void initializeDepthStates();
     void initializeBlendStates();

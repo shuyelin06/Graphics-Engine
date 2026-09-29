@@ -11,29 +11,46 @@ namespace Graphics
 // Initializes the VisualSystem
 VisualSystem::VisualSystem(HWND window)
 {
+    // Initialize my Graphics API!
+    InitializeGraphicsAPI(window, device, context);
+
+    // Get my window width and height
+    RECT rect;
+    GetClientRect(window, &rect);
+    const UINT width = rect.right - rect.left;
+    const UINT height = rect.bottom - rect.top;
+
     // Initialize my pipeline
-    pipeline = std::make_unique<Pipeline>(window);
+    render_targets = std::make_unique<MainRenderTargets>();
+    render_targets->render_target_dest = device->createTexture(
+        "Render Target Destination", TextureLayout::R8G8B8A8_UNORM,
+        TextureUsage::RenderTarget | TextureUsage::ShaderResource, width,
+        height);
+    render_targets->render_target_src = device->createTexture(
+        "Render Target Source", TextureLayout::R8G8B8A8_UNORM,
+        TextureUsage::RenderTarget | TextureUsage::ShaderResource, width,
+        height);
+    render_targets->depth_stencil = device->createTexture(
+        "Depth Stencil", TextureLayout::R24_UNORM_G8_UINT,
+        TextureUsage::DepthStencil | TextureUsage::ShaderResource, width,
+        height);
 
-    device = pipeline->getDevice();
-    ID3D11Device* deviceInterface = device->getDevice();
-    context = pipeline->getContext();
-
-    resource_manager = ResourceManager::create(device, context);
+    resource_manager = ResourceManager::create(device.get(), context.get());
     resource_manager->initializeSystemResources();
     material_manager = MaterialManager::create(resource_manager.get());
 
     visual_debug =
-        std::make_unique<VisualDebug>(device, resource_manager->getCubeMesh());
+        std::make_unique<VisualDebug>(device.get(), resource_manager->getCubeMesh());
 
     render_manager =
-        RenderManager::create(this, context->getContext(), deviceInterface);
+        RenderManager::create(this, context->getContext(), device->getDevice());
     postfx_manager = PostFXManager::create(this);
 
     // Initialize each of my managers with the resources they need
     scene_listener = SceneListener::create(this);
     scene_manager = SceneManager::create(this);
 
-    light_manager = new LightManager(this, device, 4096);
+    light_manager = new LightManager(this, device.get(), 4096);
     terrain2D = Terrain2DManager::create(this);
 
     ImGuiHelper::RegisterImGuiCallback("Render/Core", [this]() { doCoreUI(); });
@@ -45,31 +62,32 @@ VisualSystem::VisualSystem(HWND window)
 
 // Render:
 // Renders the entire scene to the screen.
-void VisualSystem::render()
+void VisualSystem::renderPerform()
 {
+    // Update Performs
+    terrain2D->updatePerform(scene_manager->getMainCamera()->getPosition(),
+                             context.get());
+
     {
         PROFILE_SCOPE("TEST");
-
-        terrain2D->updatePerform(scene_manager->getMainCamera()->getPosition(),
-                                 context);
 
         beginRenderFrame();
 
         {
             PROFILE_SCOPE("Render Manager");
             context->beginPass("Pass 1");
-            render_manager->perform();
+            render_manager->perform(context.get());
             context->endPass();
         }
 
         {
             PROFILE_SCOPE("Debug Render");
             context->beginPass("Debug Render");
-            visual_debug->render(context);
+            visual_debug->render(context.get());
             context->endPass();
         }
 
-        postfx_manager->render(context);
+        postfx_manager->render(context.get());
     }
 
     endRenderFrame();
@@ -79,19 +97,32 @@ void VisualSystem::beginRenderFrame()
 {
     frame++;
     context->beginFrame(frame);
-    pipeline->beginFrame(frame);
+
+    // Clear my target color so we can start rendering the next frame
+    const float baseColor[4] = {0.f, 0.f, 0.f, 1.f};
+    context->clearRenderTarget(render_targets->render_target_dest, baseColor);
 }
 
 void VisualSystem::endRenderFrame()
 {
-    pipeline->endFrame();
-    context->endFrame();
+    // Copy main render target to screen buffer
+    {
+        context->beginPass("Render Target Copy");
 
-    // Swapchain present
-    // Finished presenting so finish
-    // RenderDoc Capture (if initialized and we are taking one)
-    context->present();
-    RenderDoc::EndRenderDocCaptureIfCapturing();
+        context->bindShaderProgram("PostProcess", "PostProcess");
+
+        context->bindRenderTarget(nullptr, nullptr,
+                                  DepthSettings::Depth_Disabled,
+                                  BlendSettings::SrcAlphaOnly);
+        context->bindPixelTexture(0, render_targets->render_target_dest,
+                                  SamplerSettings::Point);
+        postfx_manager->drawPostFXQuad(context.get());
+
+        context->endPass();
+    }
+
+    // End Frame + Present
+    context->endFrame();
 
     // Start next frame
     PROFILE_RESET();
@@ -117,7 +148,7 @@ void VisualSystem::renderPrepare()
     resource_manager->updatePerform();
 
     Camera* camera = scene_manager->getMainCamera();
-    std::shared_ptr<Texture> target = pipeline->getRenderTargetDest();
+    std::shared_ptr<Texture> target = render_targets->render_target_dest;
     RenderView mainView;
     mainView.position = camera->getPosition();
     mainView.zNear = camera->getZNear();
@@ -129,7 +160,7 @@ void VisualSystem::renderPrepare()
         Vector4((float)target->getWidth(), (float)target->getHeight(),
                 camera->getZNear(), camera->getZFar());
     mainView.renderTarget = target;
-    mainView.depthStencil = pipeline->getDepthStencil();
+    mainView.depthStencil = render_targets->depth_stencil;
     render_manager->setMainView(mainView);
 }
 
@@ -163,6 +194,7 @@ void VisualSystem::doRenderDocUI()
         return;
     }
 
+    RenderDoc::EndRenderDocCaptureIfCapturing();
     if (ImGui::Button("Take RenderDoc Capture"))
     {
         RenderDoc::StartRenderDocCapture();

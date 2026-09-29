@@ -132,7 +132,9 @@ int WINAPI wWinMain(HINSTANCE hInstance,
 
     // Bind a Camera
     Object* camera = new DMPhysics();
+    camera->getTransform().offsetPosition(Vector3(0, 75, 0));
     camera->addChild(new DMCamera());
+
     root->addChild(camera);
 
     // Bind Terrain
@@ -151,10 +153,6 @@ int WINAPI wWinMain(HINSTANCE hInstance,
     createMesh(Vector3(0, 0, 0), 250.f);
     createMesh(Vector3(0, 200.f, 0), 250.f);
     createMesh(Vector3(0, -200.f, 0), 250.f);
-
-    for (int i = 0; i < 5; i++)
-    {
-    }
 
     DMLight* light = new DMLight();
     root->addChild(light);
@@ -236,8 +234,7 @@ int WINAPI wWinMain(HINSTANCE hInstance,
         input_system.update();
 
         visual_system.renderPrepare();
-        // Render Objects
-        visual_system.render();
+        visual_system.renderPerform();
 
         // Update Physics System
         physics_system.pullDatamodelData();

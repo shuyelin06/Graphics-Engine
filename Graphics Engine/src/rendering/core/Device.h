@@ -144,8 +144,6 @@ class DeviceContext
     draw(const Geometry* geometry,
          uint32_t instanceCount,
          VertexTopology toplogy = VertexTopology::TriangleList) = 0;
-
-    virtual void present() = 0;
 };
 
 class Device

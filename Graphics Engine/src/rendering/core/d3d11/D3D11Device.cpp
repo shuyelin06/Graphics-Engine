@@ -168,7 +168,7 @@ Direct3D11DeviceContext::Direct3D11DeviceContext(ID3D11DeviceContext* context,
         vb_strides[i] = VertexLayout::VertexStreamStride((VertexDataStream)i);
     }
 
-    queries = std::make_unique<D3D11PassTracker>(device);
+    queries = std::make_unique<D3D11PassTracker>(device, context);
 
     initializeDepthStates();
     initializeBlendStates();
@@ -366,7 +366,27 @@ void Direct3D11DeviceContext::beginFrame(uint64_t frame)
 {
     queries->beginFrame(frame, context);
 }
-void Direct3D11DeviceContext::endFrame() { queries->endFrame(context); }
+void Direct3D11DeviceContext::endFrame() { 
+#if defined(IMGUI_ENABLED)
+    beginPass("ImGui");
+    EndImGuiFrame();
+    endPass();
+#endif
+
+    queries->endFrame(context);
+
+    HRESULT result = swapchain->Present(1, 0);
+    if (result == DXGI_ERROR_DEVICE_REMOVED ||
+        result == DXGI_ERROR_DEVICE_RESET)
+    {
+        result = device->GetDeviceRemovedReason();
+    }
+    assert(SUCCEEDED(result));
+
+#if defined(IMGUI_ENABLED)
+    StartImGuiFrame();
+#endif
+}
 void Direct3D11DeviceContext::beginPass(const char* passName)
 {
     queries->beginPass(passName, device, context);
@@ -603,25 +623,6 @@ void Direct3D11DeviceContext::draw(const Geometry* geometry,
         context->DrawInstanced(geometry->indexCount, instanceCount,
                                geometry->vertexOffset, 0);
     }
-}
-
-void Direct3D11DeviceContext::present()
-{
-#if defined(IMGUI_ENABLED)
-    EndImGuiFrame();
-#endif
-
-    HRESULT result = swapchain->Present(1, 0);
-    if (result == DXGI_ERROR_DEVICE_REMOVED ||
-        result == DXGI_ERROR_DEVICE_RESET)
-    {
-        result = device->GetDeviceRemovedReason();
-    }
-    assert(SUCCEEDED(result));
-
-#if defined(IMGUI_ENABLED)
-    StartImGuiFrame();
-#endif
 }
 
 } // namespace Graphics

@@ -2,11 +2,14 @@
 
 #include <assert.h>
 
+#include <string>
+
 namespace Engine
 {
 namespace Graphics
 {
-D3D11PassTracker::D3D11PassTracker(ID3D11Device* device)
+D3D11PassTracker::D3D11PassTracker(ID3D11Device* device,
+                                   ID3D11DeviceContext* context)
 {
     // Initialize each FrameQuery in my queries array.
     D3D11_QUERY_DESC queryDesc = {};
@@ -18,6 +21,9 @@ D3D11PassTracker::D3D11PassTracker(ID3D11Device* device)
         result = device->CreateQuery(&queryDesc, &frameQuery.disjointQuery);
         assert(SUCCEEDED(result));
     }
+
+    context->QueryInterface(__uuidof(userAnnotation),
+                            reinterpret_cast<void**>(&userAnnotation));
 }
 D3D11PassTracker::~D3D11PassTracker()
 {
@@ -143,6 +149,16 @@ void D3D11PassTracker::beginPass(const char* passName,
         assert(SUCCEEDED(result));
     }
 
+    // Annotate for captures
+    if (userAnnotation)
+    {
+        const int sizeNeeded = MultiByteToWideChar(CP_UTF8, 0, passName, -1, NULL, 0);
+        std::wstring passNameW(sizeNeeded, 0);
+        MultiByteToWideChar(CP_UTF8, 0, passName, -1, &passNameW[0],
+                            sizeNeeded);
+        userAnnotation->BeginEvent(passNameW.c_str());
+    }
+
     // Initialize query
     assert(activePassQuery);
     activePassQuery->passName = passName;
@@ -156,6 +172,11 @@ void D3D11PassTracker::endPass(ID3D11DeviceContext* context)
 
     context->End(activePassQuery->queryEnd);
     activePassQuery = nullptr;
+
+    if (userAnnotation)
+    {
+        userAnnotation->EndEvent();
+    }
 }
 
 const PassStats& D3D11PassTracker::getPassStats()

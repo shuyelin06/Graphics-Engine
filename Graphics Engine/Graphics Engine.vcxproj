@@ -257,7 +257,6 @@
     <ClCompile Include="src\rendering\core\Frustum.cpp" />
     <ClCompile Include="src\rendering\resources\files\GLTFFile.cpp" />
     <ClCompile Include="src\rendering\resources\files\PNGFile.cpp" />
-    <ClCompile Include="src\rendering\pipeline\PipelineManager.cpp" />
     <ClCompile Include="src\rendering\core\d3d11\D3D11Shader.cpp" />
     <ClCompile Include="src\rendering\core\d3d11\D3D11ShaderCompiler.cpp" />
     <ClCompile Include="src\rendering\core\TextureAtlas.cpp" />
@@ -352,7 +351,6 @@
     <ClInclude Include="src\rendering\lights\Light.h" />
     <ClInclude Include="src\rendering\resources\ResourceManager.h" />
     <ClInclude Include="src\rendering\lights\SunLight.h" />
-    <ClInclude Include="src\rendering\pipeline\PipelineManager.h" />
     <ClInclude Include="src\rendering\core\d3d11\D3D11Shader.h" />
     <ClInclude Include="src\rendering\core\d3d11\D3D11ShaderCompiler.h" />
     <ClInclude Include="src\rendering\core\Frustum.h" />

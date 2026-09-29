@@ -46,7 +46,8 @@ float3 triplanarSampleColormap(float3 position, float3 normal)
     float2 zUVdx = uvScaling * positionDX.xy;
     float2 zUVdy = uvScaling * positionDY.xy;
 
-    
+    // TODO work on detiling
+    // Good reference: https://iquilezles.org/articles/texturerepetition/
     // TODO: Manual computation of UV derivatives for correct mips
     float2 xUV = uvScaling * position.zy;
     float2 yUV = uvScaling * position.xz;
@@ -57,7 +58,7 @@ float3 triplanarSampleColormap(float3 position, float3 normal)
     float3 zSample = SampleTex2DArrayLevel(TerrainColormap, float3(zUV, 0), computeMipFromDerivatives(TerrainColormap, zUVdx, zUVdy), float2(0,0));
     
     float3 weights = abs(normal);
-    weights = pow(weights, 1);
+    weights = pow(weights, sharpness);
     weights = weights / (weights.x + weights.y + weights.z);
     float3 blended = xSample * weights.x + ySample * weights.y + zSample * weights.z;
     

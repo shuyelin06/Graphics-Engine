@@ -91,7 +91,7 @@ class RenderManager
     void setMainView(const RenderView& view);
     void setShadowViews(const RenderView* viewArr, uint32_t count);
 
-    void perform();
+    void perform(DeviceContext* context);
 
   private:
     RenderManager();

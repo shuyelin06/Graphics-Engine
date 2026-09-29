@@ -7,6 +7,7 @@
 #include "../Device.h"
 
 #include "rendering/Direct3D11.h"
+#include "d3d11_1.h"
 
 namespace Engine
 {
@@ -45,6 +46,8 @@ class D3D11PassTracker
     FrameQuery* activeFrameQuery = nullptr;
     PassQuery* activePassQuery = nullptr;
 
+    ID3DUserDefinedAnnotation* userAnnotation = nullptr;
+
     struct PassInformation
     {
         uint64_t lastFrameUsed = 0;
@@ -55,7 +58,7 @@ class D3D11PassTracker
     PassStats aggregate;
 
   public:
-    D3D11PassTracker(ID3D11Device* device);
+    D3D11PassTracker(ID3D11Device* device, ID3D11DeviceContext* context);
     ~D3D11PassTracker();
 
     void beginFrame(uint64_t frameNumber, ID3D11DeviceContext* context);

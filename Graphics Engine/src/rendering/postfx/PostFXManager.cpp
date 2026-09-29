@@ -1,7 +1,5 @@
 #include "PostFXManager.h"
 
-#include "rendering/pipeline/PipelineManager.h"
-
 #include "rendering/ImGui.h"
 
 namespace Engine
@@ -26,15 +24,18 @@ class PostFXManagerImpl
   private:
     VisualSystem* mVisualSystem;
 
+    std::shared_ptr<Geometry> postprocessQuad = nullptr;
+
   public:
     PostFXManagerImpl(VisualSystem* visualSystem);
 
     void render(DeviceContext* context);
+    void drawPostFXQuad(DeviceContext* context);
 
   private:
     SkyConfig mSkyConfig;
 
-    void renderSky(Pipeline* pipeline, DeviceContext* context);
+    void renderSky(DeviceContext* context);
 
     void imGui();
 };
@@ -51,34 +52,66 @@ PostFXManager::~PostFXManager() = default;
 
 void PostFXManager::render(DeviceContext* context) { mImpl->render(context); }
 
+void PostFXManager::drawPostFXQuad(DeviceContext* context)
+{
+    mImpl->drawPostFXQuad(context);
+}
+
 PostFXManagerImpl::PostFXManagerImpl(VisualSystem* visualSystem)
     : mVisualSystem(visualSystem)
 {
+    {
+        Device* device = mVisualSystem->getDevice();
+
+        const Vector4 fullscreen_quad[6] = {
+            // First Triangle
+            Vector4(-1, -1, 0, 1), Vector4(-1, 1, 0, 1), Vector4(1, 1, 0, 1),
+            // Second Triangle
+            Vector4(-1, -1, 0, 1), Vector4(1, 1, 0, 1), Vector4(1, -1, 0, 1)};
+
+        std::shared_ptr<Buffer> fullScreenQuad = device->createBuffer(
+            "Full Screen Quad", BufferType::Vertex, sizeof(fullscreen_quad),
+            fullscreen_quad, false);
+
+        postprocessQuad = std::make_shared<Geometry>();
+        postprocessQuad->vertexBuffers[VertexDataStream::PosXYZ_TexU] =
+            fullScreenQuad;
+        postprocessQuad->indexCount = 6;
+    }
 
     ImGuiHelper::RegisterImGuiCallback("Render/PostFX", [this]() { imGui(); });
 }
 
 void PostFXManagerImpl::render(DeviceContext* context)
 {
-    Pipeline* pipeline = mVisualSystem->getPipeline();
-
     if (mSkyConfig.renderSky)
     {
-        renderSky(pipeline, context);
+        renderSky(context);
     }
 }
 
-void PostFXManagerImpl::renderSky(Pipeline* pipeline, DeviceContext* context)
+void PostFXManagerImpl::drawPostFXQuad(DeviceContext* context)
 {
+    context->getContext()->IASetPrimitiveTopology(
+        D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    context->draw(postprocessQuad.get(), 1);
+}
+
+void PostFXManagerImpl::renderSky(DeviceContext* context)
+{
+    MainRenderTargets* renderTargets = mVisualSystem->getMainRenderTargets();
+
+    renderTargets->swapActiveRenderTarget();
+
     context->bindShaderProgram("PostProcess", "Sky");
-    pipeline->bindRenderTarget(Target_SwapTarget,
-                               DepthSettings::Depth_Disabled,
-                               BlendSettings::Blend_Default);
+    context->bindRenderTarget(renderTargets->render_target_dest, nullptr,
+                              DepthSettings::Depth_Disabled,
+                              BlendSettings::Blend_Default);
 
     // Set samplers and texture
-    context->bindPixelTexture(2, pipeline->getRenderTargetSrc(),
+    context->bindPixelTexture(2, renderTargets->render_target_src,
                               SamplerSettings::Point);
-    context->bindPixelTexture(3, pipeline->getDepthStencil(),
+    context->bindPixelTexture(3, renderTargets->depth_stencil,
                               SamplerSettings::Point);
 
     {
@@ -119,10 +152,10 @@ void PostFXManagerImpl::renderSky(Pipeline* pipeline, DeviceContext* context)
 
         appendData(&mSkyConfig.reflective_strength, 4);
 
-        pipeline->getContext()->loadPixelCB(2, data.data(), data.size());
+        context->loadPixelCB(2, data.data(), data.size());
     }
 
-    pipeline->drawPostProcessQuad();
+    drawPostFXQuad(context);
 }
 
 void PostFXManagerImpl::imGui()

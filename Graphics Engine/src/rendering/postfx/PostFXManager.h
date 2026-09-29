@@ -20,6 +20,8 @@ class PostFXManager
 
     void render(DeviceContext* context);
 
+    void drawPostFXQuad(DeviceContext* context);
+
   private:
     PostFXManager();
     std::unique_ptr<PostFXManagerImpl> mImpl;
