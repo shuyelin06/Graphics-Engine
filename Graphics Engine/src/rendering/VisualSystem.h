@@ -91,6 +91,8 @@ class VisualSystem
     // clang-format on
 
   private:
+    void initializeMainRenderTargets(Device* device, unsigned int width, unsigned int height);
+
     void beginRenderFrame();
     void endRenderFrame();
 

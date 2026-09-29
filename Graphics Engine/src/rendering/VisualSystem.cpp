@@ -14,13 +14,46 @@ VisualSystem::VisualSystem(HWND window)
     // Initialize my Graphics API!
     InitializeGraphicsAPI(window, device, context);
 
-    // Get my window width and height
-    RECT rect;
-    GetClientRect(window, &rect);
-    const UINT width = rect.right - rect.left;
-    const UINT height = rect.bottom - rect.top;
+    Device* device = this->device.get();
+    DeviceContext* context = this->context.get();
 
-    // Initialize my pipeline
+    {
+        RECT rect;
+        GetClientRect(window, &rect);
+        const UINT width = rect.right - rect.left;
+        const UINT height = rect.bottom - rect.top;
+        initializeMainRenderTargets(device, width, height);
+    }
+    
+    resource_manager = ResourceManager::create(device, context);
+    resource_manager->initializeSystemResources();
+    material_manager = MaterialManager::create(resource_manager.get());
+
+    visual_debug =
+        std::make_unique<VisualDebug>(device, resource_manager->getCubeMesh());
+
+    render_manager =
+        RenderManager::create(this, context->getContext(), device->getDevice());
+    postfx_manager = PostFXManager::create(this);
+
+    // Initialize each of my managers with the resources they need
+    scene_listener = SceneListener::create(this);
+    scene_manager = SceneManager::create(this);
+
+    light_manager = new LightManager(this, device, 4096);
+    terrain2D = Terrain2DManager::create(this);
+
+    ImGuiHelper::RegisterImGuiCallback("Render/Core", [this]() { doCoreUI(); });
+    ImGuiHelper::RegisterImGuiCallback("Render/Renderdoc",
+                                       [this]() { doRenderDocUI(); });
+    ImGuiHelper::RegisterImGuiCallback("Profiler",
+                                       []() { Profiling::DoProfilerImgui(); });
+}
+
+void VisualSystem::initializeMainRenderTargets(Device* device,
+                                               unsigned int width,
+                                               unsigned int height)
+{
     render_targets = std::make_unique<MainRenderTargets>();
     render_targets->render_target_dest = device->createTexture(
         "Render Target Destination", TextureLayout::R8G8B8A8_UNORM,
@@ -34,30 +67,6 @@ VisualSystem::VisualSystem(HWND window)
         "Depth Stencil", TextureLayout::R24_UNORM_G8_UINT,
         TextureUsage::DepthStencil | TextureUsage::ShaderResource, width,
         height);
-
-    resource_manager = ResourceManager::create(device.get(), context.get());
-    resource_manager->initializeSystemResources();
-    material_manager = MaterialManager::create(resource_manager.get());
-
-    visual_debug =
-        std::make_unique<VisualDebug>(device.get(), resource_manager->getCubeMesh());
-
-    render_manager =
-        RenderManager::create(this, context->getContext(), device->getDevice());
-    postfx_manager = PostFXManager::create(this);
-
-    // Initialize each of my managers with the resources they need
-    scene_listener = SceneListener::create(this);
-    scene_manager = SceneManager::create(this);
-
-    light_manager = new LightManager(this, device.get(), 4096);
-    terrain2D = Terrain2DManager::create(this);
-
-    ImGuiHelper::RegisterImGuiCallback("Render/Core", [this]() { doCoreUI(); });
-    ImGuiHelper::RegisterImGuiCallback("Render/Renderdoc",
-                                       [this]() { doRenderDocUI(); });
-    ImGuiHelper::RegisterImGuiCallback("Profiler",
-                                       []() { Profiling::DoProfilerImgui(); });
 }
 
 // Render:
