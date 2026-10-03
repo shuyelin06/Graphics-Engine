@@ -114,13 +114,14 @@ Direct3D11Device::Direct3D11Device(ID3D11Device* device)
     : device(device)
 {
     shaders = std::make_unique<D3D11ShaderCompiler>(device);
-    shaders->initializeShaders();
+    const bool shaderCompilationStatus = shaders->initializeShaders();
+    assert(shaderCompilationStatus);
 }
 Direct3D11Device::~Direct3D11Device() { device->Release(); }
 
 ID3D11Device* Direct3D11Device::getDevice() { return device; }
 
-void Direct3D11Device::reloadShaders() { shaders->initializeShaders(); }
+bool Direct3D11Device::reloadShaders() { return shaders->initializeShaders(); }
 
 std::shared_ptr<Buffer> Direct3D11Device::createBuffer(const char* debugName,
                                                        BufferType type,
@@ -366,7 +367,8 @@ void Direct3D11DeviceContext::beginFrame(uint64_t frame)
 {
     queries->beginFrame(frame, context);
 }
-void Direct3D11DeviceContext::endFrame() { 
+void Direct3D11DeviceContext::endFrame()
+{
 #if defined(IMGUI_ENABLED)
     beginPass("ImGui");
     EndImGuiFrame();

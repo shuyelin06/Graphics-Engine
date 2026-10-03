@@ -26,7 +26,7 @@ class Direct3D11Device : public Device
 
     ID3D11Device* getDevice() override;
 
-    void reloadShaders() override;
+    bool reloadShaders() override;
 
     std::shared_ptr<Buffer> createBuffer(const char* debugName,
                                          BufferType type,

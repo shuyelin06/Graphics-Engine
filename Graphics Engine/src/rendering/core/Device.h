@@ -155,7 +155,7 @@ class Device
     // Temporary
     virtual ID3D11Device* getDevice() = 0;
 
-    virtual void reloadShaders() = 0;
+    virtual bool reloadShaders() = 0;
 
     virtual std::shared_ptr<Buffer> createBuffer(const char* debugName,
                                                  BufferType type,

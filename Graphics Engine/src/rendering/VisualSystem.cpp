@@ -24,7 +24,7 @@ VisualSystem::VisualSystem(HWND window)
         const UINT height = rect.bottom - rect.top;
         initializeMainRenderTargets(device, width, height);
     }
-    
+
     resource_manager = ResourceManager::create(device, context);
     resource_manager->initializeSystemResources();
     material_manager = MaterialManager::create(resource_manager.get());
@@ -176,9 +176,31 @@ void VisualSystem::renderPrepare()
 void VisualSystem::doCoreUI()
 {
 #if defined(IMGUI_ENABLED)
+    static bool lastCompilationStatus = true;
+    static float lastTimeElapsedMs = 0.f;
     if (ImGui::Button("Reload Shaders"))
     {
-        device->reloadShaders();
+        auto startTime = std::chrono::high_resolution_clock::now();
+        lastCompilationStatus = device->reloadShaders();
+        auto endTime = std::chrono::high_resolution_clock::now();
+
+        lastTimeElapsedMs =
+            std::chrono::duration_cast<std::chrono::microseconds>(endTime -
+                                                                  startTime)
+                .count() /
+            1000.f;
+    }
+
+    ImGui::SameLine();
+    if (lastCompilationStatus)
+    {
+        ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f),
+                           "Success! Took %.2f Ms", lastTimeElapsedMs);
+    }
+    else
+    {
+        ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f),
+                           "Shader Compilation Failed.");
     }
 
     if (ImGui::CollapsingHeader("GPU Frametime"))

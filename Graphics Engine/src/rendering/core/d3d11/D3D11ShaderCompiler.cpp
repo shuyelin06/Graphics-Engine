@@ -44,10 +44,10 @@ struct ShaderConfig
     std::vector<std::string> pins;
 };
 
-void D3D11ShaderCompiler::initializeShaders()
+bool D3D11ShaderCompiler::initializeShaders()
 {
-    vertex_shaders.clear();
-    pixel_shaders.clear();
+    VertexShaderStore vertex_shaders_new;
+    PixelShaderStore pixel_shaders_new;
 
     const std::vector<ShaderConfig> shaders = {
         // DebugPoint:
@@ -128,13 +128,26 @@ void D3D11ShaderCompiler::initializeShaders()
         // ...
     };
 
+    bool success = true;
+
     for (const ShaderConfig& config : shaders)
     {
+        if (!success)
+            break;
+
         if (config.shader_type == Vertex)
-            createVertexShader(config);
+            success = success && createVertexShader(config, vertex_shaders_new);
         else
-            createPixelShader(config);
+            success = success && createPixelShader(config, pixel_shaders_new);
     }
+
+    if (success)
+    {
+        vertex_shaders = std::move(vertex_shaders_new);
+        pixel_shaders = std::move(pixel_shaders_new);
+    }
+
+    return success;
 }
 
 // ShaderIncludeHandler Class:
@@ -315,7 +328,8 @@ ID3DBlob* D3D11ShaderCompiler::compileShaderBlob(ShaderType type,
         {
             compiled_blob->Release();
         }
-        assert(false);
+
+        return nullptr;
     }
 
     // Cache blob so that we don't have to recompile in the future
@@ -324,10 +338,13 @@ ID3DBlob* D3D11ShaderCompiler::compileShaderBlob(ShaderType type,
     return compiled_blob;
 }
 
-void D3D11ShaderCompiler::createVertexShader(const ShaderConfig& config)
+bool D3D11ShaderCompiler::createVertexShader(const ShaderConfig& config,
+                                             VertexShaderStore& store)
 {
     // Obtain shader blob
     ID3DBlob* shader_blob = compileShaderBlob(Vertex, config);
+    if (!shader_blob)
+        return false;
 
     // Create input layout for vertex shader. We do this by parsing the streams
     // that the shader will use into the corresponding input data format.
@@ -416,44 +433,51 @@ void D3D11ShaderCompiler::createVertexShader(const ShaderConfig& config)
     device->CreateInputLayout(input_desc.data(), (UINT)input_desc.size(),
                               shader_blob->GetBufferPointer(),
                               shader_blob->GetBufferSize(), &inputLayout);
-    assert(inputLayout != NULL);
+    if (!inputLayout)
+        return false;
 
     // Create vertex shader
     ID3D11VertexShader* vertexShader = NULL;
-
     device->CreateVertexShader(shader_blob->GetBufferPointer(),
                                shader_blob->GetBufferSize(), NULL,
                                &vertexShader);
+    if (!vertexShader)
+        return false;
+
     shader_blob->Release(); // Free shader blob memory
 
     // Create my vertex shader
-    vertex_shaders[config.shader_name] =
+    store[config.shader_name] =
         std::make_unique<D3D11VertexShader>(vertexShader, inputLayout);
+
+    return true;
 }
 
 // CreatePixelShader:
 // Creates a pixel shader and adds it to the array of pixel shaders
-void D3D11ShaderCompiler::createPixelShader(const ShaderConfig& config)
+bool D3D11ShaderCompiler::createPixelShader(const ShaderConfig& config,
+                                            PixelShaderStore& store)
 {
     assert(config.input_layout.empty());
 
     // Obtain shader blob
     ID3DBlob* shader_blob = compileShaderBlob(Pixel, config);
+    if (!shader_blob)
+        return false;
 
     // Create pixel shader
     ID3D11PixelShader* pixelShader = NULL;
-
     device->CreatePixelShader(shader_blob->GetBufferPointer(),
                               shader_blob->GetBufferSize(), NULL, &pixelShader);
-
-    // Check for success
-    assert(pixelShader != NULL);
+    if (!pixelShader)
+        return false;
 
     // Free shader blob memory
     shader_blob->Release();
 
-    pixel_shaders[config.shader_name] =
-        std::make_unique<D3D11PixelShader>(pixelShader);
+    store[config.shader_name] = std::make_unique<D3D11PixelShader>(pixelShader);
+
+    return true;
 }
 
 } // namespace Graphics

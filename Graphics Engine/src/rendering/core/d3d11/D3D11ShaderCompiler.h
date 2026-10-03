@@ -29,12 +29,15 @@ enum ShaderType
 class D3D11ShaderCompiler
 {
   private:
+    using VertexShaderStore =
+        std::unordered_map<std::string_view,
+                           std::unique_ptr<D3D11VertexShader>>;
+    using PixelShaderStore =
+        std::unordered_map<std::string_view, std::unique_ptr<D3D11PixelShader>>;
     ID3D11Device* device;
 
-    std::unordered_map<std::string_view, std::unique_ptr<D3D11VertexShader>>
-        vertex_shaders;
-    std::unordered_map<std::string_view, std::unique_ptr<D3D11PixelShader>>
-        pixel_shaders;
+    VertexShaderStore vertex_shaders;
+    PixelShaderStore pixel_shaders;
 
     // Used in compilation
     std::vector<D3D_SHADER_MACRO> shader_macros;
@@ -44,7 +47,7 @@ class D3D11ShaderCompiler
     ~D3D11ShaderCompiler();
 
     // Load and configure all of the shaders usable by the engine
-    void initializeShaders();
+    bool initializeShaders();
 
     // Access a shader by its respective enumerator slot.
     D3D11VertexShader* getVertexShader(const char* vs);
@@ -52,8 +55,9 @@ class D3D11ShaderCompiler
 
   private:
     // Helper functions for compiling and building vertex and pixel shaders
-    void createVertexShader(const ShaderConfig& config);
-    void createPixelShader(const ShaderConfig& config);
+    bool createVertexShader(const ShaderConfig& config,
+                            VertexShaderStore& store);
+    bool createPixelShader(const ShaderConfig& config, PixelShaderStore& store);
 
     ID3DBlob* compileShaderBlob(ShaderType type, const ShaderConfig& config);
 };
