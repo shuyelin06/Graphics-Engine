@@ -449,6 +449,12 @@ void Terrain2DManagerImpl::destroyNode(QuadTreeNode* node)
             destroyNode(node->children[i]);
         }
     }
+
+    if (node->blockKey != kInvalidDrawBlockKey)
+    {
+        mRenderManager->removeDrawBlock(node->blockKey);
+        node->blockKey = kInvalidDrawBlockKey;
+    }
     mQuadTreeAllocator.free(node);
 }
 
