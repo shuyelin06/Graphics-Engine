@@ -476,8 +476,6 @@ void RenderManagerImpl::renderDrawCalls(DeviceContext* context,
                               sizeof(InstanceDataKey) *
                                   instanceDataIndices.size());
         context->draw(mesh, instanceDataIndices.size());
-
-        tail++;
     }
 }
 
