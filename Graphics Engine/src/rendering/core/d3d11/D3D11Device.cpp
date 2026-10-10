@@ -3,6 +3,7 @@
 #include <assert.h>
 
 #include "D3D11Buffer.h"
+#include "D3D11RenderTarget.h"
 #include "D3D11Shader.h"
 #include "D3D11Texture.h"
 
@@ -87,10 +88,13 @@ void InitializeGraphicsAPI(HWND window,
     // Free frame buffer (no longer needed)
     texture->Release();
 
+    std::shared_ptr<D3D11RenderTarget> screenTarget =
+        std::make_shared<D3D11RenderTarget>(target, width, height);
     std::unique_ptr<Direct3D11Device> d3dDevice =
         std::make_unique<Direct3D11Device>(device);
     outContext = std::make_unique<Direct3D11DeviceContext>(
-        context, device, swapchain, target, viewport, d3dDevice->getShaders());
+        context, device, swapchain, std::move(screenTarget), viewport,
+        d3dDevice->getShaders());
     outDevice = std::move(d3dDevice);
 
     // Initialize ImGui
@@ -147,19 +151,30 @@ std::shared_ptr<Texture> Direct3D11Device::createTexture(const char* debugName,
                                           slices, mips, dynamic, src);
 }
 
-Direct3D11DeviceContext::Direct3D11DeviceContext(ID3D11DeviceContext* context,
-                                                 ID3D11Device* device,
-                                                 IDXGISwapChain* swapchain,
-                                                 ID3D11RenderTargetView* target,
-                                                 D3D11_VIEWPORT viewport,
-                                                 D3D11ShaderCompiler* shaders)
+std::shared_ptr<RenderTarget>
+Direct3D11Device::createRenderTarget(const std::shared_ptr<Texture>& texture,
+                                     RenderTargetType type)
+{
+    D3D11Texture* d3dtexture = reinterpret_cast<D3D11Texture*>(texture.get());
+    assert(texture);
+    return std::make_shared<D3D11RenderTarget>(device, d3dtexture, type);
+}
+
+Direct3D11DeviceContext::Direct3D11DeviceContext(
+    ID3D11DeviceContext* context,
+    ID3D11Device* device,
+    IDXGISwapChain* swapchain,
+    std::shared_ptr<D3D11RenderTarget>&& target,
+    D3D11_VIEWPORT viewport,
+    D3D11ShaderCompiler* shaders)
     : context(context)
     , device(device)
     , swapchain(swapchain)
-    , screenTarget(target)
     , screenViewport(viewport)
     , shaders(shaders)
 {
+    screenTarget = std::move(target);
+
     memset(vb_buffers, 0, sizeof(ID3D11Buffer*) * BINDABLE_STREAM_COUNT);
     memset(vb_strides, 0, sizeof(UINT) * BINDABLE_STREAM_COUNT);
     memset(vb_offsets, 0, sizeof(UINT) * BINDABLE_STREAM_COUNT);
@@ -179,7 +194,6 @@ Direct3D11DeviceContext ::~Direct3D11DeviceContext()
 {
     context->Release();
     swapchain->Release();
-    screenTarget->Release();
 
     for (uint8_t slot = 0; slot < kVertexConstantBufferMax; slot++)
     {
@@ -317,6 +331,11 @@ void Direct3D11DeviceContext::initializeSamplers()
 // Temporary and should be removed
 ID3D11DeviceContext* Direct3D11DeviceContext::getContext() { return context; }
 
+std::shared_ptr<RenderTarget> Direct3D11DeviceContext::getScreenTarget()
+{
+    return screenTarget;
+}
+
 // Resources
 void Direct3D11DeviceContext::updateBuffer(
     const std::shared_ptr<Buffer>& buffer, const void* src, size_t bytes)
@@ -347,20 +366,23 @@ void Direct3D11DeviceContext::generateMips(
 }
 
 void Direct3D11DeviceContext::clearRenderTarget(
-    const std::shared_ptr<Texture>& texture, const float rgba[4])
+    const std::shared_ptr<RenderTarget>& target, const float rgba[4])
 {
-    D3D11Texture* tex = reinterpret_cast<D3D11Texture*>(texture.get());
-    assert(tex->getTargetView());
-    context->ClearRenderTargetView(tex->getTargetView(), rgba);
+    D3D11RenderTarget* d3dTarget =
+        reinterpret_cast<D3D11RenderTarget*>(target.get());
+    assert(d3dTarget->getTargetView());
+    context->ClearRenderTargetView(d3dTarget->getTargetView(), rgba);
 }
 
 void Direct3D11DeviceContext::clearDepthStencil(
-    const std::shared_ptr<Texture>& texture)
+    const std::shared_ptr<RenderTarget>& target)
 {
-    D3D11Texture* tex = reinterpret_cast<D3D11Texture*>(texture.get());
-    assert(tex->getDepthView());
-    context->ClearDepthStencilView(
-        tex->getDepthView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0);
+    D3D11RenderTarget* d3dTarget =
+        reinterpret_cast<D3D11RenderTarget*>(target.get());
+    assert(d3dTarget->getDepthView());
+    context->ClearDepthStencilView(d3dTarget->getDepthView(),
+                                   D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f,
+                                   0);
 }
 
 void Direct3D11DeviceContext::beginFrame(uint64_t frame)
@@ -400,59 +422,52 @@ const PassStats& Direct3D11DeviceContext::getPassStats()
     return queries->getPassStats();
 }
 
-void Direct3D11DeviceContext::bindRenderTarget(
-    const std::shared_ptr<Texture>& target,
-    const std::shared_ptr<Texture>& depth,
+void Direct3D11DeviceContext::bindRenderTargets(
+    const std::shared_ptr<RenderTarget>& color,
+    const std::shared_ptr<RenderTarget>& depth,
     DepthSettings flags,
     BlendSettings blendFlags)
 {
-    D3D11Texture* targetTex = reinterpret_cast<D3D11Texture*>(target.get());
-    D3D11Texture* depthTex = reinterpret_cast<D3D11Texture*>(depth.get());
-
-    ID3D11RenderTargetView* targetView = nullptr;
-    ID3D11DepthStencilView* depthView = nullptr;
+    D3D11RenderTarget* colorTarget =
+        reinterpret_cast<D3D11RenderTarget*>(color.get());
+    D3D11RenderTarget* depthTarget =
+        reinterpret_cast<D3D11RenderTarget*>(depth.get());
+    assert(colorTarget || depthTarget && "No Render Targets Bound!");
 
     D3D11_VIEWPORT viewport = {0.f, 0.f, -1.f, -1.f, 0.f, 1.f};
+    ID3D11RenderTargetView* d3dTargetView = nullptr;
+    ID3D11DepthStencilView* d3dDepthView = nullptr;
 
-    if (targetTex)
+    if (depthTarget && colorTarget)
     {
-        assert(targetTex->getTargetView());
-        targetView = targetTex->getTargetView();
-
-        viewport.Width = targetTex->getWidth();
-        viewport.Height = targetTex->getHeight();
-    }
-    else
-    {
-        targetView = screenTarget;
-        viewport = screenViewport;
+        assert(depthTarget->getWidth() == colorTarget->getWidth());
+        assert(depthTarget->getHeight() == colorTarget->getHeight());
     }
 
-    if (depthTex)
+    if (depthTarget)
     {
-        assert(depthTex->getDepthView());
+        assert(depthTarget->getDepthView());
+
         ID3D11DepthStencilState* state = depth_states[(int)flags];
         context->OMSetDepthStencilState(state, 0);
-        depthView = depthTex->getDepthView();
+        d3dDepthView = depthTarget->getDepthView();
 
-        assert(viewport.Width == -1.f ||
-               viewport.Width == depthTex->getWidth());
-        assert(viewport.Height == -1.f ||
-               viewport.Height == depthTex->getHeight());
-
-        if (viewport.Width == -1)
-        {
-            viewport.Width = depthTex->getWidth();
-        }
-        if (viewport.Height == -1)
-        {
-            viewport.Height = depthTex->getHeight();
-        }
+        viewport.Width = depthTarget->getWidth();
+        viewport.Height = depthTarget->getHeight();
     }
 
-    assert(targetView || depthView);
+    // Note that color target view port overrides depth stencil viewport (if available)
+    if (colorTarget)
+    {
+        assert(colorTarget->getTargetView());
+        viewport.Width = colorTarget->getWidth();
+        viewport.Height = colorTarget->getHeight();
+        d3dTargetView = colorTarget->getTargetView();
+    }
 
-    context->OMSetRenderTargets(1, &targetView, depthView);
+    assert(d3dTargetView || d3dDepthView);
+
+    context->OMSetRenderTargets(1, &d3dTargetView, d3dDepthView);
     context->RSSetViewports(1, &viewport);
 
     context->OMSetBlendState(blend_states[(int)blendFlags], nullptr,
@@ -572,8 +587,7 @@ void Direct3D11DeviceContext::bindPixelTexture(
 }
 
 void Direct3D11DeviceContext::draw(const Geometry* geometry,
-                                   uint32_t instanceCount,
-                                   VertexTopology vertexTopology)
+                                   uint32_t instanceCount)
 {
     bool invalidateVertexBindings = false;
     for (int i = 0; i < BINDABLE_STREAM_COUNT; i++)
@@ -596,17 +610,9 @@ void Direct3D11DeviceContext::draw(const Geometry* geometry,
                                     vb_strides, vb_offsets);
     }
 
-    switch (vertexTopology)
-    {
-    case VertexTopology::TriangleList:
-        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        break;
-    case VertexTopology::LineList:
-        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-        break;
-    default:
-        assert(false);
-    }
+    context->IASetPrimitiveTopology(
+        wireframe ? D3D11_PRIMITIVE_TOPOLOGY_LINELIST
+                  : D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     // Draw with Index Buffer
     if (geometry->indexBuffer)

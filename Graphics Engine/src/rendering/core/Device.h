@@ -2,6 +2,7 @@
 
 #include "Buffer.h"
 #include "Geometry.h"
+#include "RenderTarget.h"
 #include "Texture.h"
 
 #include <memory>
@@ -97,6 +98,8 @@ class DeviceContext
     // Temporary and should be removed
     virtual ID3D11DeviceContext* getContext() = 0;
 
+    virtual std::shared_ptr<RenderTarget> getScreenTarget() = 0;
+
     // Resources
     virtual void updateBuffer(const std::shared_ptr<Buffer>& buffer,
                               const void* src,
@@ -108,9 +111,10 @@ class DeviceContext
                                size_t bytes) = 0;
     virtual void generateMips(const std::shared_ptr<Texture>& texture) = 0;
 
-    virtual void clearRenderTarget(const std::shared_ptr<Texture>& texture,
+    virtual void clearRenderTarget(const std::shared_ptr<RenderTarget>& target,
                                    const float rgba[4]) = 0;
-    virtual void clearDepthStencil(const std::shared_ptr<Texture>& texture) = 0;
+    virtual void
+    clearDepthStencil(const std::shared_ptr<RenderTarget>& target) = 0;
 
     // Rendering:
     virtual void beginFrame(uint64_t frame) = 0;
@@ -122,13 +126,14 @@ class DeviceContext
     virtual const PassStats& getPassStats() = 0;
 
     // Set target == null to use the screen space render target
-    virtual void bindRenderTarget(const std::shared_ptr<Texture>& target,
-                                  const std::shared_ptr<Texture>& depth,
-                                  DepthSettings flags,
-                                  BlendSettings blendFlags) = 0;
+    virtual void bindRenderTargets(const std::shared_ptr<RenderTarget>& color,
+                                   const std::shared_ptr<RenderTarget>& depth,
+                                   DepthSettings flags,
+                                   BlendSettings blendFlags) = 0;
     virtual void bindShaderProgram(const char* vs, const char* ps) = 0;
 
     // Vertex Shader Options:
+    virtual void toggleWireframe(bool wireframe) = 0;
     virtual void loadVertexCB(uint8_t slot, const void* data, size_t bytes) = 0;
     virtual void bindVertexTexture(uint8_t slot,
                                    const std::shared_ptr<Texture>& texture,
@@ -140,10 +145,7 @@ class DeviceContext
                                   const std::shared_ptr<Texture>& texture,
                                   SamplerSettings sampler) = 0;
 
-    virtual void
-    draw(const Geometry* geometry,
-         uint32_t instanceCount,
-         VertexTopology toplogy = VertexTopology::TriangleList) = 0;
+    virtual void draw(const Geometry* geometry, uint32_t instanceCount) = 0;
 };
 
 class Device
@@ -173,6 +175,10 @@ class Device
                   uint8_t mips = 1,
                   bool dynamic = false,
                   const void* src = nullptr) = 0;
+
+    virtual std::shared_ptr<RenderTarget>
+    createRenderTarget(const std::shared_ptr<Texture>& texture,
+                       RenderTargetType type) = 0;
 };
 
 } // namespace Graphics

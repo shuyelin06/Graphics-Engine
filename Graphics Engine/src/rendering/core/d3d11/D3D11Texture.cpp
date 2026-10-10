@@ -7,8 +7,8 @@ namespace Engine
 namespace Graphics
 {
 // We will use render target to describe the source texture description format
-static inline DXGI_FORMAT TextureLayoutToDXGI(const TextureLayout layout,
-                                              const TextureUsage usageDesc)
+DXGI_FORMAT TextureLayoutToDXGI(const TextureLayout layout,
+                                const TextureUsage usageDesc)
 {
     switch (layout)
     {
@@ -114,61 +114,14 @@ D3D11Texture::D3D11Texture(ID3D11Device* device,
         assert(SUCCEEDED(result));
     }
 
-    if (depth)
-    {
-        assert(mips == 1);
-        D3D11_DEPTH_STENCIL_VIEW_DESC dsDesc = {};
-        dsDesc.Format = TextureLayoutToDXGI(layout, TextureUsage::DepthStencil);
-        if (slices > 1)
-        {
-            dsDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
-            dsDesc.Texture2DArray.MipSlice = 0;
-            dsDesc.Texture2DArray.FirstArraySlice = 0;
-            dsDesc.Texture2DArray.ArraySize = slices;
-        }
-        else
-        {
-            dsDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-            dsDesc.Texture2D.MipSlice = 0;
-        }
-        result = device->CreateDepthStencilView(texture, &dsDesc, &depth_view);
-        assert(SUCCEEDED(result));
-    }
-
-    if (target)
-    {
-        D3D11_RENDER_TARGET_VIEW_DESC targetDesc = {};
-        targetDesc.Format =
-            TextureLayoutToDXGI(layout, TextureUsage::RenderTarget);
-        if (slices > 1)
-        {
-            targetDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
-            targetDesc.Texture2DArray.MipSlice = 0;
-            targetDesc.Texture2DArray.FirstArraySlice = 0;
-            targetDesc.Texture2DArray.ArraySize = slices;
-        }
-        else
-        {
-            targetDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-            targetDesc.Texture2D.MipSlice = 0;
-        }
-        result =
-            device->CreateRenderTargetView(texture, &targetDesc, &target_view);
-        assert(SUCCEEDED(result));
-    }
-
     ready = true;
 }
 D3D11Texture::~D3D11Texture()
 {
     if (texture)
         texture->Release();
-    if (depth_view)
-        depth_view->Release();
     if (shader_view)
         shader_view->Release();
-    if (target_view)
-        target_view->Release();
 }
 
 void D3D11Texture::update(ID3D11DeviceContext* context,
@@ -258,9 +211,7 @@ void D3D11Texture::doImgui() const
     ImGui::Text("Format: %s", toString(layout));
     ImGui::Text("Width: %u, Height: %u", width, height);
     ImGui::Text("Mips: %u, Slices: %u", mips, slices);
-    ImGui::Text("Shader View: %s, Depth View: %s, Target View: %s",
-                toString(shader_view), toString(depth_view),
-                toString(target_view));
+    ImGui::Text("Shader View: %s", toString(shader_view));
 
     constexpr int kTextureDisplayWidth = 256;
     ImGui::Image(

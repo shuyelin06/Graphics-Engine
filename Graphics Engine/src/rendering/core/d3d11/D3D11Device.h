@@ -11,6 +11,8 @@ namespace Engine
 {
 namespace Graphics
 {
+class D3D11RenderTarget;
+
 class Direct3D11Device : public Device
 {
   private:
@@ -43,6 +45,10 @@ class Direct3D11Device : public Device
                                            uint8_t mips,
                                            bool dynamic,
                                            const void* src) override;
+
+    std::shared_ptr<RenderTarget>
+    createRenderTarget(const std::shared_ptr<Texture>& texture,
+                       RenderTargetType type) override;
 };
 
 class Direct3D11DeviceContext : public DeviceContext
@@ -60,7 +66,7 @@ class Direct3D11DeviceContext : public DeviceContext
 
     // Screen Target
     IDXGISwapChain* swapchain;
-    ID3D11RenderTargetView* screenTarget;
+    std::shared_ptr<D3D11RenderTarget> screenTarget;
     D3D11_VIEWPORT screenViewport;
 
     ID3D11Buffer* vertexCB[kVertexConstantBufferMax] = {nullptr};
@@ -74,17 +80,21 @@ class Direct3D11DeviceContext : public DeviceContext
     ID3D11BlendState* blend_states[(int)BlendSettings::BlendFlagCount];
     ID3D11SamplerState* samplers[(int)SamplerSettings::SamplerCount];
 
+    bool wireframe;
+
   public:
     Direct3D11DeviceContext(ID3D11DeviceContext* context,
                             ID3D11Device* device,
                             IDXGISwapChain* swapchain,
-                            ID3D11RenderTargetView* target,
+                            std::shared_ptr<D3D11RenderTarget>&& target,
                             D3D11_VIEWPORT viewport,
                             D3D11ShaderCompiler* shaders);
     ~Direct3D11DeviceContext();
 
     // Temporary and should be removed
     ID3D11DeviceContext* getContext() override;
+
+    std::shared_ptr<RenderTarget> getScreenTarget() override;
 
     // Resources
     void updateBuffer(const std::shared_ptr<Buffer>& buffer,
@@ -97,9 +107,9 @@ class Direct3D11DeviceContext : public DeviceContext
                        size_t bytes) override;
     void generateMips(const std::shared_ptr<Texture>& texture) override;
 
-    void clearRenderTarget(const std::shared_ptr<Texture>& texture,
+    void clearRenderTarget(const std::shared_ptr<RenderTarget>& target,
                            const float rgba[4]) override;
-    void clearDepthStencil(const std::shared_ptr<Texture>& texture) override;
+    void clearDepthStencil(const std::shared_ptr<RenderTarget>& target) override;
 
     // Rendering
     void beginFrame(uint64_t frame) override;
@@ -108,13 +118,14 @@ class Direct3D11DeviceContext : public DeviceContext
     void endPass() override;
     const PassStats& getPassStats() override;
 
-    void bindRenderTarget(const std::shared_ptr<Texture>& target,
-                          const std::shared_ptr<Texture>& depth,
-                          DepthSettings depthFlags,
-                          BlendSettings blendFlags) override;
+    void bindRenderTargets(const std::shared_ptr<RenderTarget>& color,
+                           const std::shared_ptr<RenderTarget>& depth,
+                           DepthSettings flags,
+                           BlendSettings blendFlags) override;
     void bindShaderProgram(const char* vs, const char* ps) override;
 
     // Vertex Shader Options:
+    inline void toggleWireframe(bool toggle) override { wireframe = toggle; }
     void loadVertexCB(uint8_t slot, const void* data, size_t bytes) override;
     void bindVertexTexture(uint8_t slot,
                            const std::shared_ptr<Texture>& texture,
@@ -126,9 +137,7 @@ class Direct3D11DeviceContext : public DeviceContext
                           const std::shared_ptr<Texture>& texture,
                           SamplerSettings sampler) override;
 
-    void draw(const Geometry* geometry,
-              uint32_t instanceCount,
-              VertexTopology toplogy) override;
+    void draw(const Geometry* geometry, uint32_t instanceCount) override;
 
   private:
     void initializeDepthStates();

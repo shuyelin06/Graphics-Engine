@@ -55,18 +55,27 @@ void VisualSystem::initializeMainRenderTargets(Device* device,
                                                unsigned int height)
 {
     render_targets = std::make_unique<MainRenderTargets>();
-    render_targets->render_target_dest = device->createTexture(
+
+    render_targets->colorMain = device->createTexture(
         "Render Target Destination", TextureLayout::R8G8B8A8_UNORM,
         TextureUsage::RenderTarget | TextureUsage::ShaderResource, width,
         height);
-    render_targets->render_target_src = device->createTexture(
+    render_targets->colorMainTarget = device->createRenderTarget(
+        render_targets->colorMain, RenderTargetType::Color);
+
+    render_targets->colorAlt = device->createTexture(
         "Render Target Source", TextureLayout::R8G8B8A8_UNORM,
         TextureUsage::RenderTarget | TextureUsage::ShaderResource, width,
         height);
-    render_targets->depth_stencil = device->createTexture(
+    render_targets->colorAltTarget = device->createRenderTarget(
+        render_targets->colorAlt, RenderTargetType::Color);
+
+    render_targets->depthMain = device->createTexture(
         "Depth Stencil", TextureLayout::R24_UNORM_G8_UINT,
         TextureUsage::DepthStencil | TextureUsage::ShaderResource, width,
         height);
+    render_targets->depthTarget = device->createRenderTarget(
+        render_targets->depthMain, RenderTargetType::DepthStencil);
 }
 
 // Render:
@@ -77,27 +86,27 @@ void VisualSystem::renderPerform()
     terrain2D->updatePerform(scene_manager->getMainCamera()->getPosition(),
                              context.get());
 
+    beginRenderFrame();
+
+    context->toggleWireframe(wireframeToggle);
+
     {
-        PROFILE_SCOPE("TEST");
-
-        beginRenderFrame();
-
-        {
-            PROFILE_SCOPE("Render Manager");
-            context->beginPass("Pass 1");
-            render_manager->perform(context.get());
-            context->endPass();
-        }
-
-        {
-            PROFILE_SCOPE("Debug Render");
-            context->beginPass("Debug Render");
-            visual_debug->render(context.get());
-            context->endPass();
-        }
-
-        postfx_manager->render(context.get());
+        PROFILE_SCOPE("Render Manager");
+        context->beginPass("Pass 1");
+        render_manager->perform(context.get());
+        context->endPass();
     }
+
+    context->toggleWireframe(false);
+
+    {
+        PROFILE_SCOPE("Debug Render");
+        context->beginPass("Debug Render");
+        visual_debug->render(context.get());
+        context->endPass();
+    }
+
+    postfx_manager->render(context.get());
 
     endRenderFrame();
 }
@@ -109,7 +118,7 @@ void VisualSystem::beginRenderFrame()
 
     // Clear my target color so we can start rendering the next frame
     const float baseColor[4] = {0.f, 0.f, 0.f, 1.f};
-    context->clearRenderTarget(render_targets->render_target_dest, baseColor);
+    context->clearRenderTarget(render_targets->colorMainTarget, baseColor);
 }
 
 void VisualSystem::endRenderFrame()
@@ -118,15 +127,19 @@ void VisualSystem::endRenderFrame()
     {
         context->beginPass("Render Target Copy");
 
-        context->bindShaderProgram("PostProcess", "PostProcess");
+        std::shared_ptr<RenderTarget> screenTarget = context->getScreenTarget();
+        context->bindRenderTargets(screenTarget, nullptr,
+                                   DepthSettings::Depth_Disabled,
+                                   BlendSettings::SrcAlphaOnly);
+        PostFXParams params;
+        params.resolutionX = render_targets->colorMain->getWidth();
+        params.resolutionY = render_targets->colorMain->getHeight();
 
-        context->bindRenderTarget(nullptr, nullptr,
-                                  DepthSettings::Depth_Disabled,
-                                  BlendSettings::SrcAlphaOnly);
-        context->bindPixelTexture(0, render_targets->render_target_dest,
+        context->bindPixelTexture(0, render_targets->colorMain,
                                   SamplerSettings::Point);
-        postfx_manager->drawPostFXQuad(context.get());
 
+        postfx_manager->renderScreenspacePass(context.get(), params,
+                                              "PassthroughPS");
         context->endPass();
     }
 
@@ -157,7 +170,7 @@ void VisualSystem::renderPrepare()
     resource_manager->updatePerform();
 
     Camera* camera = scene_manager->getMainCamera();
-    std::shared_ptr<Texture> target = render_targets->render_target_dest;
+    std::shared_ptr<Texture> target = render_targets->colorMain;
     RenderView mainView;
     mainView.position = camera->getPosition();
     mainView.zNear = camera->getZNear();
@@ -168,42 +181,51 @@ void VisualSystem::renderPrepare()
     mainView.viewport =
         Vector4((float)target->getWidth(), (float)target->getHeight(),
                 camera->getZNear(), camera->getZFar());
-    mainView.renderTarget = target;
-    mainView.depthStencil = render_targets->depth_stencil;
+    mainView.renderTarget = render_targets->colorMainTarget;
+    mainView.depthStencil = render_targets->depthTarget;
     render_manager->setMainView(mainView);
 }
 
 void VisualSystem::doCoreUI()
 {
 #if defined(IMGUI_ENABLED)
-    static bool lastCompilationStatus = true;
-    static float lastTimeElapsedMs = 0.f;
-    if (ImGui::Button("Reload Shaders"))
+    // Shader Compilation
+    ImGui::SeparatorText("Shader Compilation");
     {
-        auto startTime = std::chrono::high_resolution_clock::now();
-        lastCompilationStatus = device->reloadShaders();
-        auto endTime = std::chrono::high_resolution_clock::now();
+        static bool lastCompilationStatus = true;
+        static float lastTimeElapsedMs = 0.f;
+        if (ImGui::Button("Reload Shaders"))
+        {
+            auto startTime = std::chrono::high_resolution_clock::now();
+            lastCompilationStatus = device->reloadShaders();
+            auto endTime = std::chrono::high_resolution_clock::now();
 
-        lastTimeElapsedMs =
-            std::chrono::duration_cast<std::chrono::microseconds>(endTime -
-                                                                  startTime)
-                .count() /
-            1000.f;
+            lastTimeElapsedMs =
+                std::chrono::duration_cast<std::chrono::microseconds>(endTime -
+                                                                      startTime)
+                    .count() /
+                1000.f;
+        }
+
+        ImGui::SameLine();
+        if (lastCompilationStatus)
+        {
+            ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f),
+                               "Success! Took %.2f Ms", lastTimeElapsedMs);
+        }
+        else
+        {
+            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f),
+                               "Shader Compilation Failed.");
+        }
     }
 
-    ImGui::SameLine();
-    if (lastCompilationStatus)
-    {
-        ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f),
-                           "Success! Took %.2f Ms", lastTimeElapsedMs);
-    }
-    else
-    {
-        ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f),
-                           "Shader Compilation Failed.");
-    }
+    // WireFrame Toggle
+    ImGui::SeparatorText("Debug Views");
+    ImGui::Checkbox("Wireframe View", &wireframeToggle);
 
-    if (ImGui::CollapsingHeader("GPU Frametime"))
+    // GPU Frametimes
+    ImGui::SeparatorText("GPU Frametimes");
     {
         const PassStats& passStats = context->getPassStats();
         ImGui::Text("Pass Stats (Smoothed, Frame %zu): %.2f ms Total",

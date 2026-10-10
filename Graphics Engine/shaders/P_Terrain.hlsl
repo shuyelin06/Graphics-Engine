@@ -28,49 +28,44 @@ cbuffer TerrainData : register(b4)
     float padding;
 }
 
-float3 triplanarSampleColormap(float3 position, float3 normal)
+// Good reference: https://iquilezles.org/articles/texturerepetition/
+float3 sampleTextureArrayDetiled(float3 uvw, float mip)
 {
-    float uvScaling = CB(triplanarTextureScale);
-    float uvScaling2 = uvScaling * CB(triplanarTextureSharpness);
-    float sharpness = CB(triplanarTextureSharpness);
-
-    float3 positionDX = ddx(position);
-    float3 positionDY = ddy(position);
+    // Determine the variation pattern of the texture
+    // - i tells us the variation index we want
+    // - f tells us how much to interpolate between the two variations we're between
+    float3 outGrad;
+    float variations = 4.f;
+    float noiseScaled = noise3D(uvw * 0.1f, float3(3, 2, 12), outGrad) * variations;
     
-    float2 xUVdx = uvScaling * positionDX.zy;
-    float2 xUVdy = uvScaling * positionDY.zy;
-
-    float2 yUVdx = uvScaling * positionDX.xz;
-    float2 yUVdy = uvScaling * positionDY.xz;
-
-    float2 zUVdx = uvScaling * positionDX.xy;
-    float2 zUVdy = uvScaling * positionDY.xy;
-
-    // TODO work on detiling
-    // Good reference: https://iquilezles.org/articles/texturerepetition/
-    // TODO: Manual computation of UV derivatives for correct mips
-    float2 xUV = uvScaling * position.zy;
-    float2 yUV = uvScaling * position.xz;
-    float2 zUV = uvScaling * position.xy;
-
-    float3 xSample = SampleTex2DArrayLevel(TerrainColormap, float3(xUV, 0), computeMipFromDerivatives(TerrainColormap, xUVdx, xUVdy), float2(0,0));
-    float3 ySample = SampleTex2DArrayLevel(TerrainColormap, float3(yUV, 0), computeMipFromDerivatives(TerrainColormap, yUVdx, yUVdy), float2(0,0));
-    float3 zSample = SampleTex2DArrayLevel(TerrainColormap, float3(zUV, 0), computeMipFromDerivatives(TerrainColormap, zUVdx, zUVdy), float2(0,0));
+    float f = frac(noiseScaled);
+    float i = floor(noiseScaled);
     
-    float3 weights = abs(normal);
-    weights = pow(weights, sharpness);
-    weights = weights / (weights.x + weights.y + weights.z);
-    float3 blended = xSample * weights.x + ySample * weights.y + zSample * weights.z;
+    float2 offsetA = sin(float2(3.0f, 7.0f) * (i + 0.0f));
+    float2 offsetB = sin(float2(3.0f, 7.0f) * (i + 1.0f));
     
-    return blended;
+    float3 sampleA = SampleTex2DArrayLevel(TerrainColormap, uvw + float3(offsetA, 0.f), mip, float2(0,0));
+    float3 sampleB = SampleTex2DArrayLevel(TerrainColormap, uvw + float3(offsetB, 0.f), mip, float2(0,0));
+    
+    float3 output = lerp(sampleA, sampleB, smoothstep(0.2, 0.8, f - 0.1 * dot(sampleA - sampleB, float3(1, 1, 1))));;
+    
+    return output;
 }
 
-// Pixel Shader Entry Point
-// Takes clipping coordinates, and returns a color
 float4 psterrain_main(PS_IN input) : SV_TARGET
 {
-    float3 normal = normalize(input.normal);
-    float3 color = triplanarSampleColormap(input.world_position, normal);
+    float3 position = input.world_position;
 
+    // UV is taken from by projecting the XZ plane and scaling it
+    float2 uv = position.xz * CB(triplanarTextureScale);
+
+    float2 uvDx = ddx(uv);
+    float2 uvDy = ddy(uv);
+    float mip = computeMipFromDerivatives(TerrainColormap, uvDx, uvDy);
+
+    // float3 color = SampleTex2DArrayLevel(TerrainColormap, float3(uv, 0), mip, float2(0,0));
+    float3 color = sampleTextureArrayDetiled(float3(uv, 0), mip);
+    
+    // float3 normalColorized = normalize(input.normal) * 0.5f + float3(0.5f, 0.5f, 0.5f);
     return float4(color, 1.f);
 }

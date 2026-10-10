@@ -219,11 +219,6 @@ void RenderManagerImpl::perform(DeviceContext* context)
 {
     ResourceManager* resourceManager = visualSystem->getResourceManager();
 
-    const std::shared_ptr<Texture> renderTarget =
-        visualSystem->getMainRenderTargets()->render_target_dest;
-    const std::shared_ptr<Texture> depthStencil =
-        visualSystem->getMainRenderTargets()->depth_stencil;
-
     // Bind my atlases
     const std::shared_ptr<Texture>& colormap =
         resourceManager->getFallbackColormap();
@@ -231,7 +226,7 @@ void RenderManagerImpl::perform(DeviceContext* context)
         visualSystem->getLightManager()->getAtlasTexture();
     context->bindPixelTexture(0, colormap, SamplerSettings::Point);
     context->bindPixelTexture(1, shadowAtlas, SamplerSettings::Shadow);
-    context->clearDepthStencil(depthStencil);
+    context->clearDepthStencil(mainView.depthStencil);
 
     // Bind my global constant buffers (CB0)
     // Vertex Constant Buffer 0:
@@ -307,9 +302,9 @@ void RenderManagerImpl::perform(DeviceContext* context)
 
     {
         PROFILE_SCOPE("Opaque Pass");
-        context->bindRenderTarget(mainView.renderTarget, mainView.depthStencil,
-                                  DepthSettings::Depth_TestAndWrite,
-                                  BlendSettings::Blend_Default);
+        context->bindRenderTargets(mainView.renderTarget, mainView.depthStencil,
+                                   DepthSettings::Depth_TestAndWrite,
+                                   BlendSettings::Blend_Default);
         std::vector<DrawCall> drawCalls;
         buildRenderPass(RenderPass::kOpaque, visibleBlocksMain, drawCalls);
         renderDrawCalls(context, drawCalls);
@@ -317,9 +312,9 @@ void RenderManagerImpl::perform(DeviceContext* context)
 
     {
         PROFILE_SCOPE("Debug Pass")
-        context->bindRenderTarget(mainView.renderTarget, mainView.depthStencil,
-                                  DepthSettings::Depth_TestAndWrite,
-                                  BlendSettings::Blend_Default);
+        context->bindRenderTargets(mainView.renderTarget, mainView.depthStencil,
+                                   DepthSettings::Depth_TestAndWrite,
+                                   BlendSettings::Blend_Default);
         std::vector<DrawCall> drawCalls;
         buildRenderPass(RenderPass::kDebug, visibleBlocksMain, drawCalls);
         renderDrawCalls(context, drawCalls);

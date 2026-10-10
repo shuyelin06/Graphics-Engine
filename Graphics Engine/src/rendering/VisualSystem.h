@@ -33,14 +33,18 @@ class VisualDebug;
 
 struct MainRenderTargets
 {
-    std::shared_ptr<Texture> render_target_dest = nullptr;
-    std::shared_ptr<Texture> render_target_src = nullptr;
+    std::shared_ptr<Texture> colorMain = nullptr;
+    std::shared_ptr<Texture> colorAlt = nullptr;
+    std::shared_ptr<Texture> depthMain = nullptr;
 
-    std::shared_ptr<Texture> depth_stencil = nullptr;
+    std::shared_ptr<RenderTarget> colorMainTarget = nullptr;
+    std::shared_ptr<RenderTarget> colorAltTarget = nullptr;
+    std::shared_ptr<RenderTarget> depthTarget = nullptr;
 
     inline void swapActiveRenderTarget()
     {
-        std::swap(render_target_dest, render_target_src);
+        std::swap(colorMain, colorAlt);
+        std::swap(colorMainTarget, colorAltTarget);
     }
 };
 
@@ -71,6 +75,8 @@ class VisualSystem
     std::unique_ptr<Terrain2DManager> terrain2D;
     LightManager* light_manager;
 
+    bool wireframeToggle = false;
+
   public:
     VisualSystem(HWND window);
 
@@ -82,6 +88,7 @@ class VisualSystem
     Device* getDevice() const { return device.get(); }
     ResourceManager* getResourceManager() const { return resource_manager.get(); }
     MaterialManager* getMaterialManager() const { return material_manager.get(); }
+    PostFXManager* getPostFXManager() const { return postfx_manager.get(); }
     SceneListener* getSceneListener() const { return scene_listener.get(); }
     SceneManager* getSceneManager() const { return scene_manager.get(); }
     RenderManager* getRenderManager() const { return render_manager.get(); }
@@ -91,7 +98,9 @@ class VisualSystem
     // clang-format on
 
   private:
-    void initializeMainRenderTargets(Device* device, unsigned int width, unsigned int height);
+    void initializeMainRenderTargets(Device* device,
+                                     unsigned int width,
+                                     unsigned int height);
 
     void beginRenderFrame();
     void endRenderFrame();

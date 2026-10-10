@@ -55,7 +55,9 @@ void VisualDebug::renderLines(DeviceContext* context)
                               sizeof(Vector4) * batchSize);
         geometry.indexCount = batchSize;
 
-        context->draw(&geometry, 1, VertexTopology::LineList);
+        context->toggleWireframe(true);
+        context->draw(&geometry, 1);
+        context->toggleWireframe(false);
 
         head += batchSize;
     }

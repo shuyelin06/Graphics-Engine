@@ -206,6 +206,7 @@
     <ClCompile Include="src\rendering\core\d3d11\D3D11Buffer.cpp" />
     <ClCompile Include="src\rendering\core\d3d11\D3D11Device.cpp" />
     <ClCompile Include="src\rendering\core\d3d11\D3D11PassTracker.cpp" />
+    <ClCompile Include="src\rendering\core\d3d11\D3D11RenderTarget.cpp" />
     <ClCompile Include="src\rendering\core\d3d11\D3D11Texture.cpp" />
     <ClCompile Include="src\rendering\ImGuiInternal.cpp" />
     <ClCompile Include="src\rendering\pipeline\RenderManager.cpp" />
@@ -292,10 +293,12 @@
     <ClInclude Include="src\rendering\core\d3d11\D3D11Buffer.h" />
     <ClInclude Include="src\rendering\core\d3d11\D3D11Device.h" />
     <ClInclude Include="src\rendering\core\d3d11\D3D11PassTracker.h" />
+    <ClInclude Include="src\rendering\core\d3d11\D3D11RenderTarget.h" />
     <ClInclude Include="src\rendering\core\d3d11\D3D11Texture.h" />
     <ClInclude Include="src\rendering\core\Device.h" />
     <ClInclude Include="src\rendering\core\Geometry.h" />
     <ClInclude Include="src\rendering\core\RenderSettings.h" />
+    <ClInclude Include="src\rendering\core\RenderTarget.h" />
     <ClInclude Include="src\rendering\core\Resource.h" />
     <ClInclude Include="src\rendering\pipeline\DrawCall.h" />
     <ClInclude Include="src\rendering\core\RenderPass.h" />

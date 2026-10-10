@@ -10,9 +10,11 @@ constexpr int kMaterialSliceTexelSize = 1024;
 constexpr int kMaterialSliceCount = 4;
 
 TerrainMaterialStore::TerrainMaterialStore(Device* device,
-                                           ResourceManager* resourceManager)
+                                           ResourceManager* resourceManager,
+                                           PostFXManager* postFXManager)
     : mDevice(device)
     , mResourceManager(resourceManager)
+    , mPostFXManager(postFXManager)
     , mMaterialIndexMap()
     , mAlbedoArray()
 {
@@ -42,8 +44,8 @@ void TerrainMaterialStore::initializeMaterials()
 void TerrainMaterialStore::streamMaterials(DeviceContext* context)
 {
     streamAlbedoTexture(context, "Grass", "terrain/Grass.png");
-    streamAlbedoTexture(context, "Dirt", "terrain/Dirt.png");
-    streamAlbedoTexture(context, "Cliff", "terrain/Cliff.png");
+    // streamAlbedoTexture(context, "Dirt", "terrain/Dirt.png");
+    // streamAlbedoTexture(context, "Cliff", "terrain/Cliff.png");
 }
 
 bool TerrainMaterialStore::streamAlbedoTexture(DeviceContext* context,
@@ -63,6 +65,14 @@ bool TerrainMaterialStore::streamAlbedoTexture(DeviceContext* context,
     mMaterialIndexMap[name] = freeIndex;
 
     // Stream data into the allocated slice
+    //PostFXParams params;
+    //params.resolutionX = kMaterialSliceTexelSize;
+    //params.resolutionY = kMaterialSliceTexelSize;
+
+    //std::shared_ptr<Texture> tex =
+    //    mResourceManager->requestTexture(path.data());
+
+    //mPostFXManager->renderScreenspacePass
     const bool success = mResourceManager->streamTextureData(
         context, path, mAlbedoArray, freeIndex);
     return success;

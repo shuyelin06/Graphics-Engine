@@ -117,12 +117,12 @@ bool D3D11ShaderCompiler::initializeShaders()
         // --- Post Processing Effects ---
         // Generic vertex shader for post process effects
         {Vertex,
-         "PostProcess",
-         "Post_VertexShader.hlsl",
+         "PassthroughVS",
+         "PassthroughVS.hlsl",
          "vs_main",
          {PosXYZ_TexU},
          {}},
-        {Pixel, "PostProcess", "Post_PixelShader.hlsl", "ps_main", {}, {}},
+        {Pixel, "PassthroughPS", "PassthroughPS.hlsl", "ps_main", {}, {}},
         {Pixel, "Sky", "Post_Abovewater.hlsl", "ps_main", {}, {}},
         {Pixel, "Underwater", "Post_Underwater.hlsl", "ps_main", {}, {}}
         // ...

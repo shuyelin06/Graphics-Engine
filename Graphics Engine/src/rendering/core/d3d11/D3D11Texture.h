@@ -8,8 +8,16 @@ namespace Engine
 {
 namespace Graphics
 {
+class D3D11RenderTarget;
+
+// We will use render target to describe the source texture description format
+DXGI_FORMAT TextureLayoutToDXGI(const TextureLayout layout,
+                                const TextureUsage usageDesc);
+
 class D3D11Texture : public Texture
 {
+    friend class D3D11RenderTarget;
+
   private:
     // Texture descriptions
     uint32_t width = 0;
@@ -23,8 +31,6 @@ class D3D11Texture : public Texture
     ID3D11Texture2D* texture = nullptr;
     // Different views for the texture. NULL if uninitialized.
     ID3D11ShaderResourceView* shader_view = nullptr;
-    ID3D11DepthStencilView* depth_view = nullptr;
-    ID3D11RenderTargetView* target_view = nullptr;
 
   public:
     D3D11Texture(ID3D11Device* device,
@@ -45,8 +51,6 @@ class D3D11Texture : public Texture
     TextureLayout getTextureLayout() override { return layout; }
 
     ID3D11ShaderResourceView* getSRV() const { return shader_view; }
-    ID3D11DepthStencilView* getDepthView() { return depth_view; }
-    ID3D11RenderTargetView* getTargetView() { return target_view; }
 
     void update(ID3D11DeviceContext* context,
                 uint8_t slice,

@@ -31,6 +31,9 @@ class PostFXManagerImpl
 
     void render(DeviceContext* context);
     void drawPostFXQuad(DeviceContext* context);
+    void renderScreenspacePass(DeviceContext* context,
+                               const PostFXParams& params,
+                               const char* pixelShader);
 
   private:
     SkyConfig mSkyConfig;
@@ -55,6 +58,13 @@ void PostFXManager::render(DeviceContext* context) { mImpl->render(context); }
 void PostFXManager::drawPostFXQuad(DeviceContext* context)
 {
     mImpl->drawPostFXQuad(context);
+}
+
+void PostFXManager::renderScreenspacePass(DeviceContext* context,
+                                          const PostFXParams& params,
+                                          const char* pixelShader)
+{
+    mImpl->renderScreenspacePass(context, params, pixelShader);
 }
 
 PostFXManagerImpl::PostFXManagerImpl(VisualSystem* visualSystem)
@@ -97,21 +107,34 @@ void PostFXManagerImpl::drawPostFXQuad(DeviceContext* context)
     context->draw(postprocessQuad.get(), 1);
 }
 
+void PostFXManagerImpl::renderScreenspacePass(DeviceContext* context,
+                                              const PostFXParams& params,
+                                              const char* pixelShader)
+{
+    context->bindShaderProgram("PassthroughVS", pixelShader);
+
+    context->loadPixelCB(0, &params, sizeof(params));
+
+    context->getContext()->IASetPrimitiveTopology(
+        D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    context->draw(postprocessQuad.get(), 1);
+}
+
 void PostFXManagerImpl::renderSky(DeviceContext* context)
 {
     MainRenderTargets* renderTargets = mVisualSystem->getMainRenderTargets();
 
     renderTargets->swapActiveRenderTarget();
 
-    context->bindShaderProgram("PostProcess", "Sky");
-    context->bindRenderTarget(renderTargets->render_target_dest, nullptr,
+    context->bindShaderProgram("PassthroughVS", "Sky");
+    context->bindRenderTargets(renderTargets->colorMainTarget, nullptr,
                               DepthSettings::Depth_Disabled,
                               BlendSettings::Blend_Default);
 
     // Set samplers and texture
-    context->bindPixelTexture(2, renderTargets->render_target_src,
+    context->bindPixelTexture(2, renderTargets->colorAlt,
                               SamplerSettings::Point);
-    context->bindPixelTexture(3, renderTargets->depth_stencil,
+    context->bindPixelTexture(3, renderTargets->depthMain,
                               SamplerSettings::Point);
 
     {

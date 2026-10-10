@@ -8,6 +8,7 @@
 #include "rendering/core/Texture.h"
 
 #include "rendering/resources/ResourceManager.h"
+#include "rendering/postfx/PostFXManager.h"
 
 namespace Engine
 {
@@ -18,6 +19,7 @@ class TerrainMaterialStore
   private:
     Device* mDevice;
     ResourceManager* mResourceManager;
+    PostFXManager* mPostFXManager;
 
     std::unordered_map<std::string_view, int> mMaterialIndexMap;
 
@@ -25,7 +27,9 @@ class TerrainMaterialStore
     std::vector<uint8_t> mFreeList;
 
   public:
-    TerrainMaterialStore(Device* device, ResourceManager* resourceManager);
+    TerrainMaterialStore(Device* device,
+                         ResourceManager* resourceManager,
+                         PostFXManager* mPostFXManager);
 
     void initializeMaterials();
     int getMaterialIndex(std::string_view name);

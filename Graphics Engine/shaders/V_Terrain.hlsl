@@ -33,15 +33,22 @@ struct VS_OUT
 
 float3 calculateTerrainNormal(float2 uv)
 {
+    // Get my texture dimensions
+    uint width;
+    uint height;
+    heightmap.GetDimensions(width, height);
+    
+    float2 texelWorldSize = heightMapWorldExtents / float2(width, height);
+    
     // Sample adjacent texels to my UV coordinate.
     // These generate the gradient vectors at this uv. We can cross them to find the normal.
     float heightX1 = SampleTex2DLevel(heightmap, uv, 0, float2(-1, 0)).r;
     float heightX2 = SampleTex2DLevel(heightmap, uv, 0, float2(1, 0)).r;
-    float3 tangentX = float3(1, (heightX2 - heightX1) * 0.5f, 0);
+    float3 tangentX = float3(texelWorldSize.x * 2, (heightX2 - heightX1), 0);
     
     float heightZ1 = SampleTex2DLevel(heightmap, uv, 0, float2(0, -1)).r;
     float heightZ2 = SampleTex2DLevel(heightmap, uv, 0, float2(0, 1)).r;
-    float3 tangentZ = float3(0, (heightZ2 - heightZ1) * 0.5f, 1);
+    float3 tangentZ = float3(0, (heightZ2 - heightZ1), texelWorldSize.y * 2);
     
     return normalize(cross(tangentX, tangentZ));
 }

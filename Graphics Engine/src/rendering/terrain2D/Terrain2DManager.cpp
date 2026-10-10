@@ -143,7 +143,8 @@ Terrain2DManagerImpl::Terrain2DManagerImpl(VisualSystem* visualSystem)
     mHeightmapGenerator =
         std::make_unique<HeightMapGenerator>(mVisualSystem->getDevice());
     mMaterialStore = std::make_unique<TerrainMaterialStore>(
-        mVisualSystem->getDevice(), mVisualSystem->getResourceManager());
+        mVisualSystem->getDevice(), mVisualSystem->getResourceManager(),
+        mVisualSystem->getPostFXManager());
 
     mMaterialStore->initializeMaterials();
 
