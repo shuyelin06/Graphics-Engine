@@ -79,6 +79,7 @@ class Direct3D11DeviceContext : public DeviceContext
     ID3D11SamplerState* samplers[(int)SamplerSettings::SamplerCount];
 
     bool wireframe;
+    uint8_t anisotropicSamples = 0;
 
   public:
     Direct3D11DeviceContext(ID3D11DeviceContext* context,
@@ -121,12 +122,15 @@ class Direct3D11DeviceContext : public DeviceContext
 
     // Vertex Shader Options:
     inline void toggleWireframe(bool toggle) override { wireframe = toggle; }
+
     void loadVertexCB(uint8_t slot, const void* data, size_t bytes) override;
     void bindVertexTexture(uint8_t slot,
                            const std::shared_ptr<Texture>& texture,
                            SamplerSettings sampler) override;
 
     // Pixel Shader Options:
+    void setAnisotropicFilterSamples(uint8_t numSamples) override;
+
     void loadPixelCB(uint8_t slot, const void* data, size_t bytes) override;
     void bindPixelTexture(uint8_t slot,
                           const std::shared_ptr<Texture>& texture,

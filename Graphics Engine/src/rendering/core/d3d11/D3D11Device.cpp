@@ -282,12 +282,15 @@ void Direct3D11DeviceContext::initializeSamplers()
 {
     D3D11_SAMPLER_DESC sampler_desc = {};
     HRESULT result;
+
     // Point Sampler: Index 0
     sampler_desc = {};
     sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
     sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
     sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
     sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+    sampler_desc.MinLOD = 0;
+    sampler_desc.MaxLOD = D3D11_FLOAT32_MAX;
 
     result = device->CreateSamplerState(&sampler_desc,
                                         &samplers[(int)SamplerSettings::Point]);
@@ -318,12 +321,15 @@ void Direct3D11DeviceContext::initializeSamplers()
     sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
     sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
     sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-    sampler_desc.MinLOD = 0.0f; // holy moly!!!! this was clamping it wtf
+    sampler_desc.MinLOD = 0;
     sampler_desc.MaxLOD = D3D11_FLOAT32_MAX;
 
     device->CreateSamplerState(&sampler_desc,
                                &samplers[(int)SamplerSettings::Linear]);
     assert(SUCCEEDED(result));
+
+    // Anisotropic Sampler: Index 3
+    setAnisotropicFilterSamples(4);
 }
 
 std::shared_ptr<RenderTarget> Direct3D11DeviceContext::getScreenTarget()
@@ -559,6 +565,26 @@ void Direct3D11DeviceContext::bindVertexTexture(
 }
 
 // Pixel Shader Options:
+void Direct3D11DeviceContext::setAnisotropicFilterSamples(uint8_t numSamples)
+{
+    if (numSamples != anisotropicSamples)
+    {
+        anisotropicSamples = numSamples;
+
+        D3D11_SAMPLER_DESC sampler_desc = {};
+        sampler_desc.Filter = D3D11_FILTER_ANISOTROPIC;
+        sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+        sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+        sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+        sampler_desc.MaxAnisotropy = anisotropicSamples;
+        sampler_desc.MinLOD = 0;
+        sampler_desc.MaxLOD = D3D11_FLOAT32_MAX;
+        const HRESULT result = device->CreateSamplerState(
+            &sampler_desc, &samplers[(int)SamplerSettings::Anisotropic]);
+        assert(SUCCEEDED(result));
+    }
+}
+
 void Direct3D11DeviceContext::loadPixelCB(uint8_t slot,
                                           const void* data,
                                           size_t bytes)

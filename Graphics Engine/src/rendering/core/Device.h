@@ -67,7 +67,7 @@ enum class SamplerSettings : uint8_t
     Point = 0,
     Shadow = 1,
     Linear = 2,
-    // Anisotrophic = 3,
+    Anisotropic = 3,
     // Note: Additional samplers can be added here
     SamplerCount
 };
@@ -131,12 +131,15 @@ class DeviceContext
 
     // Vertex Shader Options:
     virtual void toggleWireframe(bool wireframe) = 0;
+
     virtual void loadVertexCB(uint8_t slot, const void* data, size_t bytes) = 0;
     virtual void bindVertexTexture(uint8_t slot,
                                    const std::shared_ptr<Texture>& texture,
                                    SamplerSettings sampler) = 0;
 
     // Pixel Shader Options:
+    virtual void setAnisotropicFilterSamples(uint8_t numSamples) = 0;
+
     virtual void loadPixelCB(uint8_t slot, const void* data, size_t bytes) = 0;
     virtual void bindPixelTexture(uint8_t slot,
                                   const std::shared_ptr<Texture>& texture,

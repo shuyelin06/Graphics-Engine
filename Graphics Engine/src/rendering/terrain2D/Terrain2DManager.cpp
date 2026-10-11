@@ -182,7 +182,8 @@ void Terrain2DManagerImpl::setupTerrainMaterial()
 
     ShaderResource colormap{};
     colormap.initializeTextureResource(mMaterialStore->getAlbedoArray(),
-                                       SamplerSettings::Linear);
+                                       SamplerSettings::Anisotropic);
+
     technique->bindPixelResource(4, colormap);
 }
 

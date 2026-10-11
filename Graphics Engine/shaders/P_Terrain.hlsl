@@ -55,17 +55,8 @@ float3 sampleTextureArrayDetiled(float3 uvw, float mip)
 float4 psterrain_main(PS_IN input) : SV_TARGET
 {
     float3 position = input.world_position;
-
     // UV is taken from by projecting the XZ plane and scaling it
     float2 uv = position.xz * CB(triplanarTextureScale);
-
-    float2 uvDx = ddx(uv);
-    float2 uvDy = ddy(uv);
-    float mip = computeMipFromDerivatives(TerrainColormap, uvDx, uvDy);
-
-    // float3 color = SampleTex2DArrayLevel(TerrainColormap, float3(uv, 0), mip, float2(0,0));
-    float3 color = sampleTextureArrayDetiled(float3(uv, 0), mip);
-    
-    // float3 normalColorized = normalize(input.normal) * 0.5f + float3(0.5f, 0.5f, 0.5f);
+    float3 color = SampleTex2DArray(TerrainColormap, float3(uv, 0));
     return float4(color, 1.f);
 }

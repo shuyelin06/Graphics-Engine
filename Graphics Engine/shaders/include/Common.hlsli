@@ -13,6 +13,9 @@
 // Pixel Shader only. Computes mip automatically
 #define SampleTex2D(name, uv) \
     name.Sample(name##_sampler, uv)
+#define SampleTex2DArray(name, uvw) \
+    name.Sample(name##_sampler, uvw)
+
 // Any Shader
 #define SampleTex2DLevel(name, uv, mip, offset) \
     name.SampleLevel(name##_sampler, uv, mip, offset)

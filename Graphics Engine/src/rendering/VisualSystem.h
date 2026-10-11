@@ -76,6 +76,7 @@ class VisualSystem
     LightManager* light_manager;
 
     bool wireframeToggle = false;
+    uint8_t anisotropicSamples = 4;
 
   public:
     VisualSystem(HWND window);

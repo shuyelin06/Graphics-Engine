@@ -87,6 +87,7 @@ void VisualSystem::renderPerform()
 
     beginRenderFrame();
 
+    context->setAnisotropicFilterSamples(anisotropicSamples);
     context->toggleWireframe(wireframeToggle);
 
     {
@@ -222,6 +223,15 @@ void VisualSystem::doCoreUI()
     // WireFrame Toggle
     ImGui::SeparatorText("Debug Views");
     ImGui::Checkbox("Wireframe View", &wireframeToggle);
+
+    ImGui::SeparatorText("Configuration");
+    const char* sampleCountNames[] = {"1", "2", "4", "8"};
+    static int sampleCountIndex = 2;
+    if (ImGui::Combo("Anisotropic Sample Count", &sampleCountIndex,
+                     sampleCountNames, IM_ARRAYSIZE(sampleCountNames)))
+    {
+        anisotropicSamples = 1 << sampleCountIndex;
+    }
 
     // GPU Frametimes
     ImGui::SeparatorText("GPU Frametimes");
