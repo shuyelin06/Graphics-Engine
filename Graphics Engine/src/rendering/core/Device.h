@@ -95,9 +95,6 @@ class DeviceContext
     DeviceContext() {};
     virtual ~DeviceContext() {};
 
-    // Temporary and should be removed
-    virtual ID3D11DeviceContext* getContext() = 0;
-
     virtual std::shared_ptr<RenderTarget> getScreenTarget() = 0;
 
     // Resources
@@ -153,9 +150,6 @@ class Device
   public:
     Device() {};
     virtual ~Device() {};
-
-    // Temporary
-    virtual ID3D11Device* getDevice() = 0;
 
     virtual bool reloadShaders() = 0;
 

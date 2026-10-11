@@ -2,7 +2,7 @@
 
 #include "../Texture.h"
 
-#include "rendering/Direct3D11.h"
+#include "Direct3D11.h"
 
 namespace Engine
 {

@@ -123,8 +123,6 @@ Direct3D11Device::Direct3D11Device(ID3D11Device* device)
 }
 Direct3D11Device::~Direct3D11Device() { device->Release(); }
 
-ID3D11Device* Direct3D11Device::getDevice() { return device; }
-
 bool Direct3D11Device::reloadShaders() { return shaders->initializeShaders(); }
 
 std::shared_ptr<Buffer> Direct3D11Device::createBuffer(const char* debugName,
@@ -327,9 +325,6 @@ void Direct3D11DeviceContext::initializeSamplers()
                                &samplers[(int)SamplerSettings::Linear]);
     assert(SUCCEEDED(result));
 }
-
-// Temporary and should be removed
-ID3D11DeviceContext* Direct3D11DeviceContext::getContext() { return context; }
 
 std::shared_ptr<RenderTarget> Direct3D11DeviceContext::getScreenTarget()
 {

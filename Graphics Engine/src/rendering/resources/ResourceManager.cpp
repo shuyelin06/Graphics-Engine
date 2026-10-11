@@ -20,7 +20,6 @@
 
 #include "files/FileReader.h"
 
-#include "../Direct3D11.h"
 #include "../ImGui.h"
 
 // We use the lodepng library to read PNG files.
@@ -72,7 +71,6 @@ class ResourceManagerImpl
 {
   private:
     Device* device;
-    DeviceContext* context;
 
     std::unique_ptr<DebugState> debugState = nullptr;
 
@@ -91,7 +89,7 @@ class ResourceManagerImpl
     std::mutex mesh_job_mutex;
 
   public:
-    ResourceManagerImpl(Device* device, DeviceContext* context);
+    ResourceManagerImpl(Device* device);
     ~ResourceManagerImpl();
 
     // Initialize System Resources.
@@ -101,7 +99,7 @@ class ResourceManagerImpl
 
     // Update Loop.
     // Serve the various requests received by the resource manager.
-    void updatePerform();
+    void updatePerform(DeviceContext* context);
 
     // Get Resources
     std::shared_ptr<Texture> getFallbackColormap() const;
@@ -128,12 +126,11 @@ class ResourceManagerImpl
     void LoadFallbackColormap();
 };
 
-std::unique_ptr<ResourceManager> ResourceManager::create(Device* device,
-                                                         DeviceContext* context)
+std::unique_ptr<ResourceManager> ResourceManager::create(Device* device)
 {
     std::unique_ptr<ResourceManager> ptr =
         std::unique_ptr<ResourceManager>(new ResourceManager());
-    ptr->mImpl = std::make_unique<ResourceManagerImpl>(device, context);
+    ptr->mImpl = std::make_unique<ResourceManagerImpl>(device);
     return ptr;
 }
 ResourceManager::ResourceManager() = default;
@@ -144,7 +141,10 @@ void ResourceManager::initializeSystemResources()
     mImpl->initializeSystemResources();
 }
 
-void ResourceManager::updatePerform() { mImpl->updatePerform(); }
+void ResourceManager::updatePerform(DeviceContext* context)
+{
+    mImpl->updatePerform(context);
+}
 
 std::shared_ptr<Texture> ResourceManager::getFallbackColormap() const
 {
@@ -174,11 +174,10 @@ std::shared_ptr<Texture> ResourceManager::loadTextureFromFile(const char* path)
 // Debug Display
 void ResourceManager::imGui() { mImpl->imGui(); }
 
-ResourceManagerImpl::ResourceManagerImpl(Device* device, DeviceContext* context)
+ResourceManagerImpl::ResourceManagerImpl(Device* device)
     : device(device)
-    , context(context)
 {
-    assert(device && context);
+    assert(device);
 
     ImGuiHelper::RegisterImGuiCallback("Render/Resources",
                                        [this]() { imGui(); });
@@ -196,7 +195,7 @@ void ResourceManagerImpl::initializeSystemResources()
     LoadFallbackColormap();
 }
 
-void ResourceManagerImpl::updatePerform()
+void ResourceManagerImpl::updatePerform(DeviceContext* context)
 {
     {
         std::scoped_lock<std::mutex> mesh_job_lock(mesh_job_mutex);

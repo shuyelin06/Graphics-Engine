@@ -204,9 +204,6 @@
     <ClCompile Include="src\rendering\scene\SceneManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\pipeline\StructuredBuffer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\rendering\resources\MaterialManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -254,7 +251,7 @@
     <ClInclude Include="src\datamodel\Object.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\rendering\Direct3D11.h">
+    <ClInclude Include="src\rendering\core\d3d11\Direct3D11.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\input\InputSystem.h">
@@ -411,9 +408,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\rendering\resources\BumpMapBuilder.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\rendering\pipeline\StructuredBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\GlobalConfig.h">

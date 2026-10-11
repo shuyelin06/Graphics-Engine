@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "D3D11Shader.h"
-#include "rendering/Direct3D11.h"
+#include "Direct3D11.h"
 
 #include "../VertexStreamIDs.h"
 

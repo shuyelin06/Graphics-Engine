@@ -102,8 +102,6 @@ void PostFXManagerImpl::render(DeviceContext* context)
 
 void PostFXManagerImpl::drawPostFXQuad(DeviceContext* context)
 {
-    context->getContext()->IASetPrimitiveTopology(
-        D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     context->draw(postprocessQuad.get(), 1);
 }
 
@@ -115,8 +113,6 @@ void PostFXManagerImpl::renderScreenspacePass(DeviceContext* context,
 
     context->loadPixelCB(0, &params, sizeof(params));
 
-    context->getContext()->IASetPrimitiveTopology(
-        D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     context->draw(postprocessQuad.get(), 1);
 }
 

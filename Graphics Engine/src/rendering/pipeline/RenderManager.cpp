@@ -61,8 +61,6 @@ struct GlobalPixelShaderData
 class RenderManagerImpl
 {
   private:
-    ID3D11DeviceContext* context;
-    ID3D11Device* device;
     VisualSystem* visualSystem;
 
     // TODO: Octree + Culling
@@ -80,9 +78,7 @@ class RenderManagerImpl
     GlobalPixelShaderData pcb0Data;
 
   public:
-    RenderManagerImpl(VisualSystem* _visualSystem,
-                      ID3D11DeviceContext* _context,
-                      ID3D11Device* _device);
+    RenderManagerImpl(VisualSystem* _visualSystem);
     ~RenderManagerImpl();
 
     // TODO: This should be thread safe.
@@ -134,23 +130,16 @@ void RenderManager::setMainView(const RenderView& view)
 void RenderManager::perform(DeviceContext* context) { mImpl->perform(context); }
 
 std::unique_ptr<RenderManager>
-RenderManager::create(VisualSystem* visual_system,
-                      ID3D11DeviceContext* context,
-                      ID3D11Device* device)
+RenderManager::create(VisualSystem* visual_system)
 {
     std::unique_ptr<RenderManager> ptr =
         std::unique_ptr<RenderManager>(new RenderManager());
-    ptr->mImpl =
-        std::make_unique<RenderManagerImpl>(visual_system, context, device);
+    ptr->mImpl = std::make_unique<RenderManagerImpl>(visual_system);
     return ptr;
 }
 
-RenderManagerImpl::RenderManagerImpl(VisualSystem* _visualSystem,
-                                     ID3D11DeviceContext* _context,
-                                     ID3D11Device* _device)
+RenderManagerImpl::RenderManagerImpl(VisualSystem* _visualSystem)
     : visualSystem(_visualSystem)
-    , context(_context)
-    , device(_device)
 {
     // Allocate index 0 of the InstanceData pool for the identity Instance
     InstanceData* identity = instanceDataPool.allocate();

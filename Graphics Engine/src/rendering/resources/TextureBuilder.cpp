@@ -3,6 +3,7 @@
 #include "math/Vector4.h"
 
 #include <assert.h>
+#include <algorithm>
 
 namespace Engine
 {
@@ -66,8 +67,8 @@ void TextureBuilder::generateMips()
     size_t bufferSize = computeMipLevelByteSize(mips[0]);
     for (int i = 1; i < mips.size(); i++)
     {
-        mips[i].width = max(1, mips[i - 1].width / 2);
-        mips[i].height = max(1, mips[i - 1].height / 2);
+        mips[i].width = std::max<unsigned int>(1, mips[i - 1].width / 2);
+        mips[i].height = std::max<unsigned int>(1, mips[i - 1].height / 2);
         bufferSize += computeMipLevelByteSize(mips[i]);
     }
 

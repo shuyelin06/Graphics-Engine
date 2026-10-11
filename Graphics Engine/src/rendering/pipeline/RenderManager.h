@@ -78,14 +78,11 @@ struct DrawBlock
 class RenderManager
 {
   public:
-    static std::unique_ptr<RenderManager> create(VisualSystem* engine,
-                                                 ID3D11DeviceContext* context,
-                                                 ID3D11Device* device);
+    static std::unique_ptr<RenderManager> create(VisualSystem* engine);
     ~RenderManager();
 
     DrawBlockKey addDrawBlock(const DrawBlock& block);
-    void updateInstanceData(const DrawBlockKey key,
-                            InstanceData instanceData);
+    void updateInstanceData(const DrawBlockKey key, InstanceData instanceData);
     void removeDrawBlock(const DrawBlockKey key);
 
     void setMainView(const RenderView& view);

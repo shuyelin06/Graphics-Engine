@@ -25,15 +25,14 @@ VisualSystem::VisualSystem(HWND window)
         initializeMainRenderTargets(device, width, height);
     }
 
-    resource_manager = ResourceManager::create(device, context);
+    resource_manager = ResourceManager::create(device);
     resource_manager->initializeSystemResources();
     material_manager = MaterialManager::create(resource_manager.get());
 
     visual_debug =
         std::make_unique<VisualDebug>(device, resource_manager->getCubeMesh());
 
-    render_manager =
-        RenderManager::create(this, context->getContext(), device->getDevice());
+    render_manager = RenderManager::create(this);
     postfx_manager = PostFXManager::create(this);
 
     // Initialize each of my managers with the resources they need
@@ -167,7 +166,7 @@ void VisualSystem::renderPrepare()
     light_manager->clusterShadowCasters();
 
     // Serve Resource Requests
-    resource_manager->updatePerform();
+    resource_manager->updatePerform(context.get());
 
     Camera* camera = scene_manager->getMainCamera();
     std::shared_ptr<Texture> target = render_targets->colorMain;

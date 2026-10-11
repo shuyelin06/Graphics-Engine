@@ -6,7 +6,7 @@
 
 #include "../Device.h"
 
-#include "rendering/Direct3D11.h"
+#include "Direct3D11.h"
 #include "d3d11_1.h"
 
 namespace Engine

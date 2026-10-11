@@ -23,8 +23,7 @@ class ResourceManagerImpl;
 class ResourceManager
 {
   public:
-    static std::unique_ptr<ResourceManager> create(Device* device,
-                                                   DeviceContext* context);
+    static std::unique_ptr<ResourceManager> create(Device* device);
     ~ResourceManager();
 
     // Initialize System Resources.
@@ -34,7 +33,7 @@ class ResourceManager
 
     // Update Loop.
     // Serve the various requests received by the resource manager.
-    void updatePerform();
+    void updatePerform(DeviceContext* context);
 
     // System Resources
     std::shared_ptr<Texture> getFallbackColormap() const;

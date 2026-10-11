@@ -2,7 +2,7 @@
 
 #include "../Device.h"
 
-#include "rendering/Direct3D11.h"
+#include "Direct3D11.h"
 
 #include "D3D11PassTracker.h"
 #include "D3D11ShaderCompiler.h"
@@ -25,8 +25,6 @@ class Direct3D11Device : public Device
     ~Direct3D11Device();
 
     D3D11ShaderCompiler* getShaders() { return shaders.get(); }
-
-    ID3D11Device* getDevice() override;
 
     bool reloadShaders() override;
 
@@ -90,9 +88,6 @@ class Direct3D11DeviceContext : public DeviceContext
                             D3D11_VIEWPORT viewport,
                             D3D11ShaderCompiler* shaders);
     ~Direct3D11DeviceContext();
-
-    // Temporary and should be removed
-    ID3D11DeviceContext* getContext() override;
 
     std::shared_ptr<RenderTarget> getScreenTarget() override;
 

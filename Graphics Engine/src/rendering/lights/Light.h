@@ -3,7 +3,9 @@
 #include "datamodel/DMBinding.h"
 #include "datamodel/objects/DMLight.h"
 
-#include "../Direct3D11.h"
+// TODO: This will be removed once i revisit lights.
+#include "rendering/core/d3d11/Direct3D11.h"
+
 #include "../core/Frustum.h"
 #include "../core/TextureAtlas.h"
 #include "LightDataGPU.h"
