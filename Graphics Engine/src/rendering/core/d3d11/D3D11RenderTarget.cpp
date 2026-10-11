@@ -8,9 +8,11 @@ namespace Graphics
 {
 D3D11RenderTarget::D3D11RenderTarget(ID3D11Device* device,
                                      const D3D11Texture* texture,
-                                     RenderTargetType type)
+                                     RenderTargetType type,
+                                     uint8_t sliceIdx)
     : RenderTarget(type, texture->width, texture->height)
 {
+    assert(sliceIdx < texture->slices);
     if (type == RenderTargetType::DepthStencil)
     {
         assert(texture->mips == 1);
@@ -21,8 +23,8 @@ D3D11RenderTarget::D3D11RenderTarget(ID3D11Device* device,
         {
             dsDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
             dsDesc.Texture2DArray.MipSlice = 0;
-            dsDesc.Texture2DArray.FirstArraySlice = 0;
-            dsDesc.Texture2DArray.ArraySize = texture->slices;
+            dsDesc.Texture2DArray.FirstArraySlice = sliceIdx;
+            dsDesc.Texture2DArray.ArraySize = 1;
         }
         else
         {
@@ -42,8 +44,8 @@ D3D11RenderTarget::D3D11RenderTarget(ID3D11Device* device,
         {
             targetDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
             targetDesc.Texture2DArray.MipSlice = 0;
-            targetDesc.Texture2DArray.FirstArraySlice = 0;
-            targetDesc.Texture2DArray.ArraySize = texture->slices;
+            targetDesc.Texture2DArray.FirstArraySlice = sliceIdx;
+            targetDesc.Texture2DArray.ArraySize = 1;
         }
         else
         {

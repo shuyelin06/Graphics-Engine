@@ -46,7 +46,8 @@ class Direct3D11Device : public Device
 
     std::shared_ptr<RenderTarget>
     createRenderTarget(const std::shared_ptr<Texture>& texture,
-                       RenderTargetType type) override;
+                       RenderTargetType type,
+                       uint8_t sliceIdx) override;
 };
 
 class Direct3D11DeviceContext : public DeviceContext

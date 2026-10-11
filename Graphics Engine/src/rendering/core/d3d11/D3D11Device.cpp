@@ -151,11 +151,13 @@ std::shared_ptr<Texture> Direct3D11Device::createTexture(const char* debugName,
 
 std::shared_ptr<RenderTarget>
 Direct3D11Device::createRenderTarget(const std::shared_ptr<Texture>& texture,
-                                     RenderTargetType type)
+                                     RenderTargetType type,
+                                     uint8_t sliceIdx)
 {
     D3D11Texture* d3dtexture = reinterpret_cast<D3D11Texture*>(texture.get());
     assert(texture);
-    return std::make_shared<D3D11RenderTarget>(device, d3dtexture, type);
+    return std::make_shared<D3D11RenderTarget>(device, d3dtexture, type,
+                                               sliceIdx);
 }
 
 Direct3D11DeviceContext::Direct3D11DeviceContext(

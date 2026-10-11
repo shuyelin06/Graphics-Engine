@@ -144,7 +144,7 @@ int WINAPI wWinMain(HINSTANCE hInstance,
     auto createMesh = [&root](const Vector3& position, float scale) {
         DMMesh* mesh = new DMMesh();
         mesh->setMeshFile("Macaroni3.gltf");
-        mesh->setColorMapFile("textures/MacTex.png");
+        mesh->setColorMapFile("MacTex.png");
         mesh->getTransform().setPosition(position);
         mesh->getTransform().setScale(scale, scale, scale);
         root->addChild(mesh);

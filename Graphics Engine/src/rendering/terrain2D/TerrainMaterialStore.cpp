@@ -45,8 +45,7 @@ void TerrainMaterialStore::initializeMaterials()
 void TerrainMaterialStore::streamMaterials(DeviceContext* context)
 {
     streamAlbedoTexture(context, "Grass", "terrain/Grass.png");
-    // streamAlbedoTexture(context, "Dirt", "terrain/Dirt.png");
-    // streamAlbedoTexture(context, "Cliff", "terrain/Cliff.png");
+    streamAlbedoTexture(context, "Dirt", "terrain/Dirt.png");
 }
 
 bool TerrainMaterialStore::streamAlbedoTexture(DeviceContext* context,
@@ -66,8 +65,8 @@ bool TerrainMaterialStore::streamAlbedoTexture(DeviceContext* context,
     mMaterialIndexMap[name] = freeIndex;
 
     // Stream data into the allocated slice
-    std::shared_ptr<RenderTarget> target =
-        mDevice->createRenderTarget(mAlbedoArray, RenderTargetType::Color);
+    std::shared_ptr<RenderTarget> target = mDevice->createRenderTarget(
+        mAlbedoArray, RenderTargetType::Color, freeIndex);
     PostFXParams params(target);
     context->bindRenderTargets(target, nullptr, DepthSettings::Depth_Disabled,
                                BlendSettings::Blend_Default);

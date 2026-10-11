@@ -175,7 +175,8 @@ class Device
 
     virtual std::shared_ptr<RenderTarget>
     createRenderTarget(const std::shared_ptr<Texture>& texture,
-                       RenderTargetType type) = 0;
+                       RenderTargetType type,
+                       uint8_t sliceIdx = 0) = 0;
 };
 
 } // namespace Graphics

@@ -53,10 +53,8 @@ class Terrain2DManagerImpl
     } config;
     struct ShaderSettings
     {
-        float triplanarTextureScale = 0.005f;
-        float triplanarTextureSharpness = 1.f;
-        float noiseScaling = 1.f;
-        float pad1;
+        float uvScale = 0.005f;
+        Vector3 pad3;
     } shaderSettings;
 
     // Settings
@@ -215,12 +213,8 @@ void Terrain2DManagerImpl::imGui()
 
     ImGui::SliderFloat("LOD Attenuation", &config.lodAttenuation, 0.0, 10000.f);
 
-    ImGui::SliderFloat("Triplanar Texture Scaling: ",
-                       &shaderSettings.triplanarTextureScale, 0.0001f, 0.1f);
-    ImGui::SliderFloat("Triplanar Texture Sharpness: ",
-                       &shaderSettings.triplanarTextureSharpness, 0.01f, 10.f);
-    ImGui::SliderFloat(
-        "Triplanar Noise Scaling: ", &shaderSettings.noiseScaling, 0.01f, 1.f);
+    ImGui::SliderFloat("Material UV Scale: ",
+                       &shaderSettings.uvScale, 0.0001f, 0.1f);
 
     if (ImGui::CollapsingHeader("Terrain Mesh"))
     {

@@ -18,7 +18,8 @@ class D3D11RenderTarget : public RenderTarget
   public:
     D3D11RenderTarget(ID3D11Device* device,
                       const D3D11Texture* texture,
-                      RenderTargetType type);
+                      RenderTargetType type,
+                      uint8_t sliceIdx);
     D3D11RenderTarget(ID3D11RenderTargetView* targetView,
                       uint32_t width,
                       uint32_t height);
