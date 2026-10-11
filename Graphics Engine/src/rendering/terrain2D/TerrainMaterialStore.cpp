@@ -33,10 +33,11 @@ void TerrainMaterialStore::initializeMaterials()
 {
     mAlbedoArray = mDevice->createTexture(
         "Terrain Albedo Atlas", TextureLayout::R8G8B8A8_UNORM,
-        TextureUsage::ShaderResource, kMaterialSliceTexelSize,
-        kMaterialSliceTexelSize, kMaterialSliceCount,
+        TextureUsage::ShaderResource | TextureUsage::RenderTarget,
+        kMaterialSliceTexelSize, kMaterialSliceTexelSize, kMaterialSliceCount,
         Math::computeMipCount(kMaterialSliceTexelSize,
                               kMaterialSliceTexelSize));
+
     for (int i = kMaterialSliceCount - 1; i >= 0; i--)
         mFreeList.push_back(i);
 }
@@ -65,17 +66,20 @@ bool TerrainMaterialStore::streamAlbedoTexture(DeviceContext* context,
     mMaterialIndexMap[name] = freeIndex;
 
     // Stream data into the allocated slice
-    //PostFXParams params;
-    //params.resolutionX = kMaterialSliceTexelSize;
-    //params.resolutionY = kMaterialSliceTexelSize;
+    std::shared_ptr<RenderTarget> target =
+        mDevice->createRenderTarget(mAlbedoArray, RenderTargetType::Color);
+    PostFXParams params(target);
+    context->bindRenderTargets(target, nullptr, DepthSettings::Depth_Disabled,
+                               BlendSettings::Blend_Default);
 
-    //std::shared_ptr<Texture> tex =
-    //    mResourceManager->requestTexture(path.data());
+    std::shared_ptr<Texture> tex =
+        mResourceManager->loadTextureFromFile(path.data());
+    context->bindPixelTexture(0, tex, SamplerSettings::Point);
+    mPostFXManager->renderScreenspacePass(context, params, "PassthroughPS");
 
-    //mPostFXManager->renderScreenspacePass
-    const bool success = mResourceManager->streamTextureData(
-        context, path, mAlbedoArray, freeIndex);
-    return success;
+    context->generateMips(mAlbedoArray);
+
+    return true;
 }
 
 } // namespace Graphics

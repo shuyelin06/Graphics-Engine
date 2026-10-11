@@ -5,6 +5,7 @@
 #include "math/Vector2.h"
 
 #include "rendering/VisualSystem.h"
+#include "rendering/core/RenderTarget.h"
 
 namespace Engine
 {
@@ -14,9 +15,16 @@ class PostFXManagerImpl;
 
 struct PostFXParams
 {
-    float resolutionX;
-    float resolutionY;
-    Vector2 padding;
+    float resolutionX = 0.f;
+    float resolutionY = 0.f;
+    Vector2 padding{};
+
+    PostFXParams() = default;
+    PostFXParams(const std::shared_ptr<RenderTarget>& target)
+        : resolutionX(target->getWidth())
+        , resolutionY(target->getHeight())
+    {
+    }
 };
 
 // PostFXManager:

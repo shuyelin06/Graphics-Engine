@@ -7,8 +7,8 @@
 #include "rendering/core/Device.h"
 #include "rendering/core/Texture.h"
 
-#include "rendering/resources/ResourceManager.h"
 #include "rendering/postfx/PostFXManager.h"
+#include "rendering/resources/ResourceManager.h"
 
 namespace Engine
 {

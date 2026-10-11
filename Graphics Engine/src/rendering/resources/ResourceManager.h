@@ -46,11 +46,7 @@ class ResourceManager
 
     // Thread Safe Creation of Resources
     std::shared_ptr<Geometry> requestMesh(const MeshBuilder& mesh_builder);
-    std::shared_ptr<Texture> requestTexture(const char* path);
-    bool streamTextureData(DeviceContext* context,
-                           std::string_view path,
-                           std::shared_ptr<Texture>& target,
-                           uint8_t slice);
+    std::shared_ptr<Texture> loadTextureFromFile(const char* path);
 
     // Debug Display
     void imGui();

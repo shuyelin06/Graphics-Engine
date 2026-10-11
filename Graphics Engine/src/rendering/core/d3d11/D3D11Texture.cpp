@@ -86,6 +86,8 @@ D3D11Texture::D3D11Texture(ID3D11Device* device,
         desc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
     if (target)
         desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+    if (srv && target)
+        desc.MiscFlags |= D3D11_RESOURCE_MISC_GENERATE_MIPS;
 
     result = device->CreateTexture2D(&desc, initDataPtr, &texture);
     assert(SUCCEEDED(result));

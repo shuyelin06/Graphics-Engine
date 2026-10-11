@@ -112,11 +112,7 @@ class ResourceManagerImpl
     LoadMeshFromFile(const std::string& relative_path);
 
     std::shared_ptr<Geometry> requestMesh(const MeshBuilder& mesh_builder);
-    std::shared_ptr<Texture> requestTexture(const char* path);
-    bool streamTextureData(DeviceContext* context,
-                           std::string_view path,
-                           std::shared_ptr<Texture>& target,
-                           uint8_t slice);
+    std::shared_ptr<Texture> loadTextureFromFile(const char* path);
 
     // Debug Display
     void imGui();
@@ -170,16 +166,9 @@ ResourceManager::requestMesh(const MeshBuilder& mesh_builder)
 {
     return mImpl->requestMesh(mesh_builder);
 }
-std::shared_ptr<Texture> ResourceManager::requestTexture(const char* path)
+std::shared_ptr<Texture> ResourceManager::loadTextureFromFile(const char* path)
 {
-    return mImpl->requestTexture(path);
-}
-bool ResourceManager::streamTextureData(DeviceContext* context,
-                                        std::string_view path,
-                                        std::shared_ptr<Texture>& target,
-                                        uint8_t slice)
-{
-    return mImpl->streamTextureData(context, path, target, slice);
+    return mImpl->loadTextureFromFile(path);
 }
 
 // Debug Display
@@ -322,10 +311,11 @@ ResourceManagerImpl::requestMesh(const MeshBuilder& mesh_builder)
     return mesh_job.mesh;
 }
 
-std::shared_ptr<Texture> ResourceManagerImpl::requestTexture(const char* path)
+std::shared_ptr<Texture>
+ResourceManagerImpl::loadTextureFromFile(const char* path)
 {
     TextureBuilder builder;
-    bool loadSuccess = loadTextureBuilder(path, builder);
+    const bool loadSuccess = loadTextureBuilder(path, builder);
 
     std::shared_ptr<Texture> texture = nullptr;
 
@@ -333,40 +323,11 @@ std::shared_ptr<Texture> ResourceManagerImpl::requestTexture(const char* path)
     {
         const TextureBuilder::MipLevel& mipLevel = builder.getMipLevel(0);
         texture = device->createTexture(
-            "", builder.getLayout(),
-            TextureUsage::ShaderResource | TextureUsage::RenderTarget,
+            "", builder.getLayout(), TextureUsage::ShaderResource,
             mipLevel.width, mipLevel.height, 1, 1, false, mipLevel.data);
-        context->generateMips(texture);
     }
 
     return texture;
-}
-
-bool ResourceManagerImpl::streamTextureData(DeviceContext* context,
-                                            std::string_view path,
-                                            std::shared_ptr<Texture>& target,
-                                            uint8_t slice)
-{
-    assert(slice < target->getArraySlices());
-    if (slice >= target->getArraySlices())
-        return false;
-
-    TextureBuilder builder;
-    loadTextureBuilder(path, builder);
-
-    // TODO: Implement upscaling and downscaling
-    assert(target->getWidth() == builder.getWidth() &&
-           target->getHeight() == builder.getHeight());
-    builder.generateMips();
-
-    for (int mip = 0; mip < builder.getNumMips(); mip++)
-    {
-        const TextureBuilder::MipLevel& mipLevel = builder.getMipLevel(mip);
-        const size_t byteSize = builder.computeMipLevelByteSize(mipLevel);
-        context->updateTexture(target, slice, mip, mipLevel.data, byteSize);
-    }
-
-    return true;
 }
 
 bool ResourceManagerImpl::loadTextureBuilder(std::string_view path,
@@ -398,11 +359,6 @@ bool ResourceManagerImpl::loadTextureBuilder(std::string_view path,
                                                    reader.getData(), builder);
             }
         }
-    }
-
-    if (loadSuccess)
-    {
-        builder.generateMips();
     }
 
     return loadSuccess;

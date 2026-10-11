@@ -249,7 +249,7 @@ MaterialManagerImpl::createMaterial(const TerrainMaterialParams& params)
 
     ShaderResource colormap{};
     colormap.initializeTextureResource(
-        resourceManager->requestTexture("terrain/Grass.png"),
+        resourceManager->loadTextureFromFile("terrain/Grass.png"),
                                        SamplerSettings::Linear);
     technique->bindPixelResource(4, colormap);
 
