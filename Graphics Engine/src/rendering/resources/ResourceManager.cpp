@@ -110,14 +110,14 @@ class ResourceManagerImpl
     LoadMeshFromFile(const std::string& relative_path);
 
     std::shared_ptr<Geometry> requestMesh(const MeshBuilder& mesh_builder);
-    std::shared_ptr<Texture> loadTextureFromFile(const char* path);
+
+    std::shared_ptr<Texture> loadTextureFromFile(const char* path,
+                                                 TextureResourceType type);
 
     // Debug Display
     void imGui();
 
   private:
-    bool loadTextureBuilder(std::string_view path, TextureBuilder& builder);
-
     void processMeshJob(const MeshBuildingJob& job);
 
     // System Asset Generation
@@ -166,9 +166,10 @@ ResourceManager::requestMesh(const MeshBuilder& mesh_builder)
 {
     return mImpl->requestMesh(mesh_builder);
 }
-std::shared_ptr<Texture> ResourceManager::loadTextureFromFile(const char* path)
+std::shared_ptr<Texture>
+ResourceManager::loadTextureFromFile(const char* path, TextureResourceType type)
 {
-    return mImpl->loadTextureFromFile(path);
+    return mImpl->loadTextureFromFile(path, type);
 }
 
 // Debug Display
@@ -310,41 +311,35 @@ ResourceManagerImpl::requestMesh(const MeshBuilder& mesh_builder)
     return mesh_job.mesh;
 }
 
-std::shared_ptr<Texture>
-ResourceManagerImpl::loadTextureFromFile(const char* path)
+static inline PNGFile::DataType toPNGType(TextureResourceType type)
 {
-    TextureBuilder builder;
-    const bool loadSuccess = loadTextureBuilder(path, builder);
-
-    std::shared_ptr<Texture> texture = nullptr;
-
-    if (loadSuccess)
+    switch (type)
     {
-        const TextureBuilder::MipLevel& mipLevel = builder.getMipLevel(0);
-        texture = device->createTexture(
-            "", builder.getLayout(), TextureUsage::ShaderResource,
-            mipLevel.width, mipLevel.height, 1, 1, false, mipLevel.data);
+    case TextureResourceType::kAlbedoMap:
+        return PNGFile::DataType::kAlbedo;
+    case TextureResourceType::kDisplacementMap:
+        return PNGFile::DataType::kDisplacement;
     }
-
-    return texture;
 }
 
-bool ResourceManagerImpl::loadTextureBuilder(std::string_view path,
-                                             TextureBuilder& builder)
+std::shared_ptr<Texture>
+ResourceManagerImpl::loadTextureFromFile(const char* path,
+                                         TextureResourceType type)
 {
+    std::shared_ptr<Texture> texture = nullptr;
+
     // Matches to find the file name and extension separately.
     // (?:.+/)* matches the path but does not put it in a capture group.
     // Group 0: Parent Path
     // Group 1: File Name
     // Group 2: Extension
-    const std::string fullPath = std::string(RESOURCE_FOLDER) + path.data();
+    const std::string fullPath = std::string(RESOURCE_FOLDER) + path;
     std::regex regexPattern("(?:.+/)*([a-zA-Z0-9]+)\\.([a-zA-Z]+)");
     smatch regexMatch;
     regex_search(fullPath, regexMatch, regexPattern);
 
-    const bool parsingSuccess = (regexMatch.size() == 3);
-    bool loadSuccess = false;
-    if (parsingSuccess)
+    TextureBuilder builder;
+    bool fileReadSuccess = false;
     {
         const std::string fileName = regexMatch[1];
         const std::string extension = regexMatch[2];
@@ -354,13 +349,27 @@ bool ResourceManagerImpl::loadTextureBuilder(std::string_view path,
         {
             if (reader.readFileData())
             {
-                loadSuccess = PNGFile::ReadPNGData(PNGFile::DataType::kAlbedo,
-                                                   reader.getData(), builder);
+                fileReadSuccess = PNGFile::ReadPNGData(
+                    toPNGType(type), reader.getData(), builder);
             }
         }
     }
 
-    return loadSuccess;
+    if (fileReadSuccess)
+    {
+        const TextureBuilder::MipLevel& mipLevel = builder.getMipLevel(0);
+        texture = device->createTexture(
+            "", builder.getLayout(), TextureUsage::ShaderResource,
+            mipLevel.width, mipLevel.height, 1, 1, false, mipLevel.data);
+    }
+
+    // Track weak ptr for ImGui
+#if defined(IMGUI_ENABLED)
+    if (texture)
+        textures.push_back(texture);
+#endif
+
+    return texture;
 }
 
 // Debug Display
@@ -479,7 +488,7 @@ void ResourceManagerImpl::imGui()
 
         if (ImGui::Begin("Texture --", &selectedTexture.close))
         {
-            texture->doImgui();
+            texture->renderToImGui();
             ImGui::End();
         }
 

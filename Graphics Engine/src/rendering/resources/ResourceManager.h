@@ -17,6 +17,12 @@ namespace Graphics
 {
 class ResourceManagerImpl;
 
+enum class TextureResourceType
+{
+    kAlbedoMap = 0,
+    kDisplacementMap = 1,
+};
+
 // ResourceManager Class:
 // Manages assets for the engine. Provides methods
 // to load assets, and prepare them for rendering.
@@ -45,7 +51,8 @@ class ResourceManager
 
     // Thread Safe Creation of Resources
     std::shared_ptr<Geometry> requestMesh(const MeshBuilder& mesh_builder);
-    std::shared_ptr<Texture> loadTextureFromFile(const char* path);
+    std::shared_ptr<Texture> loadTextureFromFile(const char* path,
+                                                 TextureResourceType type);
 
     // Debug Display
     void imGui();

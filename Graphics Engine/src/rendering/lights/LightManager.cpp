@@ -288,7 +288,7 @@ void LightManager::imGui()
     ImGui::Checkbox("Show Shadow Atlas", &show_atlas);
     if (show_atlas)
     {
-        shadow_atlas->getTexture()->doImgui();
+        shadow_atlas->getTexture()->renderToImGui();
     }
 #endif
 }

@@ -49,6 +49,7 @@ D3D11Texture::D3D11Texture(ID3D11Device* device,
     , mips(mips)
     , layout(layout)
     , dynamic(dynamic)
+    , device(device)
 {
     const bool srv =
         (usage & TextureUsage::ShaderResource) == TextureUsage::ShaderResource;
@@ -195,7 +196,7 @@ static const char* toString(TextureLayout layout)
     }
 }
 
-void D3D11Texture::doImgui() const
+void D3D11Texture::renderToImGui(uint8_t slice) const
 {
     if (texture == nullptr)
     {
@@ -215,9 +216,25 @@ void D3D11Texture::doImgui() const
     ImGui::Text("Mips: %u, Slices: %u", mips, slices);
     ImGui::Text("Shader View: %s", toString(shader_view));
 
+    ID3D11ShaderResourceView* shaderView = shader_view;
+
+    if (slice != 0)
+    {
+        assert(slice < slices);
+        D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+        srvDesc.Format =
+            TextureLayoutToDXGI(layout, TextureUsage::ShaderResource);
+        srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+        srvDesc.Texture2DArray.MostDetailedMip = 0;
+        srvDesc.Texture2DArray.MipLevels = mips;
+        srvDesc.Texture2DArray.FirstArraySlice = slice;
+        srvDesc.Texture2DArray.ArraySize = 1;
+        device->CreateShaderResourceView(texture, &srvDesc, &shaderView);
+    }
+
     constexpr int kTextureDisplayWidth = 256;
     ImGui::Image(
-        (ImTextureID)(intptr_t)shader_view,
+        (ImTextureID)(intptr_t)shaderView,
         ImVec2(kTextureDisplayWidth, kTextureDisplayWidth * height / width));
 }
 #endif

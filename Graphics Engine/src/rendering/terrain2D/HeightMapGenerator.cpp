@@ -93,7 +93,7 @@ void HeightMapGenerator::imGui()
 
     if (viewHeightmap)
     {
-        mHeightmap->doImgui();
+        mHeightmap->renderToImGui();
     }
 #endif
 }

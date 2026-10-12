@@ -16,7 +16,8 @@ namespace PNGFile
 {
 enum class DataType : uint8_t
 {
-    kAlbedo = 0
+    kAlbedo = 0,
+    kDisplacement = 1,
 };
 
 bool ReadPNGData(DataType type,

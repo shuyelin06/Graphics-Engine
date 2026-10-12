@@ -92,7 +92,7 @@ void VisualSystem::renderPerform()
 
     {
         PROFILE_SCOPE("Render Manager");
-        context->beginPass("Pass 1");
+        context->beginPass("Main Pass");
         render_manager->perform(context.get());
         context->endPass();
     }
@@ -100,7 +100,7 @@ void VisualSystem::renderPerform()
     context->toggleWireframe(false);
 
     {
-        PROFILE_SCOPE("Debug Render");
+        PROFILE_SCOPE("Debug Pass");
         context->beginPass("Debug Render");
         visual_debug->render(context.get());
         context->endPass();
@@ -125,7 +125,7 @@ void VisualSystem::endRenderFrame()
 {
     // Copy main render target to screen buffer
     {
-        context->beginPass("Render Target Copy");
+        context->beginPass("Copy to Screen");
 
         std::shared_ptr<RenderTarget> screenTarget = context->getScreenTarget();
         context->bindRenderTargets(screenTarget, nullptr,

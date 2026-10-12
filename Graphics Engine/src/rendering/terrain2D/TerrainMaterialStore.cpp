@@ -31,12 +31,19 @@ int TerrainMaterialStore::getMaterialIndex(std::string_view name)
 
 void TerrainMaterialStore::initializeMaterials()
 {
+    const uint8_t mipCount =
+        Math::computeMipCount(kMaterialSliceTexelSize, kMaterialSliceTexelSize);
+
     mAlbedoArray = mDevice->createTexture(
-        "Terrain Albedo Atlas", TextureLayout::R8G8B8A8_UNORM,
+        "Terrain Albedo Array", TextureLayout::R8G8B8A8_UNORM,
         TextureUsage::ShaderResource | TextureUsage::RenderTarget,
         kMaterialSliceTexelSize, kMaterialSliceTexelSize, kMaterialSliceCount,
-        Math::computeMipCount(kMaterialSliceTexelSize,
-                              kMaterialSliceTexelSize));
+        mipCount);
+    mDisplacementArray = mDevice->createTexture(
+        "Terrain Displacement Array", TextureLayout::R32_FLOAT,
+        TextureUsage::ShaderResource | TextureUsage::RenderTarget,
+        kMaterialSliceTexelSize, kMaterialSliceTexelSize, kMaterialSliceCount,
+        mipCount);
 
     for (int i = kMaterialSliceCount - 1; i >= 0; i--)
         mFreeList.push_back(i);
@@ -44,13 +51,13 @@ void TerrainMaterialStore::initializeMaterials()
 
 void TerrainMaterialStore::streamMaterials(DeviceContext* context)
 {
-    streamAlbedoTexture(context, "Grass", "terrain/Grass.png");
-    streamAlbedoTexture(context, "Dirt", "terrain/Dirt.png");
+    streamMaterial(context, "Grass", "terrain/Grass/");
+    streamMaterial(context, "Dirt", "terrain/Dirt/");
 }
 
-bool TerrainMaterialStore::streamAlbedoTexture(DeviceContext* context,
-                                               std::string_view name,
-                                               std::string_view path)
+bool TerrainMaterialStore::streamMaterial(DeviceContext* context,
+                                          std::string_view name,
+                                          std::string_view path)
 {
     // Material already exists, ignore load
     if (mMaterialIndexMap.contains(name))
@@ -64,21 +71,50 @@ bool TerrainMaterialStore::streamAlbedoTexture(DeviceContext* context,
     mFreeList.pop_back();
     mMaterialIndexMap[name] = freeIndex;
 
-    // Stream data into the allocated slice
-    std::shared_ptr<RenderTarget> target = mDevice->createRenderTarget(
-        mAlbedoArray, RenderTargetType::Color, freeIndex);
-    PostFXParams params(target);
-    context->bindRenderTargets(target, nullptr, DepthSettings::Depth_Disabled,
-                               BlendSettings::Blend_Default);
+    auto textureBlit = [this, context](std::shared_ptr<Texture>& targetArray,
+                                       uint8_t slice,
+                                       const std::shared_ptr<Texture>& source) {
+        std::shared_ptr<RenderTarget> target = mDevice->createRenderTarget(
+            targetArray, RenderTargetType::Color, slice);
+        PostFXParams params(target);
+        context->bindRenderTargets(target, nullptr,
+                                   DepthSettings::Depth_Disabled,
+                                   BlendSettings::Blend_Default);
 
-    std::shared_ptr<Texture> tex =
-        mResourceManager->loadTextureFromFile(path.data());
-    context->bindPixelTexture(0, tex, SamplerSettings::Point);
-    mPostFXManager->renderScreenspacePass(context, params, "PassthroughPS");
+        context->bindPixelTexture(0, source, SamplerSettings::Point);
+        mPostFXManager->renderScreenspacePass(context, params, "PassthroughPS");
 
-    context->generateMips(mAlbedoArray);
+        context->generateMips(targetArray);
+    };
+
+    const std::string albedoPath = std::string(path) + "Albedo.png";
+    const std::string displacementPath = std::string(path) + "Displacement.png";
+
+    const std::shared_ptr<Texture> albedo =
+        mResourceManager->loadTextureFromFile(albedoPath.c_str(),
+                                              TextureResourceType::kAlbedoMap);
+    const std::shared_ptr<Texture> displacement =
+        mResourceManager->loadTextureFromFile(
+            displacementPath.c_str(), TextureResourceType::kDisplacementMap);
+
+    textureBlit(mAlbedoArray, freeIndex, albedo);
+    textureBlit(mDisplacementArray, freeIndex, displacement);
 
     return true;
+}
+
+void TerrainMaterialStore::imGui()
+{
+#if defined(IMGUI_ENABLED)
+    if (!ImGui::CollapsingHeader("Terrain Materials"))
+        return;
+
+    static int selectedMaterialIndex = 0;
+    ImGui::SliderInt("Material Index", &selectedMaterialIndex, 0,
+                     kMaterialSliceCount);
+    mAlbedoArray->renderToImGui(selectedMaterialIndex);
+    mDisplacementArray->renderToImGui(selectedMaterialIndex);
+#endif
 }
 
 } // namespace Graphics

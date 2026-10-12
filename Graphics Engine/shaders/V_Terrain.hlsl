@@ -38,19 +38,22 @@ float3 calculateTerrainNormal(float2 uv)
     uint height;
     heightmap.GetDimensions(width, height);
     
-    float2 texelWorldSize = heightMapWorldExtents / float2(width, height);
+    float2 texelSize = 1 / float2(width, height);
+    float2 texelWorldSize = heightMapWorldExtents * texelSize;
     
     // Sample adjacent texels to my UV coordinate.
     // These generate the gradient vectors at this uv. We can cross them to find the normal.
-    float heightX1 = SampleTex2DLevel(heightmap, uv, 0, float2(-1, 0)).r;
+    float heightX1 = SampleTex2DLevel(heightmap, uv, 0, float2(0,0)).r;
     float heightX2 = SampleTex2DLevel(heightmap, uv, 0, float2(1, 0)).r;
-    float3 tangentX = float3(texelWorldSize.x * 2, (heightX2 - heightX1), 0);
+    float3 tangentX = float3(texelWorldSize.x, (heightX2 - heightX1), 0);
     
-    float heightZ1 = SampleTex2DLevel(heightmap, uv, 0, float2(0, -1)).r;
+    float heightZ1 = SampleTex2DLevel(heightmap, uv, 0, float2(0, 0)).r;
     float heightZ2 = SampleTex2DLevel(heightmap, uv, 0, float2(0, 1)).r;
-    float3 tangentZ = float3(0, (heightZ2 - heightZ1), texelWorldSize.y * 2);
+    float3 tangentZ = float3(0, (heightZ2 - heightZ1), texelWorldSize.y);
     
-    return normalize(cross(tangentX, tangentZ));
+    // We need to invert the normal
+    // Simple example: (1,0,0) x (0,0,1) = (0,-1,0) but we use +y for up.
+    return normalize(-cross(tangentX, tangentZ));
 }
 
 VS_OUT vsterrain_main(VS_IN input)
@@ -80,8 +83,13 @@ VS_OUT vsterrain_main(VS_IN input)
     output.normal = normal;
     output.position_clip = clipPosition;
     
-    output.materialID = uint4(0, 0, 0, 0);
-    output.materialWeights = float4(1.f, 0, 0, 0);
+    // Temporary for testing material blending.
+    // Index 0 is grass, index 1 is dirt.
+    // Blend so grass is on top of slopes
+    float grassWeight = dot(output.normal, float3(0, 1, 0)) * 0.5f + 0.5f;
+    grassWeight = pow(grassWeight, 5); // Apply a power so dirt is more visible
+    output.materialID = uint4(0, 1, 0, 0);
+    output.materialWeights = float4(grassWeight, 1 - grassWeight, 0, 0);
     
     return output;
 }

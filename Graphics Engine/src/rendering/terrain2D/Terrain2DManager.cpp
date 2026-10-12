@@ -179,10 +179,16 @@ void Terrain2DManagerImpl::setupTerrainMaterial()
     technique->pixelShader = "Terrain";
 
     ShaderResource colormap{};
+    ShaderResource displacement{};
+
     colormap.initializeTextureResource(mMaterialStore->getAlbedoArray(),
                                        SamplerSettings::Anisotropic);
 
+    displacement.initializeTextureResource(
+        mMaterialStore->getDisplacementArray(), SamplerSettings::Anisotropic);
+
     technique->bindPixelResource(4, colormap);
+    technique->bindPixelResource(5, displacement);
 }
 
 void Terrain2DManagerImpl::updatePerform(const Vector3& cameraPosition,
@@ -213,8 +219,8 @@ void Terrain2DManagerImpl::imGui()
 
     ImGui::SliderFloat("LOD Attenuation", &config.lodAttenuation, 0.0, 10000.f);
 
-    ImGui::SliderFloat("Material UV Scale: ",
-                       &shaderSettings.uvScale, 0.0001f, 0.1f);
+    ImGui::SliderFloat("Material UV Scale: ", &shaderSettings.uvScale, 0.0001f,
+                       0.1f);
 
     if (ImGui::CollapsingHeader("Terrain Mesh"))
     {
@@ -230,6 +236,7 @@ void Terrain2DManagerImpl::imGui()
     }
 
     mHeightmapGenerator->imGui();
+    mMaterialStore->imGui();
 
     ImGui::SliderFloat2("Heightmap Origin:", &config.heightMapOrigin.x, -500,
                         500);
@@ -248,6 +255,7 @@ void Terrain2DManagerImpl::imGui()
             reset();
         }
     }
+
 #endif
 }
 
@@ -378,10 +386,6 @@ void Terrain2DManagerImpl::selectReadyQuadTreeNodesHelper(QuadTreeNode* node)
             drawBlock.initialize(mTerrainMesh, mTerrainMaterial);
             drawBlockKey =
                 mVisualSystem->getRenderManager()->addDrawBlock(drawBlock);
-
-            Vector3 pos =
-                Vector3(node->data.position.x, 50.f, node->data.position.y);
-            mVisualSystem->getVisualDebug()->drawPoint(pos, 10.f);
         }
 
         chunksToRender.push_back(node->data);

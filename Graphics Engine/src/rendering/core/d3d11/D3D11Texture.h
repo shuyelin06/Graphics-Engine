@@ -32,6 +32,8 @@ class D3D11Texture : public Texture
     // Different views for the texture. NULL if uninitialized.
     ID3D11ShaderResourceView* shader_view = nullptr;
 
+    ID3D11Device* device;
+
   public:
     D3D11Texture(ID3D11Device* device,
                  TextureLayout layout,
@@ -59,7 +61,7 @@ class D3D11Texture : public Texture
                 size_t bytes);
 
 #if defined(IMGUI_ENABLED)
-    void doImgui() const override;
+    void renderToImGui(uint8_t slice) const override;
 #endif
 };
 

@@ -61,6 +61,8 @@ class Texture : public Resource
     virtual uint16_t getArraySlices() const = 0;
     virtual uint8_t getMips() const = 0;
     virtual TextureLayout getTextureLayout() = 0;
+
+    virtual void renderToImGui(uint8_t slice = 0) const = 0;
 };
 
 } // namespace Graphics

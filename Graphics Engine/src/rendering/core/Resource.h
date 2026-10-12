@@ -11,7 +11,6 @@ class Resource
 {
   public:
     virtual ~Resource() {};
-    virtual void doImgui() const = 0;
 };
 
 } // namespace Graphics

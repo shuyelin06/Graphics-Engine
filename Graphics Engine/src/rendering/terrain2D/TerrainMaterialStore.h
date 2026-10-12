@@ -23,7 +23,12 @@ class TerrainMaterialStore
 
     std::unordered_map<std::string_view, int> mMaterialIndexMap;
 
+    // Each Terrain Material indexes these texture arrays:
+    // - Color (for the Material Color)
+    // - Displacement (for Height-Based Blending)
     std::shared_ptr<Texture> mAlbedoArray;
+    std::shared_ptr<Texture> mDisplacementArray;
+
     std::vector<uint8_t> mFreeList;
 
   public:
@@ -35,10 +40,13 @@ class TerrainMaterialStore
     int getMaterialIndex(std::string_view name);
     void streamMaterials(DeviceContext* context);
 
+    void imGui();
+
     std::shared_ptr<Texture>& getAlbedoArray() { return mAlbedoArray; }
+    std::shared_ptr<Texture>& getDisplacementArray() { return mDisplacementArray; }
 
   private:
-    bool streamAlbedoTexture(DeviceContext* context,
+    bool streamMaterial(DeviceContext* context,
                              std::string_view name,
                              std::string_view path);
 };
